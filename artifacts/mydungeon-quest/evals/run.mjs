@@ -100,3 +100,19 @@ console.log('PASS — mock campaigns, reducers, protocol, media floor, scrubber,
   assert.equal(streamed, turn.narration_blocks.map((b) => b.text).join('\n\n'), 'mock stream must deliver the full narration progressively');
   console.log('PASS — static craft prompt, partial-JSON narration extraction, and streaming parity are green.');
 }
+
+// ---- v0.2.1 anchor-law assertions: reference conditioning ----
+{
+  const reference = { mime: 'image/svg+xml', data: Buffer.from('anchor-bust').toString('base64'), assetHash: 'anchor-hash-1' };
+  const plain = await mockAdapter.paint({ prompt: 'anchor trial', kind: 'portrait' });
+  const anchoredA = await mockAdapter.paint({ prompt: 'anchor trial', kind: 'portrait', references: [reference] });
+  const anchoredB = await mockAdapter.paint({ prompt: 'anchor trial', kind: 'portrait', references: [reference] });
+  assert.equal(await sha256(anchoredA.bytes), await sha256(anchoredB.bytes), 'anchored renders must stay deterministic');
+  assert.notEqual(await sha256(plain.bytes), await sha256(anchoredA.bytes), 'the anchor must actually reach the render');
+  const video = await mockAdapter.video({ prompt: 'anchor trial film', references: [reference] });
+  assert.ok(video.bytes.toString().includes('⚓'), 'video path must honor references');
+  const specPlain = await generationSpec('paint', 'anchor trial', {});
+  const specAnchored = await generationSpec('paint', 'anchor trial', { referenceAssetHashes: ['anchor-hash-1'] });
+  assert.notEqual(specPlain.hash, specAnchored.hash, 'reference hashes must enter the generation identity when declared');
+  console.log('PASS — anchor law: deterministic, render-reaching, and identity-bearing.');
+}

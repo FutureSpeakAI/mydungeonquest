@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — The Anchor Law (2026-07-13)
+Faces and places converge on their canon: first bust / first plate become
+permanent reference anchors carried into every later render across image and
+video providers, regions repaint anchored as they degrade, and every anchor
+is sealed into the attestation chain.
+
 ## 0.2.0 — The Engine Cut (2026-07-13)
 The brain and the pipeline. The DM remembers its own prose (rolling
 conversation history + static craft prompt + working cache); narration streams

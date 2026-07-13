@@ -85,11 +85,11 @@ const toolSchema = {
   type: 'object', additionalProperties: false,
   required: ['narration_blocks','suggestions','roll_request','state_updates','combat','cinematic','story','image_cue','dialogue_cue','time_advance','entropy_use'],
   properties: {
-    narration_blocks: { type: 'array', minItems: 1, maxItems: 8, description: 'One to eight prose blocks. The combined word count across ALL blocks must be between 20 and 180 words. Aim for 70-150 so you never overrun the hard 180-word limit.', items: { type: 'object', additionalProperties: false, required: ['text','speaker'], properties: { text: { type: 'string', maxLength: 1200 }, speaker: { anyOf: [{ type: 'string', maxLength: 80 }, { type: 'null' }] } } } },
-    suggestions: { type: 'array', minItems: 3, maxItems: 3, description: 'Exactly three distinct next actions.', items: { type: 'string', maxLength: 60, description: 'A terse action label of AT MOST 6 words (hard limit). E.g. "Search the wayhouse".' } },
+    narration_blocks: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'object', additionalProperties: false, required: ['text','speaker'], properties: { text: { type: 'string', maxLength: 1200 }, speaker: { anyOf: [{ type: 'string', maxLength: 80 }, { type: 'null' }] } } } },
+    suggestions: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: 60, description: 'At most 6 words.' } },
     roll_request: rollRequestSchema, state_updates: { anyOf: [{ type: 'null' }, { type: 'object' }] },
     combat: combatSchema, cinematic: cinematicSchema,
-    story: { anyOf: [{ type: 'null' }, { type: 'object' }], description: 'Narrative/codex deltas: { beat_advance, arc, cast_add, cast_update, world }. On the opening (genesis) turn this MUST be an object with arc, cast_add (exactly one villain plus a mentor/ally), and world.region_add — never null on the opening turn.' }, image_cue: imageCueSchema,
+    story: { anyOf: [{ type: 'null' }, { type: 'object' }] }, image_cue: imageCueSchema,
     dialogue_cue: dialogueCueSchema, time_advance: timeAdvanceSchema,
     entropy_use: { type: 'array', items: { type: 'object', required: ['index','die','purpose'], properties: { index: { type: 'integer' }, die: { type: 'string' }, purpose: { type: 'string' } } } }
   }

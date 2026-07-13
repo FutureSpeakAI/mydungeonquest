@@ -91,7 +91,9 @@ export class Foundry {
       const queued = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: job.prompt, ...job.options }) }).then((r) => r.json());
       for (let attempt = 0; attempt < 240; attempt += 1) {
         const status = await fetch(`/api/video/${queued.id}`).then((r) => r.json());
-        if (status.status === 'ready') { response = await fetch(`/api/video/${queued.id}/asset`); break; }
+        // The server flags `degraded` when the real render (Veo) throws and it
+        // falls back to the procedural animatic; carry it onto the sealed row.
+        if (status.status === 'ready') { job.__degraded = Boolean(status.degraded); response = await fetch(`/api/video/${queued.id}/asset`); break; }
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
       if (!response) throw new Error('Video generation timed out');
@@ -110,6 +112,7 @@ export class Foundry {
       label: job.options?.label || null, variant: job.options?.variant || null,
       referenceAssetHashes,
       provider: response.headers.get('X-Media-Provider') || 'unknown', model: response.headers.get('X-Media-Model') || 'unknown',
+      degraded: Boolean(job.__degraded),
       blob, createdAt: Date.now()
     };
     await db.media.put(row);

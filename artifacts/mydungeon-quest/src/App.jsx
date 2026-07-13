@@ -100,6 +100,7 @@ export default function App() {
   const [diceResult, setDiceResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [weaving, setWeaving] = useState(null);
+  const [renderingVideos, setRenderingVideos] = useState({});
   const [status, setStatus] = useState('✦ The table is set.');
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const settingsRef = useRef(DEFAULT_SETTINGS); settingsRef.current = settings;
@@ -158,8 +159,13 @@ export default function App() {
       if (dm.dialogue_cue) jobs.push({ kind: 'speak', prompt: dm.dialogue_cue.line, options: { text: dm.dialogue_cue.line }, priority: 1 });
     }
     briefUpcomingBeat(campaign, foundry, campaign.codex.beatIndex);
+    const clearRendering = (logId) => setRenderingVideos((prev) => { if (!prev[logId]) return prev; const next = { ...prev }; delete next[logId]; return next; });
     for (const job of jobs) {
+      // A cinematic film (Veo) can take minutes; flag its turn as rendering so
+      // the story view shows a placeholder until the asset resolves or degrades.
+      if (job.logId && job.kind === 'video') setRenderingVideos((prev) => ({ ...prev, [job.logId]: true }));
       foundry.enqueue({ ...job, originTurnHash: turnRecord.recordHash }).then(async (asset) => {
+        if (job.logId && job.kind === 'video') clearRendering(job.logId);
         if (!asset) return;
         if (job.logId && job.kind === 'paint' && asset.mime.startsWith('image/')) {
           const dataUrl = await blobToDataUrl(asset.blob);
@@ -176,16 +182,17 @@ export default function App() {
         if (job.logId && job.kind === 'video') {
           const dataUrl = await blobToDataUrl(asset.blob);
           const isVideo = asset.mime.startsWith('video/');
+          const degraded = Boolean(asset.degraded);
           setCurrent((prev) => {
             if (!prev || prev.id !== campaign.id) return prev;
             const logs = prev.logs.map((log) => log.id === job.logId
-              ? { ...log, ...(isVideo ? { videoUrl: dataUrl } : { videoPosterUrl: dataUrl }), videoAssetHash: asset.assetHash }
+              ? { ...log, ...(isVideo ? { videoUrl: dataUrl } : { videoPosterUrl: dataUrl }), videoAssetHash: asset.assetHash, videoDegraded: degraded }
               : log);
             const next = { ...prev, logs, spend: foundry.spend };
             saveCampaign(next); return next;
           });
         }
-      }).catch(() => {});
+      }).catch(() => { if (job.logId && job.kind === 'video') clearRendering(job.logId); });
     }
   }, []);
 
@@ -424,7 +431,7 @@ export default function App() {
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
       <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
-      {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} />)}
+      {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} rendering={Boolean(renderingVideos[log.id])} />)}
       {busy && (weaving
         ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>
         : <div className="streaming"><span/>The Dungeon Master considers…</div>)}
@@ -499,19 +506,25 @@ function TitleScreen({ campaigns, onNew, onOpen, onRestore }) {
   </main>;
 }
 
-function LogEntry({ log, campaign }) {
+function LogEntry({ log, campaign, rendering }) {
   const cue = log.dm.image_cue;
   const art = cue ? proceduralArtDataUrl(`${campaign.id}:${log.id}`, cue.mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']) : null;
+  const cinematicTitle = log.dm.cinematic?.title || 'Cinematic';
+  const hasFilm = log.videoUrl || log.videoPosterUrl;
   return <article className="turn-entry">
     {log.player && <div className="player-line"><span>You</span><p>{log.player}</p></div>}
     {log.dm.cinematic && <div className="beat-line"><span>✦</span><b>{log.dm.cinematic.title}</b><small>{log.dm.cinematic.subtitle}</small></div>}
     {cue && <figure className="illustration-panel full-bleed"><img src={log.imageUrl || art} alt={cue.mood}/><figcaption>{cue.mood}{log.imageUrl ? <span>illuminated</span> : <span>procedural plate</span>}</figcaption></figure>}
     <div className="narration">{log.dm.narration_blocks.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
-    {(log.videoUrl || log.videoPosterUrl) && <figure className="illustration-panel full-bleed">
+    {rendering && !hasFilm && <figure className="illustration-panel full-bleed cinematic-rendering" aria-live="polite">
+      <div className="rendering-stage"><span className="rendering-spinner" aria-hidden/><b>Rendering cinematic…</b><small>“{cinematicTitle}” is being filmed. This can take a few minutes.</small></div>
+      <figcaption>{cinematicTitle}<span>rendering</span></figcaption>
+    </figure>}
+    {hasFilm && <figure className="illustration-panel full-bleed">
       {log.videoUrl
-        ? <video src={log.videoUrl} poster={log.videoPosterUrl || undefined} controls playsInline loop muted preload="metadata" aria-label={log.dm.cinematic?.title || 'cinematic'} />
+        ? <video src={log.videoUrl} poster={log.videoPosterUrl || undefined} controls playsInline loop muted preload="metadata" aria-label={cinematicTitle} />
         : <img src={log.videoPosterUrl} alt={log.dm.cinematic?.title || 'cinematic keyframe'} />}
-      <figcaption>{log.dm.cinematic?.title || 'Cinematic'}{log.videoUrl ? <span>cinematic film</span> : <span>keyframe</span>}</figcaption>
+      <figcaption>{cinematicTitle}{log.videoDegraded ? <span>procedural animatic</span> : (log.videoUrl ? <span>cinematic film</span> : <span>keyframe</span>)}</figcaption>
     </figure>}
     {log.resolution && <div className={`roll-stamp ${log.resolution.outcome.includes('success')?'success':'failure'}`}><Dices/><span>{log.resolution.selectedDie} → {log.resolution.total}</span><b>{log.resolution.outcome.replaceAll('_',' ')}</b></div>}
   </article>;

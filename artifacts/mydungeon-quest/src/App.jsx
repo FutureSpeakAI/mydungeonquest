@@ -335,6 +335,17 @@ export default function App() {
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
   }, [current?.id, current?.keyArtHash, current?.logs?.length]); // eslint-disable-line
 
+  // THE LIVING SEAL — the wax presses closed each time a turn is sealed into
+  // the chain (its head hash changes). Tapping it opens the bound chronicle.
+  const [sealPulse, setSealPulse] = useState(0);
+  const lastSealRef = useRef({ id: null, hash: null });
+  useEffect(() => {
+    if (!current) { lastSealRef.current = { id: null, hash: null }; return; }
+    const prev = lastSealRef.current;
+    if (prev.id === current.id && prev.hash && current.headHash && prev.hash !== current.headHash) setSealPulse((n) => n + 1);
+    lastSealRef.current = { id: current.id, hash: current.headHash };
+  }, [current?.id, current?.headHash]);
+
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
   if (flow === 'title') return <TitleScreen campaigns={campaigns} onNew={() => setFlow('world')} onOpen={(campaign) => { setCurrent(campaign); setFlow('table'); }} onRestore={restoreFile} status={status} />;
@@ -347,7 +358,7 @@ export default function App() {
     <header className="table-header">
       <button className="sigil-button" onClick={() => setOverlay('sheet')}><span>{current.hero.sigil}</span><div><b>{current.hero.name}</b><small>Level {current.hero.level} {current.hero.className}</small></div></button>
       <div className="header-stats"><span><HeartPulse/> {current.hero.hp}/{current.hero.maxHp}</span><span><Shield/> {current.hero.ac}</span><span className="desktop-stat">{current.hero.gold} gold</span></div>
-      <nav><button onClick={() => setOverlay('codex')}><BookOpen/><span>Codex</span></button><button onClick={openStorybook}><ScrollText/><span>Book</span></button><button onClick={() => setOverlay('settings')}><SettingsIcon/><span>Care</span></button></nav>
+      <nav><button onClick={() => setOverlay('codex')}><BookOpen/><span>Codex</span></button><button onClick={() => setOverlay('settings')}><SettingsIcon/><span>Care</span></button><button className="wax-seal" onClick={openStorybook} title="The bound chronicle and its seal" aria-label="Open the bound chronicle"><span key={sealPulse} className="wax-emboss">{current.hero.sigil}</span></button></nav>
     </header>
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}

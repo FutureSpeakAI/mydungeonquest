@@ -8,7 +8,7 @@ import { applyStateUpdates, createHero, heroRoll, rollInitiative } from './lib/r
 import { applyStoryUpdates, initCodex, storyBlock } from './lib/story.js';
 import { makeEntropy, validateDmTurn } from './lib/protocol.js';
 import { campaignJournal, db, listCampaigns, saveCampaign } from './lib/db.js';
-import { appendEvent, exportChronicle, forkChronicle, importChronicle } from './lib/seal.js';
+import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
 import { cinematicPrompt, portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
@@ -19,7 +19,7 @@ import { setScoreState, startScore, stopScore } from './lib/cinema/score.js';
 import { speakBlocks, stopSpeaking } from './lib/cinema/voice.js';
 import { buildStorybook } from './lib/storybook.js';
 
-const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, score: true, voice: false, textScale: 1, mediaTier: 'parchment' };
+const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, score: true, voice: false, textScale: 1, mediaTier: 'illuminated' };
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
@@ -27,6 +27,51 @@ function downloadBlob(blob, filename) {
 }
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
+}
+
+// Replicates seal.js signerFor, but opens no transaction so the key-gen crypto
+// stays outside any IndexedDB transaction scope.
+async function ensureSigner(campaignId) {
+  const existing = await db.keys.get(campaignId);
+  if (existing) return existing;
+  try {
+    const pair = await crypto.subtle.generateKey({ name: 'Ed25519' }, false, ['sign', 'verify']);
+    let publicJwk = null;
+    try { publicJwk = await crypto.subtle.exportKey('jwk', pair.publicKey); } catch { /* browser-specific */ }
+    const record = { campaignId, algorithm: 'Ed25519', privateKey: pair.privateKey, publicKey: pair.publicKey, publicJwk, signed: true };
+    await db.keys.put(record);
+    return record;
+  } catch {
+    const record = { campaignId, algorithm: 'SHA-256', signed: false, publicJwk: null };
+    await db.keys.put(record);
+    return record;
+  }
+}
+
+// SEAL — seal.js's appendEvent awaits crypto.subtle *inside* a Dexie rw
+// transaction, which real IndexedDB premature-commits ("Transaction committed
+// too early", seen the moment a rich media tier fires several attestations
+// around a turn). We rebuild the identical record through the engine's own
+// exported makeEnvelope, running every async (crypto) step OUTSIDE the
+// transaction and writing only synchronous Dexie ops inside it. Seals are
+// chained so the head hash never forks under concurrent attestations.
+let __sealChain = Promise.resolve();
+function seal(campaignId, type, payload) {
+  const attempt = async () => {
+    const campaign = await db.campaigns.get(campaignId);
+    if (!campaign) throw new Error('Campaign not found');
+    const signer = await ensureSigner(campaignId);
+    const i = campaign.turnCount || 0;
+    const record = await makeEnvelope({ type, i, prevHash: campaign.headHash || null, payload, signer });
+    await db.transaction('rw', db.campaigns, db.journal, async () => {
+      await db.journal.put({ campaignId, ...record });
+      await db.campaigns.update(campaignId, { headHash: record.recordHash, turnCount: i + 1, signatureStatus: signer.signed ? 'signed' : 'hash-only', updatedAt: Date.now() });
+    });
+    return record;
+  };
+  const run = __sealChain.then(attempt);
+  __sealChain = run.then(() => {}, () => {});
+  return run;
 }
 
 function applyCombat(current, update, hero) {
@@ -81,7 +126,7 @@ export default function App() {
     if (campaign.mediaTier === 'parchment') return;
     const foundry = new Foundry({
       campaignId: campaign.id, tier: campaign.mediaTier, spend: campaign.spend,
-      onAttestation: async (payload) => appendEvent(campaign.id, 'media_attestation', payload)
+      onAttestation: async (payload) => seal(campaign.id, 'media_attestation', payload)
     });
     const jobs = [];
     // The cover evolves with the story: the key art repaints once per act
@@ -188,7 +233,7 @@ export default function App() {
       const log = { id: crypto.randomUUID(), player: visiblePlayer, sent: player, dm, ts: Date.now(), resolution: null, redacted: false };
       let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed };
       await saveCampaign(next);
-      const record = await appendEvent(base.id, 'turn', { player, visiblePlayer, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution });
+      const record = await seal(base.id, 'turn', { player, visiblePlayer, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution });
       const sealed = await db.campaigns.get(base.id);
       next = { ...next, headHash: sealed.headHash, turnCount: sealed.turnCount, signatureStatus: sealed.signatureStatus };
       next.logs[next.logs.length - 1].recordHash = record.recordHash;
@@ -220,7 +265,7 @@ export default function App() {
     setStatus('Painting your world…');
     const foundry = new Foundry({
       campaignId: campaign.id, tier: campaign.mediaTier, spend: campaign.spend,
-      onAttestation: async (payload) => appendEvent(campaign.id, 'media_attestation', payload)
+      onAttestation: async (payload) => seal(campaign.id, 'media_attestation', payload)
     });
     const [keyArt] = await Promise.all([
       foundry.enqueue({ ...keyArtJob(campaign, actOf(campaign)), originTurnHash: null }).catch(() => null),
@@ -258,7 +303,7 @@ export default function App() {
     if (!current.pendingRoll || busy) return;
     const result = heroRoll(current.hero, current.pendingRoll);
     setDiceResult(result);
-    const resolutionRecord = await appendEvent(current.id, 'resolution', result);
+    const resolutionRecord = await seal(current.id, 'resolution', result);
     const sealed = await db.campaigns.get(current.id);
     const logs = current.logs.map((log, index) => index === current.logs.length - 1 ? { ...log, resolution: result } : log);
     const next = { ...current, logs, pendingRoll: null, headHash: sealed.headHash, turnCount: sealed.turnCount };
@@ -269,7 +314,7 @@ export default function App() {
   const redactLast = async () => {
     const target = [...current.logs].reverse().find((log) => !log.redacted && log.recordHash);
     if (!target || busy || current.readOnly) return;
-    await appendEvent(current.id, 'redaction', { targetRecordHash: target.recordHash, scope: 'active_canon' });
+    await seal(current.id, 'redaction', { targetRecordHash: target.recordHash, scope: 'active_canon' });
     await db.memories.where('campaignId').equals(current.id).filter((row) => row.recordHash === target.recordHash).delete();
     const logs = current.logs.map((log) => log.id === target.id ? { ...log, redacted: true } : log);
     const sealed = await db.campaigns.get(current.id);
@@ -379,7 +424,7 @@ export default function App() {
     {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onClose={() => setOverlay(null)} />}
     {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} />}
     {overlay === 'level' && <div className="ritual"><Sparkles/><span>Level {current.hero.level}</span><h2>The story has made you larger.</h2><button onClick={()=>setOverlay(null)}>Accept the new name fate gives you</button></div>}
-    {current.hero.hp <= 0 && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await appendEvent(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} />}
+    {current.hero.hp <= 0 && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} />}
   </div>;
 }
 

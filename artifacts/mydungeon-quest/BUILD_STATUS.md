@@ -100,10 +100,19 @@ layer (App.jsx, components, cinema/prompts, storybook, styles, prologue).
   for the World-forge draft (no codex), silently killing the Hero-forge live
   portrait; now null-safe like keyArtPrompt.
 
-### Media provider note
-- Image/video/audio adapters serve deterministic MOCK placeholders unless the
-  matching `*_PROVIDER` env is set (e.g. `PAINT_PROVIDER=openai` with
-  `OPENAI_API_KEY`). Mock is keyless/free and keeps `npm run check` green; real
-  painted art requires opting in per provider.
-- `npm run check` remains green (build + 90/90 bench + engine assertions +
-  anchor law), run keyless.
+### Media + DM providers (real, auto-selected)
+- Providers now auto-select the best *configured* option per kind via ordered
+  fallback chains ending in mock (no need to set `*_PROVIDER`):
+  - paint: **Gemini** (`gemini-2.5-flash-image`) → OpenAI → mock
+  - video: **Gemini/Veo** (`veo-3.1-fast-generate-preview`) → OpenAI (Sora) → mock
+  - voice/music/sfx: **ElevenLabs** → (voice: OpenAI) → mock
+  - DM: **Anthropic** → OpenAI (same tool schema + validator) → safe fallback
+- A per-kind `*_PROVIDER` env still FORCES one provider (chain becomes
+  `[forced, mock]`); leave unset to keep the full chain, or set `=mock` to force
+  placeholders. `DM_FALLBACK=off` disables the OpenAI DM fallback.
+- Every non-mock provider attempt is bounded by a per-kind wall-clock budget
+  (`runChain`), so a stalled upstream call degrades to the next provider / mock
+  instead of hanging; Gemini fetches also carry abort timeouts.
+- Verified live end-to-end: Gemini paint (PNG) + Veo video (mp4), ElevenLabs
+  voice + music (mp3), Anthropic DM. Keyless `npm run check` stays green (no
+  keys → all mock; eval asserts DM provider === 'mock').

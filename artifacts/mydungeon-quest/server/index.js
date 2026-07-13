@@ -4,7 +4,25 @@ import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDmTurn } from './dm.js';
-import { adapters } from './adapters/index.js';
+import { adapters, providerChains } from './adapters/index.js';
+
+// Walk a provider chain (preferred → … → mock), returning the first success.
+// Each fall-through is logged so the console shows why a paid provider was
+// skipped; mock is the guaranteed floor and never throws.
+async function runChain(kind, body) {
+  const chain = providerChains()[kind];
+  let lastError;
+  for (let i = 0; i < chain.length; i += 1) {
+    try {
+      const result = await chain[i][kind](body);
+      return { ...result, degraded: i > 0 };
+    } catch (error) {
+      lastError = error;
+      console.error(`[${kind}] provider ${chain[i].name} failed: ${error.message}`);
+    }
+  }
+  throw lastError || new Error(`No ${kind} provider available`);
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -72,7 +90,7 @@ async function sendAsset(res, result) {
 
 for (const kind of ['paint','speak','music','sfx']) {
   app.post(`/api/${kind}`, rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), async (req, res) => {
-    try { await sendAsset(res, await adapters()[kind][kind](req.body || {})); }
+    try { await sendAsset(res, await runChain(kind, req.body || {})); }
     catch (error) { console.error(error); await sendAsset(res, await adapters().mock[kind](req.body || {})); }
   });
 }
@@ -83,8 +101,8 @@ app.post('/api/video', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30))
   videoJobs.set(id, { status: 'queued', created: Date.now(), body: req.body || {} });
   queueMicrotask(async () => {
     const job = videoJobs.get(id);
-    try { job.result = await adapters().video.video(job.body); job.status = 'ready'; }
-    catch (error) { job.result = await adapters().mock.video(job.body); job.status = 'ready'; job.degraded = true; }
+    try { const r = await runChain('video', job.body); job.result = r; job.degraded = Boolean(r.degraded); job.status = 'ready'; }
+    catch (error) { console.error(error); job.result = await adapters().mock.video(job.body); job.status = 'ready'; job.degraded = true; }
   });
   res.status(202).json({ id, status: 'queued' });
 });

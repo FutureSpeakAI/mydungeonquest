@@ -23,7 +23,6 @@ timeoutMs = 20000
 
 [userenv.shared]
 MUSIC_PROVIDER = "elevenlabs"
-PAINT_PROVIDER = "openai"
 SFX_PROVIDER = "elevenlabs"
 SPEAK_PROVIDER = "elevenlabs"
 DM_MODEL = "claude-sonnet-5"

@@ -218,6 +218,37 @@ async function anthropicTurnStream(input, onNarration) {
   catch { const a = json.indexOf('{'), b = json.lastIndexOf('}'); return JSON.parse(json.slice(a, b + 1)); }
 }
 
+// OpenAI fallback for the DM: same tool schema, system prompt, and strict
+// client validator as Anthropic, so a fallback turn is held to the identical
+// contract. Used only when Anthropic errors/fails validation twice. Anthropic
+// message blocks are flattened to plain strings for the chat API.
+async function openaiTurn(input, repair = null) {
+  const messages = [
+    { role: 'system', content: buildSystemPrompt(input) },
+    ...shapeMessages(input).map((m) => ({ role: m.role, content: m.content.map((c) => c.text).join('\n') }))
+  ];
+  if (repair) {
+    messages.push({ role: 'assistant', content: `Previous dm_turn attempt:\n${JSON.stringify(repair.turn)}` });
+    messages.push({ role: 'user', content: `The rules client REJECTED that dm_turn. Keep everything that was correct and fix ONLY these violations, then resend the COMPLETE corrected dm_turn via the dm_turn tool:\n- ${repair.errors.join('\n- ')}` });
+  }
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: process.env.DM_MODEL_OPENAI || 'gpt-4o',
+      max_tokens: 2400,
+      messages,
+      tools: [{ type: 'function', function: { name: 'dm_turn', description: 'The only valid Dungeon Master response.', parameters: toolSchema } }],
+      tool_choice: { type: 'function', function: { name: 'dm_turn' } }
+    })
+  });
+  if (!response.ok) throw new Error(`OpenAI ${response.status}: ${await response.text()}`);
+  const json = await response.json();
+  const call = json.choices?.[0]?.message?.tool_calls?.find((t) => t.function?.name === 'dm_turn');
+  if (!call) throw new Error('OpenAI returned no dm_turn tool call');
+  return JSON.parse(call.function.arguments);
+}
+
 // Mock mode paints the same experience: the canned narration
 // arrives in growing slices so the streaming UI is exercised
 // keylessly, end to end.
@@ -270,6 +301,24 @@ export async function getDmTurn(input, { onNarration = null } = {}) {
       repair = null;
     }
   }
+
+  // Anthropic exhausted — try OpenAI (ChatGPT) before generic narration.
+  if (process.env.OPENAI_API_KEY && process.env.DM_FALLBACK !== 'off') {
+    let repairO = null;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const turn = await openaiTurn(input, repairO);
+        const validation = validateDmTurn(turn, input.entropy);
+        if (validation.ok) return { turn, provider: 'openai', repaired: attempt > 0, fellBackFrom: 'anthropic' };
+        lastError = new Error(`Invalid DM turn (openai): ${validation.errors.join('; ')}`);
+        repairO = { turn, errors: validation.errors };
+      } catch (error) {
+        lastError = error;
+        repairO = null;
+      }
+    }
+  }
+
   console.error(lastError);
   return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', error: lastError.message };
 }

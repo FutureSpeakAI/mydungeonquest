@@ -67,3 +67,11 @@
 .region-gallery .region-copy b{display:block}
 .region-gallery .region-copy span{font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;color:var(--gold);opacity:.85}
 .region-gallery .region-copy p{margin:.35rem 0 0;font-size:.82rem;color:var(--vellum-dim)}
+
+/* ===== PHASE 5 — THE LIVING SEAL ===== */
+.table-header nav .wax-seal{position:relative;width:44px;height:44px;min-width:44px;border-radius:50%;padding:0;flex-direction:row;background:radial-gradient(circle at 34% 28%,#c4483b,#7c1f18 68%,#4d120e);border:none;box-shadow:0 3px 11px rgba(0,0,0,.55),inset 0 2px 6px rgba(255,255,255,.28),inset 0 -5px 9px rgba(0,0,0,.55);display:grid;place-items:center;cursor:pointer;transition:transform .15s ease}
+.table-header nav .wax-seal:hover{transform:translateY(-1px) scale(1.04)}
+.table-header nav .wax-seal:before{content:"";position:absolute;inset:4px;border-radius:50%;border:1px dashed rgba(0,0,0,.35);pointer-events:none}
+.wax-emboss{font-size:1.18rem;line-height:1;color:#f5dca6;text-shadow:0 1px 1px rgba(0,0,0,.65),0 0 6px rgba(245,220,166,.35);animation:sealPress .62s cubic-bezier(.2,.85,.25,1) both}
+@keyframes sealPress{0%{transform:scale(1.7);opacity:.15;filter:blur(2px)}55%{transform:scale(.82)}78%{transform:scale(1.06)}100%{transform:scale(1);opacity:1;filter:none}}
+@media (prefers-reduced-motion:reduce){.wax-emboss{animation:none}}

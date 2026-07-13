@@ -47,8 +47,36 @@
 - `npm run check` green: build + 90/90 bench + new engine assertions
   (static prompt, partial-JSON extraction, streaming parity).
 
-### Still deliberately open (visual phases → HANDOFF-REPLIT.md)
-- Prologue Render, image-first table, title-screen key art, card covers,
-  wax-seal animation, storybook film-strip spread.
+### Still deliberately open
 - Chronicler utility-model compaction remains fallback-only.
 - SRD action catalog remains a foundation, not a compendium.
+
+## Visual render pass — The Engine Cut on screen (2026-07-13)
+The engine was left untouched; only the player-facing surfaces changed.
+- **Prologue Render:** the forge plays a title sequence and hero portrait; the
+  first key art is adopted before turn one, so Chapter I opens on a painting.
+  Key art regenerates per act.
+- **Image-first table:** the Codex wears painted portraits and region plates
+  when they exist (falling back to monograms); illustration panels go
+  full-bleed on mobile; the region strip parallaxes on scroll (respecting
+  reduced-motion). No text is baked into procedural plates.
+- **The wax seal:** a stamp in the header presses closed with a brief flash on
+  every turn commit and taps open the bound book. No hash-ticker returned.
+- **The Face (title screen):** full-bleed key art with a slow Ken Burns cycle,
+  a single "Begin your legend" action, rotating attract lines, and chronicle
+  cards wearing their key art as covers. First launch with zero saves is
+  purely cinematic. Four bundled painterly 16:9 key-art paintings live in
+  `public/keyart/` (≤280KB each, no baked-in text; titles are typography).
+- **The Book:** a film-strip "Reel" spread of beat keyframes, a key-art cover,
+  and embedded Cinzel + Crimson Pro (latin, OFL) so the exported book renders
+  with its true typography fully offline. The colophon carries no builder
+  jargon.
+- **PDF binding:** HTML binding always works (client-side). PDF binding now
+  discovers a Chromium at runtime — `PLAYWRIGHT_CHROMIUM_PATH`, then
+  `/usr/bin/chromium`, then the newest Nix `chromium` — so it works in this
+  environment without a hardcoded path. Verified: 200 → valid PDF.
+
+### Environment notes for future work
+- The pasted directive references `HANDOFF-REPLIT.md` / `REMAKE-DIRECTIVE.md`,
+  which do not exist in the repo; the pasted spec is authoritative.
+- `npm run check` must run keyless (unset the AI keys) or its eval asserts fail.

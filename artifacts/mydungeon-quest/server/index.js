@@ -1,6 +1,6 @@
 import express from 'express';
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDmTurn } from './dm.js';
@@ -99,13 +99,33 @@ app.get('/api/video/:id/asset', async (req, res) => {
   await sendAsset(res, job.result);
 });
 
+// Locate a usable Chromium: explicit override, a system binary, or the newest
+// Nix-provided build (preferring ungoogled). Keeps PDF binding working without
+// hardcoding an environment-specific path.
+function findChromium() {
+  if (process.env.PLAYWRIGHT_CHROMIUM_PATH && existsSync(process.env.PLAYWRIGHT_CHROMIUM_PATH)) return process.env.PLAYWRIGHT_CHROMIUM_PATH;
+  if (existsSync('/usr/bin/chromium')) return '/usr/bin/chromium';
+  try {
+    const store = '/nix/store';
+    const ver = (s) => (s.match(/chromium-([\d.]+)/)?.[1] || '0').split('.').map(Number);
+    const cmp = (a, b) => { for (let i = 0; i < Math.max(a.length, b.length); i++) { if ((a[i] || 0) !== (b[i] || 0)) return (b[i] || 0) - (a[i] || 0); } return 0; };
+    const found = readdirSync(store)
+      .filter((n) => n.includes('chromium'))
+      .map((n) => ({ n, path: `${store}/${n}/bin/chromium` }))
+      .filter((c) => existsSync(c.path))
+      .sort((a, b) => (Number(b.n.includes('ungoogled')) - Number(a.n.includes('ungoogled'))) || cmp(ver(a.n), ver(b.n)));
+    return found[0]?.path || null;
+  } catch { return null; }
+}
+
 app.post('/api/bind-pdf', async (req, res) => {
   if (typeof req.body !== 'string' || !req.body.includes('<!doctype html')) return res.status(400).json({ error: 'Expected a self-contained HTML book.' });
   if (/\b(?:src|href)=["']https?:/i.test(req.body)) return res.status(400).json({ error: 'External URLs are forbidden in bound books.' });
   let browser;
   try {
     const { chromium } = await import('playwright');
-    browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : {}) });
+    const executablePath = findChromium();
+    browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-gpu'], ...(executablePath ? { executablePath } : {}) });
     const page = await browser.newPage();
     await page.route('**/*', (route) => route.request().url().startsWith('data:') ? route.continue() : route.abort());
     await page.setContent(req.body, { waitUntil: 'load', timeout: 60000 });

@@ -3,6 +3,12 @@
 // Reads GEMINI_API_KEY, falling back to GOOGLE_API_KEY so either secret works.
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
+// Bound every request so a stalled Google call aborts and lets the caller's
+// provider chain fall through to the next provider / mock instead of hanging.
+function timedFetch(url, options = {}, ms = 120000) {
+  return fetch(url, { ...options, signal: AbortSignal.timeout(ms) });
+}
+
 function aspectFor(kind, size) {
   if (kind === 'portrait') return '3:4';
   if (kind === 'scene' || kind === 'key_art' || kind === 'cover') return '16:9';
@@ -25,10 +31,10 @@ export function geminiAdapter(key) {
       for (const ref of references.slice(0, 3)) {
         if (ref?.data) parts.push({ inlineData: { mimeType: ref.mime || 'image/png', data: ref.data } });
       }
-      const response = await fetch(`${BASE}/models/${model}:generateContent?key=${key}`, {
+      const response = await timedFetch(`${BASE}/models/${model}:generateContent?key=${key}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseModalities: ['IMAGE'] } })
-      });
+      }, 120000);
       if (!response.ok) throw new Error(`Gemini ${response.status}: ${(await response.text()).slice(0, 300)}`);
       const json = await response.json();
       const image = (json.candidates?.[0]?.content?.parts || []).find((p) => p.inlineData?.data);
@@ -41,16 +47,16 @@ export function geminiAdapter(key) {
       const instance = { prompt };
       if (references[0]?.data) instance.image = { bytesBase64Encoded: references[0].data, mimeType: references[0].mime || 'image/png' };
       const parameters = { aspectRatio: aspectFor('scene', size), durationSeconds: Math.max(4, Math.min(8, Math.round(seconds))) };
-      const create = await fetch(`${BASE}/models/${model}:predictLongRunning?key=${key}`, {
+      const create = await timedFetch(`${BASE}/models/${model}:predictLongRunning?key=${key}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ instances: [instance], parameters })
-      });
+      }, 60000);
       if (!create.ok) throw new Error(`Gemini video ${create.status}: ${(await create.text()).slice(0, 300)}`);
       const op = await create.json();
       if (!op.name) throw new Error('Gemini video: no operation name');
       for (let attempt = 0; attempt < 150; attempt += 1) {
         await new Promise((resolve) => setTimeout(resolve, 6000));
-        const poll = await fetch(`${BASE}/${op.name}?key=${key}`);
+        const poll = await timedFetch(`${BASE}/${op.name}?key=${key}`, {}, 30000);
         if (!poll.ok) throw new Error(`Gemini video poll ${poll.status}`);
         const status = await poll.json();
         if (status.error) throw new Error(`Gemini video failed: ${status.error.message || 'unknown'}`);
@@ -63,7 +69,7 @@ export function geminiAdapter(key) {
         if (inlineB64) return { bytes: Buffer.from(inlineB64, 'base64'), mime: 'video/mp4', provider: 'gemini', model, seed: null, usage: null };
         if (uri) {
           // Veo file URIs require the API key to download.
-          const file = await fetch(uri.includes('key=') ? uri : `${uri}${uri.includes('?') ? '&' : '?'}key=${key}`);
+          const file = await timedFetch(uri.includes('key=') ? uri : `${uri}${uri.includes('?') ? '&' : '?'}key=${key}`, {}, 180000);
           if (!file.ok) throw new Error(`Gemini video download ${file.status}`);
           return { bytes: Buffer.from(await file.arrayBuffer()), mime: 'video/mp4', provider: 'gemini', model, seed: null, usage: null };
         }

@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/mydungeon-quest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A sovereign, local-first cinematic solo RPG PWA.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "eval": "node evals/run.mjs",
+    "check": "npm run build && npm run eval"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dexie": "^4.0.11",
+    "express": "^5.1.0",
+    "lucide-react": "catalog:",
+    "playwright": "^1.52.0",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "catalog:",
+    "vite": "catalog:"
+  }
+}

@@ -18,3 +18,11 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+MUSIC_PROVIDER = "elevenlabs"
+PAINT_PROVIDER = "openai"
+SFX_PROVIDER = "elevenlabs"
+SPEAK_PROVIDER = "elevenlabs"

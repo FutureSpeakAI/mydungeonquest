@@ -1,6 +1,6 @@
 import express from 'express';
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDmTurn } from './dm.js';
@@ -10,7 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const app = express();
 const port = Number(process.env.PORT || 3001);
-const maxBody = process.env.MAX_REQUEST_BYTES || '2mb';
+const maxBody = process.env.MAX_REQUEST_BYTES || '25mb'; // references ride as base64
 app.disable('x-powered-by');
 app.use(express.json({ limit: maxBody }));
 app.use(express.text({ type: 'text/html', limit: process.env.MAX_PDF_HTML_BYTES || '100mb' }));
@@ -99,38 +99,14 @@ app.get('/api/video/:id/asset', async (req, res) => {
   await sendAsset(res, job.result);
 });
 
-// Locate a usable Chromium: explicit override, a system binary, or the newest
-// Nix-provided build (preferring ungoogled). Keeps PDF binding working without
-// hardcoding an environment-specific path.
-function findChromium() {
-  if (process.env.PLAYWRIGHT_CHROMIUM_PATH && existsSync(process.env.PLAYWRIGHT_CHROMIUM_PATH)) return process.env.PLAYWRIGHT_CHROMIUM_PATH;
-  if (existsSync('/usr/bin/chromium')) return '/usr/bin/chromium';
-  try {
-    const store = '/nix/store';
-    const ver = (s) => (s.match(/chromium-([\d.]+)/)?.[1] || '0').split('.').map(Number);
-    const cmp = (a, b) => { for (let i = 0; i < Math.max(a.length, b.length); i++) { if ((a[i] || 0) !== (b[i] || 0)) return (b[i] || 0) - (a[i] || 0); } return 0; };
-    const found = readdirSync(store)
-      .filter((n) => n.includes('chromium'))
-      .map((n) => ({ n, path: `${store}/${n}/bin/chromium` }))
-      .filter((c) => existsSync(c.path))
-      .sort((a, b) => (Number(b.n.includes('ungoogled')) - Number(a.n.includes('ungoogled'))) || cmp(ver(a.n), ver(b.n)));
-    return found[0]?.path || null;
-  } catch { return null; }
-}
-
 app.post('/api/bind-pdf', async (req, res) => {
   if (typeof req.body !== 'string' || !req.body.includes('<!doctype html')) return res.status(400).json({ error: 'Expected a self-contained HTML book.' });
   if (/\b(?:src|href)=["']https?:/i.test(req.body)) return res.status(400).json({ error: 'External URLs are forbidden in bound books.' });
   let browser;
   try {
     const { chromium } = await import('playwright');
-    const executablePath = findChromium();
-    // --no-sandbox is required for the Nix Chromium to launch in this container.
-    // The book is the player's own static, self-contained HTML, but we harden
-    // regardless: no scripts run during binding, and only data: URIs may load.
-    browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-gpu'], ...(executablePath ? { executablePath } : {}) });
-    const context = await browser.newContext({ javaScriptEnabled: false });
-    const page = await context.newPage();
+    browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : {}) });
+    const page = await browser.newPage();
     await page.route('**/*', (route) => route.request().url().startsWith('data:') ? route.continue() : route.abort());
     await page.setContent(req.body, { waitUntil: 'load', timeout: 60000 });
     const pdf = await page.pdf({ format: 'Letter', printBackground: true, preferCSSPageSize: true, margin: { top: '0', right: '0', bottom: '0', left: '0' } });

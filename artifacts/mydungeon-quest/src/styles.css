@@ -18,81 +18,9 @@
 
 @media(max-width:720px){
   .title-hero{margin-top:3vh}.title-hero h1{font-size:clamp(1.9rem,10.5vw,7rem)}.shelf>header{align-items:center}.shelf>header h2{font-size:1.2rem}.shelf>header .secondary-button{font-size:0;width:44px;height:44px;padding:0}.shelf>header .secondary-button svg{width:20px}.form-grid{grid-template-columns:1fr}.ability-grid{grid-template-columns:repeat(3,1fr)}.table-header{padding:0 .7rem}.sigil-button div{display:none}.header-stats{gap:.5rem}.desktop-stat{display:none!important}.table-header nav button span{display:none}.table-header nav button{padding:.5rem}.adventure-log{padding-top:2rem}.campaign-mast{margin-bottom:2.6rem}.narration p{font-size:1.04rem}.composer-wrap{padding-left:.6rem;padding-right:.6rem}.region-strip{padding:0 .8rem}.region-strip small{max-width:55%;text-align:right}.modal-scrim{padding:0}.modal{max-height:100vh;height:100vh;border-radius:0;border:0}.modal>header{top:-1.2rem}.stat-ribbon{grid-template-columns:repeat(2,1fr)}.tier-grid{grid-template-columns:1fr}.codex-grid{grid-template-columns:1fr 1fr}.cinematic-title h3{font-size:.86rem}.cinematic-subtitle{font-size:.78rem}.combat-banner{top:72px}.button-row{display:grid;grid-template-columns:1fr 1fr}.button-row button{padding:.75rem .4rem}.read-only-banner{align-items:flex-start;flex-wrap:wrap}.header-stats span{font-size:.72rem}
-  .illustration-panel{width:100vw;margin-left:calc(50% - 50vw);border-left:0;border-right:0;padding:.28rem 0}
-  .illustration-panel img{aspect-ratio:4/5}
-  .illustration-panel figcaption{padding-left:1rem;padding-right:1rem}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
 
 /* v0.2 engine cut — the weaving caret and true film support */
 .weaving p:last-child:after{content:"▍";color:var(--gold);animation:caret .8s step-end infinite}
 .cinematic video.cinematic-art{width:100%;height:100%;object-fit:cover}
-
-/* Phase 1 — the Prologue Render: the forge is a title sequence */
-.forge-page.prologue{position:relative;isolation:isolate;background:none}
-.prologue-plate{position:fixed;inset:0;z-index:-2;background:var(--keyart) center/cover no-repeat;filter:saturate(.88) brightness(.66);transform:scale(1.04);opacity:.5;transition:opacity 1.2s ease,filter 1.2s ease}
-.prologue-plate.painted{opacity:.82;filter:saturate(1.02) brightness(.8)}
-.prologue-plate.summoning{animation:keyart-summon 2.6s ease-in-out infinite}
-@keyframes keyart-summon{50%{filter:saturate(1.12) brightness(.9) blur(1.5px)}}
-.prologue-veil{position:fixed;inset:0;z-index:-1;background:radial-gradient(circle at 50% 8%,rgba(13,11,20,.28),rgba(13,11,20,.74) 58%,var(--ink) 97%),linear-gradient(180deg,rgba(13,11,20,.34),rgba(13,11,20,.7))}
-.prologue .prologue-content{position:relative}
-.prologue .forge-header h1{text-shadow:0 4px 44px #000}
-.hero-portrait-row{display:grid;grid-template-columns:auto 1fr;gap:1.1rem;align-items:center;margin-bottom:1.3rem}
-.hero-portrait{margin:0;position:relative;width:136px;flex:none}
-.hero-portrait img{display:block;width:136px;height:182px;object-fit:cover;border:1px solid var(--gold-soft);border-radius:14px;background:#0f0c14;box-shadow:0 16px 44px rgba(0,0,0,.45);animation:image-arrive .7s ease both}
-.hero-portrait.summoning img{animation:portrait-summon 2.2s ease-in-out infinite}
-@keyframes portrait-summon{0%,100%{filter:blur(2px) saturate(.7);opacity:.72}50%{filter:blur(0) saturate(1);opacity:1}}
-.hero-portrait figcaption{margin-top:.42rem;text-align:center;font-style:italic;color:var(--vellum-dim);font-size:.72rem}
-.hero-sigil-block{display:grid;gap:.6rem}
-.hero-sigil-block .hero-sigil{margin-bottom:0}
-.hero-portrait-name{margin:0;display:grid}
-.hero-portrait-name b{font-family:Cinzel,serif;color:var(--vellum);font-size:1.1rem}
-.hero-portrait-name small{color:var(--vellum-dim)}
-.campaign-mast.has-keyart{position:relative;background-size:cover;background-position:center 38%;padding:clamp(3rem,12vw,6.5rem) 1.2rem 2.4rem;margin:-3rem -1rem 3.5rem;border-bottom:1px solid rgba(212,162,78,.28);border-radius:0 0 18px 18px;box-shadow:inset 0 -46px 60px -30px var(--ink)}
-.campaign-mast.has-keyart h1{text-shadow:0 4px 42px #000,0 2px 8px #000}
-.campaign-mast.has-keyart p{text-shadow:0 2px 12px #000}
-
-/* Phase 3 — the image-first table */
-.region-strip{will-change:background-position;transition:background-position .05s linear}
-.codex-grid.gallery article{overflow:hidden}
-.codex-portrait{aspect-ratio:4/3;margin:-.8rem -.8rem .7rem;border-radius:12px 12px 0 0;background-size:cover;background-position:center 30%;box-shadow:inset 0 -50px 40px -30px #110d16;animation:image-arrive .7s ease both}
-.region-list.gallery article.has-plate{position:relative;overflow:hidden;padding-top:96px}
-.codex-plate{position:absolute;left:0;right:0;top:0;height:88px;background-size:cover;background-position:center 40%;border-bottom:1px solid rgba(212,162,78,.3);-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}
-.region-list.gallery article.has-plate b,.region-list.gallery article.has-plate span{position:relative}
-
-/* Phase 5 remainder — the wax seal */
-.wax-seal{border:0;background:none;padding:.25rem .35rem;cursor:pointer;line-height:0;display:grid;place-items:center;margin-right:.15rem}
-.wax-seal svg{width:30px;height:30px;overflow:visible;transition:transform .3s ease}
-.wax-blob{fill:#7c1f22;filter:drop-shadow(0 3px 5px rgba(0,0,0,.55))}
-.wax-rim{fill:none;stroke:#a83730;stroke-width:1.1;opacity:.7}
-.wax-emboss{fill:#5c1417;stroke:#a83730;stroke-width:.5;opacity:.85;transition:fill .3s ease}
-.wax-seal:hover svg{transform:scale(1.08) rotate(-3deg)}
-.wax-seal:hover .wax-emboss{fill:#440f12}
-.wax-seal.pressing svg{animation:wax-press .95s cubic-bezier(.34,1.4,.5,1)}
-.wax-seal.pressing .wax-blob{animation:wax-flash .95s ease}
-@keyframes wax-press{0%{transform:scale(.55) rotate(-18deg)}45%{transform:scale(1.2) rotate(4deg)}70%{transform:scale(.92) rotate(-1deg)}100%{transform:scale(1) rotate(0)}}
-@keyframes wax-flash{0%{fill:#c25a3a}30%{fill:#9a2a24;filter:drop-shadow(0 0 9px rgba(212,162,78,.65))}100%{fill:#7c1f22;filter:drop-shadow(0 3px 5px rgba(0,0,0,.55))}}
-@media(prefers-reduced-motion:reduce){.wax-seal.pressing svg,.wax-seal.pressing .wax-blob{animation:none}}
-
-/* Phase 6 — The Face: full-bleed Ken Burns key art + attract mode */
-.title-page.cinematic{background:var(--ink)}
-.title-backdrop{position:absolute;inset:0;z-index:0;overflow:hidden}
-.kb-layer{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity 2.2s ease}
-.kb-layer.active{opacity:1;animation:kenburns 9.2s ease-out forwards}
-@keyframes kenburns{from{transform:scale(1.02) translate3d(0,0,0)}to{transform:scale(1.17) translate3d(-1.6%,-1.4%,0)}}
-.title-veil{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,rgba(13,11,20,.24),rgba(13,11,20,.7) 62%,var(--ink) 99%),linear-gradient(180deg,rgba(13,11,20,.55),rgba(13,11,20,.3) 28%,rgba(13,11,20,.94))}
-.title-page.cinematic .title-hero,.title-page.cinematic .shelf,.title-page.cinematic .title-footer,.title-page.cinematic .stars{position:relative;z-index:1}
-.title-page.cinematic .title-hero h1{text-shadow:0 6px 55px #000,0 2px 14px #000}
-.title-page.cinematic .title-hero p{color:var(--vellum)}
-.attract-line{min-height:1.6em;animation:attract-fade 1s ease}
-@keyframes attract-fade{from{opacity:0;transform:translateY(7px)}}
-.hero-cta{font-size:1.05rem;padding:.95rem 2.1rem}
-.link-restore{background:none;border:0;color:var(--vellum-dim);text-decoration:underline;cursor:pointer;font-size:.75rem;font-family:inherit}
-.link-restore:hover{color:var(--gold)}
-.chronicle-card.has-cover{background-size:cover;background-position:center}
-.chronicle-card.has-cover:before{background:radial-gradient(circle at 88% 8%,rgba(212,162,78,.22),transparent 40%)}
-.chronicle-card.has-cover h3{text-shadow:0 2px 10px #000}
-.chronicle-card.has-cover p{color:var(--vellum);text-shadow:0 1px 8px #000}
-.chronicle-card.has-cover .card-sigil{text-shadow:0 2px 12px #000}
-.chronicle-card.has-cover footer{border-top-color:rgba(233,223,200,.22)}
-@media(prefers-reduced-motion:reduce){.kb-layer.active{animation:none;transform:scale(1.06)}}

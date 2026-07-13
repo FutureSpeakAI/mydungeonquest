@@ -38,7 +38,9 @@ export function briefUpcomingBeat(campaign, foundry, currentBeatIndex = null) {
   if (!beat) return;
   const keys = beatKeys(campaign.id, nextIndex);
   const prompt = beatPrompt(campaign, beat);
-  foundry.enqueue({ kind: 'video', prompt, priority: 6, cacheKey: keys.film, options: { kind: 'beat-film', label: beat.title } }).catch(() => {});
-  foundry.enqueue({ kind: 'paint', prompt: `${prompt} A single painted keyframe of the moment.`, priority: 5, cacheKey: keys.still, options: { kind: 'beat-still', label: beat.title } }).catch(() => {});
+  const villain = (campaign.codex?.cast || []).find((soul) => soul.role === 'villain');
+  const anchorLabels = [villain?.name, (campaign.codex?.regions || [])[0]?.name].filter(Boolean);
+  foundry.enqueue({ kind: 'video', prompt, priority: 6, cacheKey: keys.film, options: { kind: 'beat-film', label: beat.title, referenceLabels: anchorLabels } }).catch(() => {});
+  foundry.enqueue({ kind: 'paint', prompt: `${prompt} A single painted keyframe of the moment.`, priority: 5, cacheKey: keys.still, options: { kind: 'beat-still', label: beat.title, referenceLabels: anchorLabels } }).catch(() => {});
   foundry.enqueue({ kind: 'music', prompt: `A 20 second cinematic stinger for the beat "${beat.title}" — act ${beat.act}, restrained, orchestral, PG-13.`, priority: 7, cacheKey: keys.score, options: { label: beat.title } }).catch(() => {});
 }

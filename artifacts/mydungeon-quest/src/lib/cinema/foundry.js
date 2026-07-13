@@ -13,6 +13,31 @@ import { sha256 } from '../canonical.js';
 
 const laneOf = (kind) => (kind === 'video' ? 'video' : kind === 'paint' ? 'image' : 'audio');
 
+const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+  reader.onerror = reject;
+  reader.readAsDataURL(blob);
+});
+
+// THE ANCHOR LAW — a soul's first bust (or a region's first plate)
+// is its permanent visual anchor. Anchors are resolved lazily at
+// generation time by label, so jobs queued before the anchor exists
+// still pick it up, and the chosen anchors are sealed into the
+// attestation for provenance.
+async function resolveAnchors(campaignId, labels = []) {
+  if (!labels.length) return [];
+  const rows = await db.media.where('campaignId').equals(campaignId).toArray();
+  const anchors = [];
+  for (const label of labels.filter(Boolean).slice(0, 3)) {
+    const candidates = rows.filter((row) => row.kind === 'paint' && row.label === label && row.blob);
+    if (!candidates.length) continue;
+    candidates.sort((a, b) => (a.variant === 'bust' ? 0 : 1) - (b.variant === 'bust' ? 0 : 1) || a.createdAt - b.createdAt);
+    anchors.push(candidates[0]);
+  }
+  return anchors;
+}
+
 export class Foundry {
   constructor({ campaignId, tier = 'parchment', spend = {}, onAttestation = null }) {
     this.campaignId = campaignId;
@@ -58,6 +83,10 @@ export class Foundry {
 
   async generate(job) {
     let response;
+    const anchors = await resolveAnchors(this.campaignId, job.options?.referenceLabels || []);
+    const references = await Promise.all(anchors.map(async (row) => ({ mime: row.mime, data: await blobToBase64(row.blob), assetHash: row.assetHash })));
+    const referenceAssetHashes = anchors.map((row) => row.assetHash);
+    if (references.length) job.options = { ...job.options, references };
     if (job.kind === 'video') {
       const queued = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: job.prompt, ...job.options }) }).then((r) => r.json());
       for (let attempt = 0; attempt < 240; attempt += 1) {
@@ -79,11 +108,12 @@ export class Foundry {
       campaignId: this.campaignId, kind: job.kind, cacheKey: job.cacheKey, promptHash: job.spec.promptHash,
       generationSpecHash: job.spec.hash, assetHash, originTurnHash: job.originTurnHash, mime: blob.type,
       label: job.options?.label || null, variant: job.options?.variant || null,
+      referenceAssetHashes,
       provider: response.headers.get('X-Media-Provider') || 'unknown', model: response.headers.get('X-Media-Model') || 'unknown',
       blob, createdAt: Date.now()
     };
     await db.media.put(row);
-    await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size });
+    await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size, referenceAssetHashes });
     return row;
   }
 }

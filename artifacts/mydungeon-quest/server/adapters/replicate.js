@@ -15,12 +15,14 @@ export function replicateAdapter(token) {
   return {
     name: 'replicate',
     capabilities: { configured: Boolean(token), supportsReferences: true, maxReferenceImages: 1, supportsSeed: true, includesAudio: false, asynchronous: true },
-    async video({ prompt, seconds = 8, seed = null }) {
+    async video({ prompt, seconds = 8, seed = null, references = [] }) {
       const model = process.env.REPLICATE_VIDEO_MODEL;
       if (!model) throw new Error('REPLICATE_VIDEO_MODEL is not set');
+      const imageParam = process.env.REPLICATE_VIDEO_IMAGE_PARAM || 'image';
+      const reference = references[0] ? { [imageParam]: `data:${references[0].mime || 'image/png'};base64,${references[0].data}` } : {};
       const create = await replicateApi(`/v1/models/${model}/predictions`, {
         method: 'POST', headers: { Prefer: 'wait=60' },
-        body: JSON.stringify({ input: { prompt, duration: seconds, ...(seed != null ? { seed } : {}) } })
+        body: JSON.stringify({ input: { prompt, duration: seconds, ...(seed != null ? { seed } : {}), ...reference } })
       }, token);
       let prediction = await create.json();
       for (let attempt = 0; attempt < 90 && !['succeeded','failed','canceled'].includes(prediction.status); attempt += 1) {

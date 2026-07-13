@@ -345,13 +345,56 @@ export default function App() {
   </div>;
 }
 
-function TitleScreen({ campaigns, onNew, onOpen, onRestore, status }) {
+const KEYART = ['drowned', 'mountain', 'frontier', 'gate'].map((n) => `${import.meta.env.BASE_URL}keyart/${n}.jpg`);
+const ATTRACT_LINES = [
+  'Write any world. Walk it alone.',
+  'Every road remembers who walked it.',
+  'The design stays hidden until you earn it.',
+  'Your legend, sealed turn by turn.'
+];
+const bundledCover = (id) => KEYART[Math.abs([...String(id)].reduce((h, ch) => ((h << 5) - h + ch.charCodeAt(0)) | 0, 0)) % KEYART.length];
+
+// Loads each saved chronicle's own painted key art (when the Foundry has made
+// one) so its shelf card wears its cover; falls back to a bundled painting.
+function useShelfCovers(campaigns) {
+  const [covers, setCovers] = useState({});
+  useEffect(() => {
+    let alive = true; const urls = [];
+    (async () => {
+      const map = {};
+      for (const c of campaigns) {
+        const rows = await db.media.where('campaignId').equals(c.id).toArray();
+        const art = rows.filter((r) => r.label === 'keyart' && r.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
+        if (art) { const u = URL.createObjectURL(art.blob); urls.push(u); map[c.id] = u; }
+      }
+      if (alive) setCovers(map);
+    })();
+    return () => { alive = false; urls.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [campaigns.map((c) => `${c.id}:${c.keyArtHash || ''}`).join(',')]); // eslint-disable-line
+  return covers;
+}
+
+function TitleScreen({ campaigns, onNew, onOpen, onRestore }) {
   const input = useRef(null);
-  return <main className="title-page">
-    <div className="stars"/><section className="title-hero"><div className="title-sigil">✦</div><span className="eyebrow">Cinematic Edition</span><h1>MyDungeon<span>.Quest</span></h1><p>Write any world. Walk it alone. Keep the only true copy.</p><button className="primary-button" onClick={onNew}><Plus/> Forge a new world</button></section>
-    <section className="shelf"><header><div><span className="eyebrow">Chronicle Shelf</span><h2>Your sealed worlds</h2></div><button className="secondary-button" onClick={()=>input.current.click()}><FileUp/> Restore</button><input ref={input} type="file" accept=".json,.chronicle.json" hidden onChange={(e)=>e.target.files[0]&&onRestore(e.target.files[0])}/></header>
-      <div className="shelf-grid">{campaigns.length ? campaigns.map((c)=><button className="chronicle-card" key={c.id} onClick={()=>onOpen(c)}><div className="card-sigil">{c.hero?.sigil||'✦'}</div><span className="seal-badge"><Shield size={12}/>{({signed:'sealed','hash-only':'sealed'})[c.signatureStatus]||'unsealed'}</span><h3>{c.title}</h3><p>{c.hero?.name} · {c.codex?.spine?.label}</p><footer><span>{c.turnCount||0} records</span><span>{c.completed?'✦ complete':'continue'} <ChevronRight size={15}/></span></footer></button>) : <div className="empty-shelf"><Feather/><h3>No chronicles yet</h3><p>The shelf is patient. The first world is not.</p></div>}</div>
-    </section><footer className="title-footer">Yours alone · Plays offline · Every turn sealed</footer>
+  const [idx, setIdx] = useState(0);
+  const covers = useShelfCovers(campaigns);
+  useEffect(() => { const t = setInterval(() => setIdx((i) => (i + 1) % KEYART.length), 7000); return () => clearInterval(t); }, []);
+  return <main className="title-page cinematic">
+    <div className="title-backdrop" aria-hidden="true">{KEYART.map((src, i) => <div key={src} className={`kb-layer${i === idx ? ' active' : ''}`} style={{ backgroundImage: `url("${src}")` }}/>)}<div className="title-veil"/></div>
+    <div className="stars"/>
+    <section className="title-hero">
+      <div className="title-sigil">✦</div>
+      <span className="eyebrow">Cinematic Edition</span>
+      <h1>MyDungeon<span>.Quest</span></h1>
+      <p className="attract-line" key={idx}>{ATTRACT_LINES[idx]}</p>
+      <button className="primary-button hero-cta" onClick={onNew}><Swords/> Begin your legend</button>
+    </section>
+    {campaigns.length > 0 && <section className="shelf">
+      <header><div><span className="eyebrow">Chronicle Shelf</span><h2>Your sealed worlds</h2></div><button className="secondary-button" onClick={() => input.current.click()}><FileUp/> Restore</button></header>
+      <div className="shelf-grid">{campaigns.map((c) => <button className="chronicle-card has-cover" key={c.id} onClick={() => onOpen(c)} style={{ backgroundImage: `linear-gradient(180deg,rgba(15,12,20,.1),rgba(15,12,20,.66) 52%,rgba(15,12,20,.95)),url("${covers[c.id] || bundledCover(c.id)}")` }}><div className="card-sigil">{c.hero?.sigil || '✦'}</div><span className="seal-badge"><Shield size={12}/>{({ signed: 'sealed', 'hash-only': 'sealed' })[c.signatureStatus] || 'unsealed'}</span><h3>{c.title}</h3><p>{c.hero?.name} · {c.codex?.spine?.label}</p><footer><span>{c.turnCount || 0} records</span><span>{c.completed ? '✦ complete' : 'continue'} <ChevronRight size={15}/></span></footer></button>)}</div>
+    </section>}
+    <input ref={input} type="file" accept=".json,.chronicle.json" hidden onChange={(e) => e.target.files[0] && onRestore(e.target.files[0])} />
+    <footer className="title-footer">{campaigns.length === 0 ? <button className="link-restore" onClick={() => input.current.click()}>Restore a sealed chronicle</button> : 'Yours alone · Plays offline · Every turn sealed'}</footer>
   </main>;
 }
 

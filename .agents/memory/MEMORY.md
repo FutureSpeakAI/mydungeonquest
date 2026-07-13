@@ -2,3 +2,6 @@
 - [LLM tool schema must mirror strict validators](llm-toolschema-validation.md) — if a tool-calling JSON schema omits enums a client-side validator enforces, models emit valid-but-rejected turns and silently fall back.
 - [Vite 7 needs @vitejs/plugin-react for JSX](vite7-jsx-runtime.md) — without the React plugin, JSX compiles to classic createElement and crashes with "React is not defined".
 - [DM turn reliability](dm-turn-reliability.md) — live Anthropic DM turns fall back to generic filler when they break client-only validator rules; keep systemPrompt in lockstep with validateDmTurn, never loosen the validator; repair-retry in dm.js is the backstop; `eval:live` is the real-model harness.
+- [Dexie crypto-in-transaction](dexie-crypto-transactions.md) — awaiting crypto.subtle inside a Dexie rw tx premature-commits ("Transaction committed too early"); do crypto OUTSIDE the tx, keep only sync db ops inside.
+- [/api path proxy conflict](api-path-proxy-conflict.md) — only one artifact may own a path prefix at the shared proxy; a self-serving /api web app + an /api api-server silently 404s the app through :80.
+- [MyDungeon media providers are opt-in](mydungeon-media-providers.md) — image/video/audio serve MOCK placeholders unless `*_PROVIDER` env is set (e.g. PAINT_PROVIDER=openai); mock keeps `npm run check` green but never looks "painted".

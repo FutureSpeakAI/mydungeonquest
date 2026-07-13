@@ -18,6 +18,9 @@
 
 @media(max-width:720px){
   .title-hero{margin-top:3vh}.title-hero h1{font-size:clamp(1.9rem,10.5vw,7rem)}.shelf>header{align-items:center}.shelf>header h2{font-size:1.2rem}.shelf>header .secondary-button{font-size:0;width:44px;height:44px;padding:0}.shelf>header .secondary-button svg{width:20px}.form-grid{grid-template-columns:1fr}.ability-grid{grid-template-columns:repeat(3,1fr)}.table-header{padding:0 .7rem}.sigil-button div{display:none}.header-stats{gap:.5rem}.desktop-stat{display:none!important}.table-header nav button span{display:none}.table-header nav button{padding:.5rem}.adventure-log{padding-top:2rem}.campaign-mast{margin-bottom:2.6rem}.narration p{font-size:1.04rem}.composer-wrap{padding-left:.6rem;padding-right:.6rem}.region-strip{padding:0 .8rem}.region-strip small{max-width:55%;text-align:right}.modal-scrim{padding:0}.modal{max-height:100vh;height:100vh;border-radius:0;border:0}.modal>header{top:-1.2rem}.stat-ribbon{grid-template-columns:repeat(2,1fr)}.tier-grid{grid-template-columns:1fr}.codex-grid{grid-template-columns:1fr 1fr}.cinematic-title h3{font-size:.86rem}.cinematic-subtitle{font-size:.78rem}.combat-banner{top:72px}.button-row{display:grid;grid-template-columns:1fr 1fr}.button-row button{padding:.75rem .4rem}.read-only-banner{align-items:flex-start;flex-wrap:wrap}.header-stats span{font-size:.72rem}
+  .illustration-panel{width:100vw;margin-left:calc(50% - 50vw);border-left:0;border-right:0;padding:.28rem 0}
+  .illustration-panel img{aspect-ratio:4/5}
+  .illustration-panel figcaption{padding-left:1rem;padding-right:1rem}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
 
@@ -48,3 +51,11 @@
 .campaign-mast.has-keyart{position:relative;background-size:cover;background-position:center 38%;padding:clamp(3rem,12vw,6.5rem) 1.2rem 2.4rem;margin:-3rem -1rem 3.5rem;border-bottom:1px solid rgba(212,162,78,.28);border-radius:0 0 18px 18px;box-shadow:inset 0 -46px 60px -30px var(--ink)}
 .campaign-mast.has-keyart h1{text-shadow:0 4px 42px #000,0 2px 8px #000}
 .campaign-mast.has-keyart p{text-shadow:0 2px 12px #000}
+
+/* Phase 3 — the image-first table */
+.region-strip{will-change:background-position;transition:background-position .05s linear}
+.codex-grid.gallery article{overflow:hidden}
+.codex-portrait{aspect-ratio:4/3;margin:-.8rem -.8rem .7rem;border-radius:12px 12px 0 0;background-size:cover;background-position:center 30%;box-shadow:inset 0 -50px 40px -30px #110d16;animation:image-arrive .7s ease both}
+.region-list.gallery article.has-plate{position:relative;overflow:hidden;padding-top:96px}
+.codex-plate{position:absolute;left:0;right:0;top:0;height:88px;background-size:cover;background-position:center 40%;border-bottom:1px solid rgba(212,162,78,.3);-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}
+.region-list.gallery article.has-plate b,.region-list.gallery article.has-plate span{position:relative}

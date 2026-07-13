@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — The Engine Cut (2026-07-13)
+The brain and the pipeline. The DM remembers its own prose (rolling
+conversation history + static craft prompt + working cache); narration streams
+for real; the Foundry runs three lanes and briefs the next beat before it
+lands; cinematics climb Film → Animatic → procedural; Sora/Replicate video
+adapters; adaptive score and voice casting; the chrome speaks fantasy, not
+protocol.
+
 ## 0.1.0 — Cinematic foundation
 - Added the complete local-first PWA shell and Replit production server.
 - Added world and hero forging, four story spines, canon-lock reducers, client dice, conditions, slots, initiative, and zones.

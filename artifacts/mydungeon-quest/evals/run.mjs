@@ -73,3 +73,30 @@ assert.notEqual(await sha256(canonicalize({type:tampered[1].type,i:tampered[1].i
 console.log('\nMyDungeon.Quest headless bench');
 console.table({ personas: personas.length, turns: metrics.turns, schemaValidity: `${metrics.valid}/${metrics.turns}`, rolls: metrics.rolls, cinematics: metrics.cinematics, uniqueSuggestionSets: metrics.suggestionSets.size, maxBeatReached: Math.max(...metrics.beats), canonIntegrity: 'PASS', pg13Scrubber: 'PASS', mediaMocks: 'PASS', budgetCaps: 'PASS', sealTamper: 'PASS' });
 console.log('PASS — mock campaigns, reducers, protocol, media floor, scrubber, budgets, and seal invariants are green.');
+
+// ---- v0.2 engine-cut assertions: the brain and the stream ----
+{
+  const { buildSystemPrompt } = await import('../src/lib/systemPrompt.js');
+  const { extractNarration, getDmTurn } = await import('../server/dm.js');
+  const sys = buildSystemPrompt({
+    campaign: { title: 'Eval Trial', covenant: 'PG-13 frontier.', tone: 'mythic', lines: [], veils: [] },
+    hero: createHero({ name: 'Eval' }),
+    spine: { label: 'Classic Epic', beats: [{ act: 1, title: 'The Ordinary Flame', goal: 'Establish home.' }] }
+  });
+  assert.ok(sys.includes('SESSION ZERO'), 'system prompt must orchestrate session zero');
+  assert.ok(sys.includes('THE CRAFT'), 'system prompt must carry narrative craft');
+  assert.ok(!sys.includes('[STATE]') && !sys.includes('"beatIndex"'), 'system prompt must stay static — no turn state inside');
+
+  const partial = '{"narration_blocks":[{"text":"The road turns.","speaker":null},{"text":"It knows your na';
+  assert.equal(extractNarration(partial), 'The road turns.\n\nIt knows your na', 'narration must extract from partial JSON');
+
+  let streamed = '';
+  const { turn, provider } = await getDmTurn({
+    campaign: { title: 'Stream Trial', homeRegion: 'Larkspur Vale' }, hero: createHero({ name: 'Streamer' }),
+    story: { beat: { title: 'x' }, regions: [] }, state: {}, memory: [], history: [],
+    entropy: makeEntropy(() => .5), player: 'Begin.', resolution: null, turn: 0, genesis: true
+  }, { onNarration: (text) => { streamed = text; } });
+  assert.equal(provider, 'mock');
+  assert.equal(streamed, turn.narration_blocks.map((b) => b.text).join('\n\n'), 'mock stream must deliver the full narration progressively');
+  console.log('PASS — static craft prompt, partial-JSON narration extraction, and streaming parity are green.');
+}

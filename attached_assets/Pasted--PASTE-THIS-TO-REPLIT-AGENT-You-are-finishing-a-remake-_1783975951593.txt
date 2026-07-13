@@ -1,0 +1,36 @@
+# PASTE THIS TO REPLIT AGENT
+
+You are finishing a remake of **MyDungeon.Quest**, a cinematic solo RPG. The engine was just rebuilt by another agent (v0.2 "The Engine Cut") and is **working and off-limits**. Your job is the **visual phases only**.
+
+## Before anything else
+1. Confirm `HANDOFF-REPLIT.md` and `REMAKE-DIRECTIVE.md` exist at the repo root. Read both, in that order. They are your spec; this prompt only aims you.
+2. The game lives in `artifacts/mydungeon-quest`. This is a pnpm workspace: run `pnpm install` at the root once, then work inside the game folder. `npm run check` (build + eval) inside `artifacts/mydungeon-quest` must be GREEN after every phase — run it before your first change to confirm the baseline, and never leave it red.
+
+## Your scope (from REMAKE-DIRECTIVE.md)
+- **Phase 1 — The Prologue Render**: the forge becomes a title sequence; key art generation kicks off during world-forging; the hero portrait materializes live beside the sheet; Chapter I opens on real art.
+- **Phase 3 — The image-first table**: full-bleed illustration panels on mobile, a gallery Codex (generated portraits and region plates over the monograms), parallax region strip. The plumbing exists — media rows carry `label` and `variant`, and the region strip already prefers the generated plate.
+- **Phase 5 remainder — The wax seal**: a small seal glyph in the header that presses closed with a subtle animation each time a turn commits; tapping it opens the Book overlay. The hash ticker is already gone — do not bring anything like it back.
+- **Phase 6 — The Face**: full-bleed title screen with slow Ken Burns key art, one primary action ("Begin your legend"), bundled key art in `public/keyart/` so first launch is cinematic with zero saves, chronicle cards wearing their key art as covers, an idle attract mode.
+- **Phase 7 — The Book**: film-strip spread of beat keyframes, embedded Cinzel/Crimson Pro in the book HTML, key-art cover. HTML binding must always work; PDF binding needs Chromium — if the environment lacks it, note it and move on rather than blocking.
+
+Phases 0, 2, and 4 (DM memory, streaming, cache, Foundry lanes, lookahead, the cinematic ladder, score, voice) are DONE. Do not redo, refactor, or "improve" them.
+
+## The aesthetic north star
+Epic action/adventure fantasy. Big, bold, sweeping, cinematic — a **film poster, not a book page**. Visual storytelling leads; text serves it. Full-bleed imagery, letterboxed moments, huge Cinzel display type, gold on ink. Extend the existing design system (palette variables, Cinzel + Crimson Pro, the single `styles.css`) — do not replace it. No unnecessary text anywhere: no explainers, no feature blurbs, no onboarding copy. If a screen can say it with an image, it does.
+
+## Hard constraints — violating any of these is failure
+1. **Do not modify**: `server/dm.js`, `src/lib/systemPrompt.js`, `src/lib/protocol.js`, `src/lib/seal.js`, `src/lib/story.js`, `src/lib/rules.js`, `evals/run.mjs` (you may APPEND new eval assertions only), or the Foundry's constructor/`allowed()`/cache-key behavior. Additive changes to `App.jsx`, components, and styles are expected; engine call paths are not.
+2. **Do not break the contracts**: the `dm_turn` schema and validator; entropy consumption; the seal (`appendEvent`, redaction semantics, `verify.html` compatibility); media row fields `{cacheKey, promptHash, generationSpecHash, assetHash, originTurnHash, label, variant}`; SSE event names `narration` / `turn` on `/api/dm?stream=1`.
+3. **Keyless first**: everything you build must work with the mock providers and pass the keyless acceptance tests at the bottom of REMAKE-DIRECTIVE.md. Test at the `parchment`, `illuminated`, and `cinema` tiers.
+4. **Banned words in any player-facing string**: sovereign, hash, provider, mock, telemetry, IndexedDB. Players see fantasy; builders read docs.
+5. **No new frameworks**: no Tailwind, no shadcn, no component libraries, no TypeScript conversion, no second stylesheet. React + the existing `styles.css` only. Keep bundle growth reasonable.
+6. **Never rebuild from scratch.** Surgical edits to the existing files. If something you want requires touching a protected file, stop, leave a note in `BUILD_STATUS.md` under "Deferred", and continue with the rest.
+
+## Key art for first launch (Phase 6)
+Create four painterly 16:9 key-art images matching the seed worlds' moods and commit them to `artifacts/mydungeon-quest/public/keyart/` (reasonable file size, ≤400KB each). Generate them if you have image capability; otherwise craft rich layered SVG/canvas art exported to PNG — no flat gradients, no stock photos, no text baked into the pixels. Titles are typography layers, never part of the art.
+
+## Working method
+One phase per checkpoint, in order 1 → 3 → 5 → 6 → 7. After each phase: run `npm run check`, verify that phase's acceptance tests from REMAKE-DIRECTIVE.md keylessly in the preview, then commit with a one-line message naming the phase. Update `BUILD_STATUS.md` when all phases land. Dev loop: `npm run dev` inside the game folder; production serves `dist` via `npm run build && npm start`.
+
+## Definition of done
+A first-time visitor with zero saves lands on full-bleed key art with one button. A new campaign's forge visibly paints the world while they type. Chapter I opens on generated art, never a bare gradient. The table reads as an illustrated epic. The seal is a wax stamp you feel, not a readout you parse. The bound book opens on its cover art and carries the film strip. And `npm run check` is green.

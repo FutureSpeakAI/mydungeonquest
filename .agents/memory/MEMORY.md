@@ -1,0 +1,3 @@
+- [MyDungeon.Quest eval is keyless-only](mydungeon-quest-eval.md) — `npm run check`'s eval hard-asserts DM `provider === 'mock'`; run it with AI keys unset or it fails.
+- [LLM tool schema must mirror strict validators](llm-toolschema-validation.md) — if a tool-calling JSON schema omits enums a client-side validator enforces, models emit valid-but-rejected turns and silently fall back.
+- [Vite 7 needs @vitejs/plugin-react for JSX](vite7-jsx-runtime.md) — without the React plugin, JSX compiles to classic createElement and crashes with "React is not defined".

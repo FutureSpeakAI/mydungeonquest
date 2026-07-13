@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, ChevronRight, CircleGauge, Download, Dices, Feather, FileUp, HeartPulse, Menu, MessageCircleWarning, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords } from 'lucide-react';
+import { BookOpen, ChevronRight, Download, Dices, Feather, FileUp, HeartPulse, Menu, MessageCircleWarning, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords } from 'lucide-react';
 import { WorldForge, HeroForge } from './components/Forge.jsx';
 import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
@@ -13,9 +13,12 @@ import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
 import { cinematicPrompt, portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
+import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
+import { setScoreState, startScore, stopScore } from './lib/cinema/score.js';
+import { speakBlocks, stopSpeaking } from './lib/cinema/voice.js';
 import { buildStorybook } from './lib/storybook.js';
 
-const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, score: true, textScale: 1, mediaTier: 'parchment' };
+const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, score: true, voice: false, textScale: 1, mediaTier: 'parchment' };
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
@@ -50,8 +53,10 @@ export default function App() {
   const [cinematic, setCinematic] = useState(null);
   const [diceResult, setDiceResult] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('Local-first · keyless mock ready');
+  const [weaving, setWeaving] = useState(null);
+  const [status, setStatus] = useState('✦ The table is set.');
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const settingsRef = useRef(DEFAULT_SETTINGS); settingsRef.current = settings;
   const [bookHtml, setBookHtml] = useState('');
   const logEndRef = useRef(null);
 
@@ -59,6 +64,10 @@ export default function App() {
   useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => row && setSettings({ ...DEFAULT_SETTINGS, ...row.value })); }, [refreshShelf]);
   useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, settings.reduceMotion]);
   useEffect(() => { document.documentElement.style.setProperty('--text-scale', settings.textScale); }, [settings.textScale]);
+  useEffect(() => {
+    if (flow === 'table' && settings.score && current) { startScore(current.title || 'chronicle'); return () => { stopScore(); stopSpeaking(); }; }
+    stopScore();
+  }, [flow, settings.score, current?.id]); // eslint-disable-line
 
   const persistSettings = async (next) => {
     setSettings(next); await db.settings.put({ key: 'care', value: next });
@@ -85,11 +94,13 @@ export default function App() {
     }
     if (dm.cinematic && campaign.mediaTier === 'cinema') {
       const prompt = cinematicPrompt(campaign, dm.cinematic, dm.image_cue || {});
-      jobs.push({ kind: 'video', prompt, priority: 2 });
-      jobs.push({ kind: 'music', prompt: `A 20 second cinematic stinger for ${dm.cinematic.type}; ${dm.cinematic.subtitle}`, priority: 4 });
+      const keys = beatKeys(campaign.id, campaign.codex.beatIndex);
+      jobs.push({ kind: 'video', prompt, priority: 2, cacheKey: keys.film, options: { kind: 'beat-film', label: dm.cinematic.title } });
+      jobs.push({ kind: 'music', prompt: `A 20 second cinematic stinger for ${dm.cinematic.type}; ${dm.cinematic.subtitle}`, priority: 4, cacheKey: keys.score });
       jobs.push({ kind: 'sfx', prompt: `A restrained PG-13 ambience and impact for ${dm.cinematic.type}`, priority: 4 });
       if (dm.dialogue_cue) jobs.push({ kind: 'speak', prompt: dm.dialogue_cue.line, options: { text: dm.dialogue_cue.line }, priority: 1 });
     }
+    briefUpcomingBeat(campaign, foundry, campaign.codex.beatIndex);
     for (const job of jobs) {
       foundry.enqueue({ ...job, originTurnHash: turnRecord.recordHash }).then(async (asset) => {
         if (!asset) return;
@@ -113,9 +124,47 @@ export default function App() {
       const entropy = makeEntropy();
       const memory = await recallScenes(base.id, player, base.turnNumber || 0);
       const story = storyBlock(base.codex);
-      const response = await fetch('/api/dm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ campaign: base, hero: base.hero, state: { hero: base.hero, combat: base.combat }, story, memory, entropy, player, resolution, turn: base.turnNumber || 0, genesis: (base.turnNumber || 0) === 0 }) });
-      if (!response.ok) throw new Error(`DM server returned ${response.status}`);
-      const body = await response.json();
+      // The DM keeps its own memory now: prior turns ride along as a
+      // real conversation, so prose has continuity — and the stable
+      // prefix caches on the server side.
+      const history = base.logs.filter((entry) => !entry.redacted).slice(-15).flatMap((entry) => [
+        { role: 'user', content: entry.sent || entry.player || 'Continue.' },
+        { role: 'assistant', content: (entry.dm?.narration_blocks || []).map((block) => block.text).join('\n\n') }
+      ]).filter((message) => message.content);
+      const payload = {
+        campaign: { id: base.id, title: base.title, covenant: base.covenant, tone: base.tone, lines: base.lines, veils: base.veils, styleBible: base.styleBible, homeRegion: base.homeRegion },
+        spine: { label: base.codex.spine.label, beats: base.codex.spine.beats },
+        history, hero: base.hero, state: { hero: base.hero, combat: base.combat },
+        story, memory, entropy, player, resolution, turn: base.turnNumber || 0, genesis: (base.turnNumber || 0) === 0
+      };
+      const response = await fetch('/api/dm?stream=1', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!response.ok) throw new Error(`The Dungeon Master could not be reached (${response.status}).`);
+      let body = null;
+      if ((response.headers.get('content-type') || '').includes('event-stream')) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '', eventName = '';
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = buffer.indexOf('\n')) >= 0) {
+            const line = buffer.slice(0, nl).trim(); buffer = buffer.slice(nl + 1);
+            if (line.startsWith('event:')) eventName = line.slice(6).trim();
+            else if (line.startsWith('data:')) {
+              try {
+                const data = JSON.parse(line.slice(5));
+                if (eventName === 'narration' && typeof data.text === 'string') setWeaving(data.text);
+                else if (eventName === 'turn') body = data;
+              } catch { /* keep reading */ }
+            }
+          }
+        }
+      } else {
+        body = await response.json();
+      }
+      if (!body?.turn) throw new Error('The stream ended before the turn arrived.');
       const dm = body.turn;
       const validation = validateDmTurn(dm, entropy);
       if (!validation.ok) throw new Error(validation.errors.join('; '));
@@ -124,7 +173,7 @@ export default function App() {
       const heroBeforeLevel = base.hero.level;
       const hero = applyStateUpdates(base.hero, dm.state_updates);
       const combat = applyCombat(base.combat, dm.combat, hero);
-      const log = { id: crypto.randomUUID(), player: visiblePlayer, dm, ts: Date.now(), resolution: null, redacted: false };
+      const log = { id: crypto.randomUUID(), player: visiblePlayer, sent: player, dm, ts: Date.now(), resolution: null, redacted: false };
       let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed };
       await saveCampaign(next);
       const record = await appendEvent(base.id, 'turn', { player, visiblePlayer, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution });
@@ -133,14 +182,22 @@ export default function App() {
       next.logs[next.logs.length - 1].recordHash = record.recordHash;
       await rememberScene(base.id, next.turnNumber, { player, narration: dm.narration_blocks[0]?.text || '', chronicle: dm.state_updates?.chronicle_add || '', recordHash: record.recordHash });
       await saveCampaign(next); setCurrent(next); await refreshShelf();
-      setStatus(`${body.provider === 'mock' ? 'Mock DM' : 'Live DM'} · ${next.signatureStatus || 'sealing'} · ${next.turnCount} records`);
-      if (dm.cinematic) setCinematic({ ...dm, campaign: next });
+      setStatus('✦ The turn is sealed.');
+      const beatAct = next.codex.spine.beats[next.codex.beatIndex]?.act || 1;
+      const villain = next.codex.cast.find((soul) => soul.role === 'villain');
+      setScoreState({
+        act: beatAct, combat: Boolean(next.combat?.active),
+        hpFrac: hero.maxHp ? hero.hp / hero.maxHp : 1, blight: next.codex.blight,
+        villain: Boolean(villain && dm.narration_blocks.some((block) => block.text.includes(villain.name.split(' ')[0])))
+      });
+      if (settingsRef.current.voice && !dm.cinematic) speakBlocks(dm.narration_blocks, next.codex.cast);
+      if (dm.cinematic) setCinematic({ ...dm, campaign: next, turnRecordHash: record.recordHash, beatIndex: next.codex.beatIndex });
       if (hero.level > heroBeforeLevel) setOverlay('level');
       queueMedia(next, record, dm, log.id);
       return next;
     } catch (error) {
       console.error(error); setStatus(`The road snagged: ${error.message}`); return base;
-    } finally { setBusy(false); }
+    } finally { setBusy(false); setWeaving(null); }
   }, [queueMedia, refreshShelf]);
 
   const beginCampaign = async (heroInput) => {
@@ -212,6 +269,17 @@ export default function App() {
 
   const activeRegion = current?.codex?.regions?.[0];
   const regionArt = useMemo(() => current ? proceduralArtDataUrl(`${current.id}:${activeRegion?.state || 'unknown'}`, activeRegion?.name || current.homeRegion, ['#0d0b14', current.codex.blight > 2 ? '#63352f' : '#35534b', '#d4a24e']) : '', [current, activeRegion]);
+  const [regionPlate, setRegionPlate] = useState(null);
+  useEffect(() => {
+    let url = null, alive = true;
+    (async () => {
+      if (!current || !activeRegion) { setRegionPlate(null); return; }
+      const rows = await db.media.where('campaignId').equals(current.id).toArray();
+      const plate = rows.filter((row) => row.kind === 'paint' && row.label === activeRegion.name && row.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
+      if (plate && alive) { url = URL.createObjectURL(plate.blob); setRegionPlate(url); } else if (alive) setRegionPlate(null);
+    })();
+    return () => { alive = false; if (url) URL.revokeObjectURL(url); };
+  }, [current?.id, activeRegion?.name, activeRegion?.state, current?.logs?.length]); // eslint-disable-line
 
   if (flow === 'world') return <WorldForge onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
@@ -219,7 +287,7 @@ export default function App() {
   if (!current) return null;
 
   return <div className="app-shell">
-    <div className="region-strip" style={{ backgroundImage: `linear-gradient(90deg,rgba(13,11,20,.94),rgba(13,11,20,.48),rgba(13,11,20,.92)),url("${regionArt}")` }}>
+    <div className="region-strip" style={{ backgroundImage: `linear-gradient(90deg,rgba(13,11,20,.94),rgba(13,11,20,.48),rgba(13,11,20,.92)),url("${regionPlate || regionArt}")` }}>
       <span>{activeRegion?.name || current.homeRegion}</span><small>{activeRegion?.state || 'unmapped'} · blight {current.codex.blight}/5</small>
     </div>
     <header className="table-header">
@@ -232,13 +300,15 @@ export default function App() {
     <main className="adventure-log" role="log" aria-live="polite">
       <div className="campaign-mast"><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
       {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} />)}
-      {busy && <div className="streaming"><span/>The ink is still moving…</div>}
+      {busy && (weaving
+        ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>
+        : <div className="streaming"><span/>The Dungeon Master considers…</div>)}
       <div ref={logEndRef}/>
     </main>
     {!current.readOnly && <Composer campaign={current} busy={busy} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
-    <footer className="seal-status"><CircleGauge size={14}/><span>{status}</span><code>{current.headHash ? `${current.headHash.slice(0,12)}…` : 'unsealed'}</code></footer>
+    <footer className="seal-status"><span>{status}</span></footer>
     {diceResult && <DiceOverlay result={diceResult} haptics={settings.haptics} onDone={() => setDiceResult(null)} />}
-    {cinematic && <Cinematic cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} score={settings.score} onClose={() => setCinematic(null)} />}
+    {cinematic && <Cinematic cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} score={settings.score} voiceOn={settings.voice} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} onClose={() => setCinematic(null)} />}
     {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
     {overlay === 'codex' && <Codex campaign={current} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); setCinematic({ ...dm, campaign: current }); }} />}
     {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onClose={() => setOverlay(null)} />}
@@ -253,8 +323,8 @@ function TitleScreen({ campaigns, onNew, onOpen, onRestore, status }) {
   return <main className="title-page">
     <div className="stars"/><section className="title-hero"><div className="title-sigil">✦</div><span className="eyebrow">Cinematic Edition</span><h1>MyDungeon<span>.Quest</span></h1><p>Write any world. Walk it alone. Keep the only true copy.</p><button className="primary-button" onClick={onNew}><Plus/> Forge a new world</button></section>
     <section className="shelf"><header><div><span className="eyebrow">Chronicle Shelf</span><h2>Your sealed worlds</h2></div><button className="secondary-button" onClick={()=>input.current.click()}><FileUp/> Restore</button><input ref={input} type="file" accept=".json,.chronicle.json" hidden onChange={(e)=>e.target.files[0]&&onRestore(e.target.files[0])}/></header>
-      <div className="shelf-grid">{campaigns.length ? campaigns.map((c)=><button className="chronicle-card" key={c.id} onClick={()=>onOpen(c)}><div className="card-sigil">{c.hero?.sigil||'✦'}</div><span className="seal-badge"><Shield size={12}/>{c.signatureStatus||'unsealed'}</span><h3>{c.title}</h3><p>{c.hero?.name} · {c.codex?.spine?.label}</p><footer><span>{c.turnCount||0} records</span><span>{c.completed?'✦ complete':'continue'} <ChevronRight size={15}/></span></footer></button>) : <div className="empty-shelf"><Feather/><h3>No chronicles yet</h3><p>The shelf is patient. The first world is not.</p></div>}</div>
-    </section><footer className="title-footer">{status} · No telemetry · IndexedDB persistence</footer>
+      <div className="shelf-grid">{campaigns.length ? campaigns.map((c)=><button className="chronicle-card" key={c.id} onClick={()=>onOpen(c)}><div className="card-sigil">{c.hero?.sigil||'✦'}</div><span className="seal-badge"><Shield size={12}/>{({signed:'sealed','hash-only':'sealed'})[c.signatureStatus]||'unsealed'}</span><h3>{c.title}</h3><p>{c.hero?.name} · {c.codex?.spine?.label}</p><footer><span>{c.turnCount||0} records</span><span>{c.completed?'✦ complete':'continue'} <ChevronRight size={15}/></span></footer></button>) : <div className="empty-shelf"><Feather/><h3>No chronicles yet</h3><p>The shelf is patient. The first world is not.</p></div>}</div>
+    </section><footer className="title-footer">Yours alone · Plays offline · Every turn sealed</footer>
   </main>;
 }
 

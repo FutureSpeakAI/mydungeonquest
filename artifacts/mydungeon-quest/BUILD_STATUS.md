@@ -11,7 +11,7 @@
 - Mock headless bench and GitHub Actions workflow.
 
 ## Deliberate limitations of 0.1.0
-- Commercial video providers are wired behind the adapter boundary: set `VIDEO_PROVIDER=google` (with `GEMINI_API_KEY` or `GOOGLE_API_KEY`) to generate real cinematics via Veo; otherwise the default video adapter produces a deterministic cinematic keyframe and the UI uses its procedural animatic.
+- Commercial video providers remain behind the adapter boundary; the default video adapter produces a deterministic cinematic keyframe and the UI uses its procedural animatic.
 - Anthropic live mode is implemented, but the UI uses completed tool payloads rather than reconstructing arbitrary partial JSON from upstream fine-grained tool deltas.
 - The SRD-compatible action catalog is a foundation rather than an exhaustive spell and monster compendium.
 - Playwright Chromium must be installed in the deployment image for server-side PDF binding; offline HTML binding always works.
@@ -28,3 +28,27 @@
 - Production Express boot on `0.0.0.0:3001`: PASS
 - `/api/health`, mock image bytes, async mock video polling, and video asset retrieval: PASS
 - `/api/bind-pdf` with system Chromium: PASS — valid PDF 1.4 output
+
+## v0.2.0 — The Engine Cut (2026-07-13)
+- DM conversation memory: rolling history in every call; static per-campaign
+  system prompt with narrative craft and session-zero orchestration; prompt
+  cache breakpoints that actually hold.
+- Real streaming narration end to end (Anthropic partial tool-JSON → SSE →
+  weaving render), with mock-mode streaming parity for keyless testing.
+- Foundry v2: three independent lanes, explicit cache keys, race-safe cache,
+  beat lookahead briefing film/still/stinger for the next beat.
+- Cinematic v2: Film → Animatic → procedural ladder consuming Foundry assets;
+  generated stinger or score swell; cast-voiced dialogue line.
+- Live video adapters: OpenAI Sora and Replicate, safe mock degradation.
+- Adaptive WebAudio score engine and deterministic per-soul voice casting,
+  with Settings toggles.
+- Player-facing chrome de-teched (no hashes, providers, or protocol words on
+  screen); `verify.html`, the colophon, and the journal keep full precision.
+- `npm run check` green: build + 90/90 bench + new engine assertions
+  (static prompt, partial-JSON extraction, streaming parity).
+
+### Still deliberately open (visual phases → HANDOFF-REPLIT.md)
+- Prologue Render, image-first table, title-screen key art, card covers,
+  wax-seal animation, storybook film-strip spread.
+- Chronicler utility-model compaction remains fallback-only.
+- SRD action catalog remains a foundation, not a compendium.

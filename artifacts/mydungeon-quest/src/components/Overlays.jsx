@@ -34,13 +34,14 @@ export function Settings({ campaign, settings, onChange, onClose }) {
   return <Frame title="Settings & Care" icon={<Sparkles/>} onClose={onClose}>
     <label className="toggle"><span>Reduce motion<small>Replace cinematics with quiet beat lines.</small></span><input type="checkbox" checked={settings.reduceMotion} onChange={(e)=>onChange({...settings,reduceMotion:e.target.checked})}/></label>
     <label className="toggle"><span>Haptics<small>Use a brief vibration for dice.</small></span><input type="checkbox" checked={settings.haptics} onChange={(e)=>onChange({...settings,haptics:e.target.checked})}/></label>
-    <label className="toggle"><span>Procedural score<small>WebAudio motif during cinematics.</small></span><input type="checkbox" checked={settings.score} onChange={(e)=>onChange({...settings,score:e.target.checked})}/></label>
+    <label className="toggle"><span>The score<small>A living motif that follows your story's danger.</small></span><input type="checkbox" checked={settings.score} onChange={(e)=>onChange({...settings,score:e.target.checked})}/></label>
+    <label className="toggle"><span>Voiced narration<small>Each soul is cast once from this device's voices.</small></span><input type="checkbox" checked={settings.voice} onChange={(e)=>onChange({...settings,voice:e.target.checked})}/></label>
     <label>Text scale<input type="range" min=".9" max="1.3" step=".05" value={settings.textScale} onChange={(e)=>onChange({...settings,textScale:Number(e.target.value)})}/></label>
     <h3>Foundry tier</h3><div className="tier-grid">{[
       ['parchment','Parchment','Procedural, instant, free.'],['illuminated','Illuminated','Portraits, regions, and stills.'],['cinema','Cinema','Video, voice, music, and SFX.']
     ].map(([id,label,desc])=><button className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{label}</b><span>{desc}</span></button>)}</div>
     <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Video {campaign.spend?.videos||0}/16</span><span>Music {campaign.spend?.music||0}/8</span></div>
-    <div className="law-note"><Heart/><span>No accounts. No telemetry. Provider keys remain on the server.</span></div>
+    <div className="law-note"><Heart/><span>No accounts. Nothing leaves this device without you.</span></div>
   </Frame>;
 }
 

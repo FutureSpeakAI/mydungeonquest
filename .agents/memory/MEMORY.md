@@ -1,3 +1,4 @@
 - [MyDungeon.Quest eval is keyless-only](mydungeon-quest-eval.md) — `npm run check`'s eval hard-asserts DM `provider === 'mock'`; run it with AI keys unset or it fails.
 - [LLM tool schema must mirror strict validators](llm-toolschema-validation.md) — if a tool-calling JSON schema omits enums a client-side validator enforces, models emit valid-but-rejected turns and silently fall back.
 - [Vite 7 needs @vitejs/plugin-react for JSX](vite7-jsx-runtime.md) — without the React plugin, JSX compiles to classic createElement and crashes with "React is not defined".
+- [DM turn reliability](dm-turn-reliability.md) — live Anthropic DM turns fall back to generic filler when they break client-only validator rules; keep systemPrompt in lockstep with validateDmTurn, never loosen the validator; repair-retry in dm.js is the backstop; `eval:live` is the real-model harness.

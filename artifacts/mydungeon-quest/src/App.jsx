@@ -383,13 +383,59 @@ export default function App() {
   </div>;
 }
 
-function TitleScreen({ campaigns, onNew, onOpen, onRestore, status }) {
+function TitleScreen({ campaigns, onNew, onOpen, onRestore }) {
   const input = useRef(null);
-  return <main className="title-page">
-    <div className="stars"/><section className="title-hero"><div className="title-sigil">✦</div><span className="eyebrow">Cinematic Edition</span><h1>MyDungeon<span>.Quest</span></h1><p>Write any world. Walk it alone. Keep the only true copy.</p><button className="primary-button" onClick={onNew}><Plus/> Forge a new world</button></section>
-    <section className="shelf"><header><div><span className="eyebrow">Chronicle Shelf</span><h2>Your sealed worlds</h2></div><button className="secondary-button" onClick={()=>input.current.click()}><FileUp/> Restore</button><input ref={input} type="file" accept=".json,.chronicle.json" hidden onChange={(e)=>e.target.files[0]&&onRestore(e.target.files[0])}/></header>
-      <div className="shelf-grid">{campaigns.length ? campaigns.map((c)=><button className="chronicle-card" key={c.id} onClick={()=>onOpen(c)}><div className="card-sigil">{c.hero?.sigil||'✦'}</div><span className="seal-badge"><Shield size={12}/>{({signed:'sealed','hash-only':'sealed'})[c.signatureStatus]||'unsealed'}</span><h3>{c.title}</h3><p>{c.hero?.name} · {c.codex?.spine?.label}</p><footer><span>{c.turnCount||0} records</span><span>{c.completed?'✦ complete':'continue'} <ChevronRight size={15}/></span></footer></button>) : <div className="empty-shelf"><Feather/><h3>No chronicles yet</h3><p>The shelf is patient. The first world is not.</p></div>}</div>
-    </section><footer className="title-footer">Yours alone · Plays offline · Every turn sealed</footer>
+  const bundled = ['drowned', 'frontier', 'gate', 'mountain'].map((n) => `${import.meta.env.BASE_URL}keyart/${n}.jpg`);
+  const [bgIndex, setBgIndex] = useState(0);
+  const [attract, setAttract] = useState(false);
+  const [covers, setCovers] = useState({});
+
+  // Each chronicle card wears its own key art. Load the latest keyart plate per save.
+  useEffect(() => {
+    let urls = [], alive = true;
+    (async () => {
+      const out = {};
+      for (const c of campaigns) {
+        const rows = await db.media.where('campaignId').equals(c.id).toArray();
+        const art = rows.filter((r) => r.kind === 'paint' && r.label === KEYART_LABEL && r.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
+        if (art) { const u = URL.createObjectURL(art.blob); urls.push(u); out[c.id] = u; }
+      }
+      if (alive) setCovers(out); else urls.forEach(URL.revokeObjectURL);
+    })();
+    return () => { alive = false; urls.forEach(URL.revokeObjectURL); };
+  }, [campaigns]);
+
+  // The Face is never still: bundled key art cycles behind the title, faster once attract mode wakes.
+  useEffect(() => { const t = setInterval(() => setBgIndex((i) => (i + 1) % bundled.length), attract ? 6500 : 11000); return () => clearInterval(t); }, [attract, bundled.length]);
+
+  // Thirty seconds of stillness and the title turns into an attract reel.
+  useEffect(() => {
+    let timer; const reset = () => { setAttract(false); clearTimeout(timer); timer = setTimeout(() => setAttract(true), 30000); };
+    reset();
+    const events = ['pointermove', 'pointerdown', 'keydown', 'touchstart', 'wheel'];
+    for (const ev of events) window.addEventListener(ev, reset, { passive: true });
+    return () => { clearTimeout(timer); for (const ev of events) window.removeEventListener(ev, reset); };
+  }, []);
+
+  const bgSrc = bundled[bgIndex];
+  return <main className={`title-page cinematic ${attract ? 'attract' : ''}`}>
+    <div className="title-bg" key={bgSrc} style={{ backgroundImage: `url("${bgSrc}")` }} aria-hidden/>
+    <div className="title-veil" aria-hidden/>
+    <section className="title-hero">
+      <div className="title-sigil">✦</div>
+      <span className="eyebrow">Cinematic Edition</span>
+      <h1>MyDungeon<span>.Quest</span></h1>
+      <p>Any world. Any hero. One legend — painted as you live it.</p>
+      <button className="primary-button big" onClick={onNew}>Begin your legend</button>
+    </section>
+    {!attract && <section className="shelf">
+      <header><div><span className="eyebrow">Chronicle Shelf</span><h2>Your sealed worlds</h2></div><button className="secondary-button" onClick={() => input.current.click()}><FileUp/> Restore</button><input ref={input} type="file" accept=".json,.chronicle.json" hidden onChange={(e) => e.target.files[0] && onRestore(e.target.files[0])}/></header>
+      <div className="shelf-grid">{campaigns.length ? campaigns.map((c) => <button className="chronicle-card" data-cover={covers[c.id] ? 'art' : 'plain'} key={c.id} onClick={() => onOpen(c)} style={covers[c.id] ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.06),rgba(13,11,20,.55) 45%,rgba(13,11,20,.95)),url("${covers[c.id]}")` } : undefined}>
+        <span className="seal-badge"><Shield size={12}/>{c.completed ? 'complete' : 'sealed'}</span>
+        <div className="card-foot"><h3>{c.title}</h3><p>{c.hero?.name} · {c.codex?.spine?.label}</p><span className="card-cta">{c.completed ? '✦ Complete' : 'Continue'} <ChevronRight size={15}/></span></div>
+      </button>) : <div className="empty-shelf"><Feather/><h3>Your shelf is empty</h3><p>The first world is not patient. Begin your legend.</p></div>}</div>
+    </section>}
+    <footer className="title-footer">Yours alone · Plays offline · Every turn sealed</footer>
   </main>;
 }
 

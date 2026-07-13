@@ -75,3 +75,28 @@
 .wax-emboss{font-size:1.18rem;line-height:1;color:#f5dca6;text-shadow:0 1px 1px rgba(0,0,0,.65),0 0 6px rgba(245,220,166,.35);animation:sealPress .62s cubic-bezier(.2,.85,.25,1) both}
 @keyframes sealPress{0%{transform:scale(1.7);opacity:.15;filter:blur(2px)}55%{transform:scale(.82)}78%{transform:scale(1.06)}100%{transform:scale(1);opacity:1;filter:none}}
 @media (prefers-reduced-motion:reduce){.wax-emboss{animation:none}}
+
+/* ===== PHASE 6 — THE FACE ===== */
+.title-page.cinematic{position:relative;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;gap:2rem;overflow:hidden;padding:clamp(1.2rem,5vw,3rem)}
+.title-bg{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;animation:kenburns 20s ease-in-out infinite alternate,bgFade 1.6s ease both}
+@keyframes kenburns{from{transform:scale(1.06) translate(1%,1%)}to{transform:scale(1.2) translate(-2%,-2%)}}
+@keyframes bgFade{from{opacity:0}to{opacity:1}}
+.title-veil{position:fixed;inset:0;z-index:1;background:radial-gradient(circle at 50% 34%,rgba(13,11,20,.22),rgba(13,11,20,.74) 68%,rgba(13,11,20,.97)),linear-gradient(180deg,rgba(13,11,20,.5),rgba(13,11,20,.15) 42%,rgba(13,11,20,.92))}
+.title-page.cinematic>.title-hero,.title-page.cinematic>.shelf,.title-page.cinematic>.title-footer{position:relative;z-index:2}
+.title-page.cinematic .title-hero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5rem;margin-top:auto}
+.title-page.cinematic .title-sigil{font-size:2.6rem;color:var(--gold);filter:drop-shadow(0 0 18px rgba(212,162,78,.5));animation:sigilFloat 5s ease-in-out infinite alternate}
+@keyframes sigilFloat{to{transform:translateY(-8px)}}
+.title-page.cinematic h1{font-size:clamp(2.8rem,11vw,6rem);margin:.1rem 0;text-shadow:0 6px 40px rgba(0,0,0,.7)}
+.title-page.cinematic .title-hero p{max-width:34ch;color:var(--vellum);text-shadow:0 2px 18px #000;font-size:clamp(1rem,3.4vw,1.25rem)}
+.primary-button.big{margin-top:1rem;font-size:1.08rem;padding:1rem 2.4rem;letter-spacing:.04em;box-shadow:0 10px 40px rgba(212,162,78,.28)}
+.title-page.cinematic .shelf{margin-top:auto;background:rgba(13,11,20,.5);backdrop-filter:blur(8px);border-radius:18px;padding:clamp(1rem,3vw,1.6rem);border:1px solid rgba(212,162,78,.16)}
+.title-page.attract .shelf,.title-page.attract .title-footer{opacity:0;pointer-events:none;transition:opacity 1.2s ease}
+.title-page.attract .title-hero{transform:scale(1.05);transition:transform 8s ease}
+.title-page.attract .title-bg{animation:kenburns 14s ease-in-out infinite alternate,bgFade 1.6s ease both}
+.chronicle-card[data-cover="art"]{position:relative;background-size:cover;background-position:center;min-height:184px;display:flex;flex-direction:column;justify-content:flex-end;border:1px solid rgba(212,162,78,.32);overflow:hidden}
+.chronicle-card[data-cover="art"] h3{text-shadow:0 2px 14px #000}
+.chronicle-card[data-cover="plain"]{min-height:184px;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(160deg,#211a2a,#12101a)}
+.chronicle-card .card-foot{display:flex;flex-direction:column;gap:.15rem}
+.chronicle-card .card-foot p{color:var(--vellum-dim);font-size:.82rem;margin:0}
+.chronicle-card .card-cta{margin-top:.5rem;color:var(--gold);font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:.3rem}
+.chronicle-card .seal-badge{position:absolute;top:.7rem;right:.7rem}

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A sovereign, local-first cinematic solo RPG PWA.",
+  "description": "A cinematic solo RPG that plays offline and keeps the only true copy on your device.",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "vite build",

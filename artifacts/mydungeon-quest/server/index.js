@@ -42,16 +42,24 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), async (req, res) => {
-  const result = await getDmTurn(req.body || {});
+  // Real streaming: narration text is forwarded to the player as it
+  // forms inside the tool call; the validated turn arrives last.
   if (req.query.stream === '1') {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
-    for (const block of result.turn.narration_blocks) res.write(`event: narration\ndata: ${JSON.stringify(block)}\n\n`);
-    res.write(`event: turn\ndata: ${JSON.stringify(result)}\n\n`);
-    return res.end();
+    let closed = false;
+    // res 'close' fires on client disconnect; req 'close' fires as soon
+    // as the request body finishes in modern Node, which is not abort.
+    res.on('close', () => { closed = true; });
+    const result = await getDmTurn(req.body || {}, {
+      onNarration: (text) => { if (!closed) res.write(`event: narration\ndata: ${JSON.stringify({ text })}\n\n`); }
+    });
+    if (!closed) { res.write(`event: turn\ndata: ${JSON.stringify(result)}\n\n`); res.end(); }
+    return;
   }
-  res.json(result);
+  res.json(await getDmTurn(req.body || {}));
 });
 
 async function sendAsset(res, result) {

@@ -2,14 +2,24 @@ import { db } from '../db.js';
 import { generationSpec } from './prompts.js';
 import { sha256 } from '../canonical.js';
 
+// ------------------------------------------------------------
+// THE FOUNDRY — asynchronous media orchestrator.
+// v2: three independent lanes (image / video / audio) so a slow
+// video render never blocks portraits; explicit cacheKey support
+// so beat packages briefed by lookahead are found again when the
+// cinematic actually fires. Spend caps, content-addressed cache,
+// and sealed attestations are unchanged.
+// ------------------------------------------------------------
+
+const laneOf = (kind) => (kind === 'video' ? 'video' : kind === 'paint' ? 'image' : 'audio');
+
 export class Foundry {
   constructor({ campaignId, tier = 'parchment', spend = {}, onAttestation = null }) {
     this.campaignId = campaignId;
     this.tier = tier;
     this.spend = { images: 0, videos: 0, music: 0, ...spend };
     this.caps = { images: 80, videos: 16, music: 8 };
-    this.queue = [];
-    this.running = false;
+    this.lanes = { image: { queue: [], running: false }, video: { queue: [], running: false }, audio: { queue: [], running: false } };
     this.onAttestation = onAttestation;
   }
 
@@ -20,37 +30,40 @@ export class Foundry {
     return !bucket || this.spend[bucket] < this.caps[bucket];
   }
 
-  async enqueue({ kind, prompt, originTurnHash = null, options = {}, priority = 5 }) {
+  async enqueue({ kind, prompt, originTurnHash = null, options = {}, priority = 5, cacheKey = null, ...rest }) {
     const spec = await generationSpec(kind, prompt, options);
-    const cached = await db.media.where('cacheKey').equals(spec.hash).first();
+    const key = cacheKey || spec.hash;
+    const cached = await db.media.where('cacheKey').equals(key).first();
     if (cached) return cached;
     if (!this.allowed(kind)) return null;
     return new Promise((resolve, reject) => {
-      this.queue.push({ kind, prompt, originTurnHash, options, priority, spec, resolve, reject });
-      this.queue.sort((a,b) => a.priority - b.priority);
-      this.pump();
+      const lane = this.lanes[laneOf(kind)];
+      lane.queue.push({ kind, prompt, originTurnHash, options, priority, spec, cacheKey: key, resolve, reject, ...rest });
+      lane.queue.sort((a, b) => a.priority - b.priority);
+      this.pump(lane);
     });
   }
 
-  async pump() {
-    if (this.running || !this.queue.length) return;
-    this.running = true;
-    const job = this.queue.shift();
+  async pump(lane) {
+    if (lane.running || !lane.queue.length) return;
+    lane.running = true;
+    const job = lane.queue.shift();
     try {
-      const asset = await this.generate(job);
-      job.resolve(asset);
+      // Another job may have filled this key while we waited in line.
+      const cached = await db.media.where('cacheKey').equals(job.cacheKey).first();
+      job.resolve(cached || await this.generate(job));
     } catch (error) { job.reject(error); }
-    finally { this.running = false; this.pump(); }
+    finally { lane.running = false; this.pump(lane); }
   }
 
   async generate(job) {
     let response;
     if (job.kind === 'video') {
       const queued = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: job.prompt, ...job.options }) }).then((r) => r.json());
-      for (let attempt = 0; attempt < 360; attempt += 1) {
+      for (let attempt = 0; attempt < 240; attempt += 1) {
         const status = await fetch(`/api/video/${queued.id}`).then((r) => r.json());
         if (status.status === 'ready') { response = await fetch(`/api/video/${queued.id}/asset`); break; }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
       }
       if (!response) throw new Error('Video generation timed out');
     } else {
@@ -63,8 +76,9 @@ export class Foundry {
     const bucket = job.kind === 'paint' ? 'images' : job.kind === 'video' ? 'videos' : job.kind === 'music' ? 'music' : null;
     if (bucket) this.spend[bucket] += 1;
     const row = {
-      campaignId: this.campaignId, kind: job.kind, cacheKey: job.spec.hash, promptHash: job.spec.promptHash,
+      campaignId: this.campaignId, kind: job.kind, cacheKey: job.cacheKey, promptHash: job.spec.promptHash,
       generationSpecHash: job.spec.hash, assetHash, originTurnHash: job.originTurnHash, mime: blob.type,
+      label: job.options?.label || null, variant: job.options?.variant || null,
       provider: response.headers.get('X-Media-Provider') || 'unknown', model: response.headers.get('X-Media-Model') || 'unknown',
       blob, createdAt: Date.now()
     };

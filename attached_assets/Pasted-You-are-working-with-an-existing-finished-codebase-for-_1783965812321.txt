@@ -1,0 +1,334 @@
+You are working with an existing, finished codebase for **MyDungeon.Quest: Cinematic Edition**.
+
+I will upload or import the complete project into this Replit workspace. Do not rebuild the application from scratch, replace its architecture, or reduce it to a prototype. Your job is to inspect the existing repository, run it, repair any environment-specific issues, deploy it as a public website, and connect the workspace to GitHub for continuous backup.
+
+## Primary objectives
+
+1. Preserve the existing game and its architecture.
+2. Make the application run correctly inside Replit.
+3. Publish it as a responsive, installable web application.
+4. Make all server routes work through the same public deployment.
+5. Connect the project to my GitHub repository.
+6. Commit and push verified changes back to GitHub.
+7. Keep the existing build and evaluation suites green.
+
+## Existing architecture
+
+The project already uses:
+
+* Vite
+* React with JavaScript and JSX
+* Express
+* Node.js 20 or newer
+* ES modules
+* Dexie and IndexedDB
+* A service worker and PWA manifest
+* Playwright for server-side PDF generation
+* Client-side game rules and dice
+* An append-only cryptographic campaign ledger
+* Mock AI and media providers for keyless operation
+* Optional external AI and media providers through server-side environment variables
+
+Treat the repository’s existing files as the source of truth.
+
+Before changing anything, inspect:
+
+* `README.md`
+* `BUILD_STATUS.md`
+* `CHANGELOG.md`
+* `package.json`
+* `.env.example`
+* `.replit`
+* `replit.md`
+* Server entry files
+* Vite configuration
+* Existing test and evaluation scripts
+
+## Non-negotiable constraints
+
+Do not:
+
+* Replace the application with a new scaffold.
+* Convert it to TypeScript.
+* introduce a CSS framework.
+* Remove the Express server.
+* Move API keys into client-side code.
+* Remove the mock-provider fallback.
+* weaken the client-authoritative rules engine.
+* rewrite or mutate previously sealed campaign records.
+* remove IndexedDB persistence.
+* remove the offline verifier.
+* replace working features with placeholders.
+* claim a route or integration works without testing it.
+* commit secrets, API keys, Replit tokens, or GitHub credentials.
+
+Prefer small, targeted fixes over broad rewrites.
+
+## Phase 1: Audit the imported repository
+
+Start by inspecting the repository and documenting:
+
+* Application entry points
+* Frontend build command
+* Production server command
+* Express API routes
+* Static file serving behavior
+* PWA assets
+* Required environment variables
+* Playwright requirements
+* Existing tests and evals
+* Any missing files or broken paths
+
+Run:
+
+```bash
+npm install
+npm run build
+npm run eval
+```
+
+Also run any existing unit, integration, or smoke-test commands found in `package.json`.
+
+If a command fails, diagnose and repair the actual issue. Do not bypass or delete tests merely to obtain a green result.
+
+## Phase 2: Configure Replit execution
+
+Configure the project so Replit can run it reliably.
+
+Requirements:
+
+* Use Node.js 20 or newer.
+* The production server must listen on `0.0.0.0`.
+* Read the port from `process.env.PORT`.
+* Serve the Vite production build through Express.
+* Preserve all `/api/*` routes.
+* Support direct navigation to client-side routes without returning 404.
+* Preserve `/verify.html`.
+* Preserve the web manifest, icons, and service worker.
+* Do not use separate public frontend and backend deployments unless technically unavoidable.
+* Confirm that browser requests use relative `/api/...` URLs rather than localhost-only URLs.
+
+The expected production flow should be equivalent to:
+
+```bash
+npm run build
+npm start
+```
+
+Update `.replit`, `replit.md`, and deployment configuration only as necessary.
+
+## Phase 3: Environment and secrets
+
+Use Replit Secrets for all credentials.
+
+Never place secrets in:
+
+* Source code
+* Git history
+* Browser bundles
+* `.env.example`
+* Console output
+* Documentation examples containing real values
+
+The application must remain fully playable without commercial API keys by using its existing deterministic mock providers and procedural media.
+
+When provider secrets are present, the server should detect and use the configured provider according to the existing adapter architecture.
+
+Create or update `.env.example` using blank values and explanatory comments only.
+
+Add a startup health summary that reports capabilities without revealing any secret values.
+
+Confirm that:
+
+```text
+GET /api/health
+```
+
+returns safe provider-capability information.
+
+## Phase 4: Website deployment
+
+Deploy the existing game as a public website.
+
+The deployed site must support:
+
+* Chronicle creation
+* Locally saved campaigns
+* World Forge
+* Hero Forge
+* The game table
+* Client-owned dice rolls
+* Codex and character sheet
+* Cinematic procedural fallbacks
+* Chronicle export and restore
+* Offline verification
+* Storybook HTML generation
+* PDF binding when Playwright is available
+* PWA installation
+* Mobile-responsive layouts
+
+Test the deployed application at narrow mobile, tablet, and desktop viewport sizes.
+
+At minimum, test:
+
+* 390 × 844
+* 768 × 1024
+* 1440 × 900
+
+Do not redesign the visual system unless a layout defect makes the application unusable.
+
+## Phase 5: Playwright PDF support
+
+Check whether the existing PDF route can find Chromium inside Replit.
+
+Install the Playwright Chromium browser when required:
+
+```bash
+npx playwright install chromium
+```
+
+If Replit requires additional system packages, configure them using the supported Replit environment rather than removing PDF functionality.
+
+The PDF endpoint must:
+
+* Accept the existing storybook HTML contract.
+* Render a valid PDF.
+* Close browser resources after every request.
+* Fail safely with a useful error.
+* Never expose arbitrary local files or unrestricted external network access.
+
+If Playwright cannot be supported in the selected Replit deployment type, preserve offline HTML storybook export and clearly document the limitation. Do not fake a successful PDF download.
+
+## Phase 6: GitHub connection and backup
+
+Connect this Replit project to my GitHub repository using Replit’s official Git and GitHub integration.
+
+Repository:
+
+```text
+<GITHUB_REPOSITORY_URL>
+```
+
+Use the existing `main` branch unless the imported repository specifies another default branch.
+
+Before making changes:
+
+1. Confirm the current branch.
+2. Inspect `git status`.
+3. Confirm the existing remote.
+4. Pull remote changes when it is safe to do so.
+5. Never force-push.
+6. Never rewrite published history.
+
+Create a working branch named:
+
+```text
+replit/deployment
+```
+
+Commit changes in small, descriptive milestones.
+
+Suggested commits:
+
+```text
+chore: configure Replit runtime
+fix: serve production client through Express
+fix: preserve PWA and verifier routes
+chore: configure Playwright PDF runtime
+test: add Replit deployment smoke checks
+docs: document Replit deployment and secrets
+```
+
+After all tests pass:
+
+1. Push `replit/deployment` to GitHub.
+2. Merge it into `main` through the safest available workflow.
+3. Push the updated `main` branch.
+4. Confirm the GitHub remote contains the final commit.
+
+Use the connected GitHub authorization. Do not request or store a personal access token in source files.
+
+Whenever future work changes the project:
+
+1. Pull the latest remote changes first.
+2. Make targeted changes.
+3. Run the full verification suite.
+4. Commit with a descriptive message.
+5. Push to GitHub only after tests pass.
+
+## Phase 7: Verification
+
+Before declaring the deployment complete, run:
+
+```bash
+npm run build
+npm run eval
+npm start
+```
+
+Perform HTTP smoke tests for:
+
+```text
+GET  /
+GET  /verify.html
+GET  /manifest.webmanifest
+GET  /api/health
+POST /api/dm
+POST /api/paint
+POST /api/bind-pdf
+```
+
+Test the asynchronous mock-video route if it exists.
+
+Perform a browser-level smoke campaign:
+
+1. Open the Chronicle Shelf.
+2. Create a world.
+3. Create a hero.
+4. Start the campaign.
+5. Submit a player action.
+6. Complete a client-side dice roll.
+7. Trigger or replay a procedural cinematic.
+8. Open the Codex.
+9. Export the chronicle.
+10. Verify the exported chain.
+11. Reload the browser and confirm the campaign persists.
+
+Confirm the browser console contains no unhandled errors.
+
+## Phase 8: Documentation
+
+Update the project documentation with:
+
+* Replit import instructions
+* Development command
+* Production command
+* Deployment command
+* Replit Secrets map
+* GitHub synchronization workflow
+* Playwright installation requirements
+* Mock-provider behavior
+* Known limitations
+* Recovery instructions when a deployment fails
+* Instructions for exporting chronicles before clearing browser storage
+
+Update `BUILD_STATUS.md` with the exact commands run and their results.
+
+## Completion criteria
+
+The work is complete only when:
+
+* The imported game runs in Replit.
+* The public deployment loads successfully.
+* The frontend and Express API share one working origin.
+* Keyless gameplay works.
+* IndexedDB persistence works across reloads.
+* PWA files are available.
+* The verifier works.
+* Build and eval commands pass.
+* PDF generation either works or has an honestly documented environment limitation.
+* No secrets appear in the repository.
+* All verified changes are committed and pushed to GitHub.
+* The final response includes the public deployment URL, GitHub branch and commit, commands tested, and any remaining limitations.
+
+Begin by auditing the existing repository. Do not scaffold a replacement application.

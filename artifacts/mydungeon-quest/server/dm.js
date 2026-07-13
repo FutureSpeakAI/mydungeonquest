@@ -85,11 +85,11 @@ const toolSchema = {
   type: 'object', additionalProperties: false,
   required: ['narration_blocks','suggestions','roll_request','state_updates','combat','cinematic','story','image_cue','dialogue_cue','time_advance','entropy_use'],
   properties: {
-    narration_blocks: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'object', additionalProperties: false, required: ['text','speaker'], properties: { text: { type: 'string', maxLength: 1200 }, speaker: { anyOf: [{ type: 'string', maxLength: 80 }, { type: 'null' }] } } } },
-    suggestions: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: 60, description: 'At most 6 words.' } },
+    narration_blocks: { type: 'array', minItems: 1, maxItems: 8, description: 'One to eight prose blocks. The combined word count across ALL blocks must be between 20 and 180 words. Aim for 70-150 so you never overrun the hard 180-word limit.', items: { type: 'object', additionalProperties: false, required: ['text','speaker'], properties: { text: { type: 'string', maxLength: 1200 }, speaker: { anyOf: [{ type: 'string', maxLength: 80 }, { type: 'null' }] } } } },
+    suggestions: { type: 'array', minItems: 3, maxItems: 3, description: 'Exactly three distinct next actions.', items: { type: 'string', maxLength: 60, description: 'A terse action label of AT MOST 6 words (hard limit). E.g. "Search the wayhouse".' } },
     roll_request: rollRequestSchema, state_updates: { anyOf: [{ type: 'null' }, { type: 'object' }] },
     combat: combatSchema, cinematic: cinematicSchema,
-    story: { anyOf: [{ type: 'null' }, { type: 'object' }] }, image_cue: imageCueSchema,
+    story: { anyOf: [{ type: 'null' }, { type: 'object' }], description: 'Narrative/codex deltas: { beat_advance, arc, cast_add, cast_update, world }. On the opening (genesis) turn this MUST be an object with arc, cast_add (exactly one villain plus a mentor/ally), and world.region_add — never null on the opening turn.' }, image_cue: imageCueSchema,
     dialogue_cue: dialogueCueSchema, time_advance: timeAdvanceSchema,
     entropy_use: { type: 'array', items: { type: 'object', required: ['index','die','purpose'], properties: { index: { type: 'integer' }, die: { type: 'string' }, purpose: { type: 'string' } } } }
   }
@@ -132,9 +132,21 @@ function shapeRequest(input, stream) {
 
 const anthropicHeaders = () => ({ 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' });
 
-async function anthropicTurn(input) {
+// When a previous attempt was schema-valid per Anthropic but rejected by the
+// stricter client validator, `repair` carries that turn plus the exact
+// violations so the model can correct itself instead of falling back to
+// generic narration. This tightens reliability without loosening the validator.
+async function anthropicTurn(input, repair = null) {
+  const request = shapeRequest(input, false);
+  if (repair) {
+    request.messages = [
+      ...request.messages,
+      { role: 'assistant', content: [{ type: 'tool_use', id: 'dm_turn_repair', name: 'dm_turn', input: repair.turn }] },
+      { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'dm_turn_repair', is_error: true, content: `The rules client REJECTED that dm_turn. Every field is still required; keep everything that was correct and fix ONLY these violations, then resend the complete corrected dm_turn:\n- ${repair.errors.join('\n- ')}` }] }
+    ];
+  }
   const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST', headers: anthropicHeaders(), body: JSON.stringify(shapeRequest(input, false))
+    method: 'POST', headers: anthropicHeaders(), body: JSON.stringify(request)
   });
   if (!response.ok) throw new Error(`Anthropic ${response.status}: ${await response.text()}`);
   const json = await response.json();
@@ -225,16 +237,39 @@ async function mockWithNarration(input, onNarration) {
 
 export async function getDmTurn(input, { onNarration = null } = {}) {
   const useMock = !process.env.ANTHROPIC_API_KEY || process.env.DM_PROVIDER === 'mock';
-  let turn;
-  try {
-    if (useMock) turn = await mockWithNarration(input, onNarration);
-    else if (onNarration) turn = await anthropicTurnStream(input, onNarration).catch(() => anthropicTurn(input));
-    else turn = await anthropicTurn(input);
-    const validation = validateDmTurn(turn, input.entropy);
-    if (!validation.ok) throw new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
-    return { turn, provider: useMock ? 'mock' : 'anthropic' };
-  } catch (error) {
-    console.error(error);
-    return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', error: error.message };
+
+  if (useMock) {
+    try {
+      const turn = await mockWithNarration(input, onNarration);
+      const validation = validateDmTurn(turn, input.entropy);
+      if (!validation.ok) throw new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
+      return { turn, provider: 'mock' };
+    } catch (error) {
+      console.error(error);
+      return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', error: error.message };
+    }
   }
+
+  // Up to two attempts: the second is a self-repair guided by the exact
+  // validator errors from the first. The first attempt streams narration to
+  // the client when requested; the repair pass is a plain (non-streamed) call.
+  // Network/API errors get a plain retry.
+  let lastError;
+  let repair = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const turn = attempt === 0 && onNarration
+        ? await anthropicTurnStream(input, onNarration).catch(() => anthropicTurn(input))
+        : await anthropicTurn(input, repair);
+      const validation = validateDmTurn(turn, input.entropy);
+      if (validation.ok) return { turn, provider: 'anthropic', repaired: attempt > 0 };
+      lastError = new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
+      repair = { turn, errors: validation.errors };
+    } catch (error) {
+      lastError = error;
+      repair = null;
+    }
+  }
+  console.error(lastError);
+  return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', error: lastError.message };
 }

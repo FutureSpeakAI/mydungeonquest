@@ -152,7 +152,7 @@ export default function App() {
       const prompt = cinematicPrompt(campaign, dm.cinematic, dm.image_cue || {});
       const keys = beatKeys(campaign.id, campaign.codex.beatIndex);
       const villainSoul = campaign.codex.cast.find((soul) => soul.role === 'villain');
-      jobs.push({ kind: 'video', prompt, priority: 2, cacheKey: keys.film, options: { kind: 'beat-film', label: dm.cinematic.title, referenceLabels: [...(dm.image_cue?.subjects || []), villainSoul?.name].filter(Boolean).slice(0, 2) } });
+      jobs.push({ kind: 'video', prompt, priority: 2, cacheKey: keys.film, options: { kind: 'beat-film', label: dm.cinematic.title, referenceLabels: [...(dm.image_cue?.subjects || []), villainSoul?.name].filter(Boolean).slice(0, 2) }, logId });
       jobs.push({ kind: 'music', prompt: `A 20 second cinematic stinger for ${dm.cinematic.type}; ${dm.cinematic.subtitle}`, priority: 4, cacheKey: keys.score });
       jobs.push({ kind: 'sfx', prompt: `A restrained PG-13 ambience and impact for ${dm.cinematic.type}`, priority: 4 });
       if (dm.dialogue_cue) jobs.push({ kind: 'speak', prompt: dm.dialogue_cue.line, options: { text: dm.dialogue_cue.line }, priority: 1 });
@@ -161,11 +161,26 @@ export default function App() {
     for (const job of jobs) {
       foundry.enqueue({ ...job, originTurnHash: turnRecord.recordHash }).then(async (asset) => {
         if (!asset) return;
-        if (job.logId && asset.mime.startsWith('image/')) {
+        if (job.logId && job.kind === 'paint' && asset.mime.startsWith('image/')) {
           const dataUrl = await blobToDataUrl(asset.blob);
           setCurrent((prev) => {
             if (!prev || prev.id !== campaign.id) return prev;
             const logs = prev.logs.map((log) => log.id === job.logId ? { ...log, imageUrl: dataUrl, imageAssetHash: asset.assetHash } : log);
+            const next = { ...prev, logs, spend: foundry.spend };
+            saveCampaign(next); return next;
+          });
+        }
+        // A cinematic can be a real video/mp4 clip (Veo) or, on the mock
+        // provider, a posterOnly still. Attach whichever we got to its turn's
+        // log so the story view renders a playable film (or a keyframe).
+        if (job.logId && job.kind === 'video') {
+          const dataUrl = await blobToDataUrl(asset.blob);
+          const isVideo = asset.mime.startsWith('video/');
+          setCurrent((prev) => {
+            if (!prev || prev.id !== campaign.id) return prev;
+            const logs = prev.logs.map((log) => log.id === job.logId
+              ? { ...log, ...(isVideo ? { videoUrl: dataUrl } : { videoPosterUrl: dataUrl }), videoAssetHash: asset.assetHash }
+              : log);
             const next = { ...prev, logs, spend: foundry.spend };
             saveCampaign(next); return next;
           });
@@ -492,6 +507,12 @@ function LogEntry({ log, campaign }) {
     {log.dm.cinematic && <div className="beat-line"><span>✦</span><b>{log.dm.cinematic.title}</b><small>{log.dm.cinematic.subtitle}</small></div>}
     {cue && <figure className="illustration-panel full-bleed"><img src={log.imageUrl || art} alt={cue.mood}/><figcaption>{cue.mood}{log.imageUrl ? <span>illuminated</span> : <span>procedural plate</span>}</figcaption></figure>}
     <div className="narration">{log.dm.narration_blocks.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
+    {(log.videoUrl || log.videoPosterUrl) && <figure className="illustration-panel full-bleed">
+      {log.videoUrl
+        ? <video src={log.videoUrl} poster={log.videoPosterUrl || undefined} controls playsInline loop muted preload="metadata" aria-label={log.dm.cinematic?.title || 'cinematic'} />
+        : <img src={log.videoPosterUrl} alt={log.dm.cinematic?.title || 'cinematic keyframe'} />}
+      <figcaption>{log.dm.cinematic?.title || 'Cinematic'}{log.videoUrl ? <span>cinematic film</span> : <span>keyframe</span>}</figcaption>
+    </figure>}
     {log.resolution && <div className={`roll-stamp ${log.resolution.outcome.includes('success')?'success':'failure'}`}><Dices/><span>{log.resolution.selectedDie} → {log.resolution.total}</span><b>{log.resolution.outcome.replaceAll('_',' ')}</b></div>}
   </article>;
 }

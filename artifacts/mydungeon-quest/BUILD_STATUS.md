@@ -66,3 +66,44 @@
   (`referenceAssetHashes`) — the book can prove which reference produced
   which image.
 
+
+## v0.3.0 — Cinematic Edition (2026-07-13)
+Visual phases delivered on the v0.2.1 Anchor Law engine ("film poster, not book
+page"). Engine files (dm/foundry/lookahead/score/voice/systemPrompt/protocol/
+seal/story/rules/canonical) untouched; all work confined to the presentation
+layer (App.jsx, components, cinema/prompts, storybook, styles, prologue).
+
+- Phase 1 — Prologue Render: world key art + hero bust anchor painted and
+  sealed before Chapter I; live paint previews in both forges.
+- Phase 3 — Image-first table: full-bleed illustration panels, region-strip
+  parallax that darkens with blight, soul/region gallery in the Codex.
+- Phase 5 — The Living Seal: nav "book" replaced with a wax-seal glyph that
+  pulses (re-embosses) whenever the chronicle head hash advances.
+- Phase 6 — The Face: title screen is full-bleed Ken-Burns key art with an
+  attract mode; chronicle cards wear their own key-art covers.
+- Phase 7 — The Bound Chronicle: storybook renders in an iframe with embedded
+  book fonts, a key-art cover, and "The Reel" film-strip of paint keyframes.
+- Default media tier is now `illuminated` (stills) so new campaigns open
+  cinematic-first; `parchment` stays user-selectable.
+
+### Fixes this cut
+- Routing: the api-server artifact was claiming `/api` at the shared proxy and
+  shadowing the game's own `/api/*` (dm/paint/video). api-server repathed to
+  `/_apiserver` so the game (served at `/`) owns `/api` via its vite proxy.
+- Seal transaction: appendEvent (seal.js) awaits crypto.subtle *inside* a Dexie
+  rw transaction, which real IndexedDB premature-commits ("Transaction
+  committed too early") once a rich tier fires several attestations around a
+  turn. App.jsx now seals via a serialized wrapper that rebuilds the identical
+  record through the engine's exported makeEnvelope, running all crypto OUTSIDE
+  the transaction and writing only sync Dexie ops inside.
+- Forge portrait: portraitPrompt read `campaign.codex.arc` unguarded and threw
+  for the World-forge draft (no codex), silently killing the Hero-forge live
+  portrait; now null-safe like keyArtPrompt.
+
+### Media provider note
+- Image/video/audio adapters serve deterministic MOCK placeholders unless the
+  matching `*_PROVIDER` env is set (e.g. `PAINT_PROVIDER=openai` with
+  `OPENAI_API_KEY`). Mock is keyless/free and keeps `npm run check` green; real
+  painted art requires opting in per provider.
+- `npm run check` remains green (build + 90/90 bench + engine assertions +
+  anchor law), run keyless.

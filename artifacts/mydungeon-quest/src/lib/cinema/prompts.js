@@ -17,7 +17,7 @@ export function scrubPrompt(text, campaign = {}) {
 }
 
 export function portraitPrompt(campaign, soul, variant = 'bust') {
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. Appearance canon: ${soul.visual}. Expression and posture reveal this goal: ${soul.goal}. No text, no frame.`, campaign);
+  return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. Appearance canon: ${soul.visual}. Expression and posture reveal this goal: ${soul.goal}. No text, no frame.`, campaign);
 }
 
 export function regionPrompt(campaign, region) {

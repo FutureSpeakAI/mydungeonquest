@@ -320,7 +320,7 @@ export default function App() {
     <header className="table-header">
       <button className="sigil-button" onClick={() => setOverlay('sheet')}><span>{current.hero.sigil}</span><div><b>{current.hero.name}</b><small>Level {current.hero.level} {current.hero.className}</small></div></button>
       <div className="header-stats"><span><HeartPulse/> {current.hero.hp}/{current.hero.maxHp}</span><span><Shield/> {current.hero.ac}</span><span className="desktop-stat">{current.hero.gold} gold</span></div>
-      <nav><button onClick={() => setOverlay('codex')}><BookOpen/><span>Codex</span></button><button onClick={openStorybook}><ScrollText/><span>Book</span></button><button onClick={() => setOverlay('settings')}><SettingsIcon/><span>Care</span></button></nav>
+      <nav><WaxSeal count={current.logs.length} onOpen={openStorybook} /><button onClick={() => setOverlay('codex')}><BookOpen/><span>Codex</span></button><button onClick={openStorybook}><ScrollText/><span>Book</span></button><button onClick={() => setOverlay('settings')}><SettingsIcon/><span>Care</span></button></nav>
     </header>
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
@@ -365,6 +365,24 @@ function LogEntry({ log, campaign }) {
     {cue && <figure className="illustration-panel"><img src={log.imageUrl || art} alt={cue.mood}/><figcaption>{cue.mood}{log.imageUrl ? <span>illuminated</span> : <span>procedural plate</span>}</figcaption></figure>}
     {log.resolution && <div className={`roll-stamp ${log.resolution.outcome.includes('success')?'success':'failure'}`}><Dices/><span>{log.resolution.selectedDie} → {log.resolution.total}</span><b>{log.resolution.outcome.replaceAll('_',' ')}</b></div>}
   </article>;
+}
+
+// A wax stamp in the header. Each time a turn is committed the seal presses
+// closed with a brief flash; tapping it opens the bound chronicle.
+function WaxSeal({ count, onOpen }) {
+  const [pressing, setPressing] = useState(false);
+  const prev = useRef(count);
+  useEffect(() => {
+    if (count > prev.current) { setPressing(true); prev.current = count; const t = setTimeout(() => setPressing(false), 950); return () => clearTimeout(t); }
+    prev.current = count;
+  }, [count]);
+  return <button className={`wax-seal${pressing ? ' pressing' : ''}`} onClick={onOpen} aria-label="Open the bound chronicle" title="The bound chronicle">
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <circle className="wax-blob" cx="20" cy="20" r="15.5"/>
+      <circle className="wax-rim" cx="20" cy="20" r="11.5"/>
+      <path className="wax-emboss" d="M20 11l2.7 6.5 7 .5-5.3 4.6 1.7 6.8L20 31.5l-6.1 3.5 1.7-6.8-5.3-4.6 7-.5z"/>
+    </svg>
+  </button>;
 }
 
 function Composer({ campaign, busy, onSubmit, onSuggestion, onRoll, onXCard }) {

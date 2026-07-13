@@ -73,3 +73,26 @@
 @keyframes wax-press{0%{transform:scale(.55) rotate(-18deg)}45%{transform:scale(1.2) rotate(4deg)}70%{transform:scale(.92) rotate(-1deg)}100%{transform:scale(1) rotate(0)}}
 @keyframes wax-flash{0%{fill:#c25a3a}30%{fill:#9a2a24;filter:drop-shadow(0 0 9px rgba(212,162,78,.65))}100%{fill:#7c1f22;filter:drop-shadow(0 3px 5px rgba(0,0,0,.55))}}
 @media(prefers-reduced-motion:reduce){.wax-seal.pressing svg,.wax-seal.pressing .wax-blob{animation:none}}
+
+/* Phase 6 — The Face: full-bleed Ken Burns key art + attract mode */
+.title-page.cinematic{background:var(--ink)}
+.title-backdrop{position:absolute;inset:0;z-index:0;overflow:hidden}
+.kb-layer{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity 2.2s ease}
+.kb-layer.active{opacity:1;animation:kenburns 9.2s ease-out forwards}
+@keyframes kenburns{from{transform:scale(1.02) translate3d(0,0,0)}to{transform:scale(1.17) translate3d(-1.6%,-1.4%,0)}}
+.title-veil{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,rgba(13,11,20,.24),rgba(13,11,20,.7) 62%,var(--ink) 99%),linear-gradient(180deg,rgba(13,11,20,.55),rgba(13,11,20,.3) 28%,rgba(13,11,20,.94))}
+.title-page.cinematic .title-hero,.title-page.cinematic .shelf,.title-page.cinematic .title-footer,.title-page.cinematic .stars{position:relative;z-index:1}
+.title-page.cinematic .title-hero h1{text-shadow:0 6px 55px #000,0 2px 14px #000}
+.title-page.cinematic .title-hero p{color:var(--vellum)}
+.attract-line{min-height:1.6em;animation:attract-fade 1s ease}
+@keyframes attract-fade{from{opacity:0;transform:translateY(7px)}}
+.hero-cta{font-size:1.05rem;padding:.95rem 2.1rem}
+.link-restore{background:none;border:0;color:var(--vellum-dim);text-decoration:underline;cursor:pointer;font-size:.75rem;font-family:inherit}
+.link-restore:hover{color:var(--gold)}
+.chronicle-card.has-cover{background-size:cover;background-position:center}
+.chronicle-card.has-cover:before{background:radial-gradient(circle at 88% 8%,rgba(212,162,78,.22),transparent 40%)}
+.chronicle-card.has-cover h3{text-shadow:0 2px 10px #000}
+.chronicle-card.has-cover p{color:var(--vellum);text-shadow:0 1px 8px #000}
+.chronicle-card.has-cover .card-sigil{text-shadow:0 2px 12px #000}
+.chronicle-card.has-cover footer{border-top-color:rgba(233,223,200,.22)}
+@media(prefers-reduced-motion:reduce){.kb-layer.active{animation:none;transform:scale(1.06)}}

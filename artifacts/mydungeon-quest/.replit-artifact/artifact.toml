@@ -1,0 +1,35 @@
+kind = "web"
+previewPath = "/"
+title = "MyDungeon.Quest"
+version = "1.0.0"
+id = "artifacts/mydungeon-quest"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18654
+
+[services.development]
+run = "pnpm --filter @workspace/mydungeon-quest run dev"
+
+[services.development.env]
+INTERNAL_API_PORT = "3001"
+
+[services.production]
+
+[services.production.build]
+args = [ "pnpm", "--filter", "@workspace/mydungeon-quest", "run", "build" ]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = [ "node", "artifacts/mydungeon-quest/server/index.js" ]
+
+[services.production.run.env]
+PORT = "18654"
+NODE_ENV = "production"
+
+[services.env]
+PORT = "18654"

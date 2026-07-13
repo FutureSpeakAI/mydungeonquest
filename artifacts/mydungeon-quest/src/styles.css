@@ -24,3 +24,27 @@
 /* v0.2 engine cut — the weaving caret and true film support */
 .weaving p:last-child:after{content:"▍";color:var(--gold);animation:caret .8s step-end infinite}
 .cinematic video.cinematic-art{width:100%;height:100%;object-fit:cover}
+
+/* Phase 1 — the Prologue Render: the forge is a title sequence */
+.forge-page.prologue{position:relative;isolation:isolate;background:none}
+.prologue-plate{position:fixed;inset:0;z-index:-2;background:var(--keyart) center/cover no-repeat;filter:saturate(.88) brightness(.66);transform:scale(1.04);opacity:.5;transition:opacity 1.2s ease,filter 1.2s ease}
+.prologue-plate.painted{opacity:.82;filter:saturate(1.02) brightness(.8)}
+.prologue-plate.summoning{animation:keyart-summon 2.6s ease-in-out infinite}
+@keyframes keyart-summon{50%{filter:saturate(1.12) brightness(.9) blur(1.5px)}}
+.prologue-veil{position:fixed;inset:0;z-index:-1;background:radial-gradient(circle at 50% 8%,rgba(13,11,20,.28),rgba(13,11,20,.74) 58%,var(--ink) 97%),linear-gradient(180deg,rgba(13,11,20,.34),rgba(13,11,20,.7))}
+.prologue .prologue-content{position:relative}
+.prologue .forge-header h1{text-shadow:0 4px 44px #000}
+.hero-portrait-row{display:grid;grid-template-columns:auto 1fr;gap:1.1rem;align-items:center;margin-bottom:1.3rem}
+.hero-portrait{margin:0;position:relative;width:136px;flex:none}
+.hero-portrait img{display:block;width:136px;height:182px;object-fit:cover;border:1px solid var(--gold-soft);border-radius:14px;background:#0f0c14;box-shadow:0 16px 44px rgba(0,0,0,.45);animation:image-arrive .7s ease both}
+.hero-portrait.summoning img{animation:portrait-summon 2.2s ease-in-out infinite}
+@keyframes portrait-summon{0%,100%{filter:blur(2px) saturate(.7);opacity:.72}50%{filter:blur(0) saturate(1);opacity:1}}
+.hero-portrait figcaption{margin-top:.42rem;text-align:center;font-style:italic;color:var(--vellum-dim);font-size:.72rem}
+.hero-sigil-block{display:grid;gap:.6rem}
+.hero-sigil-block .hero-sigil{margin-bottom:0}
+.hero-portrait-name{margin:0;display:grid}
+.hero-portrait-name b{font-family:Cinzel,serif;color:var(--vellum);font-size:1.1rem}
+.hero-portrait-name small{color:var(--vellum-dim)}
+.campaign-mast.has-keyart{position:relative;background-size:cover;background-position:center 38%;padding:clamp(3rem,12vw,6.5rem) 1.2rem 2.4rem;margin:-3rem -1rem 3.5rem;border-bottom:1px solid rgba(212,162,78,.28);border-radius:0 0 18px 18px;box-shadow:inset 0 -46px 60px -30px var(--ink)}
+.campaign-mast.has-keyart h1{text-shadow:0 4px 42px #000,0 2px 8px #000}
+.campaign-mast.has-keyart p{text-shadow:0 2px 12px #000}

@@ -14,6 +14,7 @@ import { Foundry } from './lib/cinema/foundry.js';
 import { cinematicPrompt, portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
 import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
+import { keyArtKey, keyArtPrompt } from './lib/cinema/prologue.js';
 import { setScoreState, startScore, stopScore } from './lib/cinema/score.js';
 import { speakBlocks, stopSpeaking } from './lib/cinema/voice.js';
 import { buildStorybook } from './lib/storybook.js';
@@ -58,6 +59,7 @@ export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const settingsRef = useRef(DEFAULT_SETTINGS); settingsRef.current = settings;
   const [bookHtml, setBookHtml] = useState('');
+  const [keyArtUrl, setKeyArtUrl] = useState(null);
   const logEndRef = useRef(null);
 
   const refreshShelf = useCallback(async () => setCampaigns(await listCampaigns()), []);
@@ -83,6 +85,8 @@ export default function App() {
       onAttestation: async (payload) => appendEvent(campaign.id, 'media_attestation', payload)
     });
     const jobs = [];
+    const act = campaign.codex.spine.beats[campaign.codex.beatIndex]?.act || 1;
+    if (act > 1) jobs.push({ kind: 'paint', prompt: keyArtPrompt(campaign, act), cacheKey: keyArtKey(campaign.id, act), options: { kind: 'scene', label: 'keyart' }, priority: 6 });
     if (dm.image_cue) jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, dm.image_cue), options: { kind: 'scene' }, priority: 1, logId });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
@@ -104,6 +108,9 @@ export default function App() {
     for (const job of jobs) {
       foundry.enqueue({ ...job, originTurnHash: turnRecord.recordHash }).then(async (asset) => {
         if (!asset) return;
+        if (asset.mime.startsWith('image/') && job.options?.label === 'keyart') {
+          setCurrent((prev) => { if (!prev || prev.id !== campaign.id) return prev; const next = { ...prev, keyArtHash: asset.assetHash }; saveCampaign(next); return next; });
+        }
         if (job.logId && asset.mime.startsWith('image/')) {
           const dataUrl = await blobToDataUrl(asset.blob);
           setCurrent((prev) => {
@@ -201,17 +208,19 @@ export default function App() {
   }, [queueMedia, refreshShelf]);
 
   const beginCampaign = async (heroInput) => {
-    const id = crypto.randomUUID();
+    const id = worldDraft.id || crypto.randomUUID();
     const hero = createHero(heroInput);
     const codex = initCodex(worldDraft.spineId);
     const campaign = {
       id, title: worldDraft.title, covenant: worldDraft.covenant, tone: worldDraft.tone,
       lines: worldDraft.lines, veils: worldDraft.veils, styleBible: worldDraft.styleBible, homeRegion: worldDraft.homeRegion,
       spineId: worldDraft.spineId, hero, codex, logs: [], combat: null, pendingRoll: null,
-      turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false,
+      turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null,
       mediaTier: settings.mediaTier, spend: { images: 0, videos: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };
     await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
+    const prologueArt = await db.media.where('cacheKey').equals(keyArtKey(id, 1)).first();
+    if (prologueArt) { campaign.keyArtHash = prologueArt.assetHash; await saveCampaign(campaign); setCurrent({ ...campaign }); }
     await playTurn(campaign, 'Begin the chronicle.', null, null);
   };
 
@@ -281,8 +290,19 @@ export default function App() {
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
   }, [current?.id, activeRegion?.name, activeRegion?.state, current?.logs?.length]); // eslint-disable-line
 
-  if (flow === 'world') return <WorldForge onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
-  if (flow === 'hero') return <HeroForge world={worldDraft} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
+  useEffect(() => {
+    let url = null, alive = true;
+    (async () => {
+      if (!current) { setKeyArtUrl(null); return; }
+      const rows = await db.media.where('campaignId').equals(current.id).toArray();
+      const art = rows.filter((row) => row.label === 'keyart' && row.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
+      if (art && alive) { url = URL.createObjectURL(art.blob); setKeyArtUrl(url); } else if (alive) setKeyArtUrl(null);
+    })();
+    return () => { alive = false; if (url) URL.revokeObjectURL(url); };
+  }, [current?.id, current?.keyArtHash]); // eslint-disable-line
+
+  if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
+  if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
   if (flow === 'title') return <TitleScreen campaigns={campaigns} onNew={() => setFlow('world')} onOpen={(campaign) => { setCurrent(campaign); setFlow('table'); }} onRestore={restoreFile} status={status} />;
   if (!current) return null;
 
@@ -298,7 +318,7 @@ export default function App() {
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main className="adventure-log" role="log" aria-live="polite">
-      <div className="campaign-mast"><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
+      <div className={`campaign-mast${keyArtUrl ? ' has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.34),rgba(13,11,20,.82) 74%,var(--ink)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
       {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} />)}
       {busy && (weaving
         ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>

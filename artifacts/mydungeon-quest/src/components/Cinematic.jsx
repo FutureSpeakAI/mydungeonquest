@@ -23,9 +23,10 @@ async function resolveAssets(campaign, turnRecordHash, beatIndex) {
   const byKey = (key) => rows.find((row) => row.cacheKey === key && row.blob);
   const byTurn = (kind) => rows.filter((row) => row.kind === kind && row.blob && turnRecordHash && row.originTurnHash === turnRecordHash)
     .sort((a, b) => b.createdAt - a.createdAt)[0];
+  const byLabel = (label) => rows.filter((row) => row.label === label && row.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
   return {
     film: byKey(keys.film) || byTurn('video') || null,
-    still: byKey(keys.still) || byTurn('paint') || null,
+    still: byKey(keys.still) || byTurn('paint') || byLabel('keyart') || null,
     music: byKey(keys.score) || byTurn('music') || null
   };
 }

@@ -511,6 +511,13 @@ function LogEntry({ log, campaign, rendering }) {
   const art = cue ? proceduralArtDataUrl(`${campaign.id}:${log.id}`, cue.mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']) : null;
   const cinematicTitle = log.dm.cinematic?.title || 'Cinematic';
   const hasFilm = log.videoUrl || log.videoPosterUrl;
+  // A real video/mp4 clip can fail to decode (unsupported codec, corrupt data).
+  // When it does, fall back to the painted keyframe still — the video poster,
+  // the scene still, or the procedural plate — so cinema-tier players never see
+  // a blank black box.
+  const [filmFailed, setFilmFailed] = useState(false);
+  const keyframeStill = log.videoPosterUrl || log.imageUrl || art || proceduralArtDataUrl(`${campaign.id}:${log.id}:keyframe`, log.dm.cinematic?.subtitle || cinematicTitle, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
+  const showFilm = log.videoUrl && !filmFailed;
   return <article className="turn-entry">
     {log.player && <div className="player-line"><span>You</span><p>{log.player}</p></div>}
     {log.dm.cinematic && <div className="beat-line"><span>✦</span><b>{log.dm.cinematic.title}</b><small>{log.dm.cinematic.subtitle}</small></div>}
@@ -521,10 +528,11 @@ function LogEntry({ log, campaign, rendering }) {
       <figcaption>{cinematicTitle}<span>rendering</span></figcaption>
     </figure>}
     {hasFilm && <figure className="illustration-panel full-bleed">
-      {log.videoUrl
-        ? <video src={log.videoUrl} poster={log.videoPosterUrl || undefined} controls playsInline loop muted preload="metadata" aria-label={cinematicTitle} />
-        : <img src={log.videoPosterUrl} alt={log.dm.cinematic?.title || 'cinematic keyframe'} />}
-      <figcaption>{cinematicTitle}{log.videoDegraded ? <span>procedural animatic</span> : (log.videoUrl ? <span>cinematic film</span> : <span>keyframe</span>)}</figcaption>
+      {showFilm
+        ? <video src={log.videoUrl} poster={log.videoPosterUrl || undefined} controls playsInline loop muted preload="metadata" aria-label={cinematicTitle}
+            onError={() => setFilmFailed(true)} />
+        : <img src={keyframeStill} alt={log.dm.cinematic?.title || 'cinematic keyframe'} />}
+      <figcaption>{cinematicTitle}{showFilm ? (log.videoDegraded ? <span>procedural animatic</span> : <span>cinematic film</span>) : <span>keyframe</span>}</figcaption>
     </figure>}
     {log.resolution && <div className={`roll-stamp ${log.resolution.outcome.includes('success')?'success':'failure'}`}><Dices/><span>{log.resolution.selectedDie} → {log.resolution.total}</span><b>{log.resolution.outcome.replaceAll('_',' ')}</b></div>}
   </article>;

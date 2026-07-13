@@ -59,3 +59,17 @@
 .region-list.gallery article.has-plate{position:relative;overflow:hidden;padding-top:96px}
 .codex-plate{position:absolute;left:0;right:0;top:0;height:88px;background-size:cover;background-position:center 40%;border-bottom:1px solid rgba(212,162,78,.3);-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}
 .region-list.gallery article.has-plate b,.region-list.gallery article.has-plate span{position:relative}
+
+/* Phase 5 remainder — the wax seal */
+.wax-seal{border:0;background:none;padding:.25rem .35rem;cursor:pointer;line-height:0;display:grid;place-items:center;margin-right:.15rem}
+.wax-seal svg{width:30px;height:30px;overflow:visible;transition:transform .3s ease}
+.wax-blob{fill:#7c1f22;filter:drop-shadow(0 3px 5px rgba(0,0,0,.55))}
+.wax-rim{fill:none;stroke:#a83730;stroke-width:1.1;opacity:.7}
+.wax-emboss{fill:#5c1417;stroke:#a83730;stroke-width:.5;opacity:.85;transition:fill .3s ease}
+.wax-seal:hover svg{transform:scale(1.08) rotate(-3deg)}
+.wax-seal:hover .wax-emboss{fill:#440f12}
+.wax-seal.pressing svg{animation:wax-press .95s cubic-bezier(.34,1.4,.5,1)}
+.wax-seal.pressing .wax-blob{animation:wax-flash .95s ease}
+@keyframes wax-press{0%{transform:scale(.55) rotate(-18deg)}45%{transform:scale(1.2) rotate(4deg)}70%{transform:scale(.92) rotate(-1deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes wax-flash{0%{fill:#c25a3a}30%{fill:#9a2a24;filter:drop-shadow(0 0 9px rgba(212,162,78,.65))}100%{fill:#7c1f22;filter:drop-shadow(0 3px 5px rgba(0,0,0,.55))}}
+@media(prefers-reduced-motion:reduce){.wax-seal.pressing svg,.wax-seal.pressing .wax-blob{animation:none}}

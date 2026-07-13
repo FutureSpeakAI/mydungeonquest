@@ -6,19 +6,39 @@ import { fileURLToPath } from 'node:url';
 import { getDmTurn } from './dm.js';
 import { adapters, providerChains } from './adapters/index.js';
 
+// Per-kind wall-clock budget for one provider attempt. A stalled upstream call
+// must not block failover, so every real provider is bounded; on timeout the
+// attempt is treated as a failure and the chain advances (ultimately to mock).
+// Video is generous because generation legitimately polls for minutes.
+const PROVIDER_BUDGET_MS = {
+  paint: Number(process.env.PAINT_TIMEOUT_MS || 120000),
+  video: Number(process.env.VIDEO_TIMEOUT_MS || 960000),
+  speak: Number(process.env.SPEAK_TIMEOUT_MS || 90000),
+  music: Number(process.env.MUSIC_TIMEOUT_MS || 150000),
+  sfx: Number(process.env.SFX_TIMEOUT_MS || 90000)
+};
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 // Walk a provider chain (preferred → … → mock), returning the first success.
 // Each fall-through is logged so the console shows why a paid provider was
-// skipped; mock is the guaranteed floor and never throws.
+// skipped; mock is the guaranteed floor, needs no timeout, and never throws.
 async function runChain(kind, body) {
   const chain = providerChains()[kind];
+  const budget = PROVIDER_BUDGET_MS[kind] || 90000;
   let lastError;
   for (let i = 0; i < chain.length; i += 1) {
+    const provider = chain[i];
     try {
-      const result = await chain[i][kind](body);
+      const call = provider[kind](body);
+      const result = provider.name === 'mock' ? await call : await withTimeout(call, budget, `${provider.name} ${kind} timed out after ${budget}ms`);
       return { ...result, degraded: i > 0 };
     } catch (error) {
       lastError = error;
-      console.error(`[${kind}] provider ${chain[i].name} failed: ${error.message}`);
+      console.error(`[${kind}] provider ${provider.name} failed: ${error.message}`);
     }
   }
   throw lastError || new Error(`No ${kind} provider available`);

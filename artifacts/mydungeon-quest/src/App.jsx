@@ -364,10 +364,11 @@ function useShelfCovers(campaigns) {
       const map = {};
       for (const c of campaigns) {
         const rows = await db.media.where('campaignId').equals(c.id).toArray();
+        if (!alive) return; // bail before minting any object URLs the cleanup already missed
         const art = rows.filter((r) => r.label === 'keyart' && r.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
         if (art) { const u = URL.createObjectURL(art.blob); urls.push(u); map[c.id] = u; }
       }
-      if (alive) setCovers(map);
+      if (alive) setCovers(map); else urls.forEach((u) => URL.revokeObjectURL(u));
     })();
     return () => { alive = false; urls.forEach((u) => URL.revokeObjectURL(u)); };
   }, [campaigns.map((c) => `${c.id}:${c.keyArtHash || ''}`).join(',')]); // eslint-disable-line

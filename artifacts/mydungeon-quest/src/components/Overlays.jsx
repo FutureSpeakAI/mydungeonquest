@@ -12,6 +12,7 @@ function useGallery(campaign) {
     let alive = true; const urls = [];
     (async () => {
       const rows = await db.media.where('campaignId').equals(campaign.id).toArray();
+      if (!alive) return; // bail before minting any object URLs the cleanup already missed
       const latestFor = (label, variant = null) => rows
         .filter((row) => row.label === label && row.blob && (variant ? row.variant === variant : true))
         .sort((a, b) => b.createdAt - a.createdAt)[0];
@@ -24,7 +25,7 @@ function useGallery(campaign) {
         const row = latestFor(region.name);
         if (row) { const u = URL.createObjectURL(row.blob); urls.push(u); plates[region.name] = u; }
       }
-      if (alive) setGallery({ portraits, plates });
+      if (alive) setGallery({ portraits, plates }); else urls.forEach((u) => URL.revokeObjectURL(u));
     })();
     return () => { alive = false; urls.forEach((u) => URL.revokeObjectURL(u)); };
   }, [campaign.id, campaign.logs?.length]); // eslint-disable-line

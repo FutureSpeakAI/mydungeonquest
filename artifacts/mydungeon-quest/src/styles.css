@@ -100,3 +100,6 @@
 .chronicle-card .card-foot p{color:var(--vellum-dim);font-size:.82rem;margin:0}
 .chronicle-card .card-cta{margin-top:.5rem;color:var(--gold);font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:.3rem}
 .chronicle-card .seal-badge{position:absolute;top:.7rem;right:.7rem}
+
+/* ===== PHASE 7 — THE BOUND CHRONICLE ===== */
+.book-frame{width:100%;height:64vh;border:1px solid rgba(212,162,78,.28);border-radius:10px;background:#e9dfc8;display:block}

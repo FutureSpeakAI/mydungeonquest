@@ -72,7 +72,7 @@ export function Settings({ campaign, settings, onChange, onClose }) {
 
 export function Storybook({ html, onClose, onPdf, onHtml }) {
   return <Frame title="The Bound Chronicle" icon={<ScrollText/>} onClose={onClose} wide>
-    <div className="book-preview" dangerouslySetInnerHTML={{__html: html.match(/<body>([\s\S]*)<\/body>/i)?.[1] || ''}} />
+    <iframe className="book-frame" srcDoc={html} title="The bound chronicle" />
     <div className="button-row"><button className="secondary-button" onClick={onHtml}><Download/> Save HTML</button><button className="primary-button" onClick={onPdf}><Download/> Bind to PDF</button></div>
   </Frame>;
 }

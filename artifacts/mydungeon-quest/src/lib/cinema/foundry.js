@@ -47,10 +47,10 @@ export class Foundry {
     let response;
     if (job.kind === 'video') {
       const queued = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: job.prompt, ...job.options }) }).then((r) => r.json());
-      for (let attempt = 0; attempt < 60; attempt += 1) {
+      for (let attempt = 0; attempt < 360; attempt += 1) {
         const status = await fetch(`/api/video/${queued.id}`).then((r) => r.json());
         if (status.status === 'ready') { response = await fetch(`/api/video/${queued.id}/asset`); break; }
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       if (!response) throw new Error('Video generation timed out');
     } else {

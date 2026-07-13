@@ -11,7 +11,7 @@
 - Mock headless bench and GitHub Actions workflow.
 
 ## Deliberate limitations of 0.1.0
-- Commercial video providers remain behind the adapter boundary; the default video adapter produces a deterministic cinematic keyframe and the UI uses its procedural animatic.
+- Commercial video providers are wired behind the adapter boundary: set `VIDEO_PROVIDER=google` (with `GEMINI_API_KEY` or `GOOGLE_API_KEY`) to generate real cinematics via Veo; otherwise the default video adapter produces a deterministic cinematic keyframe and the UI uses its procedural animatic.
 - Anthropic live mode is implemented, but the UI uses completed tool payloads rather than reconstructing arbitrary partial JSON from upstream fine-grained tool deltas.
 - The SRD-compatible action catalog is a foundation rather than an exhaustive spell and monster compendium.
 - Playwright Chromium must be installed in the deployment image for server-side PDF binding; offline HTML binding always works.

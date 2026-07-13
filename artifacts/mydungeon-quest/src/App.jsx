@@ -61,10 +61,17 @@ export default function App() {
   const [bookHtml, setBookHtml] = useState('');
   const [keyArtUrl, setKeyArtUrl] = useState(null);
   const logEndRef = useRef(null);
+  const regionStripRef = useRef(null);
 
   const refreshShelf = useCallback(async () => setCampaigns(await listCampaigns()), []);
   useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => row && setSettings({ ...DEFAULT_SETTINGS, ...row.value })); }, [refreshShelf]);
   useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, settings.reduceMotion]);
+  useEffect(() => {
+    if (flow !== 'table' || settings.reduceMotion) return;
+    const onScroll = () => { if (regionStripRef.current) regionStripRef.current.style.backgroundPositionY = `calc(50% + ${window.scrollY * 0.28}px)`; };
+    onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [flow, settings.reduceMotion, current?.id]);
   useEffect(() => { document.documentElement.style.setProperty('--text-scale', settings.textScale); }, [settings.textScale]);
   useEffect(() => {
     if (flow === 'table' && settings.score && current) { startScore(current.title || 'chronicle'); return () => { stopScore(); stopSpeaking(); }; }
@@ -307,7 +314,7 @@ export default function App() {
   if (!current) return null;
 
   return <div className="app-shell">
-    <div className="region-strip" style={{ backgroundImage: `linear-gradient(90deg,rgba(13,11,20,.94),rgba(13,11,20,.48),rgba(13,11,20,.92)),url("${regionPlate || regionArt}")` }}>
+    <div className="region-strip" ref={regionStripRef} style={{ backgroundImage: `linear-gradient(90deg,rgba(13,11,20,.94),rgba(13,11,20,.48),rgba(13,11,20,.92)),url("${regionPlate || regionArt}")` }}>
       <span>{activeRegion?.name || current.homeRegion}</span><small>{activeRegion?.state || 'unmapped'} · blight {current.codex.blight}/5</small>
     </div>
     <header className="table-header">

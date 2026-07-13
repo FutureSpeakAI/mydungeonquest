@@ -12,6 +12,7 @@ import { appendEvent, exportChronicle, forkChronicle, importChronicle } from './
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
 import { cinematicPrompt, portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
+import { KEYART_LABEL, actOf, heroBustJob, keyArtJob, nameSeed } from './lib/cinema/prologue.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
 import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
 import { setScoreState, startScore, stopScore } from './lib/cinema/score.js';
@@ -27,8 +28,6 @@ function downloadBlob(blob, filename) {
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
 }
-
-const nameSeed = (name) => { let h = 0; for (const c of String(name || '')) { h = ((h << 5) - h + c.charCodeAt(0)) | 0; } return h >>> 0; };
 
 function applyCombat(current, update, hero) {
   if (!update) return current;
@@ -85,6 +84,10 @@ export default function App() {
       onAttestation: async (payload) => appendEvent(campaign.id, 'media_attestation', payload)
     });
     const jobs = [];
+    // The cover evolves with the story: the key art repaints once per act
+    // (cache-keyed by act), darker as the stakes rise. Genesis reuses the
+    // plate painted during the Prologue Render.
+    jobs.push(keyArtJob(campaign, actOf(campaign)));
     if (dm.image_cue) jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, dm.image_cue), options: { kind: 'scene', referenceLabels: [...(dm.image_cue.subjects || []), dm.image_cue.region].filter(Boolean).slice(0, 3) }, priority: 1, logId });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
@@ -209,19 +212,41 @@ export default function App() {
     } finally { setBusy(false); setWeaving(null); }
   }, [queueMedia, refreshShelf]);
 
+  // THE PROLOGUE RENDER — before Chapter I opens, the world's key art and the
+  // hero's permanent bust anchor are painted and sealed, so the first
+  // impression at the table is a painted world, not a gradient.
+  const prologueRender = async (campaign) => {
+    if (campaign.mediaTier === 'parchment') return campaign;
+    setStatus('Painting your world…');
+    const foundry = new Foundry({
+      campaignId: campaign.id, tier: campaign.mediaTier, spend: campaign.spend,
+      onAttestation: async (payload) => appendEvent(campaign.id, 'media_attestation', payload)
+    });
+    const [keyArt] = await Promise.all([
+      foundry.enqueue({ ...keyArtJob(campaign, actOf(campaign)), originTurnHash: null }).catch(() => null),
+      foundry.enqueue({ ...heroBustJob(campaign), originTurnHash: null }).catch(() => null)
+    ]);
+    if (keyArt) {
+      const next = { ...campaign, keyArtHash: keyArt.assetHash, spend: foundry.spend };
+      setCurrent(next); await saveCampaign(next); return next;
+    }
+    return campaign;
+  };
+
   const beginCampaign = async (heroInput) => {
     const id = crypto.randomUUID();
-    const hero = createHero(heroInput);
+    const hero = { ...createHero(heroInput), bearing: (heroInput.bearing || '').slice(0, 200) };
     const codex = initCodex(worldDraft.spineId);
     const campaign = {
       id, title: worldDraft.title, covenant: worldDraft.covenant, tone: worldDraft.tone,
       lines: worldDraft.lines, veils: worldDraft.veils, styleBible: worldDraft.styleBible, homeRegion: worldDraft.homeRegion,
       spineId: worldDraft.spineId, hero, codex, logs: [], combat: null, pendingRoll: null,
-      turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false,
+      turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null,
       mediaTier: settings.mediaTier, spend: { images: 0, videos: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };
     await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
-    await playTurn(campaign, 'Begin the chronicle.', null, null);
+    const started = await prologueRender(campaign);
+    await playTurn(started, 'Begin the chronicle.', null, null);
   };
 
   const submit = async (text) => {
@@ -290,8 +315,20 @@ export default function App() {
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
   }, [current?.id, activeRegion?.name, activeRegion?.state, current?.logs?.length]); // eslint-disable-line
 
-  if (flow === 'world') return <WorldForge onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
-  if (flow === 'hero') return <HeroForge world={worldDraft} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
+  const [keyArtUrl, setKeyArtUrl] = useState(null);
+  useEffect(() => {
+    let url = null, alive = true;
+    (async () => {
+      if (!current) { setKeyArtUrl(null); return; }
+      const rows = await db.media.where('campaignId').equals(current.id).toArray();
+      const art = rows.filter((row) => row.kind === 'paint' && row.label === KEYART_LABEL && row.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
+      if (art && alive) { url = URL.createObjectURL(art.blob); setKeyArtUrl(url); } else if (alive) setKeyArtUrl(null);
+    })();
+    return () => { alive = false; if (url) URL.revokeObjectURL(url); };
+  }, [current?.id, current?.keyArtHash, current?.logs?.length]); // eslint-disable-line
+
+  if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
+  if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
   if (flow === 'title') return <TitleScreen campaigns={campaigns} onNew={() => setFlow('world')} onOpen={(campaign) => { setCurrent(campaign); setFlow('table'); }} onRestore={restoreFile} status={status} />;
   if (!current) return null;
 
@@ -307,7 +344,7 @@ export default function App() {
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main className="adventure-log" role="log" aria-live="polite">
-      <div className="campaign-mast"><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
+      <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
       {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} />)}
       {busy && (weaving
         ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>

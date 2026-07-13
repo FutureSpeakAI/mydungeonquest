@@ -24,3 +24,21 @@
 /* v0.2 engine cut — the weaving caret and true film support */
 .weaving p:last-child:after{content:"▍";color:var(--gold);animation:caret .8s step-end infinite}
 .cinematic video.cinematic-art{width:100%;height:100%;object-fit:cover}
+
+/* ===== PHASE 1 — THE PROLOGUE RENDER ===== */
+.forge-keyart{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center;opacity:.22;filter:saturate(.92) blur(1px);mask-image:radial-gradient(circle at 50% 32%,#000,transparent 80%);animation:forgeArt 1.2s ease both}
+@keyframes forgeArt{from{opacity:0;transform:scale(1.05)}to{opacity:.22}}
+.hero-identity{display:flex;gap:1.1rem;align-items:center;margin-bottom:.4rem}
+.hero-portrait{position:relative;width:124px;flex:none;margin:0;text-align:center}
+.hero-portrait img,.hero-portrait .portrait-mark{width:124px;height:124px;border-radius:15px;display:block}
+.hero-portrait img{object-fit:cover;border:1px solid rgba(212,162,78,.55);box-shadow:0 10px 34px rgba(0,0,0,.55);animation:faceArrive .7s ease both}
+@keyframes faceArrive{from{opacity:0;filter:blur(14px)}}
+.hero-portrait .portrait-mark{display:grid;place-items:center;font-size:2.6rem;color:var(--gold);border:1px dashed rgba(212,162,78,.4);background:linear-gradient(145deg,#251d2a,#12101a)}
+.hero-portrait figcaption{font-size:.68rem;color:var(--vellum-dim);margin-top:.45rem;letter-spacing:.03em}
+.hero-portrait.summoning:after{content:"";position:absolute;left:0;top:0;width:124px;height:124px;border-radius:15px;background:linear-gradient(115deg,transparent 32%,rgba(212,162,78,.4) 50%,transparent 68%);background-size:250% 100%;animation:shimmer 1.15s linear infinite;pointer-events:none}
+@keyframes shimmer{to{background-position:-200% 0}}
+.campaign-mast.has-keyart{position:relative;background-size:cover;background-position:center;border-radius:18px;padding:clamp(2.4rem,10vw,5rem) 1.4rem 1.4rem;margin-bottom:1rem;overflow:hidden;min-height:clamp(210px,42vw,360px);display:flex;flex-direction:column;justify-content:flex-end;border:1px solid rgba(212,162,78,.22);animation:mastArrive 1s ease both}
+@keyframes mastArrive{from{opacity:0;transform:scale(1.02)}}
+.campaign-mast.has-keyart h1{font-size:clamp(1.9rem,5.6vw,3.1rem);text-shadow:0 3px 26px #000;margin:.2rem 0}
+.campaign-mast.has-keyart span{color:var(--gold);letter-spacing:.28em;text-transform:uppercase;font-size:.66rem}
+.campaign-mast.has-keyart p{color:var(--vellum);max-width:62ch;text-shadow:0 2px 16px #000}

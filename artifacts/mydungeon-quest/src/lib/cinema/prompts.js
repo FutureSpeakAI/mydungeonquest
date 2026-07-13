@@ -31,6 +31,16 @@ export function scenePrompt(campaign, cue) {
   return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}. ${souls.map((soul) => `${soul.name} appearance canon: ${soul.visual}.`).join(' ')} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5. Maintain exact faces, clothing motifs, and silhouette from reference images.`, campaign);
 }
 
+export function keyArtPrompt(campaign, variant = 'establishing') {
+  const bible = campaign.codex?.arc?.style_bible || campaign.styleBible;
+  const darkening = variant === 'act-3'
+    ? ' The story at its maximum stakes: storm-lit and embattled, the land itself holding its breath.'
+    : variant === 'act-2'
+      ? ' The world has darkened since the beginning: longer shadows, colder light, a threat now gathering on the horizon.'
+      : '';
+  return scrubPrompt(`${bible}. Epic 16:9 key art establishing this world — a single iconic vista with cinematic depth and dramatic light, no figures in the foreground. The world: ${campaign.covenant || ''}. Home region: ${campaign.homeRegion || 'the frontier'}. Tone: ${campaign.tone || 'mythic'}. No text, no frame, no title.${darkening}`, campaign);
+}
+
 export function cinematicPrompt(campaign, cinematic, cue = {}) {
   return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. A 6-10 second 16:9 cinematic for ${cinematic.type}: “${cinematic.title}.” ${cinematic.subtitle}. Mood: ${cue.mood || cinematic.type}. Slow purposeful camera movement, one readable action, strong silhouette, no cuts faster than two seconds.`, campaign);
 }

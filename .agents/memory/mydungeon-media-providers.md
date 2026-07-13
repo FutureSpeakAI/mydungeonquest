@@ -31,8 +31,21 @@ all mock; the eval asserts provider === 'mock').
 
 **How to apply:** if generated media looks like abstract gradient/tone
 placeholders, a real provider is throwing and it fell to mock — check the
-workflow log for `[kind] provider <name> failed: ...`. Common account-level
-blockers that no code change can fix: an invalid Google key (`API key not
-valid`), OpenAI `billing_hard_limit_reached`, and ElevenLabs free-plan 402
-(`paid_plan_required` for library voices and the Music API). These need the user
-to fix the key/billing/plan, not a code edit.
+workflow log for `[kind] provider <name> failed: ...`.
+
+Gotchas seen live (all verified working once fixed):
+- **Veo model names drift and are key-specific.** `veo-3.0-fast-generate-001`
+  404s (`not found ... or not supported for predictLongRunning`). Query
+  `GET v1beta/models?key=...` and pick a name whose `supportedGenerationMethods`
+  includes `predictLongRunning` — currently `veo-3.1-fast-generate-preview`
+  (also generate/lite -preview). Never assume a Veo model ID; list first.
+- **Sora (OpenAI video) only accepts seconds ∈ {4,8,12}** — any other value
+  400s (`invalid_value` on `seconds`); the adapter snaps to the nearest.
+- **The CodeExecution sandbox's secret copy can differ from the workflow's.**
+  A `requestSecrets`/sandbox read of `GEMINI_API_KEY` returned an *invalid* value
+  while the same-named secret in the running workflow env was valid and worked.
+  Trust a live workflow request (curl the running server) over a sandbox key
+  test before concluding a key is bad.
+- Genuine account blockers do exist and only the user can fix them: OpenAI
+  `billing_hard_limit_reached`, ElevenLabs free-plan 402 (`paid_plan_required`).
+  But confirm against the running workflow first — they can also be transient.

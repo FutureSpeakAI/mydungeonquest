@@ -43,7 +43,7 @@ export function geminiAdapter(key) {
     },
 
     async video({ prompt, seconds = 8, size = '1280x720', references = [] }) {
-      const model = process.env.VIDEO_MODEL_GEMINI || 'veo-3.0-fast-generate-001';
+      const model = process.env.VIDEO_MODEL_GEMINI || 'veo-3.1-fast-generate-preview';
       const instance = { prompt };
       if (references[0]?.data) instance.image = { bytesBase64Encoded: references[0].data, mimeType: references[0].mime || 'image/png' };
       const parameters = { aspectRatio: aspectFor('scene', size), durationSeconds: Math.max(4, Math.min(8, Math.round(seconds))) };

@@ -192,7 +192,22 @@ export default function App() {
             saveCampaign(next); return next;
           });
         }
-      }).catch(() => { if (job.logId && job.kind === 'video') clearRendering(job.logId); });
+      }).catch(() => {
+        // A genuine video rejection (timeout after ~6min of polling, network
+        // error, or spend cap after enqueue). The degraded animatic fallback
+        // resolves with an asset above, so this only fires on true failures.
+        // Replace the rendering spinner with a permanent note rather than
+        // letting the placeholder silently vanish with no film and no reason.
+        if (job.logId && job.kind === 'video') {
+          clearRendering(job.logId);
+          setCurrent((prev) => {
+            if (!prev || prev.id !== campaign.id) return prev;
+            const logs = prev.logs.map((log) => log.id === job.logId ? { ...log, videoFailed: true } : log);
+            const next = { ...prev, logs };
+            saveCampaign(next); return next;
+          });
+        }
+      });
     }
   }, []);
 
@@ -523,9 +538,13 @@ function LogEntry({ log, campaign, rendering }) {
     {log.dm.cinematic && <div className="beat-line"><span>✦</span><b>{log.dm.cinematic.title}</b><small>{log.dm.cinematic.subtitle}</small></div>}
     {cue && <figure className="illustration-panel full-bleed"><img src={log.imageUrl || art} alt={cue.mood}/><figcaption>{cue.mood}{log.imageUrl ? <span>illuminated</span> : <span>procedural plate</span>}</figcaption></figure>}
     <div className="narration">{log.dm.narration_blocks.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
-    {rendering && !hasFilm && <figure className="illustration-panel full-bleed cinematic-rendering" aria-live="polite">
+    {rendering && !hasFilm && !log.videoFailed && <figure className="illustration-panel full-bleed cinematic-rendering" aria-live="polite">
       <div className="rendering-stage"><span className="rendering-spinner" aria-hidden/><b>Rendering cinematic…</b><small>“{cinematicTitle}” is being filmed. This can take a few minutes.</small></div>
       <figcaption>{cinematicTitle}<span>rendering</span></figcaption>
+    </figure>}
+    {log.videoFailed && !hasFilm && <figure className="illustration-panel full-bleed cinematic-rendering cinematic-failed" aria-live="polite">
+      <div className="rendering-stage"><span className="rendering-mark" aria-hidden>⌁</span><b>The cinematic could not be filmed this time</b><small>“{cinematicTitle}” failed to render. Your turn is sealed and the story continues.</small></div>
+      <figcaption>{cinematicTitle}<span>unfilmed</span></figcaption>
     </figure>}
     {hasFilm && <figure className="illustration-panel full-bleed">
       {showFilm

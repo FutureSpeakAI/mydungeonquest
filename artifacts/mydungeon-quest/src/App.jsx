@@ -301,6 +301,14 @@ export default function App() {
     downloadBlob(await response.blob(), `${current.title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.storybook.pdf`);
   };
 
+  const regionStripRef = useRef(null);
+  const logScrollRef = useRef(null);
+  useEffect(() => {
+    const el = logScrollRef.current; if (!el) return;
+    const onScroll = () => { if (regionStripRef.current) regionStripRef.current.style.backgroundPositionY = `${Math.round(el.scrollTop * 0.28)}px`; };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [current?.id]);
   const activeRegion = current?.codex?.regions?.[0];
   const regionArt = useMemo(() => current ? proceduralArtDataUrl(`${current.id}:${activeRegion?.state || 'unknown'}`, activeRegion?.name || current.homeRegion, ['#0d0b14', current.codex.blight > 2 ? '#63352f' : '#35534b', '#d4a24e']) : '', [current, activeRegion]);
   const [regionPlate, setRegionPlate] = useState(null);
@@ -333,7 +341,7 @@ export default function App() {
   if (!current) return null;
 
   return <div className="app-shell">
-    <div className="region-strip" style={{ backgroundImage: `linear-gradient(90deg,rgba(13,11,20,.94),rgba(13,11,20,.48),rgba(13,11,20,.92)),url("${regionPlate || regionArt}")` }}>
+    <div ref={regionStripRef} className="region-strip" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
       <span>{activeRegion?.name || current.homeRegion}</span><small>{activeRegion?.state || 'unmapped'} · blight {current.codex.blight}/5</small>
     </div>
     <header className="table-header">
@@ -343,7 +351,7 @@ export default function App() {
     </header>
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
-    <main className="adventure-log" role="log" aria-live="polite">
+    <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
       <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
       {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} />)}
       {busy && (weaving
@@ -380,8 +388,8 @@ function LogEntry({ log, campaign }) {
   return <article className="turn-entry">
     {log.player && <div className="player-line"><span>You</span><p>{log.player}</p></div>}
     {log.dm.cinematic && <div className="beat-line"><span>✦</span><b>{log.dm.cinematic.title}</b><small>{log.dm.cinematic.subtitle}</small></div>}
+    {cue && <figure className="illustration-panel full-bleed"><img src={log.imageUrl || art} alt={cue.mood}/><figcaption>{cue.mood}{log.imageUrl ? <span>illuminated</span> : <span>procedural plate</span>}</figcaption></figure>}
     <div className="narration">{log.dm.narration_blocks.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
-    {cue && <figure className="illustration-panel"><img src={log.imageUrl || art} alt={cue.mood}/><figcaption>{cue.mood}{log.imageUrl ? <span>illuminated</span> : <span>procedural plate</span>}</figcaption></figure>}
     {log.resolution && <div className={`roll-stamp ${log.resolution.outcome.includes('success')?'success':'failure'}`}><Dices/><span>{log.resolution.selectedDie} → {log.resolution.total}</span><b>{log.resolution.outcome.replaceAll('_',' ')}</b></div>}
   </article>;
 }

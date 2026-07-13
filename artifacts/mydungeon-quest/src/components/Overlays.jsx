@@ -1,5 +1,29 @@
+import { useEffect, useState } from 'react';
 import { Download, Film, Heart, ScrollText, Shield, Sparkles, X } from 'lucide-react';
 import { CONDITIONS } from '../lib/rules.js';
+import { db } from '../lib/db.js';
+
+// Load the latest painted plate per label (souls, regions, key art) so the
+// Codex reads as a gallery of the world's real faces, not initials.
+function useGallery(campaign) {
+  const [gallery, setGallery] = useState({});
+  useEffect(() => {
+    let urls = [], alive = true;
+    (async () => {
+      const rows = await db.media.where('campaignId').equals(campaign.id).toArray();
+      const latest = {};
+      for (const row of rows) {
+        if (row.kind !== 'paint' || !row.blob || !row.label) continue;
+        if (!latest[row.label] || latest[row.label].createdAt < row.createdAt) latest[row.label] = row;
+      }
+      const out = {};
+      for (const [label, row] of Object.entries(latest)) { const u = URL.createObjectURL(row.blob); urls.push(u); out[label] = u; }
+      if (alive) setGallery(out); else urls.forEach(URL.revokeObjectURL);
+    })();
+    return () => { alive = false; urls.forEach(URL.revokeObjectURL); };
+  }, [campaign.id, campaign.logs.length]);
+  return gallery;
+}
 
 function Frame({ title, icon, onClose, children, wide = false }) {
   return <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><section className={`modal ${wide ? 'wide' : ''}`}><header><span>{icon}<h2>{title}</h2></span><button onClick={onClose} aria-label="Close"><X/></button></header>{children}</section></div>;
@@ -20,11 +44,12 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
 
 export function Codex({ campaign, onClose, onReplay }) {
   const c = campaign.codex; const revealed = c.beatIndex >= c.spine.revealIdx;
+  const gallery = useGallery(campaign);
   return <Frame title="The Codex" icon={<ScrollText/>} onClose={onClose} wide>
     <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p></div><div className="blight">Blight <b>{c.blight}/5</b></div></div>
     <h3>The evil design</h3><p className={revealed ? '' : 'gated'}>{revealed ? c.arc?.evil_plot : 'The page refuses to hold the whole shape. Revelation must be earned.'}</p>
-    <h3>Souls</h3><div className="codex-grid">{c.cast.map((soul)=><article key={soul.id}><div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div><span className="role-tag">{soul.role}</span><h4>{soul.name}</h4><p>{soul.visual}</p><small>Bond {soul.bond}/4 · {soul.status}</small></article>)}</div>
-    <h3>Regions</h3><div className="region-list">{c.regions.map((region)=><article key={region.id}><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></article>)}</div>
+    <h3>Souls</h3><div className="codex-grid gallery">{c.cast.map((soul)=><article key={soul.id}>{gallery[soul.name] ? <img className="soul-face" src={gallery[soul.name]} alt={soul.name}/> : <div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div>}<span className="role-tag">{soul.role}</span><h4>{soul.name}</h4><p>{soul.visual}</p><small>Bond {soul.bond}/4 · {soul.status}</small></article>)}</div>
+    <h3>Regions</h3><div className="region-gallery">{c.regions.map((region)=><article key={region.id}>{gallery[region.name] && <img className="region-plate" src={gallery[region.name]} alt={region.name}/>}<div className="region-copy"><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></div></article>)}</div>
     <h3>Cinematic archive</h3><div className="replay-list">{campaign.logs.filter((l)=>l.dm.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm)}><Film/> {log.dm.cinematic.title}</button>)}</div>
     <h3>Memoir</h3>{c.memoir.length ? c.memoir.map((m,i)=><p key={i}>{m}</p>) : <p className="muted">The Chronicler has not yet needed to compress the road behind you.</p>}
   </Frame>;

@@ -125,8 +125,12 @@ app.post('/api/bind-pdf', async (req, res) => {
   try {
     const { chromium } = await import('playwright');
     const executablePath = findChromium();
+    // --no-sandbox is required for the Nix Chromium to launch in this container.
+    // The book is the player's own static, self-contained HTML, but we harden
+    // regardless: no scripts run during binding, and only data: URIs may load.
     browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-gpu'], ...(executablePath ? { executablePath } : {}) });
-    const page = await browser.newPage();
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
     await page.route('**/*', (route) => route.request().url().startsWith('data:') ? route.continue() : route.abort());
     await page.setContent(req.body, { waitUntil: 'load', timeout: 60000 });
     const pdf = await page.pdf({ format: 'Letter', printBackground: true, preferCSSPageSize: true, margin: { top: '0', right: '0', bottom: '0', left: '0' } });

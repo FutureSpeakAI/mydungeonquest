@@ -56,6 +56,15 @@
   .illustration-panel.full-bleed img,.illustration-panel.full-bleed video{border-radius:0;width:100vw;max-height:74vh;object-fit:cover;box-shadow:none}
   .illustration-panel.full-bleed figcaption{padding-inline:1.1rem}
 }
+/* Cinematic film render placeholder — Veo can take minutes, so the turn shows
+   this until the asset resolves (or the server degrades to the animatic). */
+.cinematic-rendering .rendering-stage{width:100%;aspect-ratio:16/9;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;text-align:center;padding:1rem;background:radial-gradient(circle at 50% 38%,rgba(212,162,78,.1),rgba(8,7,10,.96));box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.cinematic-rendering .rendering-spinner{width:34px;height:34px;border-radius:50%;border:2px solid rgba(212,162,78,.22);border-top-color:var(--gold);animation:cinematic-spin 1s linear infinite}
+.cinematic-rendering b{font-family:Cinzel,Georgia,serif;color:var(--gold);letter-spacing:.06em;font-size:.9rem}
+.cinematic-rendering small{color:var(--vellum-dim);font-style:italic;max-width:32ch}
+@keyframes cinematic-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.cinematic-rendering .rendering-spinner{animation-duration:2.4s}}
+@media (max-width:640px){.cinematic-rendering .rendering-stage{border-radius:0}}
 .region-strip{background-size:cover;background-position:center;transition:filter .6s ease;will-change:background-position}
 .region-strip[data-blight="4"],.region-strip[data-blight="5"]{filter:saturate(.62) contrast(1.06)}
 .codex-grid.gallery article{overflow:hidden}

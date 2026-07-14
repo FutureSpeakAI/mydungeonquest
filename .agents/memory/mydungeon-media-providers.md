@@ -49,3 +49,10 @@ Gotchas seen live (all verified working once fixed):
 - Genuine account blockers do exist and only the user can fix them: OpenAI
   `billing_hard_limit_reached`, ElevenLabs free-plan 402 (`paid_plan_required`).
   But confirm against the running workflow first — they can also be transient.
+
+## Tier semantics & the narrator (podcast playback)
+- Media tiers: parchment = procedural only; **illuminated = painted stills + the whole audio layer (narration voice, beat score, SFX)**; cinema adds cinematic video. Only `video` is cinema-gated in `Foundry.allowed()`.
+- The interactive-podcast narrator reads each turn via `/api/speak` **directly, bypassing the Foundry tier gate** — hearing the story aloud is a comfort setting available at any tier. Do NOT re-gate narration behind cinema.
+- **Why:** users on the default illuminated tier expected painted scenes + audio; gating audio at cinema made the app look/sound dead. A single scene paint is now requested every turn (fallback image_cue synthesized from narration when the DM returns null).
+- Single-audio playback controllers that generate audio async MUST guard after every `await` with a monotonic session token (bumped on stop/start) or fast successive/auto-play calls overlap into multiple simultaneous voice tracks.
+- `/api/quest-audio` (ffmpeg concat + ducked bed) needs its large `express.json` limit mounted on the route BEFORE the global 25mb parser, else long quests are rejected 413.

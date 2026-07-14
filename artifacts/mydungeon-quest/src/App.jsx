@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, ChevronRight, Download, Dices, Feather, FileUp, HeartPulse, Menu, MessageCircleWarning, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords } from 'lucide-react';
+import { BookOpen, ChevronRight, Download, Dices, Feather, FileUp, HeartPulse, Menu, MessageCircleWarning, Pause, Play, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords } from 'lucide-react';
 import { WorldForge, HeroForge } from './components/Forge.jsx';
 import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
@@ -17,9 +17,12 @@ import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
 import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
 import { setScoreState, startScore, stopScore } from './lib/cinema/score.js';
 import { speakBlocks, stopSpeaking } from './lib/cinema/voice.js';
+import { playNarration, stopNarration, subscribeNarration, toggleNarration } from './lib/cinema/narrator.js';
+import { downloadQuestAudio } from './lib/cinema/questaudio.js';
 import { buildStorybook } from './lib/storybook.js';
+import { slugify } from './lib/canonical.js';
 
-const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, score: true, voice: false, textScale: 1, mediaTier: 'illuminated' };
+const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, score: true, voice: false, narrator: false, textScale: 1, mediaTier: 'illuminated' };
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
@@ -101,6 +104,8 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [weaving, setWeaving] = useState(null);
   const [renderingVideos, setRenderingVideos] = useState({});
+  const [paintingImages, setPaintingImages] = useState({});
+  const [audioBusy, setAudioBusy] = useState(false);
   const [status, setStatus] = useState('✦ The table is set.');
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const settingsRef = useRef(DEFAULT_SETTINGS); settingsRef.current = settings;
@@ -110,11 +115,17 @@ export default function App() {
   const refreshShelf = useCallback(async () => setCampaigns(await listCampaigns()), []);
   useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => row && setSettings({ ...DEFAULT_SETTINGS, ...row.value })); }, [refreshShelf]);
   useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, settings.reduceMotion]);
+  // Follow the prose as it streams in: as each chunk of the weaving turn arrives,
+  // keep the newest text in view (instant, so rapid updates don't fight a smooth
+  // animation) — older narration rises off the top like a live podcast transcript.
+  useEffect(() => { if (flow === 'table' && weaving != null) logEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }); }, [weaving, flow]);
   useEffect(() => { document.documentElement.style.setProperty('--text-scale', settings.textScale); }, [settings.textScale]);
   useEffect(() => {
     if (flow === 'table' && settings.score && current) { startScore(current.title || 'chronicle'); return () => { stopScore(); stopSpeaking(); }; }
     stopScore();
   }, [flow, settings.score, current?.id]); // eslint-disable-line
+  // Silence the narrator when leaving the table or switching chronicles.
+  useEffect(() => { if (flow !== 'table') stopNarration(); return () => stopNarration(); }, [flow, current?.id]);
 
   const persistSettings = async (next) => {
     setSettings(next); await db.settings.put({ key: 'care', value: next });
@@ -134,7 +145,17 @@ export default function App() {
     // (cache-keyed by act), darker as the stakes rise. Genesis reuses the
     // plate painted during the Prologue Render.
     jobs.push(keyArtJob(campaign, actOf(campaign)));
-    if (dm.image_cue) jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, dm.image_cue), options: { kind: 'scene', referenceLabels: [...(dm.image_cue.subjects || []), dm.image_cue.region].filter(Boolean).slice(0, 3) }, priority: 1, logId });
+    // Every turn earns a scene plate. The DM often returns a null image_cue, so
+    // synthesize one from the opening narration and the active region — the point
+    // of the illuminated tier is that each beat is painted, not just the rare
+    // turns the DM chooses to flag.
+    const sceneCue = dm.image_cue || {
+      kind: 'scene',
+      mood: dm.narration_blocks?.[0]?.text?.slice(0, 140) || 'the unfolding scene',
+      subjects: [],
+      region: campaign.codex.regions?.[0]?.name || campaign.homeRegion
+    };
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue), options: { kind: 'scene', referenceLabels: [...(sceneCue.subjects || []), sceneCue.region].filter(Boolean).slice(0, 3) }, priority: 1, logId });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
       if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name] }, priority: variant === 'bust' ? 2 : 6 });
@@ -149,23 +170,33 @@ export default function App() {
       const region = campaign.codex.regions.find((entry) => entry.name === dm.story.world.region_update.name);
       if (region) jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, region), options: { kind: 'region', label: region.name, seed: nameSeed(region.name), referenceLabels: [region.name] }, priority: 3 });
     }
-    if (dm.cinematic && campaign.mediaTier === 'cinema') {
-      const prompt = cinematicPrompt(campaign, dm.cinematic, dm.image_cue || {});
+    if (dm.cinematic) {
       const keys = beatKeys(campaign.id, campaign.codex.beatIndex);
-      const villainSoul = campaign.codex.cast.find((soul) => soul.role === 'villain');
-      jobs.push({ kind: 'video', prompt, priority: 2, cacheKey: keys.film, options: { kind: 'beat-film', label: dm.cinematic.title, referenceLabels: [...(dm.image_cue?.subjects || []), villainSoul?.name].filter(Boolean).slice(0, 2) }, logId });
+      // The beat's score and ambience underscore the narration at every media
+      // tier (they become the ducked bed of the audiobook); only the cinematic
+      // FILM itself is reserved for the cinema tier.
       jobs.push({ kind: 'music', prompt: `A 20 second cinematic stinger for ${dm.cinematic.type}; ${dm.cinematic.subtitle}`, priority: 4, cacheKey: keys.score });
       jobs.push({ kind: 'sfx', prompt: `A restrained PG-13 ambience and impact for ${dm.cinematic.type}`, priority: 4 });
       if (dm.dialogue_cue) jobs.push({ kind: 'speak', prompt: dm.dialogue_cue.line, options: { text: dm.dialogue_cue.line }, priority: 1 });
+      if (campaign.mediaTier === 'cinema') {
+        const prompt = cinematicPrompt(campaign, dm.cinematic, dm.image_cue || {});
+        const villainSoul = campaign.codex.cast.find((soul) => soul.role === 'villain');
+        jobs.push({ kind: 'video', prompt, priority: 2, cacheKey: keys.film, options: { kind: 'beat-film', label: dm.cinematic.title, referenceLabels: [...(dm.image_cue?.subjects || []), villainSoul?.name].filter(Boolean).slice(0, 2) }, logId });
+      }
     }
     briefUpcomingBeat(campaign, foundry, campaign.codex.beatIndex);
     const clearRendering = (logId) => setRenderingVideos((prev) => { if (!prev[logId]) return prev; const next = { ...prev }; delete next[logId]; return next; });
+    const clearPainting = (logId) => setPaintingImages((prev) => { if (!prev[logId]) return prev; const next = { ...prev }; delete next[logId]; return next; });
     for (const job of jobs) {
       // A cinematic film (Veo) can take minutes; flag its turn as rendering so
       // the story view shows a placeholder until the asset resolves or degrades.
       if (job.logId && job.kind === 'video') setRenderingVideos((prev) => ({ ...prev, [job.logId]: true }));
+      // The scene plate is painting: show a shimmer over the procedural stand-in
+      // until the illuminated image lands (or the job resolves without one).
+      if (job.logId && job.kind === 'paint') setPaintingImages((prev) => ({ ...prev, [job.logId]: true }));
       foundry.enqueue({ ...job, originTurnHash: turnRecord.recordHash }).then(async (asset) => {
         if (job.logId && job.kind === 'video') clearRendering(job.logId);
+        if (job.logId && job.kind === 'paint') clearPainting(job.logId);
         if (!asset) return;
         if (job.logId && job.kind === 'paint' && asset.mime.startsWith('image/')) {
           const dataUrl = await blobToDataUrl(asset.blob);
@@ -267,7 +298,7 @@ export default function App() {
       const heroBeforeLevel = base.hero.level;
       const hero = applyStateUpdates(base.hero, dm.state_updates);
       const combat = applyCombat(base.combat, dm.combat, hero);
-      const log = { id: crypto.randomUUID(), player: visiblePlayer, sent: player, dm, ts: Date.now(), resolution: null, redacted: false };
+      const log = { id: crypto.randomUUID(), player: visiblePlayer, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, beatIndex: codex.beatIndex };
       let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed };
       await saveCampaign(next);
       const record = await seal(base.id, 'turn', { player, visiblePlayer, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution });
@@ -284,7 +315,11 @@ export default function App() {
         hpFrac: hero.maxHp ? hero.hp / hero.maxHp : 1, blight: next.codex.blight,
         villain: Boolean(villain && dm.narration_blocks.some((block) => block.text.includes(villain.name.split(' ')[0])))
       });
-      if (settingsRef.current.voice && !dm.cinematic) speakBlocks(dm.narration_blocks, next.codex.cast);
+      // The narrator (AI podcast voice) supersedes the device voice when on, and
+      // auto-plays the freshly sealed turn like the next segment of an audiobook.
+      const sealedLog = next.logs[next.logs.length - 1];
+      if (settingsRef.current.narrator) playNarration(next, sealedLog);
+      else if (settingsRef.current.voice && !dm.cinematic) speakBlocks(dm.narration_blocks, next.codex.cast);
       if (dm.cinematic) setCinematic({ ...dm, campaign: next, turnRecordHash: record.recordHash, beatIndex: next.codex.beatIndex });
       if (hero.level > heroBeforeLevel) setOverlay('level');
       queueMedia(next, record, dm, log.id);
@@ -383,6 +418,22 @@ export default function App() {
     downloadBlob(await response.blob(), `${current.title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.storybook.pdf`);
   };
 
+  // THE BOUND AUDIOBOOK — generate any missing narration, then stitch the whole
+  // quest (with its music bed ducked under the voice) into one downloadable file.
+  const downloadAudio = async () => {
+    if (audioBusy || !current) return;
+    setAudioBusy(true);
+    try {
+      const blob = await downloadQuestAudio(current, (message) => setStatus(message));
+      downloadBlob(blob, `${slugify(current.title)}.quest.mp3`);
+      setStatus('✦ Your chronicle, read aloud, is bound.');
+    } catch (error) {
+      setStatus(error.message);
+    } finally {
+      setAudioBusy(false);
+    }
+  };
+
   const regionStripRef = useRef(null);
   const logScrollRef = useRef(null);
   useEffect(() => {
@@ -446,7 +497,7 @@ export default function App() {
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
       <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
-      {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} rendering={Boolean(renderingVideos[log.id])} />)}
+      {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} rendering={Boolean(renderingVideos[log.id])} painting={Boolean(paintingImages[log.id])} />)}
       {busy && (weaving
         ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>
         : <div className="streaming"><span/>The Dungeon Master considers…</div>)}
@@ -458,7 +509,7 @@ export default function App() {
     {cinematic && <Cinematic cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} score={settings.score} voiceOn={settings.voice} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} onClose={() => setCinematic(null)} />}
     {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
     {overlay === 'codex' && <Codex campaign={current} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); setCinematic({ ...dm, campaign: current }); }} />}
-    {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onClose={() => setOverlay(null)} />}
+    {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
     {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} />}
     {overlay === 'level' && <div className="ritual"><Sparkles/><span>Level {current.hero.level}</span><h2>The story has made you larger.</h2><button onClick={()=>setOverlay(null)}>Accept the new name fate gives you</button></div>}
     {current.hero.hp <= 0 && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} />}
@@ -521,9 +572,26 @@ function TitleScreen({ campaigns, onNew, onOpen, onRestore }) {
   </main>;
 }
 
-function LogEntry({ log, campaign, rendering }) {
+// The per-turn "Listen" control. Any turn can be read aloud on demand; the
+// button mirrors the single shared narrator so only one turn plays at a time.
+function NarrationButton({ campaign, log }) {
+  const [state, setState] = useState({ id: null, playing: false });
+  useEffect(() => subscribeNarration(setState), []);
+  const active = state.id === log.id && state.playing;
+  if (!log.dm?.narration_blocks?.length) return null;
+  return <button type="button" className={`narrate-button ${active ? 'playing' : ''}`} onClick={() => toggleNarration(campaign, log)} aria-label={active ? 'Pause narration' : 'Read this turn aloud'} title="Read this turn aloud">
+    {active ? <Pause/> : <Play/>}<span>{active ? 'Narrating' : 'Listen'}</span>
+  </button>;
+}
+
+function LogEntry({ log, campaign, rendering, painting }) {
   const cue = log.dm.image_cue;
-  const art = cue ? proceduralArtDataUrl(`${campaign.id}:${log.id}`, cue.mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']) : null;
+  // Every turn shows a plate: the DM's cue mood when present, otherwise the
+  // opening line of narration. The procedural plate stands in until (or unless)
+  // the painted scene arrives.
+  const mood = cue?.mood || log.dm.narration_blocks?.[0]?.text?.slice(0, 90) || 'the scene';
+  const art = proceduralArtDataUrl(`${campaign.id}:${log.id}`, mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
+  const showScene = Boolean(log.imageUrl || cue || painting);
   const cinematicTitle = log.dm.cinematic?.title || 'Cinematic';
   const hasFilm = log.videoUrl || log.videoPosterUrl;
   // A real video/mp4 clip can fail to decode (unsupported codec, corrupt data).
@@ -536,8 +604,9 @@ function LogEntry({ log, campaign, rendering }) {
   return <article className="turn-entry">
     {log.player && <div className="player-line"><span>You</span><p>{log.player}</p></div>}
     {log.dm.cinematic && <div className="beat-line"><span>✦</span><b>{log.dm.cinematic.title}</b><small>{log.dm.cinematic.subtitle}</small></div>}
-    {cue && <figure className="illustration-panel full-bleed"><img src={log.imageUrl || art} alt={cue.mood}/><figcaption>{cue.mood}{log.imageUrl ? <span>illuminated</span> : <span>procedural plate</span>}</figcaption></figure>}
+    {showScene && <figure className={`illustration-panel full-bleed ${!log.imageUrl && painting ? 'painting' : ''}`}><img src={log.imageUrl || art} alt={mood}/><figcaption>{mood}{log.imageUrl ? <span>illuminated</span> : <span>{painting ? 'painting…' : 'procedural plate'}</span>}</figcaption></figure>}
     <div className="narration">{log.dm.narration_blocks.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
+    <NarrationButton campaign={campaign} log={log} />
     {rendering && !hasFilm && !log.videoFailed && <figure className="illustration-panel full-bleed cinematic-rendering" aria-live="polite">
       <div className="rendering-stage"><span className="rendering-spinner" aria-hidden/><b>Rendering cinematic…</b><small>“{cinematicTitle}” is being filmed. This can take a few minutes.</small></div>
       <figcaption>{cinematicTitle}<span>rendering</span></figcaption>

@@ -1,6 +1,9 @@
 import express from 'express';
 import { createHash, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
+import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { spawn } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDmTurn } from './dm.js';
@@ -50,6 +53,10 @@ const app = express();
 const port = Number(process.env.PORT || 3001);
 const maxBody = process.env.MAX_REQUEST_BYTES || '25mb'; // references ride as base64
 app.disable('x-powered-by');
+// A whole-quest audiobook ships every turn's narration as base64 in one body,
+// which can exceed the default limit; give this route its own headroom BEFORE
+// the global parser so the smaller limit doesn't reject a long chronicle.
+app.use('/api/quest-audio', express.json({ limit: process.env.MAX_AUDIO_BYTES || '200mb' }));
 app.use(express.json({ limit: maxBody }));
 app.use(express.text({ type: 'text/html', limit: process.env.MAX_PDF_HTML_BYTES || '100mb' }));
 
@@ -114,6 +121,69 @@ for (const kind of ['paint','speak','music','sfx']) {
     catch (error) { console.error(error); await sendAsset(res, await adapters().mock[kind](req.body || {})); }
   });
 }
+
+// THE BOUND AUDIOBOOK — mix an ordered set of narration segments into one MP3,
+// ducking an optional looped music bed underneath. Segments arrive base64 (they
+// live on the player's device); ffmpeg normalizes each to a common format before
+// concat so mixed mock-WAV + real-MP3 clips stitch cleanly.
+function runFfmpeg(args) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    let err = '';
+    proc.stderr.on('data', (chunk) => { err += chunk.toString(); });
+    proc.on('error', reject);
+    proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}: ${err.slice(-600)}`))));
+  });
+}
+
+app.post('/api/quest-audio', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), async (req, res) => {
+  const { segments = [], bed = null, title = 'chronicle' } = req.body || {};
+  if (!Array.isArray(segments) || !segments.length) return res.status(400).json({ error: 'No narration segments were provided.' });
+  const dir = await mkdtemp(join(tmpdir(), 'quest-audio-'));
+  try {
+    const inputs = [];
+    for (let i = 0; i < segments.length; i += 1) {
+      const ext = String(segments[i].mime || '').includes('wav') ? 'wav' : 'mp3';
+      const file = join(dir, `seg${i}.${ext}`);
+      await writeFile(file, Buffer.from(String(segments[i].audio || ''), 'base64'));
+      inputs.push(file);
+    }
+    let bedFile = null;
+    if (bed?.audio) {
+      const ext = String(bed.mime || '').includes('wav') ? 'wav' : 'mp3';
+      bedFile = join(dir, `bed.${ext}`);
+      await writeFile(bedFile, Buffer.from(String(bed.audio), 'base64'));
+    }
+
+    const out = join(dir, 'chronicle.mp3');
+    const args = ['-y'];
+    for (const file of inputs) args.push('-i', file);
+    if (bedFile) args.push('-stream_loop', '-1', '-i', bedFile);
+
+    const norm = 'aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo';
+    const prep = inputs.map((_, i) => `[${i}:a]${norm}[a${i}]`).join(';');
+    const chain = inputs.map((_, i) => `[a${i}]`).join('');
+    let filter = `${prep};${chain}concat=n=${inputs.length}:v=0:a=1[voice]`;
+    let mapLabel = '[voice]';
+    if (bedFile) {
+      filter += `;[${inputs.length}:a]${norm},volume=0.16[bed];[voice][bed]amix=inputs=2:duration=first:dropout_transition=0[mix]`;
+      mapLabel = '[mix]';
+    }
+    args.push('-filter_complex', filter, '-map', mapLabel, '-ac', '2', '-ar', '44100', '-b:a', '160k', out);
+    await runFfmpeg(args);
+
+    const data = await readFile(out);
+    const slug = String(title).replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'chronicle';
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Disposition', `attachment; filename="${slug}.quest.mp3"`);
+    res.send(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'The chronicle audio could not be mixed.' });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 
 const videoJobs = new Map();
 app.post('/api/video', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), async (req, res) => {

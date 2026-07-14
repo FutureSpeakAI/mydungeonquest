@@ -27,7 +27,7 @@ import { slugify } from './lib/canonical.js';
 import { PatronDoor } from './patron/door.jsx';
 import { burnFromVault, nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
 import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
-import { reportTollRefusal, tollRefusal } from './patron/tollNotice.js';
+import { rememberRefusedPour, reportTollRefusal, setPourContext, tollRefusal } from './patron/tollNotice.js';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
 
@@ -225,9 +225,63 @@ export default function App() {
     setStatus('✦ The book rests on the shelf — every page kept.');
   }, [refreshShelf, refreshVaultShelf]);
   useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => { if (!row) return; const { score: _score, voice: _voice, ...kept } = row.value || {}; const value = { ...DEFAULT_SETTINGS, ...kept }; if (value.mediaTier === 'cinema') value.mediaTier = 'illuminated'; setSettings(value); }); }, [refreshShelf]);
+  // THE POURED-AGAIN OFFER — a refused pour that sent the patron to checkout,
+  // waiting for their word (or, for an idempotent paint, already flowing).
+  const [pourOffer, setPourOffer] = useState(null);
+  // Pour a remembered refused intent again. Opens the intent's own table if
+  // the shelf is showing (a checkout return lands on the title screen), then
+  // retries by kind. Media kinds re-queue the sealed log's jobs; a refused
+  // DM turn replays the very words the innkeeper refused.
+  const retryRefusedPour = async (intent) => {
+    try {
+      let campaign = current;
+      if (intent.campaignId && campaign?.id !== intent.campaignId) {
+        campaign = await db.campaigns.get(intent.campaignId);
+        if (campaign?.mediaTier === 'cinema') campaign = { ...campaign, mediaTier: 'illuminated' };
+        if (campaign) { setCurrent(campaign); setFlow('table'); }
+      }
+      if (!campaign) { setStatus('✦ The refused pour could not find its table again.'); return; }
+      if (intent.kind === 'dm') {
+        if (intent.player) await playTurn(campaign, intent.player, intent.resolution || null, intent.visiblePlayer ?? intent.player);
+        return;
+      }
+      if (intent.kind === 'retell' && typeof intent.beatIndex === 'number') {
+        await chronicleChapterClose(campaign, intent.beatIndex);
+        return;
+      }
+      if (intent.kind === 'pdf') {
+        // The book must be rebuilt before it can be bound — open it to the
+        // bind button rather than pressing a stale binding blind.
+        await openStorybook('Letter', campaign);
+        return;
+      }
+      // Media kinds (paint, speak, music, sfx…): re-queue the refused log's
+      // jobs against its sealed turn — the foundry's cache keeps what already
+      // landed, so only the refused pour actually flows.
+      const log = campaign.logs.find((entry) => entry.id === intent.logId)
+        || [...campaign.logs].reverse().find((entry) => !entry.redacted && entry.dm && entry.recordHash);
+      if (log?.dm) {
+        queueMedia(campaign, { recordHash: log.recordHash }, log.dm, log.id);
+        setStatus('✦ The refused pour flows again.');
+      }
+    } catch (error) {
+      setStatus(`✦ The pour would not flow again: ${error.message}`);
+    }
+  };
   // Returning from the Stripe rooms: settle the ?toll= mark once — refresh
   // the standing server-side, wipe the mark from the bar, speak the outcome.
-  useEffect(() => { settleTollReturn().then((word) => { if (word) setStatus(word); }).catch(() => {}); }, []);
+  // A paid return may carry the refused pour back: idempotent paints flow
+  // again on their own; anything else waits for the patron's word.
+  useEffect(() => {
+    settleTollReturn().then((settled) => {
+      if (!settled) return;
+      if (settled.word) setStatus(settled.word);
+      const intent = settled.retry;
+      if (!intent) return;
+      if (intent.kind === 'paint') { retryRefusedPour(intent); return; }
+      setPourOffer(intent);
+    }).catch(() => {});
+  }, []); // eslint-disable-line
   useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, settings.reduceMotion]);
   // Follow the prose as it streams in: as each chunk of the weaving turn arrives,
   // keep the newest text in view (instant, so rapid updates don't fight a smooth
@@ -250,6 +304,10 @@ export default function App() {
 
   const queueMedia = useCallback(async (campaign, turnRecord, dm, logId) => {
     if (campaign.mediaTier === 'parchment') return;
+    // The ambient pour context: if a job in this batch is refused deep in the
+    // foundry, the remembered intent knows which table and which log to
+    // return to after the patron raises their seat.
+    setPourContext({ campaignId: campaign.id, logId });
     const foundry = new Foundry({
       campaignId: campaign.id, tier: campaign.mediaTier, spend: campaign.spend,
       onAttestation: async (payload) => seal(campaign.id, 'media_attestation', payload)
@@ -357,6 +415,9 @@ export default function App() {
         // seat) rather than only a line of error text.
         const closed = await response.json().catch(() => ({}));
         reportTollRefusal(closed);
+        // Remember the refused turn itself — the player's words, the die —
+        // so a paid return can offer to play it again, not just apologize.
+        rememberRefusedPour({ kind: 'dm', campaignId: base.id, player, visiblePlayer, resolution });
         throw new Error(closed.error || 'The innkeeper leans in: this month\'s measure is spent. The ledger turns its page on the first.');
       }
       if (!response.ok) throw new Error(`The Dungeon Master could not be reached (${response.status}).`);
@@ -469,7 +530,10 @@ export default function App() {
       const request = buildChronicleRequest(campaign, closedBeatIndex);
       if (!request) return;
       const response = await fetch('/api/retell', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request.body) });
-      if (response.status === 402) await tollRefusal(response); // the chronicle chore shows its receipt too
+      if (response.status === 402) {
+        await tollRefusal(response); // the chronicle chore shows its receipt too
+        rememberRefusedPour({ kind: 'retell', campaignId: campaign.id, beatIndex: closedBeatIndex });
+      }
       const data = response.ok ? await response.json() : { declined: true };
       if (data.declined || !data.passage) return;
       const verdict = validateChroniclePassage(data.passage, request.context);
@@ -565,17 +629,21 @@ export default function App() {
     catch (error) { setStatus(`Restore failed: ${error.message}`); }
   };
 
-  const openStorybook = async (size = 'Letter') => {
-    playUiSfx(current, 'page'); // the book opens (or rebinds): one page turn
-    const journal = await campaignJournal(current.id);
-    const mediaRows = await db.media.where('campaignId').equals(current.id).toArray();
+  const openStorybook = async (size = 'Letter', campaign = current) => {
+    playUiSfx(campaign, 'page'); // the book opens (or rebinds): one page turn
+    const journal = await campaignJournal(campaign.id);
+    const mediaRows = await db.media.where('campaignId').equals(campaign.id).toArray();
     const media = await Promise.all(mediaRows.map(async (row) => ({ ...row, dataUrl: row.blob ? await blobToDataUrl(row.blob) : null })));
-    const html = buildStorybook({ campaign: current, journal, media, pageSize: size }); setBookHtml(html); setOverlay('storybook');
+    const html = buildStorybook({ campaign, journal, media, pageSize: size }); setBookHtml(html); setOverlay('storybook');
   };
 
   const bindPdf = async () => {
     const response = await fetch('/api/bind-pdf', { method: 'POST', headers: { 'Content-Type': 'text/html' }, body: bookHtml });
-    if (response.status === 402) { await tollRefusal(response); return; }
+    if (response.status === 402) {
+      await tollRefusal(response);
+      rememberRefusedPour({ kind: 'pdf', campaignId: current.id });
+      return;
+    }
     if (!response.ok) { setStatus((await response.json()).error || 'PDF binding failed'); return; }
     downloadBlob(await response.blob(), `${current.title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.storybook.pdf`);
   };
@@ -683,9 +751,18 @@ export default function App() {
     lastSealRef.current = { id: current.id, hash: current.headHash };
   }, [current?.id, current?.headHash]);
 
+  // THE POURED-AGAIN RIBBON — one quiet offer after a paid return, at the
+  // shelf or at the table alike. The patron pours or lets it rest; either
+  // way the offer is made once and never nags.
+  const pourBanner = pourOffer ? <div className="pour-again" role="status">
+    <span>✦ Your seat is raised — the pour the house refused can flow again.</span>
+    <button onClick={() => { const intent = pourOffer; setPourOffer(null); retryRefusedPour(intent); }}>Pour it now</button>
+    <button className="secondary-button" onClick={() => setPourOffer(null)}>Let it rest</button>
+  </div> : null;
+
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'title') return <TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} />;
+  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} /></>;
   if (!current) return null;
 
   const chapter = chapterInfo(current.codex);
@@ -694,6 +771,7 @@ export default function App() {
 
   return <div className={`app-shell${current.combat?.active ? ' under-arms' : ''}`}>
     <TollNotice />
+    {pourBanner}
     <div ref={regionStripRef} className="region-strip" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
       <span>{activeRegion?.name || current.homeRegion}</span><small>{activeRegion?.state || 'unmapped'} · blight {current.codex.blight}/5</small>
     </div>

@@ -15,7 +15,7 @@
 // this table.
 import { useEffect, useState } from 'react';
 import { doorBuilt } from './door.jsx';
-import { dismissTollNotice, subscribeTollNotice } from './tollNotice.js';
+import { clearRefusedPour, dismissTollNotice, subscribeTollNotice, takeRefusedPour } from './tollNotice.js';
 
 const SEAT_WORDS = {
   guest: 'Guest at the fire',
@@ -66,7 +66,9 @@ async function readToll() {
 
 // Settle a return from the Stripe rooms: the ?toll= mark on the URL says how
 // the visit ended. Ask the house to re-read its ledger, wipe the mark from
-// the bar, and hand back a line for the status ribbon (null when no mark).
+// the bar, and hand back { word, retry } — a line for the status ribbon and,
+// on a paid return only, the refused pour that sent the patron to checkout
+// (so the table can offer it again). Null when no mark at all.
 export async function settleTollReturn() {
   // A doorless build never learns money exists — a stray ?toll= mark on a
   // shared link is left exactly where it lies, unspoken.
@@ -83,10 +85,19 @@ export async function settleTollReturn() {
   } catch {
     /* the webhook settles it regardless */
   }
+  // The advisory gate forgets the refusal's "spent" patch — the next read of
+  // the ledger speaks for the raised seat, not the old one.
   lastStanding = null;
-  if (mark === 'paid') return '✦ The seat is yours — the house lights it within the minute.';
-  if (mark === 'kept') return 'The coin stayed in your purse. The fire is warm all the same.';
-  if (mark === 'seen') return 'The ledger closes its cover.';
+  if (mark === 'paid') {
+    // Only a paid return earns the offer: the refused pour is consumed here,
+    // once, and handed back for the table to pour again.
+    return { word: '✦ The seat is yours — the house lights it within the minute.', retry: takeRefusedPour() };
+  }
+  // The coin stayed in the purse (or the ledger was only read): the refused
+  // intent is cleared, never offered — nothing changed at the table.
+  clearRefusedPour();
+  if (mark === 'kept') return { word: 'The coin stayed in your purse. The fire is warm all the same.', retry: null };
+  if (mark === 'seen') return { word: 'The ledger closes its cover.', retry: null };
   return null;
 }
 

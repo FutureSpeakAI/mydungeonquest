@@ -335,6 +335,9 @@
 .toll-notice-tally{color:var(--vellum-dim);font-size:.85rem;margin:.15rem 0}.toll-notice-tally b{color:#c96f6f}
 .toll-notice-turn{color:var(--vellum-dim);font-size:.85rem;margin:.15rem 0 .6rem}.toll-notice-turn b{color:var(--vellum)}
 .toll-notice-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}
+/* The poured-again ribbon: one quiet offer after a paid return. */
+.pour-again{position:fixed;left:50%;bottom:1.1rem;transform:translateX(-50%);z-index:70;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.6rem;max-width:min(94vw,34rem);padding:.7rem 1rem;background:#171221;border:1px solid rgba(212,162,78,.45);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.pour-again span{color:var(--vellum);font-size:.9rem;line-height:1.35}
 .law-links{display:block;margin-top:.35rem}.law-links a{color:#a99a76;text-decoration:none}.law-links a:hover{color:var(--gold)}
 
 /* THE VAULT — quiet marks and the vaulted shelf */

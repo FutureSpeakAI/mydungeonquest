@@ -50,7 +50,10 @@ export class Foundry {
 
   allowed(kind) {
     if (this.tier === 'parchment') return false;
-    if (['video','music','sfx','speak'].includes(kind) && this.tier !== 'cinema') return false;
+    // Illuminated adds stills AND the audio layer (narration bed, score, sfx)
+    // so the interactive-podcast experience works at the default tier; only
+    // cinematic video remains reserved for the cinema tier.
+    if (kind === 'video' && this.tier !== 'cinema') return false;
     const bucket = kind === 'paint' ? 'images' : kind === 'video' ? 'videos' : kind === 'music' ? 'music' : null;
     return !bucket || this.spend[bucket] < this.caps[bucket];
   }

@@ -487,16 +487,18 @@ export default function App() {
     downloadBlob(await response.blob(), `${current.title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.storybook.pdf`);
   };
 
-  // THE BOUND AUDIOBOOK — generate any missing narration, then stitch the whole
-  // quest into one downloadable reading. The voices stand alone (no music bed);
-  // a keyless table declines honestly rather than binding placeholder tones.
+  // THE PODCAST FORGE — compile the episode script from the sealed record
+  // (the Chronicler's retellings + the cast's own lines, verbatim), voice it,
+  // and let the sequencer bind it: voices with breathing gaps, stings only
+  // BETWEEN sections, chapter markers, the key art as cover. THE SOUND LAW
+  // holds in the mix; a keyless table declines honestly and keeps the book.
   const downloadAudio = async () => {
     if (audioBusy || !current) return;
     setAudioBusy(true);
     try {
       const blob = await downloadQuestAudio(current, (message) => setStatus(message));
-      downloadBlob(blob, `${slugify(current.title)}.quest.mp3`);
-      setStatus('✦ Your chronicle, read aloud, is bound.');
+      downloadBlob(blob, `${slugify(current.title)}.podcast.mp3`);
+      setStatus('✦ Your episode is forged — sealed, and true.');
     } catch (error) {
       setStatus(error.message);
     } finally {

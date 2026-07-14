@@ -13,7 +13,7 @@ import { doorkeeper, doorOpen, whoami } from './patrons.js';
 import { initMint, mintConfigured } from './mint.js';
 import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
-import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport } from './watchtower.js';
+import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport, testHerald } from './watchtower.js';
 
 // THE WATCHTOWER's tripwires: a crash is never silent.
 installAlarms();
@@ -369,4 +369,11 @@ app.listen(port, '0.0.0.0', () => {
   // folly: billing needs names, so without Clerk the gateway stays dormant.
   if (doorOpen()) initMint();
   else if (mintConfigured()) console.error('[toll] a mint with no door is a folly — open the door (sign-in keys) or the gateway stays dormant.');
+  // THE HERALD's self-check: when a webhook is chalked, one test ping rides
+  // out at boot so the owner learns a mislaid URL now, not during an
+  // incident. Opt-out with HERALD_BOOT_PING=0; the outcome lands on
+  // /api/health as watch.herald. Unconfigured forks stay mute, unchanged.
+  if (process.env.ALERT_WEBHOOK_URL && process.env.HERALD_BOOT_PING !== '0') {
+    testHerald().then((status) => logLine(status === 'sent' ? 'info' : 'error', 'herald_boot_ping', { status }));
+  }
 });

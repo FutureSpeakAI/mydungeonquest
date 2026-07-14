@@ -5,6 +5,8 @@
  * live Stripe test account, with the dev server's registered webhook doing
  * the entitlement flip:
  *
+ *   0.5 preflight: the dev server must answer /api/health, else abort —
+ *      the registered webhook has nowhere to land without it
  *   1. seat a named patron in the visitors' book
  *   2. POST /toll/checkout {plan: weekly} → a real Stripe Checkout session
  *      opens, priced exactly as the owner chalked it ($5/week)
@@ -76,6 +78,20 @@ const hop = (path, body) =>
 
 const stripe = await getUncachableStripeClient();
 
+// -- 1.5 preflight: the courier's door must be open ---------------------------
+// The webhook flips are done by the RUNNING dev server's registered webhook
+// (https://<host>/api/stripe/webhook). If that server is down, the flips can
+// only be caught by the /toll/refresh fallback — which would let a broken
+// webhook road pass silently. Refuse to walk unless the door answers.
+say('preflight: pinging the running dev server (the webhook courier\'s door)');
+try {
+  const ping = await fetch(`https://${HOST}/api/health`, { signal: AbortSignal.timeout(10_000) });
+  if (!ping.ok) die(`dev server answered /api/health with ${ping.status} — start the dev server first (the registered webhook must land there)`);
+  console.log(`dev server is up at https://${HOST} — the courier has a door.`);
+} catch (e) {
+  die(`dev server unreachable at https://${HOST}/api/health (${e.message}) — start the dev server first (the registered webhook must land there)`);
+}
+
 // -- 2. checkout opens -------------------------------------------------------
 say('2. POST /toll/checkout {plan: weekly}');
 const co = await hop('/toll/checkout', { plan: 'weekly' });
@@ -119,8 +135,9 @@ for (let i = 0; i < 30; i++) {
   await new Promise((r) => setTimeout(r, 2000));
 }
 console.log('users.plan =', plan);
-const webhookFlipped = plan === 'weekly';
-if (!webhookFlipped) console.error('!! webhook did not flip the plan within 60s — refresh must catch it');
+if (plan !== 'weekly') {
+  die('webhook did not flip the plan within 60s — the dev server was up (preflight passed), so the webhook road itself is broken. The /toll/refresh fallback is a fallback, not a pass condition.');
+}
 
 // -- 5. the ?toll=paid return ------------------------------------------------
 say('5. POST /toll/refresh (the ?toll=paid return)');
@@ -130,7 +147,6 @@ if (rf.body.plan !== 'weekly') die(`refresh did not show the seat: ${JSON.string
 if (rf.body.quotas.dm !== null || rf.body.quotas.podcast !== null) die('a paid seat must pour without measure (quotas null)');
 if (JSON.stringify(rf.body.quotas) !== JSON.stringify(PLANS.weekly.quotas)) die('quotas do not match the law');
 if (!rf.body.portal) die('portal flag not set');
-if (!webhookFlipped && (await readPlan()) !== 'weekly') die('plan still not written');
 
 // -- 6. never sell a seated patron a second chair -----------------------------
 say('6. POST /toll/checkout again (yearly this time) — expect the portal, not a sale');
@@ -157,14 +173,10 @@ for (let i = 0; i < 30; i++) {
 }
 console.log('users.plan after cancel =', lowered);
 if (lowered !== 'free') {
-  const rf2 = await hop('/toll/refresh');
-  console.log('refresh says:', rf2.body.plan);
-  if (rf2.body.plan !== 'free') die('the seat did not lower');
-  console.error('!! cancel webhook did not lower the seat within 60s — refresh caught it');
-} else {
-  const rf2 = await hop('/toll/refresh');
-  if (rf2.body.plan !== 'free') die('refresh disagrees after cancel');
+  die('cancel webhook did not lower the seat within 60s — the dev server was up (preflight passed), so the webhook road itself is broken. The /toll/refresh fallback is a fallback, not a pass condition.');
 }
+const rf2 = await hop('/toll/refresh');
+if (rf2.body.plan !== 'free') die('refresh disagrees after cancel');
 
 // -- 9. sweep the road ----------------------------------------------------------
 say('9. sweeping the road');

@@ -15,6 +15,7 @@ import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from '.
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
 import { portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
+import { markRevealed } from './lib/reveals.js';
 import { KEYART_LABEL, actOf, heroBustJob, keyArtJob, nameSeed } from './lib/cinema/prologue.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
 import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
@@ -335,7 +336,18 @@ export default function App() {
           subjects: presentCast,
           region: campaign.codex.regions?.[0]?.name || campaign.homeRegion
         };
-    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue), options: { kind: 'scene', referenceLabels: [...(sceneCue.subjects || []), sceneCue.region].filter(Boolean).slice(0, 3) }, priority: 1, logId });
+    // ONE TURN, ONE PAINTING — the plate is keyed to the turn's own seal, so
+    // turns described in similar words never collapse onto one cached
+    // painting, while the SAME turn (a reopen, a refused pour flowing again)
+    // finds its own again instead of repainting. The brief carries the turn's
+    // actual prose and a per-turn framing from the wheel, so variety comes
+    // from composition — the subjects' appearance canon and reference
+    // anchors stay wired in regardless.
+    const sceneMoment = {
+      prose: (dm.narration_blocks || []).map((block) => block?.text || '').join(' ').slice(0, 220),
+      seed: turnRecord.recordHash || String(logId || '')
+    };
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', referenceLabels: [...(sceneCue.subjects || []), sceneCue.region].filter(Boolean).slice(0, 3) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
       if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name] }, priority: variant === 'bust' ? 2 : 6 });
@@ -463,12 +475,20 @@ export default function App() {
       // Combat opens: one drawn blade, one accent, through the Director — it
       // yields (and is dropped) if the narrator already holds the stage.
       if (combat?.active && !base.combat?.active) playUiSfx(base, 'sword');
-      const log = { id: crypto.randomUUID(), player: visiblePlayer, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, beatIndex: codex.beatIndex };
+      // THE DEED LINE — a turn where the player acted rather than spoke still
+      // shows in sequence: the die that fell, in plain words. Derived HERE, at
+      // the one funnel every input path passes through, so live rolls and
+      // refused pours poured again all get it without remembering to pass it.
+      // Kept apart from `player` so retellings never quote a die as speech.
+      const deed = !visiblePlayer && resolution
+        ? `The ${resolution.selectedDie || 'die'} falls ${resolution.total} — ${String(resolution.outcome || '').replaceAll('_', ' ')}.`
+        : null;
+      const log = { id: crypto.randomUUID(), player: visiblePlayer, deed, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, beatIndex: codex.beatIndex };
       // A completing turn strands no die: the tale that just ended has no
       // roll left to make.
       let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: codex.completed ? null : dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed };
       await saveCampaign(next);
-      const record = await seal(base.id, 'turn', { player, visiblePlayer, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution });
+      const record = await seal(base.id, 'turn', { player, visiblePlayer, deed, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution });
       const sealed = await db.campaigns.get(base.id);
       next = { ...next, headHash: sealed.headHash, turnCount: sealed.turnCount, signatureStatus: sealed.signatureStatus };
       next.logs[next.logs.length - 1].recordHash = record.recordHash;
@@ -820,9 +840,14 @@ export default function App() {
     {!current.readOnly && current.completed && <section className="tale-told"><span>✦ Your tale is told.</span><button onClick={() => setOverlay('sealing')}>{current.sealedAt ? 'Open the keepsakes' : 'Seal the chronicle'}</button></section>}
     <footer className="seal-status"><span>{status}</span>{VAULT_MARKS[vaultMarks.get(current.id)?.state] && <span className="vault-mark" title={VAULT_MARKS[vaultMarks.get(current.id).state].word}>{VAULT_MARKS[vaultMarks.get(current.id).state].glyph} {VAULT_MARKS[vaultMarks.get(current.id).state].word}</span>}</footer>
     {diceResult && <DiceOverlay result={diceResult} haptics={settings.haptics} onDone={() => setDiceResult(null)} />}
-    {cinematic && <Cinematic cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
+    {/* THE FRESH CARD LAW — the key forces a NEW card lifecycle per card: a
+        chained close (DM card → act card) batches its two setCinematic calls,
+        so without it React would reuse the mounted card — same backdrop, no
+        re-consult of the seen ledger, and no fresh close timer. Type differs
+        across any chained pair, so the key always turns. */}
+    {cinematic && <Cinematic key={`${cinematic.cinematic?.type}:${cinematic.cinematic?.title}:${cinematic.beatIndex ?? 'b'}:${cinematic.replay ? 'replay' : 'live'}`} cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} replay={Boolean(cinematic.replay)} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
     {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
-    {overlay === 'codex' && <Codex campaign={current} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); setCinematic({ ...dm, campaign: current }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} />}
+    {overlay === 'codex' && <Codex campaign={current} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Codex replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} />}
     {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
     {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} />}
     {overlay === 'level' && <div className="ritual"><Sparkles/><span>Level {current.hero.level}</span><h2>The story has made you larger.</h2><button onClick={()=>setOverlay(null)}>Accept the new name fate gives you</button></div>}
@@ -1027,8 +1052,19 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null }) {
       if (opener && document.contains(opener)) opener.focus?.();
     };
   }, [expandedSrc]);
+  // THE PLATE MARK — the seen ledger records a painted plate the moment it
+  // actually renders in the transcript (reopens included; first showing
+  // wins). Fire-and-forget: the ledger is an observation, never load-bearing.
+  const stillHash = log.imageAssetHash || null;
+  useEffect(() => {
+    if (stillHash) markRevealed(campaign.id, 'plate', stillHash, { logId: log.id });
+  }, [stillHash, campaign.id, log.id]);
   return <article className="turn-entry">
     {log.player && <div className="player-line"><span>You</span><p>{log.player}</p></div>}
+    {/* THE DEED LINE — the player acted rather than spoke (a die cast): shown
+        in sequence like their words, but marked apart, so the script reads
+        whole without dressing a deed as speech. */}
+    {!log.player && log.deed && <div className="player-line deed"><span>✦</span><p>{log.deed}</p></div>}
     {log.dm.cinematic && <div className="beat-line"><span>✦</span><b>{log.dm.cinematic.title}</b><small>{log.dm.cinematic.subtitle}</small></div>}
     {/* Reading order is deliberate: the words land first, the Listen control is
         available immediately, and the painted plate slots in BELOW the text —

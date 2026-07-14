@@ -64,3 +64,33 @@ the cast actually present in the turn (speakers + names in the prose).
 Global art direction (LOTR/GoT preproduction painting) is enforced by an
 `ART_DIRECTION` clause appended in `scrubPrompt`, so every image/video shares one
 hand regardless of the per-campaign `style_bible`.
+
+# The One Throat (autoplay law, July 2026)
+Browser autoplay blessing is per-ELEMENT and gesture-scoped: a fresh `new Audio()`
+created after async work is refused (NotAllowedError) even when a gesture began
+the turn. Rules:
+- ONE persistent HTMLAudioElement, never discarded — blessing survives src swaps.
+  Retiring a segment = unwire + pause, KEEP the element.
+- `primeNarration()` plays a tiny silent WAV data-URI synchronously INSIDE every
+  gesture handler that can lead to a reading (begin/send/roll/redact); the play
+  call itself performs the blessing.
+- A refused `play()` (any non-AbortError) stages the take as `blocked` — never a
+  silent failure; the Listen button becomes a pulsing invitation, and the tap
+  plays the STAGED take (no regeneration) while blessing the throat for the rest
+  of the session.
+- A `takeSession` stamp on the staged src (not element flags) gates toggle-resume:
+  the persistent element outlives stop, so flags alone would replay a previous
+  turn's audio.
+**Why:** per-segment elements meant unprompted reads silently never started —
+players had to press Play every turn.
+**How to apply:** never construct extra Audio elements in the narrator; wire
+`primeNarration()` into any NEW gesture entry point that can trigger a reading.
+
+# Hero voice + alias restraint (July 2026)
+The hero (`id:'hero'`, absent from codex.cast) is cast deterministically from the
+forge card (`heroVoiceCard` → `castHeroVoice`; `resolveHeroVoiceId` honors a
+persisted voiceId first) — persisted at creation, back-cast on open for writable
+campaigns, resolved in memory for read-only spines (no writes). Speaker→hero
+matching is `speakerIsHero`: the full name always; a bare FIRST name only when no
+cast soul could also claim it — ambiguity touches nobody, a voice is never
+guessed. Shared by the live narrator and the podcast so they always agree.

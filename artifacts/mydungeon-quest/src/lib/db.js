@@ -9,6 +9,13 @@ db.version(1).stores({
   memories: '++id, campaignId, turn, ts',
   settings: 'key'
 });
+// v2 — THE SEEN LEDGER: which painted plates and covers were actually shown
+// at this table, per adventure (kind: 'plate' | 'card'). A device-local
+// observation, outside the sealed chain and outside chronicle exports; the
+// card ladder and downstream retellings consult it. See lib/reveals.js.
+db.version(2).stores({
+  reveals: '[campaignId+kind+assetHash], campaignId'
+});
 
 export async function listCampaigns() {
   return db.campaigns.orderBy('updatedAt').reverse().toArray();
@@ -60,12 +67,14 @@ export async function saveCampaign(campaign) {
 }
 
 export async function deleteCampaign(id) {
-  await db.transaction('rw', db.campaigns, db.journal, db.media, db.memories, db.keys, async () => {
+  await db.transaction('rw', db.campaigns, db.journal, db.media, db.memories, db.keys, db.reveals, async () => {
     await db.campaigns.delete(id);
     await db.journal.where('campaignId').equals(id).delete();
     await db.media.where('campaignId').equals(id).delete();
     await db.memories.where('campaignId').equals(id).delete();
     await db.keys.delete(id);
+    // Ash keeps no pages — the seen ledger burns with the tale it observed.
+    await db.reveals.where('campaignId').equals(id).delete();
   });
 }
 

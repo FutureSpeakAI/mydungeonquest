@@ -817,7 +817,11 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
         </div>;
       })()}
     </section>}
-    <footer className="title-footer"><span>Yours alone · Plays offline · Every turn sealed</span><PatronDoor/></footer>
+    <footer className="title-footer">
+      <span>Yours alone · Plays offline · Every turn sealed</span><PatronDoor/>
+      {/* The house's small print — quiet vellum links, never louder than the fire. */}
+      <span className="law-links"><a href="/welcome.html">The front gate</a> · <a href="/terms.html">House rules</a> · <a href="/privacy.html">Privacy</a></span>
+    </footer>
   </main>;
 }
 

@@ -13,6 +13,10 @@ import { doorkeeper, doorOpen, whoami } from './patrons.js';
 import { initMint, mintConfigured } from './mint.js';
 import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
+import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport } from './watchtower.js';
+
+// THE WATCHTOWER's tripwires: a crash is never silent.
+installAlarms();
 
 // Per-kind wall-clock budget for one provider attempt. A stalled upstream call
 // must not block failover, so every real provider is bounded; on timeout the
@@ -39,8 +43,13 @@ async function runChain(kind, body) {
   for (let i = 0; i < chain.length; i += 1) {
     const provider = chain[i];
     try {
+      // THE WATCHTOWER's spend ceiling: a provider whose day is spent is
+      // simply skipped — the chain degrades to the next artisan (ultimately
+      // the mock floor) instead of draining the budget.
+      if (provider.name !== 'mock' && !(await spendAllowed(provider.name))) { lastError = new Error(`${provider.name} daily ceiling reached`); continue; }
       const call = provider[kind](body);
       const result = provider.name === 'mock' ? await call : await withTimeout(call, budget, `${provider.name} ${kind} timed out after ${budget}ms`);
+      if (provider.name !== 'mock') recordSpend(provider.name);
       return { ...result, degraded: i > 0 };
     } catch (error) {
       lastError = error;
@@ -87,22 +96,11 @@ app.use('/api', tollRoutes());
 // named patrons only; dormant without the door and the ledger.
 app.use('/api', vaultRoutes());
 
-const windows = new Map();
-function rateLimit(max) {
-  const windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
-  return (req, res, next) => {
-    // Burst limits key to the NAME when one was given at the door, else the
-    // address — a patron's pace follows them across devices; guests share
-    // their gate's pace. (Monthly quotas are the innkeeper's, not ours.)
-    const key = `${req.patron?.id || req.ip}:${req.path}`;
-    const now = Date.now();
-    const item = windows.get(key) || { start: now, count: 0 };
-    if (now - item.start > windowMs) { item.start = now; item.count = 0; }
-    item.count += 1; windows.set(key, item);
-    if (item.count > max) return res.status(429).json({ error: 'The foundry needs a breath. Try again shortly.' });
-    next();
-  };
-}
+// Burst limits (now durable — see watchtower.js) key to the NAME when one
+// was given at the door, else the address; the count survives a restart
+// whenever the ledger stands. One structured line per /api request rides
+// the same tower.
+app.use('/api', requestLog());
 
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -111,12 +109,32 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/health', (_req, res) => {
+// The uptime surface: fast, honest, 200 while the table itself lives. A
+// mislaid ledger is reported (`ledger:false`), never fatal — the tale does
+// not die of it, so the monitor should not page as if it had.
+app.get('/api/health', async (_req, res) => {
   const a = adapters();
-  res.json({ ok: true, node: process.version, providers: Object.fromEntries(['paint','speak','music','sfx'].map((kind) => [kind, { provider: a[kind].name, ...a[kind].capabilities }])) });
+  res.json({
+    ok: true,
+    node: process.version,
+    door: doorOpen(),
+    ledger: await ledgerHealthy(),
+    watch: await watchReport(),
+    providers: Object.fromEntries(['paint','speak','music','sfx'].map((kind) => [kind, { provider: a[kind].name, ...a[kind].capabilities }]))
+  });
 });
 
-app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), innkeeper('dm'), async (req, res) => {
+// A DM turn spends Anthropic (or its OpenAI understudy). Each artisan is
+// judged against its OWN daily ceiling: a spent Anthropic day degrades to
+// OpenAI, a spent OpenAI day leaves Anthropic alone, and only when every
+// real voice is spent does the mock floor tell the turn — degraded, never
+// dark, and a barred provider is never called.
+async function dmBarred() {
+  return { anthropic: !(await spendAllowed('anthropic')), openai: !(await spendAllowed('openai')) };
+}
+
+app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), abuseCaps('dm'), innkeeper('dm'), async (req, res) => {
+  const barred = await dmBarred();
   // Real streaming: narration text is forwarded to the player as it
   // forms inside the tool call; the validated turn arrives last.
   if (req.query.stream === '1') {
@@ -129,6 +147,7 @@ app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), innk
     // as the request body finishes in modern Node, which is not abort.
     res.on('close', () => { closed = true; });
     const result = await getDmTurn(req.body || {}, {
+      barred,
       onNarration: (text) => { if (!closed) res.write(`event: narration\ndata: ${JSON.stringify({ text })}\n\n`); },
       // The stage goes dark before a repair: outlaw prose already streamed
       // is retracted so the player never reads an unlawful telling.
@@ -138,22 +157,24 @@ app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), innk
     // A turn told by a real voice is one line in the ledger of use;
     // stand-ins are never billed (debit itself keeps that law).
     debit(req, 'dm', result.provider);
+    recordSpend(result.provider === 'anthropic' || result.provider === 'openai' ? result.provider : null);
     return;
   }
-  const result = await getDmTurn(req.body || {});
+  const result = await getDmTurn(req.body || {}, { barred });
   debit(req, 'dm', result.provider);
+  recordSpend(result.provider === 'anthropic' || result.provider === 'openai' ? result.provider : null);
   res.json(result);
 });
 
 // THE CHRONICLER — the second, smaller harness (§7): one forced tool call,
 // the shared strict validator, one guided repair, and an honest keyless
 // decline (the client binds the raw sealed text; mock prose is never sealed).
-app.post('/api/retell', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), innkeeper('retell'), async (req, res) => {
+app.post('/api/retell', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), abuseCaps('retell'), innkeeper('retell'), async (req, res) => {
   const { getChroniclePassage } = await import('./retell.js');
   const result = await getChroniclePassage(req.body || {});
   // A decline is not a retelling — only a passage spoken by a real voice
   // is debited (`provider: 'exhausted'` declines carry no passage).
-  if (!result.declined) debit(req, 'retell', result.provider);
+  if (!result.declined) { debit(req, 'retell', result.provider); recordSpend(result.provider === 'anthropic' ? result.provider : null); }
   res.json(result);
 });
 
@@ -166,7 +187,7 @@ async function sendAsset(res, result) {
 }
 
 for (const kind of ['paint','speak','music','sfx']) {
-  app.post(`/api/${kind}`, rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), innkeeper(kind), async (req, res) => {
+  app.post(`/api/${kind}`, rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), abuseCaps(kind), innkeeper(kind), async (req, res) => {
     try {
       const result = await runChain(kind, req.body || {});
       // Debit when real work was PRODUCED (our cost is already spent even if
@@ -295,13 +316,31 @@ app.post('/api/quest-audio', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX |
   }
 });
 
-app.post('/api/bind-pdf', innkeeper('pdf'), async (req, res) => {
+// The binder's press: prefer an explicitly named Chromium, then the system
+// one (the Nix-installed browser on PATH included), then Playwright's own
+// download. Resolved once — the press does not move mid-night.
+let chromiumPath;
+function chromiumExecutable() {
+  if (chromiumPath !== undefined) return chromiumPath;
+  chromiumPath = process.env.PLAYWRIGHT_CHROMIUM_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : null);
+  if (!chromiumPath) {
+    for (const dir of String(process.env.PATH || '').split(':')) {
+      if (dir && (existsSync(join(dir, 'chromium')) || existsSync(join(dir, 'chromium-browser')))) {
+        chromiumPath = join(dir, existsSync(join(dir, 'chromium')) ? 'chromium' : 'chromium-browser');
+        break;
+      }
+    }
+  }
+  return chromiumPath;
+}
+
+app.post('/api/bind-pdf', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), innkeeper('pdf'), async (req, res) => {
   if (typeof req.body !== 'string' || !req.body.includes('<!doctype html')) return res.status(400).json({ error: 'Expected a self-contained HTML book.' });
   if (/\b(?:src|href)=["']https?:/i.test(req.body)) return res.status(400).json({ error: 'External URLs are forbidden in bound books.' });
   let browser;
   try {
     const { chromium } = await import('playwright');
-    browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : {}) });
+    browser = await chromium.launch({ headless: true, ...(chromiumExecutable() ? { executablePath: chromiumExecutable() } : {}) });
     const page = await browser.newPage();
     await page.route('**/*', (route) => route.request().url().startsWith('data:') ? route.continue() : route.abort());
     await page.setContent(req.body, { waitUntil: 'load', timeout: 60000 });

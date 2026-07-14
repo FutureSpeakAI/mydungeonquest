@@ -266,8 +266,25 @@ async function mockWithNarration(input, onNarration) {
   return turn;
 }
 
-export async function getDmTurn(input, { onNarration = null, onRetract = null } = {}) {
-  const useMock = !process.env.ANTHROPIC_API_KEY || process.env.DM_PROVIDER === 'mock';
+/**
+ * The DM's provider plan: which artisans may tell this turn, in order, with
+ * mock as the guaranteed floor. `barred` is the watchtower's word — a
+ * provider whose daily spend ceiling is reached is struck from the plan
+ * INDIVIDUALLY, so a spent Anthropic day degrades to OpenAI (if configured
+ * and unspent) before the floor, and a spent provider is never called.
+ */
+export function dmPlan(barred = {}) {
+  if (process.env.DM_PROVIDER === 'mock') return ['mock'];
+  const plan = [];
+  if (process.env.ANTHROPIC_API_KEY && !barred.anthropic) plan.push('anthropic');
+  if (process.env.OPENAI_API_KEY && process.env.DM_FALLBACK !== 'off' && !barred.openai) plan.push('openai');
+  plan.push('mock');
+  return plan;
+}
+
+export async function getDmTurn(input, { onNarration = null, onRetract = null, barred = {} } = {}) {
+  const plan = dmPlan(barred);
+  const useMock = plan[0] === 'mock';
 
   if (useMock) {
     try {
@@ -286,10 +303,10 @@ export async function getDmTurn(input, { onNarration = null, onRetract = null } 
   // validator errors from the first. The first attempt streams narration to
   // the client when requested; the repair pass is a plain (non-streamed) call.
   // Network/API errors get a plain retry.
-  let lastError;
+  let lastError = new Error('no DM provider was allowed to speak');
   let repair = null;
   let streamed = false;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; plan.includes('anthropic') && attempt < 2; attempt += 1) {
     try {
       const streamingNarration = attempt === 0 && onNarration
         ? (text) => { streamed = true; onNarration(text); }
@@ -311,8 +328,8 @@ export async function getDmTurn(input, { onNarration = null, onRetract = null } 
     if (streamed) { onRetract?.(); streamed = false; }
   }
 
-  // Anthropic exhausted — try OpenAI (ChatGPT) before generic narration.
-  if (process.env.OPENAI_API_KEY && process.env.DM_FALLBACK !== 'off') {
+  // Anthropic spent, barred, or exhausted — try OpenAI before the floor.
+  if (plan.includes('openai')) {
     let repairO = null;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy of the Table · MyDungeon.Quest</title>
+<link rel="icon" href="/icon.svg">
+<style>
+:root{--gold:#d4a24e;--vellum:#e9dfc8;--dim:#bfb39b}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Crimson Pro",Georgia,serif;color:var(--vellum);background:linear-gradient(180deg,#110d18,#09080d 72%);min-height:100vh}
+h1,h2{font-family:Cinzel,Georgia,serif}
+main{max-width:760px;margin:auto;padding:4rem 1.2rem 3rem;line-height:1.6}
+h1{font-size:2.2rem;margin-bottom:.3rem}
+.updated{color:#71687c;font-size:.85rem;margin-bottom:2rem}
+h2{color:var(--gold);font-size:1.15rem;margin:2rem 0 .5rem}
+p,li{color:var(--dim)}
+ul{padding-left:1.2rem}
+a{color:var(--gold)}
+footer{border-top:1px solid rgba(233,223,200,.08);margin-top:3rem;padding-top:1.2rem;color:#71687c;font-size:.8rem}
+footer a{color:#a99a76;text-decoration:none}
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy of the Table</h1>
+<p class="updated">Last updated: July 14, 2026</p>
+
+<p>The house's first law of privacy is architectural: <b>your chronicles live on your device, not on our servers.</b> This policy explains the little we do collect, why, and your choices.</p>
+
+<h2>1. What stays on your device</h2>
+<p>Campaigns, turns, journals, dice results, generated images and audio you keep, and your settings are stored locally in your browser (IndexedDB). We cannot read them. Clearing your browser storage deletes them; export tools in the app let you keep your own copies.</p>
+
+<h2>2. What we process to run the game</h2>
+<ul>
+<li><b>Turn requests:</b> when you play, the text needed for the current turn is sent to our server and relayed to AI providers (Anthropic, OpenAI, Google, ElevenLabs) to generate narration, images, or audio. We do not store this content server-side; providers process it under their own terms.</li>
+<li><b>Operational logs:</b> our server keeps short-lived technical logs (route, status, timing, coarse identifiers) for reliability and abuse prevention. Logs never contain your story text.</li>
+<li><b>Rate and usage counters:</b> anonymous-or-account-keyed counters (how many turns, images, etc.) enforce fair use and paid allowances. Counters are numbers and kinds only — never content.</li>
+</ul>
+
+<h2>3. If you give your name at the door</h2>
+<p>Accounts are handled by Clerk. We store your account identifier, a display name, your subscription tier, and — if you subscribe — a Stripe customer reference. Payments are processed by Stripe; we never see your card. If you enable the cloud vault, encrypted chronicle data is stored so you can restore it on your own devices.</p>
+
+<h2>4. Cookies and tracking</h2>
+<p>We use only the cookies required for sign-in sessions. There is no advertising, no analytics trackers, and no sale or sharing of personal data.</p>
+
+<h2>5. Your choices and rights</h2>
+<ul>
+<li>Play as a guest: no account, no name, nothing tied to you beyond transient operational logs.</li>
+<li>Delete local data any time via your browser or the app's tools.</li>
+<li>Ask us to delete your account record and vault data; subscription records are retained only as long as tax and accounting law requires.</li>
+<li>Depending on where you live (e.g. GDPR, CCPA), you may have rights of access, correction, deletion, and portability — contact us to exercise them.</li>
+</ul>
+
+<h2>6. Children</h2>
+<p>The service is not directed to children under 13, and accounts require the minimum age of digital consent in your country.</p>
+
+<h2>7. Changes</h2>
+<p>We will update the date above and surface material changes in the app. Continued use after an update is acceptance.</p>
+
+<h2>8. Contact</h2>
+<p>Privacy questions can be raised through the support channel listed on the site or the workspace hosting this deployment.</p>
+
+<footer>
+<a href="/welcome.html">The front gate</a> · <a href="/terms.html">House rules (Terms of Service)</a> · <a href="/">Enter the house</a>
+</footer>
+</main>
+</body>
+</html>

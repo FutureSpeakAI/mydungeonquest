@@ -327,6 +327,8 @@
 .toll-tallies .spent,.toll-tallies .spent b{color:#c96f6f}
 .toll-seats{display:grid;gap:.55rem;margin:.4rem 0 1rem}
 .toll-seats .text-button{justify-self:start}
+.toll-legal{color:#71687c;font-size:.76rem;margin:.1rem 0 0}.toll-legal a{color:#a99a76;text-decoration:none}.toll-legal a:hover{color:var(--gold)}
+.law-links{display:block;margin-top:.35rem}.law-links a{color:#a99a76;text-decoration:none}.law-links a:hover{color:var(--gold)}
 
 /* THE VAULT — quiet marks and the vaulted shelf */
 .spine-vault{position:absolute;top:6px;left:0;right:0;text-align:center;color:rgba(212,162,78,.7);font-size:.6rem}

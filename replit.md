@@ -9,6 +9,7 @@ An AI-narrated solo tabletop RPG: a Dungeon Master model runs a persistent, loca
 - `pnpm --filter @workspace/mydungeon-quest run eval` — headless bench: validates DM protocol, reducers, canon integrity, PG-13 scrubber, budget caps, seal/tamper invariants. Keep this green.
 - `pnpm --filter @workspace/api-server run dev` — run the (separate, unrelated) API server template artifact
 - Required secrets: `ANTHROPIC_API_KEY` (real AI Dungeon Master; falls back to a deterministic mock without it), `OPENAI_API_KEY` (real illustration art via the Paint provider), `ELEVENLABS_API_KEY` (voice/music/SFX)
+- The door (optional accounts): `CLERK_SECRET_KEY` + `CLERK_PUBLISHABLE_KEY` (server) and `VITE_CLERK_PUBLISHABLE_KEY` (client build) raise the door — absent, there is no sign-in UI and everyone is a guest. `DATABASE_URL` backs the patron ledger; the `users` table self-bootstraps (`CREATE TABLE IF NOT EXISTS`, in `server/patrons.js`) on first inscription, so fresh environments need no hand-run migration. If the ledger or Clerk is unreachable, signed-in players degrade to guests (fail-open, loud `[door]`/`[ledger]` server logs) — deliberate while no privileged routes exist; the metered-gateway task adds fail-closed authorization.
 - Provider selection env vars (shared, non-secret): `PAINT_PROVIDER=openai`, `SPEAK_PROVIDER=elevenlabs`, `MUSIC_PROVIDER=elevenlabs`, `SFX_PROVIDER=elevenlabs`, `DM_MODEL`/`DM_MODEL_GENESIS` (Anthropic model ids)
 
 ## Stack

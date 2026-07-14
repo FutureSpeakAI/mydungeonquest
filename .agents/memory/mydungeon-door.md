@@ -1,17 +1,18 @@
 ---
 name: MyDungeon door (auth) is opt-in
-description: Clerk auth in MyDungeon.Quest follows the media-provider doctrine — no keys, no door; guests are first-class forever.
+description: Auth follows the media-provider doctrine — no keys, no door; guests are first-class; server-owned tables self-bootstrap.
 ---
 
-# The Door (Clerk auth) is opt-in, like every other provider
+# The Door is opt-in, and the ledger binds itself
 
-**Rule:** Auth mounts only when its keys exist. Client: `doorBuilt = Boolean(VITE_CLERK_PUBLISHABLE_KEY)` — keyless builds render the game with **no router, no ClerkProvider, no new code paths** (PatronShell returns children; PatronDoor returns null). Server: the doorkeeper on `/api` is a guest-marking pass-through unless both Clerk keys exist. Guests always pass unchallenged; identity failures **fail open to guest**.
+**Rules:**
+- Auth exists only when its keys exist. Keyless builds must render signed-out play unchanged (no provider, no router, no new code paths); the keyless server marks everyone a guest.
+- Identity failures fail OPEN to guest — lawful only while no privileged endpoints exist. Billing/quota work must add separate fail-closed authorization, never loosen the doorkeeper.
+- Any server-owned table must self-bootstrap idempotently at first use. Never assume a hand-created schema survives a fresh environment.
 
-**Why:** Guest custody is a product law (chronicles live on the player's device; the ledger holds names, never tales). The keyless eval gate hard-asserts unchanged signed-out play, and the headless harness has no `window.location` — an unconditional ClerkProvider or module-top `publishableKeyFromHost(window.location.hostname, …)` crashes it. The eval harness pins `VITE_CLERK_PUBLISHABLE_KEY: "''"` in its jsx loader defines, so evals are doorless by law even though the workspace carries real keys.
+**Why:** Guest custody is product law — the device keeps the tales, the ledger keeps only names. A hand-provisioned table plus fail-open identity meant a fresh environment would silently degrade every patron to guest while looking healthy (a completion review caught exactly this).
 
 **How to apply:**
-- Never gate `proxyUrl`/key wiring on PROD/NODE_ENV (breaks the prod proxy); gate only on **key existence**, mirroring `mydungeon-media-providers`.
-- Any new Clerk-touching client module must keep all `window.location` / Clerk-hook access behind the `doorBuilt` constant (module-constant, so hook-order stays legal).
-- Server evals scrub `CLERK_SECRET_KEY`/`CLERK_PUBLISHABLE_KEY` from `process.env` **before** importing/judging, because the workspace env keeps real keys (the keyless gate command only unsets AI keys).
-- Fail-open-to-guest is correct **only while no privileged endpoints exist**; the metered gateway work must add separate fail-closed authorization, not loosen the doorkeeper.
-- Automated browsers hit Clerk's bot-protection CAPTCHA on sign-up (dev instances included) — e2e testers report `unable`; verify the inscription path headlessly (backend `createUser` + `inscribe()` smoke) instead.
+- Gate on key existence, never on NODE_ENV (prod-only gating breaks the FAPI proxy pattern; key-gating mirrors the media providers).
+- Evals: scrub Clerk env keys *before* importing server modules (the workspace env carries real keys; the keyless gate command only unsets AI keys), pin the client key to `''` in the harness defines, and judge open-door logic through injection seams (stub auth/query), never live Clerk or Postgres — keyless forks must stay green.
+- Clerk's bot-protection CAPTCHA blocks automated-browser sign-up even on dev instances; browser e2e testers will report `unable`. Verify inscription headlessly instead: backend `createUser` + the inscription function directly, then clean up.

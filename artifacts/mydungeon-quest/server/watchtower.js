@@ -20,6 +20,7 @@
  * Every function takes an optional `deps.query` seam so the eval bench can
  * judge the laws without a database, same as the toll-house.
  */
+import { timingSafeEqual } from 'node:crypto';
 import { runQuery } from './patrons.js';
 
 // ------------------------------------------------------------------- logs
@@ -96,6 +97,29 @@ export function testHerald(deps = {}) {
     `🔔 MyDungeon.Quest herald test ping — if you can read this, alarm and spend-ceiling notifications will reach you here.`,
     deps,
   );
+}
+
+// THE OWNER'S BELL-PULL — POST /api/herald/test, the on-demand re-test of a
+// chalked webhook, no restart needed. Guarded by a shared admin token
+// (ADMIN_TOKEN): with no token chalked the room simply does not exist (404 —
+// keyless/unconfigured forks are byte-for-byte unchanged); a wrong or missing
+// bearer is refused 401 before any ping rides out. A rightful pull rings
+// testHerald() and returns the outcome plus the herald's record — the same
+// record /api/health reads as watch.herald.
+export function ownersBell(deps = {}) {
+  return async (req, res) => {
+    const token = String((deps.token ?? process.env.ADMIN_TOKEN) || '').trim();
+    if (!token) return res.status(404).json({ error: 'No such room stands in this house.' });
+    const given = String(req.get?.('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+    const a = Buffer.from(given);
+    const b = Buffer.from(token);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      return res.status(401).json({ error: "The bell-pull answers only the owner's hand." });
+    }
+    const status = await testHerald(deps);
+    logLine(status === 'sent' ? 'info' : 'error', 'herald_test_ping', { status, via: 'api' });
+    return res.json({ status, herald: heraldReport() });
+  };
 }
 
 // The alarm bell: alerts are errors the owner should hear about. They ring

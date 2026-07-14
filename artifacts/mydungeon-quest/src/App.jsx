@@ -3,9 +3,10 @@ import { BookOpen, ChevronRight, Download, Dices, Feather, FileUp, HeartPulse, M
 import { WorldForge, HeroForge } from './components/Forge.jsx';
 import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
+import Ceremony from './components/Ceremony.jsx';
 import { CharacterSheet, Codex, Settings, Storybook } from './components/Overlays.jsx';
 import { applyStateUpdates, createHero, heroRoll, rollInitiative } from './lib/rules.js';
-import { applyStoryUpdates, initCodex, storyBlock } from './lib/story.js';
+import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from './lib/story.js';
 import { makeEntropy, validateDmTurn } from './lib/protocol.js';
 import { campaignJournal, db, listCampaigns, saveCampaign } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
@@ -23,6 +24,15 @@ import { buildStorybook } from './lib/storybook.js';
 import { slugify } from './lib/canonical.js';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
+
+// One act, one light: the interstitial cards wear their own three-hex wash —
+// steady gold for the world as it was, bruised iron as it unravels, ember and
+// bright leaf for the world remade.
+const ACT_PALETTES = {
+  1: ['#0d0b14', '#35534b', '#d4a24e'],
+  2: ['#0d0b14', '#4c465e', '#b8541f'],
+  3: ['#0d0b14', '#63352f', '#e8c56a']
+};
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
@@ -128,6 +138,12 @@ export default function App() {
   // until the card closes — the music phrase and the voice never share the
   // stage (THE SOUND LAW).
   const pendingNarrationRef = useRef(null);
+  // When a turn crosses an act boundary, the act interstitial waits its turn
+  // here: DM's card first, then the act turns, then the voice.
+  const pendingActRef = useRef(null);
+  // The Sealing rises on its own only once per campaign per session — after
+  // that, the retired composer's button reopens it at will.
+  const ceremonyShownRef = useRef(new Set());
 
   const refreshShelf = useCallback(async () => setCampaigns(await listCampaigns()), []);
   useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => { if (!row) return; const { score: _score, voice: _voice, ...kept } = row.value || {}; const value = { ...DEFAULT_SETTINGS, ...kept }; if (value.mediaTier === 'cinema') value.mediaTier = 'illuminated'; setSettings(value); }); }, [refreshShelf]);
@@ -230,7 +246,7 @@ export default function App() {
   }, []);
 
   const playTurn = useCallback(async (base, player, resolution = null, visiblePlayer = player) => {
-    if (!base || base.readOnly) return base;
+    if (!base || base.readOnly || base.completed) return base;
     setBusy(true); setStatus('The Dungeon Master is reading the road…');
     try {
       const entropy = makeEntropy();
@@ -293,7 +309,9 @@ export default function App() {
       // yields (and is dropped) if the narrator already holds the stage.
       if (combat?.active && !base.combat?.active) playUiSfx(base, 'sword');
       const log = { id: crypto.randomUUID(), player: visiblePlayer, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, beatIndex: codex.beatIndex };
-      let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed };
+      // A completing turn strands no die: the tale that just ended has no
+      // roll left to make.
+      let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: codex.completed ? null : dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed };
       await saveCampaign(next);
       const record = await seal(base.id, 'turn', { player, visiblePlayer, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution });
       const sealed = await db.campaigns.get(base.id);
@@ -302,13 +320,28 @@ export default function App() {
       await rememberScene(base.id, next.turnNumber, { player, narration: dm.narration_blocks[0]?.text || '', chronicle: dm.state_updates?.chronicle_add || '', recordHash: record.recordHash });
       await saveCampaign(next); setCurrent(next); await refreshShelf();
       setStatus('✦ The turn is sealed.');
+      // THE ACT TURNS — when this turn crossed an act boundary, a full-bleed
+      // interstitial presents it: "Act II — the world unravelling." It waits
+      // for the DM's own card (if any), and the voice waits for both.
+      const prevAct = base.codex.spine.beats[base.codex.beatIndex]?.act || 1;
+      const nowAct = codex.spine.beats[codex.beatIndex]?.act || 1;
+      const actName = ACT_NAMES[nowAct] || ACT_NAMES[1];
+      const actCard = nowAct > prevAct ? {
+        cinematic: { type: 'act', title: `Act ${romanNumeral(nowAct)}`, subtitle: `${actName[0].toUpperCase()}${actName.slice(1)}.`, palette: ACT_PALETTES[nowAct] || ACT_PALETTES[1] },
+        dialogue_cue: null, campaign: next, turnRecordHash: record.recordHash, beatIndex: next.codex.beatIndex
+      } : null;
       // THE SOUND LAW at the turn boundary: when a cinematic card fires, its
       // music phrase owns the stage first — the narration is staged and begins
       // only when the card closes. Otherwise the voice starts at once.
       const sealedLog = next.logs[next.logs.length - 1];
-      if (dm.cinematic) {
+      if (dm.cinematic || actCard) {
         pendingNarrationRef.current = settingsRef.current.narrator ? { campaign: next, log: sealedLog } : null;
-        setCinematic({ ...dm, campaign: next, turnRecordHash: record.recordHash, beatIndex: next.codex.beatIndex });
+        if (dm.cinematic) {
+          pendingActRef.current = actCard;
+          setCinematic({ ...dm, campaign: next, turnRecordHash: record.recordHash, beatIndex: next.codex.beatIndex });
+        } else {
+          setCinematic(actCard);
+        }
       } else if (settingsRef.current.narrator) {
         playNarration(next, sealedLog);
       }
@@ -428,6 +461,45 @@ export default function App() {
     }
   };
 
+  // SEAL THE TALE — the honored early ending. The request is recorded in the
+  // codex; from the next turn the DM is steered into the denouement through
+  // the [STORY] directives, and the tale completes when those turns have
+  // breathed. Nothing is written to the journal here — the seal itself waits
+  // for the ceremony.
+  const confirmSeal = async () => {
+    const codex = requestSeal(current.codex, current.turnNumber || 0);
+    if (codex === current.codex) { setOverlay(null); return; }
+    const next = { ...current, codex };
+    await saveCampaign(next); setCurrent(next); setOverlay(null);
+    setStatus('✦ The denouement begins — the road turns home.');
+  };
+
+  // THE PRESS — the journal's final block signs the whole chronicle. One wax
+  // accent (in a gap), one 'sealing' event carrying the tale's true counts,
+  // and the campaign remembers when its wax took the sigil.
+  const pressSeal = async () => {
+    if (!current || current.sealedAt || current.readOnly) return;
+    playUiSfx(current, 'seal');
+    const journal = await campaignJournal(current.id);
+    await seal(current.id, 'sealing', {
+      turns: journal.filter((r) => r.type === 'turn').length,
+      rolls: journal.filter((r) => r.type === 'resolution' && r.payload && r.payload.total != null).length,
+      completed_at: Date.now()
+    });
+    const sealedRow = await db.campaigns.get(current.id);
+    const next = { ...current, sealedAt: Date.now(), headHash: sealedRow.headHash, turnCount: sealedRow.turnCount, signatureStatus: sealedRow.signatureStatus };
+    await saveCampaign(next); setCurrent(next); await refreshShelf();
+  };
+
+  // THE SEALING rises by itself exactly once per campaign per session, after
+  // the final card has left the stage and the turn has settled.
+  useEffect(() => {
+    if (flow !== 'table' || !current?.completed || current?.sealedAt || current?.readOnly || cinematic || busy) return;
+    if (ceremonyShownRef.current.has(current.id)) return;
+    ceremonyShownRef.current.add(current.id);
+    setOverlay('sealing');
+  }, [flow, current?.completed, current?.sealedAt, current?.readOnly, current?.id, cinematic, busy]);
+
   const regionStripRef = useRef(null);
   const logScrollRef = useRef(null);
   useEffect(() => {
@@ -478,6 +550,10 @@ export default function App() {
   if (flow === 'title') return <TitleScreen campaigns={campaigns} onNew={() => setFlow('world')} onOpen={(campaign) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); }} onRestore={restoreFile} status={status} />;
   if (!current) return null;
 
+  const chapter = chapterInfo(current.codex);
+  const act = actInfo(current.codex);
+  const nearEnd = !current.completed && !current.codex.sealing && current.codex.beatIndex >= current.codex.spine.beats.length - 3;
+
   return <div className="app-shell">
     <div ref={regionStripRef} className="region-strip" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
       <span>{activeRegion?.name || current.homeRegion}</span><small>{activeRegion?.state || 'unmapped'} · blight {current.codex.blight}/5</small>
@@ -490,22 +566,27 @@ export default function App() {
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
-      <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
+      <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Act {act.numeral} · Chapter {chapter.numeral} of {chapter.countNumeral}</span><h1>{chapter.title}</h1><p>{chapter.goal}</p></div>
       {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} />)}
       {busy && (weaving
         ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>
         : <div className="streaming"><span/>The Dungeon Master considers…</div>)}
       <div ref={logEndRef}/>
     </main>
-    {!current.readOnly && <Composer campaign={current} busy={busy} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
+    {!current.readOnly && current.codex.sealing && !current.completed && <div className="near-end denouement"><span>✦ The denouement — the road turns home.</span></div>}
+    {!current.readOnly && nearEnd && <div className="near-end"><span>✦ The final chapters draw near.</span><button onClick={() => setOverlay('seal-ask')}>Seal the Tale</button></div>}
+    {!current.readOnly && !current.completed && <Composer campaign={current} busy={busy} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
+    {!current.readOnly && current.completed && <section className="tale-told"><span>✦ Your tale is told.</span><button onClick={() => setOverlay('sealing')}>{current.sealedAt ? 'Open the keepsakes' : 'Seal the chronicle'}</button></section>}
     <footer className="seal-status"><span>{status}</span></footer>
     {diceResult && <DiceOverlay result={diceResult} haptics={settings.haptics} onDone={() => setDiceResult(null)} />}
-    {cinematic && <Cinematic cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} onClose={() => { setCinematic(null); const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
+    {cinematic && <Cinematic cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
     {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
-    {overlay === 'codex' && <Codex campaign={current} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); setCinematic({ ...dm, campaign: current }); }} />}
+    {overlay === 'codex' && <Codex campaign={current} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); setCinematic({ ...dm, campaign: current }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} />}
     {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
     {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} />}
     {overlay === 'level' && <div className="ritual"><Sparkles/><span>Level {current.hero.level}</span><h2>The story has made you larger.</h2><button onClick={()=>setOverlay(null)}>Accept the new name fate gives you</button></div>}
+    {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement — farewells, consequences, the road home. Then the wax presses, and the tale is bound.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal the Tale</button></div></div>}
+    {overlay === 'sealing' && <Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onClose={() => setOverlay(null)} />}
     {current.hero.hp <= 0 && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} />}
   </div>;
 }
@@ -558,8 +639,8 @@ function TitleScreen({ campaigns, onNew, onOpen, onRestore }) {
     {!attract && <section className="shelf">
       <header><div><span className="eyebrow">Chronicle Shelf</span><h2>Your sealed worlds</h2></div><button className="secondary-button" onClick={() => input.current.click()}><FileUp/> Restore</button><input ref={input} type="file" accept=".json,.chronicle.json" hidden onChange={(e) => e.target.files[0] && onRestore(e.target.files[0])}/></header>
       <div className="shelf-grid">{campaigns.length ? campaigns.map((c) => <button className="chronicle-card" data-cover={covers[c.id] ? 'art' : 'plain'} key={c.id} onClick={() => onOpen(c)} style={covers[c.id] ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.06),rgba(13,11,20,.55) 45%,rgba(13,11,20,.95)),url("${covers[c.id]}")` } : undefined}>
-        <span className="seal-badge"><Shield size={12}/>{c.completed ? 'complete' : 'sealed'}</span>
-        <div className="card-foot"><h3>{c.title}</h3><p>{c.hero?.name} · {c.codex?.spine?.label}</p><span className="card-cta">{c.completed ? '✦ Complete' : 'Continue'} <ChevronRight size={15}/></span></div>
+        <span className="seal-badge"><Shield size={12}/>{c.completed ? (c.sealedAt ? 'told & sealed' : 'told') : 'sealed'}</span>
+        <div className="card-foot"><h3>{c.title}</h3><p>{c.hero?.name} · {c.codex?.spine?.label}</p><span className="card-cta">{c.completed ? '✦ Open the book' : 'Continue'} <ChevronRight size={15}/></span></div>
       </button>) : <div className="empty-shelf"><Feather/><h3>Your shelf is empty</h3><p>The first world is not patient. Begin your legend.</p></div>}</div>
     </section>}
     <footer className="title-footer">Yours alone · Plays offline · Every turn sealed</footer>

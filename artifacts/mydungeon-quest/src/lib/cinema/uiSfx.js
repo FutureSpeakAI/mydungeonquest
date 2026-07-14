@@ -16,6 +16,7 @@ const PROMPTS = {
   die: 'A single small wooden die rattling briefly across a parchment-covered table and settling. Dry, close, intimate. No music, no voices.',
   sword: 'One short, restrained ring of a sword being drawn from a scabbard. Low, close, brief. No music, no voices.',
   page: 'A single soft page turn of a heavy old book, close and quiet. No music, no voices.',
+  seal: 'A brass seal matrix pressing once into warm soft wax on parchment — a short, weighty, satisfying press and release. Close, quiet, dry. No music, no voices.',
 };
 
 const keyOf = (name) => `sfx:ui:${name}`;

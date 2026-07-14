@@ -13,4 +13,5 @@
 - [MyDungeon redaction law](mydungeon-redaction-law.md) — journal strikes outrank snapshot flags; retellings fall WHOLE if any cited turn is struck; citeless pages are never used.
 - [CSS animation-fill overrides](css-animation-fill-conflict.md) — fill forwards/both beats property+transition opacity; set animation:none while a class must own the value.
 - [MyDungeon door is opt-in](mydungeon-door.md) — auth mirrors the media doctrine: no Clerk keys → no door, guests pass forever; evals scrub keys + pin '' in the jsx loader; Clerk CAPTCHA blocks browser e2e sign-up.
+- [MyDungeon Vault laws](mydungeon-vault.md) — sync stores & chain-verifies, never signs; fail-closed; fork-on-divergence, never merge; restored spines continue hash-only; raw-parser `/x/:hash` swallows `/x/missing`.
 - [Toll-House laws & Stripe connector shape](toll-house-laws.md) — gateway opt-in twice over; debit only real work; connector: unfiltered fetch, settings.secret, syncBackfill({object:'all'}).

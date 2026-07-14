@@ -12,6 +12,7 @@ import { CLERK_PROXY_PATH, clerkProxyMiddleware } from './clerkProxy.js';
 import { doorkeeper, doorOpen, whoami } from './patrons.js';
 import { initMint, mintConfigured } from './mint.js';
 import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
+import { vaultRoutes } from './vault.js';
 
 // Per-kind wall-clock budget for one provider attempt. A stalled upstream call
 // must not block failover, so every real provider is bounded; on timeout the
@@ -68,6 +69,9 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), tollW
 // which can exceed the default limit; give this route its own headroom BEFORE
 // the global parser so the smaller limit doesn't reject a long chronicle.
 app.use('/api/quest-audio', express.json({ limit: process.env.MAX_AUDIO_BYTES || '200mb' }));
+// THE VAULT's blob door takes raw bytes, content-addressed — mounted before
+// the JSON parser so an asset body is never mis-read as a document.
+app.post('/api/vault/media/:hash', express.raw({ type: () => true, limit: process.env.MAX_VAULT_BLOB_BYTES || '25mb' }));
 app.use(express.json({ limit: maxBody }));
 app.use(express.text({ type: 'text/html', limit: process.env.MAX_PDF_HTML_BYTES || '100mb' }));
 
@@ -79,6 +83,9 @@ app.get('/api/whoami', whoami);
 // THE TOLL-HOUSE's public rooms: standing, checkout, portal, refresh. All
 // honest when dormant ({ live: false }) — the client then hides the counter.
 app.use('/api', tollRoutes());
+// THE VAULT: cloud backup and cross-device restore. Fail-closed rooms —
+// named patrons only; dormant without the door and the ledger.
+app.use('/api', vaultRoutes());
 
 const windows = new Map();
 function rateLimit(max) {

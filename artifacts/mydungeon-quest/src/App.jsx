@@ -26,7 +26,8 @@ import { buildStorybook } from './lib/storybook.js';
 import { slugify } from './lib/canonical.js';
 import { PatronDoor } from './patron/door.jsx';
 import { burnFromVault, nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
-import { settleTollReturn, tollAllows } from './patron/toll.jsx';
+import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
+import { reportTollRefusal, tollRefusal } from './patron/tollNotice.js';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
 
@@ -352,8 +353,10 @@ export default function App() {
       const response = await fetch('/api/dm?stream=1', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (response.status === 402) {
         // THE INNKEEPER at the table's edge — the refusal arrives in the
-        // house's own voice, and is shown exactly as spoken.
+        // house's own voice, shown as a receipt (tally, page-turn, the raised
+        // seat) rather than only a line of error text.
         const closed = await response.json().catch(() => ({}));
+        reportTollRefusal(closed);
         throw new Error(closed.error || 'The innkeeper leans in: this month\'s measure is spent. The ledger turns its page on the first.');
       }
       if (!response.ok) throw new Error(`The Dungeon Master could not be reached (${response.status}).`);
@@ -466,6 +469,7 @@ export default function App() {
       const request = buildChronicleRequest(campaign, closedBeatIndex);
       if (!request) return;
       const response = await fetch('/api/retell', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request.body) });
+      if (response.status === 402) await tollRefusal(response); // the chronicle chore shows its receipt too
       const data = response.ok ? await response.json() : { declined: true };
       if (data.declined || !data.passage) return;
       const verdict = validateChroniclePassage(data.passage, request.context);
@@ -571,6 +575,7 @@ export default function App() {
 
   const bindPdf = async () => {
     const response = await fetch('/api/bind-pdf', { method: 'POST', headers: { 'Content-Type': 'text/html' }, body: bookHtml });
+    if (response.status === 402) { await tollRefusal(response); return; }
     if (!response.ok) { setStatus((await response.json()).error || 'PDF binding failed'); return; }
     downloadBlob(await response.blob(), `${current.title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.storybook.pdf`);
   };
@@ -688,6 +693,7 @@ export default function App() {
   const nearEnd = !current.completed && !current.codex.sealing && current.codex.beatIndex >= current.codex.spine.beats.length - 3;
 
   return <div className={`app-shell${current.combat?.active ? ' under-arms' : ''}`}>
+    <TollNotice />
     <div ref={regionStripRef} className="region-strip" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
       <span>{activeRegion?.name || current.homeRegion}</span><small>{activeRegion?.state || 'unmapped'} · blight {current.codex.blight}/5</small>
     </div>

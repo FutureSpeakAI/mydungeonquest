@@ -2,6 +2,7 @@ import { db, campaignJournal } from '../db.js';
 import { bytesToBase64, sha256 } from '../canonical.js';
 import { narratorVoiceId, resolveVoiceId } from './casting.js';
 import { buildPodcastScript, validatePodcastScript, buildMixPlan } from '../podcast.js';
+import { tollRefusal } from '../../patron/tollNotice.js';
 
 // ------------------------------------------------------------
 // THE PODCAST FORGE, client side (the Experience Cut, Phase 5).
@@ -36,7 +37,10 @@ async function ensurePodcastAsset(campaign, voiceId, text) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, voiceId })
   });
-  if (!response.ok) throw new Error(`The voice failed (${response.status})`);
+  if (!response.ok) {
+    const closed = await tollRefusal(response);
+    throw new Error(closed?.error || `The voice failed (${response.status})`);
+  }
   const blob = await response.blob();
   const provider = response.headers.get('X-Media-Provider') || 'unknown';
   try {
@@ -116,6 +120,7 @@ export async function downloadQuestAudio(campaign, onProgress) {
     body: JSON.stringify({ title: campaign.title, segments, stings, plan, cover })
   });
   if (!response.ok) {
+    await tollRefusal(response); // a spent forge shows the receipt, not a stack trace
     const message = await response.json().catch(() => ({}));
     throw new Error(message.error || 'The episode could not be sequenced.');
   }

@@ -1,6 +1,7 @@
 import { db } from '../db.js';
 import { sha256 } from '../canonical.js';
 import { playSfx } from './audioDirector.js';
+import { tollRefusal } from '../../patron/tollNotice.js';
 
 // ------------------------------------------------------------
 // THE TABLE'S FEW SOUNDS — a tiny, deliberate vocabulary of
@@ -37,7 +38,10 @@ export async function playUiSfx(campaign, name) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, durationSeconds: 2 }),
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        await tollRefusal(response); // a spent sting still gets its receipt
+        return;
+      }
       const blob = await response.blob();
       const provider = response.headers.get('X-Media-Provider') || 'unknown';
       if (provider === 'mock') return; // the audio floor is silence

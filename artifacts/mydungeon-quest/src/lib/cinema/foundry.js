@@ -1,6 +1,7 @@
 import { db } from '../db.js';
 import { generationSpec } from './prompts.js';
 import { sha256 } from '../canonical.js';
+import { tollRefusal } from '../../patron/tollNotice.js';
 
 // ------------------------------------------------------------
 // THE FOUNDRY — asynchronous media orchestrator.
@@ -90,7 +91,12 @@ export class Foundry {
     if (references.length) job.options = { ...job.options, references };
     const route = job.kind === 'paint' ? 'paint' : job.kind;
     response = await fetch(`/api/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: job.prompt, ...job.options }) });
-    if (!response.ok) throw new Error(`Foundry ${response.status}`);
+    if (!response.ok) {
+      // THE RECEIPT: a 402 is the innkeeper's refusal, not a foundry fault —
+      // surface it to the patron before the error rides the reject path.
+      const closed = await tollRefusal(response);
+      throw new Error(closed?.error || `Foundry ${response.status}`);
+    }
     const blob = await response.blob();
     const assetHash = await sha256(new Uint8Array(await blob.arrayBuffer()));
     const bucket = job.kind === 'paint' ? 'images' : job.kind === 'music' ? 'music' : null;

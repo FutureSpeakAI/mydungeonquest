@@ -47,7 +47,7 @@
 .player-line{opacity:.62;font-size:.82rem;margin:.1rem 0 .55rem;display:flex;gap:.55rem;align-items:baseline}
 .player-line span{font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.75;flex:none}
 .player-line p{margin:0;font-style:italic;color:var(--vellum-dim);font-size:.86rem}
-.illustration-panel.full-bleed{margin:.4rem 0 .9rem}
+.illustration-panel.full-bleed{margin:1.1rem 0 .9rem}
 .illustration-panel.full-bleed img,.illustration-panel.full-bleed video{width:100%;border-radius:14px;display:block;box-shadow:0 12px 40px rgba(0,0,0,.5);background:#000}
 .illustration-panel.full-bleed figcaption{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--vellum-dim);letter-spacing:.04em;margin-top:.4rem}
 .illustration-panel.full-bleed figcaption span{color:var(--gold);text-transform:uppercase;font-size:.6rem;letter-spacing:.16em}
@@ -137,3 +137,12 @@
 @media(max-width:420px){
   .enemy-bars>span{flex-basis:100%}
 }
+
+/* Tap-to-expand plates: the zoom trigger keeps the img styling intact, and the
+   lightbox shows the painting uncropped at full screen. */
+.plate-zoom{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in;line-height:0}
+.plate-zoom:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.plate-lightbox{position:fixed;inset:0;z-index:95;background:rgba(5,4,8,.96);display:grid;place-items:center;padding:1.2rem;cursor:zoom-out;animation:lightbox-in .22s ease both}
+.plate-lightbox img{max-width:96vw;max-height:92vh;width:auto;object-fit:contain;border-radius:6px;box-shadow:0 30px 90px rgba(0,0,0,.7)}
+.plate-lightbox .lightbox-close{position:absolute;top:max(1rem,env(safe-area-inset-top));right:1rem;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);display:grid;place-items:center;color:var(--vellum)}
+@keyframes lightbox-in{from{opacity:0}}

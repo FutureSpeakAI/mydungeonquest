@@ -152,4 +152,45 @@ const textOf = (node) => {
   console.log('PASS — fullscreen Cinematic overlay degrades from film to the painted still on error.');
 }
 
+// ---------------------------------------------------------------------------
+// 3. Fullscreen Cinematic overlay, chapter-card timing: the card fires the
+//    instant a turn seals — BEFORE that turn's paint lands — so neither the
+//    beat cache keys nor the origin-turn hash match any media row. The overlay
+//    must borrow the campaign's most recent painted scene as its backdrop
+//    rather than dropping to the flat procedural gradient.
+// ---------------------------------------------------------------------------
+{
+  const campaign = { id: 'camp-early-card', codex: { beatIndex: 0, cast: [] } };
+  const earlierPaint = new Blob(['EARLIER_SCENE'], { type: 'image/png' });
+
+  await db.media.clear();
+  await db.media.bulkPut([
+    // The only art in the campaign: an EARLIER turn's painted scene. Its cache
+    // key matches no beat key, and its origin hash is not this turn's hash.
+    { assetHash: 'paint-early', cacheKey: 'scene:earlier-turn', campaignId: campaign.id, kind: 'paint', originTurnHash: 'an-earlier-turn', createdAt: 5, blob: earlierPaint }
+  ]);
+  const earlierUrl = URL.createObjectURL(earlierPaint);
+
+  let root;
+  await act(async () => {
+    root = TestRenderer.create(h(Cinematic, {
+      cinematic, dialogue: null, campaign,
+      reduceMotion: false, score: false, voiceOn: false,
+      turnRecordHash: 'this-turn-not-painted-yet', beatIndex: 0, onClose: () => {}
+    }));
+  });
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 60)); });
+
+  const tree = root.toJSON();
+  assert.equal(collect(tree, 'video').length, 0, 'early card: no film exists for this beat');
+  const imgs = collect(tree, 'img');
+  assert.equal(imgs.length, 1, 'early card: the overlay must render a still backdrop');
+  assert.equal(imgs[0].props.src, earlierUrl, "early card: the backdrop must be the campaign's latest painted scene");
+  assert.ok(!String(imgs[0].props.src).startsWith('data:'), 'early card: the flat procedural gradient must remain a last resort only');
+
+  await act(async () => { root.unmount(); });
+  await db.media.clear();
+  console.log('PASS — an early chapter card borrows the latest painted scene (no flat gradient).');
+}
+
 console.log('PASS — degraded-media keyframe guarantee holds for both the inline log and the overlay.');

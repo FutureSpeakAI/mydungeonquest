@@ -7,3 +7,4 @@
 - [MyDungeon media providers are opt-in](mydungeon-media-providers.md) — image/video/audio serve MOCK placeholders unless `*_PROVIDER` env is set (e.g. PAINT_PROVIDER=openai); mock keeps `npm run check` green but never looks "painted".
 - [MyDungeon component tests in node harness](mydungeon-component-tests.md) — render React (onError fallbacks etc.) in the pure-node eval: esbuild jsx loader + react-test-renderer + fake-indexeddb (separate process), stub createObjectURL by blob.type.
 - [MyDungeon multi-voice narrator](mydungeon-multivoice-narrator.md) — per-character voice segments chain on onended; never infer pause from element.paused (ended reports paused → overlap); scene-cue `subjects` drive character consistency.
+- [MyDungeon turn presentation](mydungeon-turn-presentation.md) — user-approved order: text → Listen → plate below; chapter cards fire before paint lands, so backdrops ladder to the latest painted scene.

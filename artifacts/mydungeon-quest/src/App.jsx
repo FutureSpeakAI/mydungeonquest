@@ -93,6 +93,20 @@ function applyCombat(current, update, hero) {
   return next;
 }
 
+// Which named cast members appear this turn — as a speaker or by name in the
+// prose. Used to anchor a scene plate's appearance canon and sealed reference
+// portraits so the same face/clothing carries across scenes. Case-insensitive;
+// returns canonical cast names (capped) that scenePrompt can match exactly.
+function detectCast(cast = [], blocks = []) {
+  const names = (cast || []).map((entry) => entry?.name).filter(Boolean);
+  const speakers = new Set((blocks || []).map((b) => String(b?.speaker || '').toLowerCase()).filter(Boolean));
+  const prose = (blocks || []).map((b) => String(b?.text || '')).join(' ').toLowerCase();
+  return names.filter((name) => {
+    const n = name.toLowerCase();
+    return speakers.has(n) || prose.includes(n);
+  }).slice(0, 3);
+}
+
 export default function App() {
   const [campaigns, setCampaigns] = useState([]);
   const [current, setCurrent] = useState(null);
@@ -148,13 +162,20 @@ export default function App() {
     // Every turn earns a scene plate. The DM often returns a null image_cue, so
     // synthesize one from the opening narration and the active region — the point
     // of the illuminated tier is that each beat is painted, not just the rare
-    // turns the DM chooses to flag.
-    const sceneCue = dm.image_cue || {
-      kind: 'scene',
-      mood: dm.narration_blocks?.[0]?.text?.slice(0, 140) || 'the unfolding scene',
-      subjects: [],
-      region: campaign.codex.regions?.[0]?.name || campaign.homeRegion
-    };
+    // turns the DM chooses to flag. Crucially, detect which cast members appear
+    // this turn (as speakers or by name in the prose): scenePrompt keys each
+    // subject's appearance canon AND its sealed reference portrait off the cue's
+    // subjects, so without them every fallback turn would paint faces from
+    // scratch — the root of the cross-scene inconsistency.
+    const presentCast = detectCast(campaign.codex.cast, dm.narration_blocks);
+    const sceneCue = dm.image_cue
+      ? { ...dm.image_cue, subjects: (dm.image_cue.subjects?.length ? dm.image_cue.subjects : presentCast) }
+      : {
+          kind: 'scene',
+          mood: dm.narration_blocks?.[0]?.text?.slice(0, 140) || 'the unfolding scene',
+          subjects: presentCast,
+          region: campaign.codex.regions?.[0]?.name || campaign.homeRegion
+        };
     jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue), options: { kind: 'scene', referenceLabels: [...(sceneCue.subjects || []), sceneCue.region].filter(Boolean).slice(0, 3) }, priority: 1, logId });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);

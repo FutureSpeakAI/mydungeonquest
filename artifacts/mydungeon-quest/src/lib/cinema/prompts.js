@@ -13,8 +13,15 @@ export function scrubPrompt(text, campaign = {}) {
     clean = clean.replace(new RegExp(escapeRegExp(phrase), 'gi'), '[omitted]');
   }
   for (const pattern of DENY) clean = clean.replace(pattern, '[PG-13 omitted]');
-  return `${clean.replace(/\s+/g, ' ').trim()} Family-safe PG-13 fantasy illustration with restrained peril and no exploitative detail.`;
+  return `${clean.replace(/\s+/g, ' ').trim()} ${ART_DIRECTION}`;
 }
+
+// The house style for every painted asset — portraits, regions, scenes, key art
+// and cinematics all pass through here, so the whole world reads as one hand.
+// Deliberately evokes fantasy-novel-cover and film-preproduction concept art
+// (Alan Lee / John Howe / early Lord of the Rings & Game of Thrones art books),
+// with explicit negatives to steer away from glossy CGI, cartoon, and anime.
+const ART_DIRECTION = 'Rendered as a painterly high-fantasy illustration in the tradition of Alan Lee and John Howe: naturalistic oil-and-watercolour concept art, muted earthen and candlelit palette, atmospheric depth with soft diffused light, fine painterly brushwork and film-preproduction realism, cinematic composition. Not cartoonish, not anime, not glossy 3D render, not video-game screenshot. Family-safe PG-13 with restrained peril and no exploitative detail. No text, watermarks, logos, or borders.';
 
 export function portraitPrompt(campaign, soul, variant = 'bust') {
   return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. Appearance canon: ${soul.visual}. Expression and posture reveal this goal: ${soul.goal}. No text, no frame.`, campaign);

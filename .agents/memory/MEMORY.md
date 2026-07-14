@@ -6,3 +6,4 @@
 - [/api path proxy conflict](api-path-proxy-conflict.md) — only one artifact may own a path prefix at the shared proxy; a self-serving /api web app + an /api api-server silently 404s the app through :80.
 - [MyDungeon media providers are opt-in](mydungeon-media-providers.md) — image/video/audio serve MOCK placeholders unless `*_PROVIDER` env is set (e.g. PAINT_PROVIDER=openai); mock keeps `npm run check` green but never looks "painted".
 - [MyDungeon component tests in node harness](mydungeon-component-tests.md) — render React (onError fallbacks etc.) in the pure-node eval: esbuild jsx loader + react-test-renderer + fake-indexeddb (separate process), stub createObjectURL by blob.type.
+- [MyDungeon multi-voice narrator](mydungeon-multivoice-narrator.md) — per-character voice segments chain on onended; never infer pause from element.paused (ended reports paused → overlap); scene-cue `subjects` drive character consistency.

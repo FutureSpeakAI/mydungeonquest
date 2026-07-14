@@ -254,5 +254,49 @@ const run = (mw, rq) => new Promise((resolve) => {
   assert.equal(report.herald.last.status, 'undelivered', 'watchReport carries the herald record to /api/health');
 }
 
+// ---- 7. the owner's bell-pull ---------------------------------------------
+// POST /api/herald/test: no ADMIN_TOKEN → the room does not exist (forks
+// unchanged); wrong bearer → refused; the rightful hand rings testHerald()
+// and the outcome lands in heraldReport() for /api/health.
+{
+  __resetWatchtowerForEval();
+  const { ownersBell } = await import('../server/watchtower.js');
+  const call = async (handler, authorization) => {
+    let code = 200; let body = null;
+    const res = { status(c) { code = c; return this; }, json(b) { body = b; return this; } };
+    await handler({ get: (h) => (h.toLowerCase() === 'authorization' ? authorization : undefined) }, res);
+    return { code, body };
+  };
+
+  // no token chalked → 404, no ping, forks unchanged
+  const rang = [];
+  const bellFetch = async (url, opts) => { rang.push(JSON.parse(opts.body)); return { ok: true }; };
+  let out = await call(ownersBell({ url: 'https://hooks.example/eval', fetch: bellFetch }), 'Bearer anything');
+  assert.equal(out.code, 404, 'without a token the room does not exist');
+  assert.equal(rang.length, 0, 'no ping rides out');
+
+  // wrong or missing bearer → 401, no ping
+  const guarded = ownersBell({ token: 'shhh-secret', url: 'https://hooks.example/eval', fetch: bellFetch });
+  out = await call(guarded, 'Bearer wrong');
+  assert.equal(out.code, 401, 'a wrong hand is refused');
+  out = await call(guarded, undefined);
+  assert.equal(out.code, 401, 'a missing hand is refused');
+  assert.equal(rang.length, 0, 'refusals never ring');
+
+  // the rightful hand rings and the outcome is recorded for health
+  out = await call(guarded, 'Bearer shhh-secret');
+  assert.equal(out.code, 200);
+  assert.equal(out.body.status, 'sent', 'the rightful pull delivers the test ping');
+  assert.match(rang[0].text, /test ping/i, 'the message says it is a test');
+  assert.equal(out.body.herald.last.status, 'sent', 'the response carries the herald record');
+  assert.equal(heraldReport().last.status, 'sent', 'the record stands for /api/health');
+
+  // a rightful pull with no webhook chalked is honestly mute
+  __resetWatchtowerForEval();
+  out = await call(ownersBell({ token: 'shhh-secret' }), 'Bearer shhh-secret');
+  assert.equal(out.code, 200);
+  assert.equal(out.body.status, 'mute', 'no webhook → an honest mute, never an error');
+}
+
 __resetWatchtowerForEval();
 console.log('watchtower.test: all laws hold — durable limits, abuse caps, spend ceilings, structured lines, the herald.');

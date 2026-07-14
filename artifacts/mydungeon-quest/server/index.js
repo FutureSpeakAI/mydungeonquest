@@ -13,7 +13,7 @@ import { doorkeeper, doorOpen, namedOnly, whoami } from './patrons.js';
 import { initMint, mintConfigured } from './mint.js';
 import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
-import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport, testHerald } from './watchtower.js';
+import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport, testHerald, ownersBell } from './watchtower.js';
 
 // THE WATCHTOWER's tripwires: a crash is never silent.
 installAlarms();
@@ -134,6 +134,12 @@ app.get('/api/health', async (_req, res) => {
     providers: Object.fromEntries(['paint','speak','music','sfx'].map((kind) => [kind, { provider: a[kind].name, ...a[kind].capabilities }]))
   });
 });
+
+// THE OWNER'S BELL-PULL: re-test the chalked webhook on demand, no restart.
+// Shared admin token (ADMIN_TOKEN) guards it; without one the room does not
+// exist, so keyless/unconfigured forks are unchanged. A modest burst limit
+// keeps the token from being guessed at speed.
+app.post('/api/herald/test', rateLimit(10), ownersBell());
 
 // A DM turn spends Anthropic (or its OpenAI understudy). Each artisan is
 // judged against its OWN daily ceiling: a spent Anthropic day degrades to

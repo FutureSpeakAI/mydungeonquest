@@ -21,10 +21,12 @@ delete process.env.DATABASE_URL;
 delete process.env.SPEND_CEILING_DEFAULT;
 delete process.env.SPEND_CEILING_OPENAI;
 delete process.env.RATE_LIMIT_WINDOW_MS;
+delete process.env.ALERT_WEBHOOK_URL;
 
 const {
   rateLimit, abuseCaps, logLine,
   recordSpend, spendAllowed, spentToday, ceilingFor,
+  notifyOwner, ringAlarm, alarmReport,
   __resetWatchtowerForEval,
 } = await import('../server/watchtower.js');
 
@@ -179,5 +181,58 @@ const run = (mw, rq) => new Promise((resolve) => {
   delete process.env.LOG_JSON;
 }
 
+// ---- 6. the herald ---------------------------------------------------------
+// An unconfigured fork sends nothing and logs nothing new; a chalked webhook
+// rings once per key per window; a stumbling herald is noted, never fatal.
+{
+  __resetWatchtowerForEval();
+
+  // unconfigured: mute, no fetch, no new log lines
+  const errs = [];
+  const realErr = console.error;
+  console.error = (l) => errs.push(l);
+  try {
+    assert.equal(await notifyOwner('alarm:test', 3600000, 'hello'), 'mute', 'no webhook → mute');
+    ringAlarm('eval_test_alarm', { message: 'bench' });
+  } finally { console.error = realErr; }
+  assert.equal(errs.length, 1, 'only the alert log line itself — the mute herald logs nothing new');
+  assert.equal(alarmReport().count, 1, 'the alarm still tallies');
+
+  // configured: one send per key per window, throttled after
+  __resetWatchtowerForEval();
+  const sent = [];
+  const fakeFetch = async (url, opts) => { sent.push({ url, body: JSON.parse(opts.body) }); return { ok: true }; };
+  const deps = { url: 'https://hooks.example/eval', fetch: fakeFetch };
+  assert.equal(await notifyOwner('alarm:crash', 3600000, 'the house shook', deps), 'sent', 'a chalked herald rings');
+  assert.equal(await notifyOwner('alarm:crash', 3600000, 'the house shook again', deps), 'throttled', 'same kind within the hour is throttled');
+  assert.equal(await notifyOwner('alarm:other', 3600000, 'a different bell', deps), 'sent', 'another kind rings on its own');
+  assert.equal(sent.length, 2, 'two messages, never a flood');
+  assert.equal(sent[0].body.text, 'the house shook', 'Slack reads text');
+  assert.equal(sent[0].body.content, 'the house shook', 'Discord reads content');
+
+  // ceiling strike rides spendAllowed once per provider per day
+  __resetWatchtowerForEval();
+  sent.length = 0;
+  process.env.SPEND_CEILING_OPENAI = '1';
+  const noDb = { durable: () => false, url: 'https://hooks.example/eval', fetch: fakeFetch };
+  await recordSpend('openai', noDb);
+  assert.equal(await spendAllowed('openai', noDb), false, 'the day is spent');
+  assert.equal(await spendAllowed('openai', noDb), false, 'still spent');
+  await new Promise((r) => setTimeout(r, 10)); // let fire-and-forget sends land
+  assert.equal(sent.length, 1, 'one ceiling message per provider per day');
+  assert.match(sent[0].body.text, /openai.*ceiling/i, 'the message names the provider and the ceiling');
+  delete process.env.SPEND_CEILING_OPENAI;
+
+  // a stumbling herald is noted, never thrown
+  __resetWatchtowerForEval();
+  const stumble = { url: 'https://hooks.example/eval', fetch: async () => ({ ok: false, status: 500 }) };
+  const errs2 = [];
+  console.error = (l) => errs2.push(l);
+  try {
+    assert.equal(await notifyOwner('alarm:crash', 3600000, 'x', stumble), 'undelivered', 'a refused webhook is undelivered, not fatal');
+  } finally { console.error = realErr; }
+  assert.equal(errs2.length, 1, 'the stumble is one log line');
+}
+
 __resetWatchtowerForEval();
-console.log('watchtower.test: all laws hold — durable limits, abuse caps, spend ceilings, structured lines.');
+console.log('watchtower.test: all laws hold — durable limits, abuse caps, spend ceilings, structured lines, the herald.');

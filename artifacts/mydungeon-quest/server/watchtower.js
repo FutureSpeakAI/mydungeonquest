@@ -38,14 +38,55 @@ export function logLine(level, evt, fields = {}) {
   }
 }
 
+// ---------------------------------------------------------------- herald
+// THE HERALD: when the owner has chalked a webhook (ALERT_WEBHOOK_URL —
+// Slack, Discord, or anything that takes a JSON POST), alarms and first
+// ceiling-strikes ring out as a message, not just a log line. Opt-in like
+// everything else: an unconfigured fork sends nothing and logs nothing new.
+// Throttled so an incident is a ping, never a flood: one message per alarm
+// kind per hour, one per provider-ceiling per UTC day.
+const heraldUrl = () => String(process.env.ALERT_WEBHOOK_URL || '').trim();
+const heraldSent = new Map(); // dedupe key → last-sent epoch ms
+function heraldDue(key, ttlMs) {
+  const last = heraldSent.get(key) || 0;
+  if (Date.now() - last < ttlMs) return false;
+  heraldSent.set(key, Date.now());
+  if (heraldSent.size > 1000) heraldSent.clear();
+  return true;
+}
+export function notifyOwner(key, ttlMs, text, deps = {}) {
+  const url = deps.url ?? heraldUrl();
+  if (!url) return Promise.resolve('mute'); // no herald was ever hired here
+  if (!heraldDue(key, ttlMs)) return Promise.resolve('throttled');
+  const doFetch = deps.fetch || fetch;
+  // `text` serves Slack; `content` serves Discord; anything else reads either.
+  return doFetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, content: text }),
+  })
+    .then((r) => {
+      if (!r.ok) throw new Error(`webhook answered ${r.status}`);
+      return 'sent';
+    })
+    .catch((error) => {
+      // A herald who stumbles is noted, never fatal — and never re-throws
+      // into the very alarm path that hired him.
+      logLine('error', 'herald_undelivered', { key, message: String(error?.message || error).slice(0, 200) });
+      return 'undelivered';
+    });
+}
+
 // The alarm bell: alerts are errors the owner should hear about. They ring
-// as `level:alert` lines (any log-based alerting hooks on that) and are
-// tallied for the health surface.
+// as `level:alert` lines (any log-based alerting hooks on that), are
+// tallied for the health surface, and — when a herald stands — go out as a
+// notification, one per alarm kind per hour.
 const alarms = { count: 0, last: null };
 export function ringAlarm(evt, fields = {}) {
   alarms.count += 1;
   alarms.last = { evt, at: new Date().toISOString() };
   logLine('alert', evt, fields);
+  notifyOwner(`alarm:${evt}`, 3600000, `🚨 MyDungeon.Quest alarm: ${evt}${fields.message ? ` — ${fields.message}` : ''}`);
 }
 export const alarmReport = () => ({ ...alarms });
 
@@ -272,6 +313,14 @@ export async function spendAllowed(provider, deps = {}) {
   const spent = await spentToday(provider, deps);
   if (spent >= ceiling) {
     logLine('warn', 'spend_ceiling', { provider, spent, ceiling });
+    // First strike of the day rings the herald; the day-stamped key means
+    // one message per provider per UTC day however often the guard fires.
+    notifyOwner(
+      `ceiling:${provider}:${utcDay()}`,
+      86400000,
+      `💸 MyDungeon.Quest: ${provider} hit its daily spend ceiling (${spent}/${ceiling}). Degrading to the next provider for the rest of the UTC day.`,
+      deps,
+    );
     return false;
   }
   return true;
@@ -319,4 +368,5 @@ export function __resetWatchtowerForEval() {
   ledgerPulse = { at: 0, ok: null };
   alarms.count = 0;
   alarms.last = null;
+  heraldSent.clear();
 }

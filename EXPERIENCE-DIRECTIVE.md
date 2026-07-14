@@ -207,10 +207,17 @@ Sequenced so each phase ships and proves alone. The keyless proving ground stays
 - Script compiler (Chronicler + verbatim sealed lines); rework the endpoint into the **sequencer** (gaps, stings between sections, loudness-normalize, chapter markers, cover art); Forge UI with honest keyless decline.
 - **Evals:** script contains only sealed/Chronicler text; the mix plan is verifiably non-overlapping (assert the ffmpeg graph has no voice-music overlap).
 
-### Phase 6 — The Brand Pass
-**Target:** §9. **Current:** strong bones (tiers, palettes, cinematic cards, the wax-seal button), no unified arrival/shelf/seal identity.
-- Arrival screen; Shelf as spines with seals; wax-seal motif unification; copy voice pass; verify-as-notary; type & motion audit.
-- **Evals:** visual/e2e smoke; the keyless first-run experience end-to-end in silence.
+### Phase 6 — The Drama & Brand Pass
+**Target:** §9, staged as a presentation, not a skin — the whole experience plays like a production. **Current:** strong bones (tiers, palettes, cinematic cards, the wax-seal button), no unified arrival/shelf/seal identity; chrome speaks plainly.
+1. **The Arrival, cold open** — darkness; one candle lights; ember drift; the title warms in with the tagline *"a tale that is actually yours"*; first touch earns one page-turn and one short phrase, then quiet. The Shelf rises beneath.
+2. **The Shelf as a library** — campaigns as embossed book spines: palette-dyed, gold-titled, wax-sealed when complete; a finished tale opens straight to its keepsakes.
+3. **The stage** — cinematics letterbox the table (slow bars, palette wash, serif title reveal); combat draws a slow vignette; act turns present full-bleed interstitials: *"Act II — the world unravelling."*
+4. **The dice ritual, staged** — the table dims to a spotlight; the die rattles onto parchment (gap-scheduled); the result glows gold or ash; critical rolls earn a one-breath hold before the prose resumes.
+5. **The illuminated page** — display serif with drop caps at scene changes; tabular figures for mechanics; gold hairline rules; plates framed and captioned like a real folio.
+6. **The seal, everywhere once** — one wax mark unifies sealed turns, chapter closes, the verification badge, book spines, the podcast cover; `verify.html` restyled as the notary's desk.
+7. **The copy voice** — full pass over chrome copy: quiet second person, lightly archaic (*"The die is yours." — "Your tale is told. Bind it." — "This tale is true."*); buttons speak like a storyteller, never like software.
+8. **The motion law** — nothing bounces, nothing spins: fades, page turns, ember drift only; `prefers-reduced-motion` honored throughout.
+- **Evals:** visual/e2e smoke; the keyless first-run experience end-to-end — full drama, total silence.
 
 ### What does not change
 Client authority over mechanics; the append-only hash-linked seal; Asimov's cLaws and the amendment rule; the keyless-green proving ground; the Anchor Law; procedural *art* as the Parchment aesthetic; local-only persistence; no keys in the client.

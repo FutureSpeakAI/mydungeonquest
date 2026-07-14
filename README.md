@@ -15,7 +15,7 @@ pnpm install
 pnpm --filter @workspace/mydungeon-quest run dev
 ```
 
-Open the printed URL and forge a world. **No API keys are required** — without keys the game runs a deterministic mock Dungeon Master and procedural art/audio, so the whole product is playable (and testable) offline. Keys unlock the live experience; see [Providers & configuration](#providers--configuration).
+Open the printed URL and forge a world. **No API keys are required** — without keys the game runs a deterministic mock Dungeon Master and procedural art, so the whole product is playable (and testable) offline. Keys unlock the live experience; see [Providers & configuration](#providers--configuration).
 
 In development, two processes run: Vite owns the public port and proxies `/api` to the game's Express server on an internal port. In production (`run build` + `run start`), Express serves the built app and the API together.
 
@@ -71,7 +71,8 @@ Key pieces, and where they live in `artifacts/mydungeon-quest/`:
 | The contract | `src/lib/systemPrompt.js` | The DM's charge: a numbered MANDATORY CONTRACT plus THE CRAFT (prose discipline) — states everything a JSON schema cannot. |
 | The schema | `server/dm.js` | Anthropic tool schema kept in lockstep with the validator's enums, plus the repair-retry loop and SSE streaming. |
 | Entropy | `src/lib/protocol.js` → `makeEntropy` | Eight pre-rolled dice per turn for NPC/world randomness; the model must consume them in order and declare every use. No hidden rolls. |
-| The Foundry | `src/lib/cinema/` | Two media lanes (paint / audio) with beat lookahead: while beat N plays, beat N+1's still and score are already briefed under stable cache keys. |
+| The Foundry | `src/lib/cinema/` | Two media lanes (paint / audio) with beat lookahead: while beat N plays, beat N+1's still and music phrase are already briefed under stable cache keys. |
+| The Audio Director | `src/lib/cinema/audioDirector.js` | The single throat for every non-narration sound; enforces the Sound Law (below). |
 | The seal | `src/lib/seal.js`, `public/verify.html` | Append-only, hash-linked, signed journal. Export a `.chronicle.json` and the offline verifier recomputes every hash, link, and signature. |
 | Local persistence | `src/lib/db.js` (Dexie / IndexedDB) | Campaigns, journal, memory, media — the only true copy is the player's. |
 
@@ -110,6 +111,17 @@ Each law is written in three places, deliberately redundant:
 
 **Amending a law** means changing all three in lockstep — schema, prompt, validator — then re-verifying against live turns (the model is nondeterministic; one green run proves nothing). Fixing a live failure by loosening the validator is the one forbidden move.
 
+## The Sound Law
+
+The audio layer obeys one law, enforced by a single client-side Audio Director (`src/lib/cinema/audioDirector.js`) through which every non-narration sound must pass:
+
+- **One voice at a time.** The narrator — and each cast member reading its own lines — owns the stage. The instant a voice starts, music is silenced: no fade, no negotiation, and nothing may start over it.
+- **Music is punctuation, not wallpaper.** Short phrases (8–20 seconds, generated to end cleanly) fire only at structural moments — cinematic cards, chapter turns, the Sealing. Nothing loops. There are no beds.
+- **Effects are single accents in the gaps.** A die on parchment, a drawn blade, a page turn. If the moment passes before the sound is ready, the sound is dropped — punctuation is never late.
+- **The audio floor is silence.** Art degrades to procedural plates, but audio never degrades to placeholder tones: an asset with mock or missing provenance is refused at delivery, and a keyless table plays nothing at all. (`speechSynthesis` is banned outright.)
+
+The Director enforces provenance, precedence (voice > effects > music), the one-live-sound invariant, and the drop-or-wait window for staged punctuation. `evals/audioDirector.test.mjs` and the narrator concurrency suite hold it to the law.
+
 ## The proving ground
 
 ```bash
@@ -120,7 +132,8 @@ The suite runs headless in Node — no browser, no keys, no network:
 
 - `evals/run.mjs` — the bench: DM protocol validity, streaming parity, reducers, canon integrity, PG-13 scrubber, Foundry budget caps, seal/tamper invariants (a forged chronicle must turn the audit red).
 - `evals/mediaFallback.test.mjs` — the legacy-media contract: film-era logs render their painted posters as still plates (never a `<video>`), overlays ignore retired media rows, and the retired `cinema` tier is canonicalized to `illuminated` across export, import, and persistence round-trips.
-- `evals/narratorConcurrency.test.mjs` — the narrator never overlaps voice tracks, no matter how fast turns arrive.
+- `evals/narratorConcurrency.test.mjs` — the narrator never overlaps voice tracks no matter how fast turns arrive, constructs no music bed, and refuses mock-provenance segments (a keyless reading is silence, not sine tones).
+- `evals/audioDirector.test.mjs` — the Sound Law: one live sound, instant voice preemption, punctuation windows (late accents are dropped, never played), provenance refusal at the door.
 
 React components are exercised inside the same harness via an esbuild JSX loader, `react-test-renderer`, and `fake-indexeddb`. The suite must pass **keyless** — it asserts the mock floor, which is the design mandate: the game degrades, it never blocks. After touching the cLaws or the prompt, also spot-check a handful of live turns; nondeterminism hides there.
 
@@ -135,9 +148,11 @@ Every external capability sits behind an adapter chain that ends in a determinis
 | Voice | ElevenLabs → OpenAI → mock | `ELEVENLABS_API_KEY`, `OPENAI_API_KEY` |
 | Music / SFX | ElevenLabs → mock | `ELEVENLABS_API_KEY` |
 
+The mock floor keeps every lane testable, but the client refuses mock **audio** at delivery — the audio floor is silence (see [The Sound Law](#the-sound-law)); only art keeps a visible procedural floor.
+
 Non-secret tuning: `PAINT_PROVIDER` / `SPEAK_PROVIDER` / `MUSIC_PROVIDER` / `SFX_PROVIDER` pin a lane to one provider (mock floor kept); `DM_FALLBACK=off` disables the OpenAI DM fallback; `DM_MODEL` / `DM_MODEL_GENESIS` select Anthropic model ids. Server secrets are never exposed to the client — nothing is prefixed `VITE_`.
 
-Media has two player-facing tiers: **Parchment** (procedural art only) and **Illuminated** (painted stills plus the full audio layer — voiced narration, score, SFX). The read-aloud narrator is a comfort feature available at any tier.
+Media has two player-facing tiers: **Parchment** (procedural art, and silence) and **Illuminated** (painted stills, voiced narration, and music only at the turning points). The read-aloud narrator is a comfort feature available at any tier.
 
 ## Repository layout
 
@@ -161,7 +176,7 @@ Historical design documents are preserved at the root: `REMAKE-DIRECTIVE.md` (th
 
 MyDungeon.Quest is a **FutureSpeak.AI** production ([github.com/futurespeakai](https://github.com/futurespeakai)) — world, engine architecture, cinematic direction, and the stubborn conviction that a story you own should live on your own device.
 
-The Dungeon Master speaks through Anthropic Claude; illustrations arrive through Google Gemini and OpenAI; voice, score, and effects through ElevenLabs. All of them are guests: optional, interchangeable, and always understudied by the keyless mock floor.
+The Dungeon Master speaks through Anthropic Claude; illustrations arrive through Google Gemini and OpenAI; voice, music, and effects through ElevenLabs. All of them are guests: optional, interchangeable, and always understudied by the keyless mock floor — though for sound, the floor the player hears is silence, never a placeholder.
 
 Game mechanics are original logic designed to be mechanically compatible with the Systems Reference Document 5.1, licensed CC BY 4.0 by Wizards of the Coast LLC. This project is not affiliated with or endorsed by Wizards of the Coast. See [`artifacts/mydungeon-quest/NOTICE.md`](artifacts/mydungeon-quest/NOTICE.md).
 

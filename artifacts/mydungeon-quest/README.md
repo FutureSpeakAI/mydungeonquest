@@ -78,6 +78,7 @@ The Codex can bind the current chronicle into self-contained illuminated HTML. S
 - Model output is untrusted until the full `dm_turn` validates.
 - Canon is written once and prompt assembly is deterministic.
 - Generated media upgrades the procedural floor; it never blocks play.
+- The audio floor is silence (THE SOUND LAW): one voice at a time, music and SFX only as punctuation through the Audio Director, nothing under a voice, and mock-provenance audio refused at delivery.
 - The journal is append-only.
 - There are no accounts or telemetry.
 

@@ -2,17 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Volume2 } from 'lucide-react';
 import { db } from '../lib/db.js';
 import { beatKeys } from '../lib/cinema/lookahead.js';
-import { scoreSwell } from '../lib/cinema/score.js';
-import { speakLine } from '../lib/cinema/voice.js';
+import { playMusic, stopMusic } from '../lib/cinema/audioDirector.js';
 import { proceduralArtDataUrl } from '../lib/cinema/procedural.js';
 
 // ------------------------------------------------------------
 // THE CINEMATIC — a two-tier ladder, best available wins:
 //   1. Animatic — a Ken Burns pass over the painted still.
 //   2. Procedural — the palette art, last resort only.
-// Music plays the generated stinger when it exists, otherwise
-// the score swells. The dialogue line speaks in its soul's cast
-// voice. Tap always skips. Reduce-motion gets a quiet beat.
+// Sound obeys the Sound Law: if a REAL pre-briefed music phrase
+// exists it plays through the Audio Director for the card's few
+// seconds — otherwise the card is silent (no synthetic swell, no
+// device-voice line). Dialogue appears as a subtitle; the turn's
+// narration reads it aloud in the character's own cast voice
+// AFTER the card, never over it. Tap always skips. Reduce-motion
+// gets a quiet beat.
 // ------------------------------------------------------------
 
 async function resolveAssets(campaign, turnRecordHash, beatIndex) {
@@ -40,8 +43,9 @@ async function resolveAssets(campaign, turnRecordHash, beatIndex) {
   };
 }
 
-export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion, score, voiceOn, turnRecordHash, beatIndex, onClose }) {
-  const [assets, setAssets] = useState({ stillUrl: null, musicUrl: null, resolved: false });
+export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion, turnRecordHash, beatIndex, onClose }) {
+  const [assets, setAssets] = useState({ stillUrl: null, resolved: false });
+  const musicRow = useRef(null);
   const closeTimer = useRef(null);
   const procedural = proceduralArtDataUrl(`${campaign.id}:${cinematic.title}`, '', cinematic.palette);
 
@@ -53,25 +57,26 @@ export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion,
       const found = await resolveAssets(campaign, turnRecordHash, beatIndex);
       if (!alive) return;
       const url = (row) => { if (!row?.blob) return null; const u = URL.createObjectURL(row.blob); urls.push(u); return u; };
-      setAssets({ stillUrl: url(found.still), musicUrl: url(found.music), resolved: true });
+      musicRow.current = found.music || null;
+      setAssets({ stillUrl: url(found.still), resolved: true });
     })();
     return () => { alive = false; urls.forEach((u) => URL.revokeObjectURL(u)); };
   }, [campaign.id, turnRecordHash, beatIndex, reduceMotion]); // eslint-disable-line
 
   useEffect(() => {
     if (reduceMotion || !assets.resolved) return;
-    if (!assets.musicUrl && score) scoreSwell();
-    let spoken;
-    if (dialogue?.line && voiceOn) spoken = setTimeout(() => speakLine(dialogue.line, dialogue.speaker, campaign.codex?.cast || []), 1200);
-    closeTimer.current = setTimeout(onClose, 8000);
-    return () => { clearTimeout(spoken); clearTimeout(closeTimer.current); try { window.speechSynthesis?.cancel(); } catch { /* quiet */ } };
+    // One phrase for the card, through the Director: refused if a voice holds
+    // the stage, refused if the asset is mock — silence over placeholder.
+    const row = musicRow.current;
+    if (row?.blob) playMusic({ blob: row.blob, provider: row.provider, maxWaitMs: 0 });
+    closeTimer.current = setTimeout(onClose, 9000);
+    return () => { clearTimeout(closeTimer.current); stopMusic(); };
   }, [assets.resolved]); // eslint-disable-line
 
   if (reduceMotion) return <div className="quiet-beat"><span>✦</span><strong>{cinematic.title}</strong><small>{cinematic.subtitle}</small></div>;
 
   return <div className="cinematic" onClick={onClose} role="dialog" aria-label={`${cinematic.title} cinematic`}>
     <img src={assets.stillUrl || procedural} alt="" className="cinematic-art" />
-    {assets.musicUrl && <audio src={assets.musicUrl} autoPlay />}
     <div className="cinematic-wash" style={{ '--c1': cinematic.palette[0], '--c2': cinematic.palette[1], '--c3': cinematic.palette[2] }} />
     <div className="particles">{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ '--i': i }} />)}</div>
     <button className="cinematic-close" onClick={onClose} aria-label="Skip cinematic"><X /></button>

@@ -1,13 +1,14 @@
-import { db } from '../db.js';
 import { bytesToBase64 } from '../canonical.js';
-import { narrationSegments, ensureSegmentBlob } from './narrator.js';
+import { narrationSegments, ensureSegmentAsset } from './narrator.js';
 
 // ------------------------------------------------------------
-// THE BOUND AUDIOBOOK — stitches a whole quest's narration (with
-// its music bed ducked underneath) into one downloadable file.
-// The audio lives on-device in IndexedDB, so we generate any
-// missing narration, ship the ordered segments to the server, and
-// it returns a single mixed MP3 (ffmpeg does the concat + duck).
+// THE BOUND AUDIOBOOK — stitches a whole quest's narration into
+// one downloadable reading. THE SOUND LAW: the voices stand
+// alone — no music bed is mixed underneath, and segments of mock
+// provenance are never bound (a keyless table declines honestly
+// instead of shipping placeholder tones). The audio lives
+// on-device in IndexedDB; we generate any missing narration, ship
+// the ordered segments to the server, and it returns one MP3.
 // ------------------------------------------------------------
 
 async function blobToBase64(blob) {
@@ -20,27 +21,29 @@ export async function downloadQuestAudio(campaign, onProgress) {
 
   const cast = campaign.codex?.cast || [];
   const segments = [];
+  let refused = 0;
   for (let i = 0; i < logs.length; i += 1) {
     onProgress?.(`Reading turn ${i + 1} of ${logs.length}…`);
     // Each turn is a cast performance: the narrator's prose plus each
     // character's own voice, in order, appended to the single reading.
     const parts = narrationSegments(logs[i].dm, cast);
     for (let s = 0; s < parts.length; s += 1) {
-      const blob = await ensureSegmentBlob(campaign, logs[i], parts[s], s).catch(() => null);
-      if (blob) segments.push({ audio: await blobToBase64(blob), mime: blob.type });
+      const asset = await ensureSegmentAsset(campaign, logs[i], parts[s], s).catch(() => null);
+      if (!asset?.blob) continue;
+      if (asset.provider === 'mock') { refused += 1; continue; }
+      segments.push({ audio: await blobToBase64(asset.blob), mime: asset.blob.type });
     }
   }
-  if (!segments.length) throw new Error('The narration could not be generated.');
-
-  // A single music bed under the whole reading: the earliest beat stinger we have.
-  const rows = await db.media.where('campaignId').equals(campaign.id).toArray();
-  const bedRow = rows.filter((row) => row.kind === 'music' && row.blob).sort((a, b) => a.createdAt - b.createdAt)[0];
-  const bed = bedRow ? { audio: await blobToBase64(bedRow.blob), mime: bedRow.mime } : null;
+  if (!segments.length) {
+    throw new Error(refused
+      ? 'The narrator needs a real voice (an ElevenLabs key). Placeholder audio is never bound.'
+      : 'The narration could not be generated.');
+  }
 
   onProgress?.('Binding the chronicle into one reading…');
   const response = await fetch('/api/quest-audio', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ segments, bed, title: campaign.title })
+    body: JSON.stringify({ segments, title: campaign.title })
   });
   if (!response.ok) {
     const message = await response.json().catch(() => ({}));

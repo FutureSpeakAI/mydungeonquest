@@ -59,17 +59,15 @@ export function Settings({ campaign, settings, onChange, onDownloadAudio, audioB
   return <Frame title="Settings & Care" icon={<Sparkles/>} onClose={onClose}>
     <label className="toggle"><span>Reduce motion<small>Replace cinematics with quiet beat lines.</small></span><input type="checkbox" checked={settings.reduceMotion} onChange={(e)=>onChange({...settings,reduceMotion:e.target.checked})}/></label>
     <label className="toggle"><span>Haptics<small>Use a brief vibration for dice.</small></span><input type="checkbox" checked={settings.haptics} onChange={(e)=>onChange({...settings,haptics:e.target.checked})}/></label>
-    <label className="toggle"><span>The score<small>A living motif that follows your story's danger.</small></span><input type="checkbox" checked={settings.score} onChange={(e)=>onChange({...settings,score:e.target.checked})}/></label>
-    <label className="toggle"><span>Dramatic narrator<small>An AI voice reads each new turn aloud, like an interactive podcast. Tap “Listen” on any turn to replay it.</small></span><input type="checkbox" checked={settings.narrator} onChange={(e)=>onChange({...settings,narrator:e.target.checked})}/></label>
-    <label className="toggle"><span>Voiced dialogue<small>Cast each soul once from this device's own voices.</small></span><input type="checkbox" checked={settings.voice} onChange={(e)=>onChange({...settings,voice:e.target.checked})}/></label>
+    <label className="toggle"><span>The narrator<small>Each new turn is read aloud — the storyteller's voice for the prose, each soul's own voice for its lines. One voice at a time, nothing beneath it. Tap “Listen” on any turn to replay it.</small></span><input type="checkbox" checked={settings.narrator} onChange={(e)=>onChange({...settings,narrator:e.target.checked})}/></label>
     <label>Text scale<input type="range" min=".9" max="1.3" step=".05" value={settings.textScale} onChange={(e)=>onChange({...settings,textScale:Number(e.target.value)})}/></label>
     <h3>Foundry tier</h3><div className="tier-grid">{[
-      ['parchment','Parchment','Procedural, instant, free.'],['illuminated','Illuminated','Painted stills, narration, score & SFX.']
+      ['parchment','Parchment','Procedural woodcut art, instant, free — and silent.'],['illuminated','Illuminated','Painted stills, voiced narration, music only at the turning points.']
     ].map(([id,label,desc])=><button className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{label}</b><span>{desc}</span></button>)}</div>
     <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Music {campaign.spend?.music||0}/8</span></div>
     {onDownloadAudio && <>
       <h3>The chronicle, read aloud</h3>
-      <p className="muted">Stitch every turn's narration — with its music bed beneath it — into one audio file you can keep.</p>
+      <p className="muted">Stitch every turn's narration — each soul in its own voice, nothing playing beneath — into one reading you can keep.</p>
       <button className="secondary-button" disabled={audioBusy} onClick={onDownloadAudio}><Download/> {audioBusy ? 'Binding audio…' : 'Download quest audio'}</button>
     </>}
     <div className="law-note"><Heart/><span>No accounts. Nothing leaves this device without you.</span></div>

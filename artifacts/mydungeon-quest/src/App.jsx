@@ -592,14 +592,14 @@ export default function App() {
 
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'title') return <TitleScreen campaigns={campaigns} onNew={() => setFlow('world')} onOpen={(campaign) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); }} onRestore={restoreFile} status={status} />;
+  if (flow === 'title') return <TitleScreen campaigns={campaigns} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} />;
   if (!current) return null;
 
   const chapter = chapterInfo(current.codex);
   const act = actInfo(current.codex);
   const nearEnd = !current.completed && !current.codex.sealing && current.codex.beatIndex >= current.codex.spine.beats.length - 3;
 
-  return <div className="app-shell">
+  return <div className={`app-shell${current.combat?.active ? ' under-arms' : ''}`}>
     <div ref={regionStripRef} className="region-strip" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
       <span>{activeRegion?.name || current.homeRegion}</span><small>{activeRegion?.state || 'unmapped'} · blight {current.codex.blight}/5</small>
     </div>
@@ -612,16 +612,25 @@ export default function App() {
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
       <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Act {act.numeral} · Chapter {chapter.numeral} of {chapter.countNumeral}</span><h1>{chapter.title}</h1><p>{chapter.goal}</p></div>
-      {current.logs.map((log) => {
-        const entry = log.redacted
-          ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div>
-          : <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} />;
-        // The Chronicler's sealed pages hang in the feed exactly where their
-        // chapters closed — "the tale so far", as written, never re-derived.
-        const pages = (current.chroniclePages || []).filter((page) => page.afterLogId === log.id)
-          .map((page) => <ChroniclePage key={`page-${page.recordHash || page.beatIndex}`} page={page} />);
-        return pages.length ? [entry, ...pages] : entry;
-      })}
+      {(() => {
+        // THE FOLIO COUNT — plates are numbered the way a folio numbers its
+        // engravings: only turns that actually show a plate advance the
+        // numeral, so "Plate IV" is the fourth picture in the book, not the
+        // fourth turn. (Mirrors LogEntry's own showScene test exactly.)
+        let plateNo = 0;
+        return current.logs.map((log) => {
+          const showsPlate = !log.redacted && Boolean(log.imageUrl || log.videoPosterUrl || log.dm?.image_cue || paintingImages[log.id]);
+          const plateNumeral = showsPlate ? romanNumeral(++plateNo) : null;
+          const entry = log.redacted
+            ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div>
+            : <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} plateNumeral={plateNumeral} />;
+          // The Chronicler's sealed pages hang in the feed exactly where their
+          // chapters closed — "the tale so far", as written, never re-derived.
+          const pages = (current.chroniclePages || []).filter((page) => page.afterLogId === log.id)
+            .map((page) => <ChroniclePage key={`page-${page.recordHash || page.beatIndex}`} page={page} />);
+          return pages.length ? [entry, ...pages] : entry;
+        });
+      })()}
       {busy && (weaving
         ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>
         : <div className="streaming"><span/>The Dungeon Master considers…</div>)}
@@ -640,32 +649,45 @@ export default function App() {
     {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} />}
     {overlay === 'level' && <div className="ritual"><Sparkles/><span>Level {current.hero.level}</span><h2>The story has made you larger.</h2><button onClick={()=>setOverlay(null)}>Accept the new name fate gives you</button></div>}
     {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement — farewells, consequences, the road home. Then the wax presses, and the tale is bound.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal the Tale</button></div></div>}
-    {overlay === 'sealing' && <Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onClose={() => setOverlay(null)} />}
+    {overlay === 'sealing' && <Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
     {current.hero.hp <= 0 && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} />}
   </div>;
 }
 
-function TitleScreen({ campaigns, onNew, onOpen, onRestore }) {
+// The dye vat: each chronicle's spine takes a deterministic house dye from its
+// id, so the shelf reads as a collected library — no two neighbors alike by
+// accident, and every rebuild binds the same book in the same leather.
+const SPINE_DYES = ['#4a2b33', '#33463b', '#2e3350', '#54331f', '#3a2f45', '#463b28'];
+const dyeOf = (id) => SPINE_DYES[Math.abs([...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)) % SPINE_DYES.length];
+
+function TitleScreen({ campaigns, onNew, onOpen, onRestore, reduceMotion, mediaTier }) {
   const input = useRef(null);
   const bundled = ['drowned', 'frontier', 'gate', 'mountain'].map((n) => `${import.meta.env.BASE_URL}keyart/${n}.jpg`);
   const [bgIndex, setBgIndex] = useState(0);
   const [attract, setAttract] = useState(false);
-  const [covers, setCovers] = useState({});
+  const [plaque, setPlaque] = useState('');
 
-  // Each chronicle card wears its own key art. Load the latest keyart plate per save.
+  // THE ARRIVAL (Phase 6) — a cold open, once per sitting: darkness; one
+  // candle lights; the title warms in; the shelf rises beneath. Any touch
+  // skips straight to the set table, and reduced motion never waits at all.
+  const prefersStill = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const arrivedBefore = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('mdq:arrived');
+  const [arrival, setArrival] = useState(reduceMotion || prefersStill || arrivedBefore ? 'set' : 'dark');
   useEffect(() => {
-    let urls = [], alive = true;
-    (async () => {
-      const out = {};
-      for (const c of campaigns) {
-        const rows = await db.media.where('campaignId').equals(c.id).toArray();
-        const art = rows.filter((r) => r.kind === 'paint' && r.label === KEYART_LABEL && r.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
-        if (art) { const u = URL.createObjectURL(art.blob); urls.push(u); out[c.id] = u; }
-      }
-      if (alive) setCovers(out); else urls.forEach(URL.revokeObjectURL);
-    })();
-    return () => { alive = false; urls.forEach(URL.revokeObjectURL); };
-  }, [campaigns]);
+    if (arrival === 'set') { try { sessionStorage.setItem('mdq:arrived', '1'); } catch { /* private mode keeps no memory */ } return undefined; }
+    // Settings hydrate from IndexedDB after mount: if a persisted "reduce
+    // motion" arrives mid-staging, the curtain drops that instant — the
+    // player asked for stillness and the arrival owes them a set table now.
+    if (reduceMotion) { setArrival('set'); return undefined; }
+    const timers = [['candle', 450], ['title', 1500], ['set', 3100]].map(([stage, at]) => setTimeout(() => setArrival(stage), at));
+    const skip = () => setArrival('set');
+    window.addEventListener('pointerdown', skip); window.addEventListener('keydown', skip);
+    return () => { timers.forEach(clearTimeout); window.removeEventListener('pointerdown', skip); window.removeEventListener('keydown', skip); };
+  }, [arrival === 'set', reduceMotion]); // eslint-disable-line
+  // First touch earns one page-turn, then quiet — through the Director, so a
+  // keyless table's first touch is (correctly) silence.
+  const touchedRef = useRef(false);
+  const firstTouch = () => { if (touchedRef.current) return; touchedRef.current = true; playUiSfx({ id: 'the-arrival', mediaTier: mediaTier || 'illuminated' }, 'page'); };
 
   // The Face is never still: bundled key art cycles behind the title, faster once attract mode wakes.
   useEffect(() => { const t = setInterval(() => setBgIndex((i) => (i + 1) % bundled.length), attract ? 6500 : 11000); return () => clearInterval(t); }, [attract, bundled.length]);
@@ -680,22 +702,45 @@ function TitleScreen({ campaigns, onNew, onOpen, onRestore }) {
   }, []);
 
   const bgSrc = bundled[bgIndex];
-  return <main className={`title-page cinematic ${attract ? 'attract' : ''}`}>
+  const arrivalClass = arrival === 'set' ? '' : `arrival-${arrival}`;
+  return <main className={`title-page cinematic ${arrivalClass} ${attract ? 'attract' : ''}`}>
     <div className="title-bg" key={bgSrc} style={{ backgroundImage: `url("${bgSrc}")` }} aria-hidden/>
     <div className="title-veil" aria-hidden/>
+    <div className="title-embers" aria-hidden>{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ '--i': i }} />)}</div>
     <section className="title-hero">
-      <div className="title-sigil">✦</div>
+      <div className="candle" aria-hidden="true"><span className="halo"/><span className="flame"/><span className="stem"/></div>
       <span className="eyebrow">Cinematic Edition</span>
       <h1>MyDungeon<span>.Quest</span></h1>
-      <p>Any world. Any hero. One legend — painted as you live it.</p>
-      <button className="primary-button big" onClick={onNew}>Begin your legend</button>
+      <p>A tale that is actually yours.</p>
+      <button className="primary-button big" onClick={() => { firstTouch(); onNew(); }}>Begin your legend</button>
     </section>
     {!attract && <section className="shelf">
-      <header><div><span className="eyebrow">Chronicle Shelf</span><h2>Your sealed worlds</h2></div><button className="secondary-button" onClick={() => input.current.click()}><FileUp/> Restore</button><input ref={input} type="file" accept=".json,.chronicle.json" hidden onChange={(e) => e.target.files[0] && onRestore(e.target.files[0])}/></header>
-      <div className="shelf-grid">{campaigns.length ? campaigns.map((c) => <button className="chronicle-card" data-cover={covers[c.id] ? 'art' : 'plain'} key={c.id} onClick={() => onOpen(c)} style={covers[c.id] ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.06),rgba(13,11,20,.55) 45%,rgba(13,11,20,.95)),url("${covers[c.id]}")` } : undefined}>
-        <span className="seal-badge"><Shield size={12}/>{c.completed ? (c.sealedAt ? 'told & sealed' : 'told') : 'sealed'}</span>
-        <div className="card-foot"><h3>{c.title}</h3><p>{c.hero?.name} · {c.codex?.spine?.label}</p><span className="card-cta">{c.completed ? '✦ Open the book' : 'Continue'} <ChevronRight size={15}/></span></div>
-      </button>) : <div className="empty-shelf"><Feather/><h3>Your shelf is empty</h3><p>The first world is not patient. Begin your legend.</p></div>}</div>
+      <header><div><span className="eyebrow">The Chronicle Shelf</span><h2>Every tale you have lived</h2></div><button className="secondary-button" onClick={() => input.current.click()}><FileUp/> Return a tale</button><input ref={input} type="file" accept=".json,.chronicle.json" hidden onChange={(e) => e.target.files[0] && onRestore(e.target.files[0])}/></header>
+      <div className="book-wall">
+        <div className="book-row">
+          {campaigns.map((c) => {
+            const waxed = Boolean(c.sealedAt || c.completed);
+            const label = `${c.title} — ${c.hero?.name || 'a hero'}${c.completed ? (c.sealedAt ? ', told and sealed' : ', told') : ', still being lived'}`;
+            const engrave = () => setPlaque(`${c.title} — ${c.hero?.name || 'a hero'} · ${c.codex?.spine?.label || 'a spine'}${c.sealedAt ? ' · opens to its keepsakes' : c.completed ? ' · told, awaiting the wax' : ''}`);
+            return <button key={c.id} className="book-spine" style={{ '--dye': dyeOf(c.id), height: `${158 + Math.min(26, c.turnCount || 0)}px` }}
+              aria-label={label} title={label}
+              onMouseEnter={engrave} onFocus={engrave} onMouseLeave={() => setPlaque('')} onBlur={() => setPlaque('')}
+              onClick={() => { firstTouch(); onOpen(c, { keepsakes: Boolean(c.sealedAt) }); }}>
+              <span className="spine-bands" aria-hidden><i/><i/><i/></span>
+              <span className="spine-title">{c.title}</span>
+              {waxed ? <span className="spine-wax" aria-hidden>{c.hero?.sigil || '✦'}</span> : <span className="spine-foot" aria-hidden>✦</span>}
+            </button>;
+          })}
+          <button className="book-spine new-spine" style={{ height: '158px' }} onClick={() => { firstTouch(); onNew(); }} aria-label="Begin a new legend"
+            onMouseEnter={() => setPlaque('An empty binding, waiting for a life.')} onFocus={() => setPlaque('An empty binding, waiting for a life.')} onMouseLeave={() => setPlaque('')} onBlur={() => setPlaque('')}>
+            <span className="spine-bands" aria-hidden><i/><i/><i/></span>
+            <span className="spine-title">Begin a legend</span>
+            <span className="spine-foot" aria-hidden><Plus size={14}/></span>
+          </button>
+        </div>
+        <div className="shelf-plank" aria-hidden/>
+        <p className="shelf-plaque">{plaque || (campaigns.length ? 'Draw a spine from the shelf.' : 'The shelf waits for its first book.')}</p>
+      </div>
     </section>}
     <footer className="title-footer">Yours alone · Plays offline · Every turn sealed</footer>
   </main>;
@@ -713,7 +758,7 @@ function NarrationButton({ campaign, log }) {
   </button>;
 }
 
-export function LogEntry({ log, campaign, painting }) {
+export function LogEntry({ log, campaign, painting, plateNumeral = null }) {
   const cue = log.dm.image_cue;
   // Every turn shows a plate: the DM's cue mood when present, otherwise the
   // opening line of narration. The procedural plate stands in until (or unless)
@@ -758,7 +803,8 @@ export function LogEntry({ log, campaign, painting }) {
     <NarrationButton campaign={campaign} log={log} />
     {showScene && <figure className={`illustration-panel full-bleed ${!still && painting ? 'painting' : ''}`}>
       <button type="button" className="plate-zoom" onClick={() => setExpandedSrc(still || art)} aria-label="Expand the illustration"><img src={still || art} alt={mood}/></button>
-      <figcaption>{mood}{still ? <span>illuminated</span> : <span>{painting ? 'painting…' : 'procedural plate'}</span>}</figcaption>
+      {/* The folio speaks: a numbered engraving, as a printed book would caption it. */}
+      <figcaption>{mood}<span>{plateNumeral && <b className="plate-no">Plate {plateNumeral} · </b>}{still ? 'illuminated' : (painting ? 'painting…' : 'procedural plate')}</span></figcaption>
     </figure>}
     {log.resolution && <div className={`roll-stamp ${log.resolution.outcome.includes('success')?'success':'failure'}`}><Dices/><span>{log.resolution.selectedDie} → {log.resolution.total}</span><b>{log.resolution.outcome.replaceAll('_',' ')}</b></div>}
     {expandedSrc && <div className="plate-lightbox" role="dialog" aria-modal="true" aria-label="Illustration, expanded" onClick={() => setExpandedSrc(null)}>

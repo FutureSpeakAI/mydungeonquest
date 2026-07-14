@@ -36,3 +36,10 @@ The MyDungeon.Quest eval harness (`evals/run.mjs`, `npm run eval`) is plain
 
 **Why:** these five gotchas each cost a failed run to discover; a future agent
 adding component/UI tests here will hit the same wall without them.
+
+## Rendering the FULL App (not just leaf components) in the node harness — July 2026
+- `globalThis` is NOT an EventTarget in this node (24): alias `window = globalThis` breaks `window.addEventListener`. Stub a tiny window: `{ addEventListener/removeEventListener }` over a listener map.
+- Minimal `document` stub: `{ documentElement: { style: { setProperty() {} } }, activeElement: null, contains: () => false }`; add `globalThis.navigator ??= {}` for vibrate guards.
+- `import.meta.env.*` (Vite-injected) crashes plain node: jsxLoader.mjs now passes esbuild `define` for BASE_URL/'/', PROD/false, DEV/true. esbuild REJECTS non-literal defines like `({})` — no catch-all possible; add keys as components start reading them.
+- Seed campaigns with the app's own factories (`initCodex('classic-epic')`, `createHero({...})`) — hand-rolled codex objects miss `spine.beats[beatIndex]` and crash `chapterInfo`.
+- Keyless-silence proof pattern: stub global fetch to answer `/api/sfx` with `X-Media-Provider: 'mock'`, then assert `directorState().playing === null && queued === 0` AND `db.media.count() === 0` (mock never played, never cached).

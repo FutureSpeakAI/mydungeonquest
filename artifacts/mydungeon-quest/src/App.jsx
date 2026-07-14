@@ -4,7 +4,9 @@ import { WorldForge, HeroForge } from './components/Forge.jsx';
 import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
 import Ceremony from './components/Ceremony.jsx';
+import ChroniclePage from './components/ChroniclePage.jsx';
 import { CharacterSheet, Codex, Settings, Storybook } from './components/Overlays.jsx';
+import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from './lib/chronicler.js';
 import { applyStateUpdates, createHero, heroRoll, rollInitiative } from './lib/rules.js';
 import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from './lib/story.js';
 import { makeEntropy, validateDmTurn } from './lib/protocol.js';
@@ -347,11 +349,52 @@ export default function App() {
       }
       if (hero.level > heroBeforeLevel) setOverlay('level');
       queueMedia(next, record, dm, log.id);
+      // THE CHRONICLER at the chapter's close — when this turn advanced the
+      // beat (or the tale completed), the closed chapter is retold from its
+      // sealed turns, fire-and-forget: the table never waits on the reteller.
+      if (codex.beatIndex > base.codex.beatIndex) chronicleChapterClose(next, base.codex.beatIndex);
+      else if (codex.completed && !base.codex.completed) chronicleChapterClose(next, codex.beatIndex);
       return next;
     } catch (error) {
       console.error(error); setStatus(`The road snagged: ${error.message}`); return base;
     } finally { setBusy(false); setWeaving(null); }
   }, [queueMedia, refreshShelf]);
+
+  // THE CHRONICLER'S COURT, client side — ask /api/retell for the chapter's
+  // "tale so far" page, judge it AGAIN with the shared validator (trust no
+  // wire), and only a lawful real-provider passage is sealed as written into
+  // the journal ('chronicle_page') and hung in the feed. A decline seals
+  // NOTHING: mock prose under a wax stamp would be a forgery — keyless tables
+  // let the storybook bind the raw sealed text at binding time instead.
+  // Failures never snag the table. (Function declaration: hoisted above
+  // playTurn's closure on purpose.)
+  async function chronicleChapterClose(campaign, closedBeatIndex) {
+    if (campaign.readOnly || campaign.chroniclePages?.some((page) => page.beatIndex === closedBeatIndex)) return;
+    // The claim is synchronous — taken before any await — so two racing
+    // chapter-close paths in this session cannot both seal a page; across
+    // sessions the persisted chroniclePages guard above holds.
+    if (!claimChapterClose(campaign.id, closedBeatIndex)) return;
+    try {
+      const request = buildChronicleRequest(campaign, closedBeatIndex);
+      if (!request) return;
+      const response = await fetch('/api/retell', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request.body) });
+      const data = response.ok ? await response.json() : { declined: true };
+      if (data.declined || !data.passage) return;
+      const verdict = validateChroniclePassage(data.passage, request.context);
+      if (!verdict.ok) { console.warn('[chronicler] unlawful passage refused:', verdict.errors); return; }
+      const page = { ...data.passage, beatIndex: closedBeatIndex, afterLogId: request.afterLogId, chapter: request.body.chapter, provider: data.provider, raw: false };
+      const record = await seal(campaign.id, 'chronicle_page', page);
+      setCurrent((prev) => {
+        if (!prev || prev.id !== campaign.id) return prev;
+        if ((prev.chroniclePages || []).some((p) => p.beatIndex === closedBeatIndex)) return prev; // belt: never hang a duplicate page
+        const next = { ...prev, chroniclePages: [...(prev.chroniclePages || []), { ...page, recordHash: record.recordHash }] };
+        saveCampaign(next);
+        return next;
+      });
+    } catch (error) {
+      console.warn('[chronicler] the page was not written:', error.message);
+    }
+  }
 
   // THE PROLOGUE RENDER — before Chapter I opens, the world's key art and the
   // hero's permanent bust anchor are painted and sealed, so the first
@@ -567,7 +610,16 @@ export default function App() {
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
       <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Act {act.numeral} · Chapter {chapter.numeral} of {chapter.countNumeral}</span><h1>{chapter.title}</h1><p>{chapter.goal}</p></div>
-      {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} />)}
+      {current.logs.map((log) => {
+        const entry = log.redacted
+          ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div>
+          : <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} />;
+        // The Chronicler's sealed pages hang in the feed exactly where their
+        // chapters closed — "the tale so far", as written, never re-derived.
+        const pages = (current.chroniclePages || []).filter((page) => page.afterLogId === log.id)
+          .map((page) => <ChroniclePage key={`page-${page.recordHash || page.beatIndex}`} page={page} />);
+        return pages.length ? [entry, ...pages] : entry;
+      })}
       {busy && (weaving
         ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>
         : <div className="streaming"><span/>The Dungeon Master considers…</div>)}

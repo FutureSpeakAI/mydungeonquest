@@ -123,6 +123,16 @@ The audio layer obeys one law, enforced by a single client-side Audio Director (
 
 The Director enforces provenance, precedence (voice > effects > music), the one-live-sound invariant, and the drop-or-wait window for staged punctuation. `evals/audioDirector.test.mjs` and the narrator concurrency suite hold it to the law.
 
+## The Chronicler's three laws
+
+When a chapter closes, a second, smaller harness (`/api/retell`, one forced `chronicle_passage` tool call in `server/retell.js`) retells it as the "tale so far" page — and retelling is exactly the kind of work a model will embellish, so the Chronicler lives under laws of its own, enforced by one shared validator (`src/lib/chronicler.js`) in every court: the server's repair loop, the client that re-judges every wire response, and the proving ground.
+
+1. **It may not invent.** Every passage cites the sealed turn range it retells; every name it uses must resolve in the codex. An uncited retelling is an invention with good manners.
+2. **It may not contradict.** Dice ride in the margins (`dice_moments`) with exact sealed totals — *"Here the die showed nineteen."* The dead are not quoted after the turn that killed them; dying words in the killing turn are honored, as at the table.
+3. **It may only retell.** Quoted speech is declared and verbatim from the sealed record (edge punctuation is typography and may flex; wording is law), and digits stay out of the prose — numbers are written out, or the die speaks from the margin.
+
+A lawful page is countersigned into the journal *as written* (`chronicle_page`) and hung in the feed where its chapter closed — by the Sealing, most of the book already exists. The floor is honest: keyless, or twice unlawful, the harness declines and **no mock prose is ever sealed** — a placeholder retelling under a wax stamp would be a forgery. The storybook binds the raw sealed text instead; the book always exists. Redacted turns never reach the Chronicler — not their words, not their deaths.
+
 ## The proving ground
 
 ```bash
@@ -134,6 +144,8 @@ The suite runs headless in Node — no browser, no keys, no network:
 - `evals/run.mjs` — the bench: DM protocol validity, streaming parity, reducers, canon integrity, PG-13 scrubber, Foundry budget caps, seal/tamper invariants (a forged chronicle must turn the audit red).
 - `evals/castLaw.test.mjs` — the cast law: the dead do not speak (including the dying-words exception), casting reads the card (timbre/age/villain scoring, deterministic tiebreak), the migration recasts nobody (legacy pool order is locked by hardcoded voice-id arrays), and the card canon holds (status enum, memorial facts, resurrection refusal, fact dedup caps, bond arcs).
 - `evals/endings.test.mjs` — acts, chapters, endings: the epilogue beat must *play* before a tale completes (arriving is not completing), Seal the Tale records exactly once and steers a quiet combat-free denouement through the [STORY] directives, the countdown ticks even across story-null turns, and a sealed tale advances no further.
+- `evals/cinematicClose.test.mjs` — the cards leave the stage lawfully: the close control fires exactly once (propagation severed, one-shot latch), so the DM card → act card → narration chain can neither double-fire nor be skipped by a race.
+- `evals/chronicler.test.mjs` — the Chronicler's three laws: uncited passages and invented names are refused, the dead are not quoted after they fall, dice must match sealed totals, quotes are verbatim and declared, digits stay out of the prose — and the keyless floor is the raw sealed text, never mock prose (plus schema/validator lockstep).
 - `evals/mediaFallback.test.mjs` — the legacy-media contract: film-era logs render their painted posters as still plates (never a `<video>`), overlays ignore retired media rows, and the retired `cinema` tier is canonicalized to `illuminated` across export, import, and persistence round-trips.
 - `evals/narratorConcurrency.test.mjs` — the narrator never overlaps voice tracks no matter how fast turns arrive, constructs no music bed, and refuses mock-provenance segments (a keyless reading is silence, not sine tones).
 - `evals/audioDirector.test.mjs` — the Sound Law: one live sound, instant voice preemption, punctuation windows (late accents are dropped, never played), provenance refusal at the door.

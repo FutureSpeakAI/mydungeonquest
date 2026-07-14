@@ -108,6 +108,14 @@ app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), asyn
   res.json(await getDmTurn(req.body || {}));
 });
 
+// THE CHRONICLER — the second, smaller harness (§7): one forced tool call,
+// the shared strict validator, one guided repair, and an honest keyless
+// decline (the client binds the raw sealed text; mock prose is never sealed).
+app.post('/api/retell', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), async (req, res) => {
+  const { getChroniclePassage } = await import('./retell.js');
+  res.json(await getChroniclePassage(req.body || {}));
+});
+
 async function sendAsset(res, result) {
   res.setHeader('Content-Type', result.mime);
   res.setHeader('X-Media-Provider', result.provider);

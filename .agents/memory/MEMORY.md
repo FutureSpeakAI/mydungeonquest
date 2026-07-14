@@ -7,7 +7,7 @@
 - [MyDungeon media providers are opt-in](mydungeon-media-providers.md) — films/video RETIRED July 2026 (do not reintroduce; legacy posters render as stills); paint/audio serve MOCK unless provider keys are set.
 - [MyDungeon Sound Law](mydungeon-sound-law.md) — owner directive: one voice at a time, music/SFX as punctuation only, never overlapping voices; procedural audio is eval-only, players get silence keyless.
 - [MyDungeon component tests in node harness](mydungeon-component-tests.md) — render React (onError fallbacks etc.) in the pure-node eval: esbuild jsx loader + react-test-renderer + fake-indexeddb (separate process), stub createObjectURL by blob.type.
-- [MyDungeon multi-voice narrator](mydungeon-multivoice-narrator.md) — per-character voice segments chain on onended; never infer pause from element.paused (ended reports paused → overlap); scene-cue `subjects` drive character consistency.
+- [MyDungeon multi-voice narrator](mydungeon-multivoice-narrator.md) — one persistent blessed Audio (autoplay law); never trust element.paused; refusals stage a tap invitation; subjects drive faces.
 - [MyDungeon turn presentation](mydungeon-turn-presentation.md) — user-approved order: text → Listen → plate below; chapter cards fire before paint lands, so backdrops ladder to the latest painted scene.
 - [Strict media doors](strict-media-doors.md) — client strings that become HTML/CSS, ffmpeg graphs, or file names pass a whitelist regex at the boundary (data:image…, ref law); two same-class holes proved it.
 - [MyDungeon redaction law](mydungeon-redaction-law.md) — journal strikes outrank snapshot flags; retellings fall WHOLE if any cited turn is struck; citeless pages are never used.
@@ -16,3 +16,4 @@
 - [MyDungeon Vault laws](mydungeon-vault.md) — sync stores & chain-verifies, never signs; fail-closed; fork-on-divergence, never merge; restored spines continue hash-only; deletes are lane-joined pyre tombstones.
 - [MyDungeon Watchtower laws](mydungeon-watchtower.md) — spend ceilings skip providers (degrade to mock, never error); durable rate limits fall back to memory; front gate/legal pages stay static HTML in public/.
 - [Toll-House laws & connector](toll-house-laws.md) — 6-turn lifetime taste; $5/wk & $129.99/yr unmetered; renewsAt honest-null; retired marks raise nothing; never sell a seated patron a second chair.
+- [MyDungeon seen ledger & fresh cards](mydungeon-seen-ledger.md) — reveals are device-local (never sealed/synced/exported); card ladder skips seen art (replays exempt); scene paints are turn-salted; chained overlays need keyed remounts.

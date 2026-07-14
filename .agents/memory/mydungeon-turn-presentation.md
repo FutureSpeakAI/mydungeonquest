@@ -25,7 +25,8 @@ flat procedural gradient (looked like a gold wash with a star, badly undercuts
 "cinematic"). The still ladder is now: beat-key still → this turn's paint →
 campaign's latest painted SCENE → any paint → procedural gradient (true last
 resort). Locked by an eval case ("early chapter card borrows the latest painted
-scene").
+scene"). Since the reveal law, every rung also skips art already shown as a
+card — replays exempt (see the seen-ledger memo).
 
 **Why:** generation is slower than the UI; any fallback ladder keyed to "this
 turn's asset" must consider arrival order and borrow the newest prior art.

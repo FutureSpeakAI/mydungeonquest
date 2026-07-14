@@ -32,10 +32,37 @@ export function regionPrompt(campaign, region) {
   return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Establishing landscape of ${region.name}. Region canon: ${region.visual}. Current state: ${region.state}. World blight ${blight}/5, shown through weather, architecture, and vegetation rather than gore. Wide cinematic composition.`, campaign);
 }
 
-export function scenePrompt(campaign, cue) {
+// THE FRAMING WHEEL — eight compositions dealt deterministically by the turn's
+// own seed, so consecutive plates differ in camera even when the storyteller
+// describes scenes in similar words. Variety comes from composition; the
+// subjects' appearance canon and reference anchors stay wired in regardless.
+const FRAMINGS = [
+  'wide establishing shot, the figures small against the landscape',
+  'medium shot at eye level, the moment\u2019s central figures held in frame',
+  'low-angle composition, the subject looming against sky or ceiling',
+  'intimate close framing on faces and hands, shallow painted depth',
+  'over-the-shoulder view into the scene\u2019s focal point',
+  'high vantage looking down on the unfolding moment',
+  'threshold framing \u2014 the scene glimpsed through a doorway, arch, or branches',
+  'strong profile composition lit by a single hard source'
+];
+
+export function sceneFraming(seed) {
+  const s = String(seed ?? '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return FRAMINGS[Math.abs(h) % FRAMINGS.length];
+}
+
+// `moment` (optional) carries the turn's own truth into the brief: a slice of
+// the actual prose and a per-turn seed for the framing wheel. Same turn, same
+// brief — a reopen or a refused pour repaints nothing it already has.
+export function scenePrompt(campaign, cue, moment = null) {
   const souls = (cue.subjects || []).map((name) => campaign.codex.cast.find((soul) => soul.name === name)).filter(Boolean);
   const region = campaign.codex.regions.find((entry) => entry.name === cue.region);
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}. ${souls.map((soul) => `${soul.name} appearance canon: ${soul.visual}.`).join(' ')} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5. Maintain exact faces, clothing motifs, and silhouette from reference images.`, campaign);
+  const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 220)}".` : '';
+  const framing = moment ? ` Composition: ${sceneFraming(moment.seed)}.` : '';
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}. ${souls.map((soul) => `${soul.name} appearance canon: ${soul.visual}.`).join(' ')} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${beat}${framing} Maintain exact faces, clothing motifs, and silhouette from reference images.`, campaign);
 }
 
 export function keyArtPrompt(campaign, variant = 'establishing') {

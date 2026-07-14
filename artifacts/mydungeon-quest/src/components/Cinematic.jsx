@@ -4,6 +4,7 @@ import { db } from '../lib/db.js';
 import { beatKeys } from '../lib/cinema/lookahead.js';
 import { playMusic, stopMusic } from '../lib/cinema/audioDirector.js';
 import { proceduralArtDataUrl } from '../lib/cinema/procedural.js';
+import { markRevealed, revealSet } from '../lib/reveals.js';
 
 // ------------------------------------------------------------
 // THE CINEMATIC — a two-tier ladder, best available wins:
@@ -18,14 +19,23 @@ import { proceduralArtDataUrl } from '../lib/cinema/procedural.js';
 // gets a quiet beat.
 // ------------------------------------------------------------
 
-async function resolveAssets(campaign, turnRecordHash, beatIndex) {
+// THE REVEAL LAW — no image is presented twice as a NEW reveal. Art already
+// shown on a card is skipped by every rung of the ladder (each falls to the
+// next; the procedural gradient stays the honest last resort), so chained
+// cards (the DM's card, then the act turns) and beats whose own paint lags
+// never deal the same cover twice. A REPLAY from the Codex is exempt — a
+// re-view is not a new reveal, so it neither filters nor marks.
+// Exported for the bench: the eval proves the ladder without a browser.
+export async function resolveAssets(campaign, turnRecordHash, beatIndex, { replay = false } = {}) {
   const rows = await db.media.where('campaignId').equals(campaign.id).toArray();
   const keys = beatKeys(campaign.id, beatIndex ?? campaign.codex?.beatIndex ?? 0);
+  const seen = replay ? new Set() : await revealSet(campaign.id, 'card');
+  const fresh = (row) => (row && row.blob && !seen.has(row.assetHash) ? row : null);
   const byKey = (key) => rows.find((row) => row.cacheKey === key && row.blob);
   const byTurn = (kind) => rows.filter((row) => row.kind === kind && row.blob && turnRecordHash && row.originTurnHash === turnRecordHash)
     .sort((a, b) => b.createdAt - a.createdAt)[0];
   const newest = (list) => list.sort((a, b) => b.createdAt - a.createdAt)[0];
-  const paints = rows.filter((row) => row.kind === 'paint' && row.blob);
+  const paints = rows.filter((row) => row.kind === 'paint' && row.blob && !seen.has(row.assetHash));
   // Prefer a true scene so the backdrop is a place, not a character bust. New
   // rows carry an explicit subtype; older rows are inferred — scene plates are
   // the only paint jobs enqueued without a label/variant.
@@ -36,16 +46,17 @@ async function resolveAssets(campaign, turnRecordHash, beatIndex) {
     // The chapter card usually fires the instant a turn seals, BEFORE that
     // turn's paint has landed — so a beat-key/turn-hash miss used to drop all
     // the way to the flat procedural gradient. Borrow the campaign's most
-    // recent painted scene instead (any painted art beats the gradient, which
-    // remains a true last resort).
-    still: byKey(keys.still) || byTurn('paint') || latestScene || latestPaint || null,
+    // recent UNSEEN painted scene instead (any painted art beats the gradient,
+    // which remains a true last resort).
+    still: fresh(byKey(keys.still)) || fresh(byTurn('paint')) || latestScene || latestPaint || null,
     music: byKey(keys.score) || byTurn('music') || null
   };
 }
 
-export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion, turnRecordHash, beatIndex, onClose }) {
+export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion, turnRecordHash, beatIndex, replay = false, onClose }) {
   const [assets, setAssets] = useState({ stillUrl: null, resolved: false });
   const musicRow = useRef(null);
+  const stillRow = useRef(null);
   const closeTimer = useRef(null);
   const procedural = proceduralArtDataUrl(`${campaign.id}:${cinematic.title}`, '', cinematic.palette);
 
@@ -54,10 +65,11 @@ export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion,
     let alive = true;
     const urls = [];
     (async () => {
-      const found = await resolveAssets(campaign, turnRecordHash, beatIndex);
+      const found = await resolveAssets(campaign, turnRecordHash, beatIndex, { replay });
       if (!alive) return;
       const url = (row) => { if (!row?.blob) return null; const u = URL.createObjectURL(row.blob); urls.push(u); return u; };
       musicRow.current = found.music || null;
+      stillRow.current = found.still || null;
       setAssets({ stillUrl: url(found.still), resolved: true });
     })();
     return () => { alive = false; urls.forEach((u) => URL.revokeObjectURL(u)); };
@@ -65,6 +77,10 @@ export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion,
 
   useEffect(() => {
     if (reduceMotion || !assets.resolved) return;
+    // The card is on stage: seal the showing into the seen ledger, so no
+    // later card can deal this art as new again. (A replay marks nothing.)
+    const still = stillRow.current;
+    if (still?.assetHash && !replay) markRevealed(campaign.id, 'card', still.assetHash, { beatIndex: beatIndex ?? null, title: cinematic.title, type: cinematic.type });
     // One phrase for the card, through the Director: refused if a voice holds
     // the stage, refused if the asset is mock — silence over placeholder.
     const row = musicRow.current;

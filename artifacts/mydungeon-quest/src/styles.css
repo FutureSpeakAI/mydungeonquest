@@ -46,6 +46,11 @@
 .player-line{opacity:.62;font-size:.82rem;margin:.1rem 0 .55rem;display:flex;gap:.55rem;align-items:baseline}
 .player-line span{font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.75;flex:none}
 .player-line p{margin:0;font-style:italic;color:var(--vellum-dim);font-size:.86rem}
+/* THE DEED LINE — the player acted rather than spoke (a die cast, the X-card
+   touched): shown in sequence like their words, but marked apart, so the
+   script reads whole without pretending a deed was speech. */
+.player-line.deed span{color:var(--gold);opacity:.9;letter-spacing:0;font-size:.72rem}
+.player-line.deed p{opacity:.82}
 .illustration-panel.full-bleed{margin:1.1rem 0 .9rem}
 .illustration-panel.full-bleed img{width:100%;border-radius:14px;display:block;box-shadow:0 12px 40px rgba(0,0,0,.5);background:#000}
 .illustration-panel.full-bleed figcaption{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--vellum-dim);letter-spacing:.04em;margin-top:.4rem}

@@ -141,6 +141,8 @@ export function TollSection({ toll }) {
       {toll.portal && <button className="text-button" disabled={busy} onClick={() => act(() => visitRoom('/api/toll/portal'))}>
         Open the ledger — change or leave your seat
       </button>}
+      {/* The small print at the point of coin: every seat is bound by the house rules. */}
+      <p className="toll-legal">Seats are bound by the <a href="/terms.html">house rules</a> and the <a href="/privacy.html">privacy of the table</a>.</p>
     </div>}
     {word && <p className="muted">{word}</p>}
   </>;

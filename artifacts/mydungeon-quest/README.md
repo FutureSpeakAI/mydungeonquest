@@ -49,7 +49,7 @@ React PWA
 
 Express
   ├─ forced-tool DM proxy / deterministic mock
-  ├─ image, video, voice, music, and SFX adapter boundary
+  ├─ image, voice, music, and SFX adapter boundary
   ├─ owned-byte normalization
   └─ Playwright storybook PDF binding
 ```
@@ -60,7 +60,7 @@ A generated asset never mutates a signed turn. The turn commits a media intent; 
 
 ## Provider configuration
 
-Copy `.env.example` to `.env`. `ANTHROPIC_API_KEY` enables live DM turns. OpenAI and ElevenLabs adapters are included for image, voice, music, and SFX paths. Video defaults to the mock keyframe adapter while preserving the async job contract.
+Copy `.env.example` to `.env`. `ANTHROPIC_API_KEY` enables live DM turns. OpenAI and ElevenLabs adapters are included for image, voice, music, and SFX paths.
 
 Never prefix server secrets with `VITE_`.
 

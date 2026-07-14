@@ -18,3 +18,10 @@
 - THE SEALED ENDING: tales end. Arriving at the final beat is not completing — the epilogue beat must be played (advancing while already on it completes). "Seal the Tale" records a request in the codex that steers the DM into a short, quiet, combat-free denouement via [STORY] directives, completing on its final turn even across `story:null` turns. A completed tale retires the composer; the Sealing ceremony appends one final `sealing` journal event whose counts the verifier can audit.
 - Never expose provider keys to the client.
 - Keep `npm run build` and `npm run eval` green.
+
+## THE CHRONICLER'S LAWS (the Experience Cut, Phase 3)
+Retelling is exactly the kind of work a model will embellish, so the reteller lives in its own smaller harness (`/api/retell`, one forced `chronicle_passage` tool call) under three laws the shared validator enforces in every court — client, server repair path, and the proving ground:
+1. **It may not invent.** Every passage cites the sealed turn range it retells; every name it uses must exist in the codex.
+2. **It may not contradict.** Dice appear only as margin marginalia with exact sealed totals; the dead are not quoted after the turn that killed them (dying words in the killing turn are honored, as at the table).
+3. **It may only retell.** Quoted speech is declared and verbatim from the sealed record; digits stay out of the prose — numbers are written out, or the die speaks from the margin.
+When a chapter closes, the Chronicler writes the "tale so far" page and it is countersigned into the journal (`chronicle_page` event) exactly as written — so by the Sealing, most of the book already exists. Keyless, or twice unlawful, the harness declines honestly: **no mock prose is ever sealed** — a placeholder retelling under a wax stamp would be a forgery. The storybook binds the raw sealed text instead; the book always exists. Redacted turns never reach the Chronicler — not their words, not their deaths.

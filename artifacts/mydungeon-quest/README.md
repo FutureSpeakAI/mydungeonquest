@@ -44,12 +44,14 @@ React PWA
         ├─ turn
         ├─ resolution
         ├─ media_attestation
+        ├─ chronicle_page
         ├─ redaction
         ├─ sealing
         └─ fork
 
 Express
   ├─ forced-tool DM proxy / deterministic mock
+  ├─ forced-tool Chronicler retell proxy (chapter pages; declines keyless — no mock prose is sealed)
   ├─ image, voice, music, and SFX adapter boundary
   ├─ owned-byte normalization
   └─ Playwright storybook PDF binding

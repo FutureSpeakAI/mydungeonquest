@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { getDmTurn } from './dm.js';
 import { adapters, providerChains } from './adapters/index.js';
 import { CLERK_PROXY_PATH, clerkProxyMiddleware } from './clerkProxy.js';
-import { doorkeeper, doorOpen, whoami } from './patrons.js';
+import { doorkeeper, doorOpen, namedOnly, whoami } from './patrons.js';
 import { initMint, mintConfigured } from './mint.js';
 import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
@@ -101,6 +101,17 @@ app.use('/api', vaultRoutes());
 // whenever the ledger stands. One structured line per /api request rides
 // the same tower.
 app.use('/api', requestLog());
+
+// THE LOCKED DOOR (owner's directive, July 2026): every pouring room asks
+// the patron's name before anything else — identity, not money, answered
+// 401 before the innkeeper ever reads a ledger. The standing page
+// (/api/toll), whoami, health, the courier, and the static halls stay open
+// to the nameless; a keyless fork has no door and this line is a
+// pass-through (the eval's table is untouched).
+app.use(
+  ['/api/dm', '/api/retell', '/api/paint', '/api/speak', '/api/music', '/api/sfx', '/api/quest-audio', '/api/bind-pdf'],
+  namedOnly(),
+);
 
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');

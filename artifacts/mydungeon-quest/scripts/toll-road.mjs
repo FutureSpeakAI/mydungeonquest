@@ -6,17 +6,20 @@
  * the entitlement flip:
  *
  *   1. seat a named patron in the visitors' book
- *   2. POST /toll/checkout → a real Stripe Checkout session opens
+ *   2. POST /toll/checkout {plan: weekly} → a real Stripe Checkout session
+ *      opens, priced exactly as the owner chalked it ($5/week)
  *   3. pay the toll (test card 4242… via pm_card_visa) — a real test-mode
  *      subscription on the same customer, exactly what checkout completion
  *      would create
  *   4. wait for Stripe's courier: the webhook lands at the running server
- *      and users.plan flips to illuminated
- *   5. POST /toll/refresh (the ?toll=paid return) → standing + quotas open
+ *      and users.plan flips to weekly
+ *   5. POST /toll/refresh (the ?toll=paid return) → standing shows the
+ *      seat, and the pours are UNMEASURED (quotas null — the paid law)
  *   6. POST /toll/checkout again → refused a second sale, handed the portal
+ *      (a seated patron is never sold a second chair)
  *   7. POST /toll/portal → the ledger opens (Stripe billing portal URL)
  *   8. cancel the seat (the portal's trade, done by API) → webhook lands →
- *      the seat lowers back to Parchment
+ *      the seat lowers back to the taste
  *   9. sweep the road: cancel subs, delete the test customer and the row
  *
  * Run: node scripts/toll-road.mjs   (needs DATABASE_URL + Stripe connector)
@@ -69,8 +72,8 @@ const hop = (path, body) =>
 const stripe = await getUncachableStripeClient();
 
 // -- 2. checkout opens -------------------------------------------------------
-say('2. POST /toll/checkout {plan: illuminated}');
-const co = await hop('/toll/checkout', { plan: 'illuminated' });
+say('2. POST /toll/checkout {plan: weekly}');
+const co = await hop('/toll/checkout', { plan: 'weekly' });
 if (co.status !== 200 || !co.body.url) die(`checkout: ${co.status} ${JSON.stringify(co.body)}`);
 console.log('checkout URL:', co.body.url.slice(0, 60) + '…');
 const sessId = co.body.url.match(/\/pay\/(cs_\w+)/)?.[1];
@@ -86,12 +89,16 @@ console.log('customer:', customerId);
 say('3. paying with the 4242 test card (pm_card_visa)');
 const pm = await stripe.paymentMethods.attach('pm_card_visa', { customer: customerId });
 await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: pm.id } });
-const priceId = sess.line_items?.data?.[0]?.price?.id ||
-  (await stripe.checkout.sessions.listLineItems(sessId)).data[0].price.id;
+const line = (await stripe.checkout.sessions.listLineItems(sessId)).data[0];
+const price = line.price;
+console.log(`price: ${price.id} ${price.unit_amount}¢/${price.recurring?.interval}`);
+if (price.unit_amount !== 500 || price.recurring?.interval !== 'week') {
+  die(`the board is mis-chalked: expected 500¢/week, got ${price.unit_amount}¢/${price.recurring?.interval}`);
+}
 const sub = await stripe.subscriptions.create({
   customer: customerId,
-  items: [{ price: priceId }],
-  metadata: { mdq_user: patron.id, mdq_plan: 'illuminated', toll_road_walk: '1' },
+  items: [{ price: price.id }],
+  metadata: { mdq_user: patron.id, mdq_plan: 'weekly', toll_road_walk: '1' },
 });
 console.log(`subscription: ${sub.id} status=${sub.status}`);
 if (sub.status !== 'active') die(`subscription not active: ${sub.status}`);
@@ -103,25 +110,26 @@ const readPlan = async () =>
 let plan = null;
 for (let i = 0; i < 30; i++) {
   plan = await readPlan();
-  if (plan === 'illuminated') break;
+  if (plan === 'weekly') break;
   await new Promise((r) => setTimeout(r, 2000));
 }
 console.log('users.plan =', plan);
-const webhookFlipped = plan === 'illuminated';
+const webhookFlipped = plan === 'weekly';
 if (!webhookFlipped) console.error('!! webhook did not flip the plan within 60s — refresh must catch it');
 
 // -- 5. the ?toll=paid return ------------------------------------------------
 say('5. POST /toll/refresh (the ?toll=paid return)');
 const rf = await hop('/toll/refresh');
-console.log(`standing: plan=${rf.body.plan} portal=${rf.body.portal} paint quota=${rf.body.quotas?.paint}`);
-if (rf.body.plan !== 'illuminated') die(`refresh did not show the seat: ${JSON.stringify(rf.body)}`);
-if (rf.body.quotas.paint !== PLANS.illuminated.quotas.paint) die('quotas did not open');
+console.log(`standing: plan=${rf.body.plan} portal=${rf.body.portal} dm quota=${JSON.stringify(rf.body.quotas?.dm)}`);
+if (rf.body.plan !== 'weekly') die(`refresh did not show the seat: ${JSON.stringify(rf.body)}`);
+if (rf.body.quotas.dm !== null || rf.body.quotas.podcast !== null) die('a paid seat must pour without measure (quotas null)');
+if (JSON.stringify(rf.body.quotas) !== JSON.stringify(PLANS.weekly.quotas)) die('quotas do not match the law');
 if (!rf.body.portal) die('portal flag not set');
-if (!webhookFlipped && (await readPlan()) !== 'illuminated') die('plan still not written');
+if (!webhookFlipped && (await readPlan()) !== 'weekly') die('plan still not written');
 
-// -- 6. never sell the same chair twice ---------------------------------------
-say('6. POST /toll/checkout again (same seat) — expect the portal, not a sale');
-const again = await hop('/toll/checkout', { plan: 'illuminated' });
+// -- 6. never sell a seated patron a second chair -----------------------------
+say('6. POST /toll/checkout again (yearly this time) — expect the portal, not a sale');
+const again = await hop('/toll/checkout', { plan: 'yearly' });
 if (!again.body.note || !again.body.url?.includes('billing.stripe.com')) {
   die(`second sale not refused: ${JSON.stringify(again.body)}`);
 }
@@ -160,5 +168,5 @@ await runQuery('DELETE FROM users WHERE id = $1', [patron.id]);
 console.log('test customer and patron removed.');
 
 server.close();
-console.log('\nTHE ROAD HOLDS — checkout opened, the toll was paid, the seat lit and lowered.');
+console.log('\nTHE ROAD HOLDS — checkout opened at $5/week, the toll was paid, the seat lit, poured without measure, and lowered.');
 process.exit(0);

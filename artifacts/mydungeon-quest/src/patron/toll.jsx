@@ -6,6 +6,10 @@
 // money lives server-side; this is only the window where a patron reads
 // their standing and, if they choose, takes a better seat.
 //
+// The house menu (owner's directive, July 2026): six turns on the house —
+// the taste, counted for life, never resetting — then two seats for sale:
+// $5 by the week or $129.99 by the year, both without measure.
+//
 // No new dependencies — plain fetch against the house, and redirects to
 // Stripe-hosted rooms for anything that touches a card. No card ever crosses
 // this table.
@@ -14,12 +18,12 @@ import { doorBuilt } from './door.jsx';
 
 const SEAT_WORDS = {
   guest: 'Guest at the fire',
-  free: 'A seat at the hearth',
-  illuminated: 'The illuminated seat',
-  voiced: 'The voiced seat',
+  free: 'The taste',
+  weekly: 'Patron by the week',
+  yearly: 'Patron by the year',
 };
 
-const SEAT_RANK = { guest: -1, free: 0, illuminated: 1, voiced: 2 };
+const SEAT_RANK = { guest: -1, free: 0, weekly: 1, yearly: 2 };
 
 const KIND_WORDS = {
   dm: 'turns at the table',
@@ -31,6 +35,11 @@ const KIND_WORDS = {
   podcast: 'forged episodes',
   pdf: 'bound books',
 };
+
+// A price in the house voice: whole dollars stay whole ($5), split coins are
+// spoken in full ($129.99). Interval as Stripe speaks it: week, year.
+export const priceWords = (seat) =>
+  `$${(seat.amount / 100).toFixed(seat.amount % 100 ? 2 : 0)}/${seat.interval}`;
 
 // The latest standing, module-held so the table can ask "is this kind worth
 // asking for?" without threading React state through the media queue.
@@ -105,6 +114,20 @@ export function useToll() {
   return toll;
 }
 
+// The standing line under the seat name. Three honest voices: the taste
+// (lifetime tallies, no page-turn — it never resets), a paid seat (no
+// measure; billing lives in Stripe's portal, so no invented dates), and
+// the guest at a standing page (signed out — the door does the asking).
+function standingWords(toll) {
+  if (toll.plan === 'guest') {
+    return ' — the house asks your name at the door. Six turns on the house once the book knows you.';
+  }
+  if (toll.lifetime) {
+    return ' — six turns on the house, poured once and never reset. A seat at the table pours without measure.';
+  }
+  return ' — the seat pours without measure. Receipts, changes, and leaving live in the ledger below.';
+}
+
 // The Settings panel's toll block. Renders nothing on a doorless build or a
 // dormant gateway.
 export function TollSection({ toll }) {
@@ -126,9 +149,7 @@ export function TollSection({ toll }) {
 
   return <>
     <h3>The toll-house</h3>
-    <p className="toll-standing"><b>{SEAT_WORDS[toll.plan] || toll.plan}</b>{toll.plan === 'guest'
-      ? ' — the fire is free, and your chronicles never leave this device. A name at the door opens the painted seats.'
-      : ` — the ledger turns its page on ${new Date(toll.renewsAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}.`}</p>
+    <p className="toll-standing"><b>{SEAT_WORDS[toll.plan] || toll.plan}</b>{standingWords(toll)}</p>
     {toll.plan !== 'guest' && metered.length > 0 && <div className="toll-tallies">{metered.map(([kind, quota]) => {
       const used = Math.min(toll.used?.[kind] || 0, quota);
       return <span key={kind} className={used >= quota ? 'spent' : ''}><b>{used}/{quota}</b> {KIND_WORDS[kind] || kind}</span>;
@@ -136,13 +157,13 @@ export function TollSection({ toll }) {
     {toll.plan !== 'guest' && <div className="toll-seats">
       {seats.map((seat) => <button key={seat.plan} className="secondary-button" disabled={busy}
         onClick={() => act(() => visitRoom('/api/toll/checkout', { plan: seat.plan }))}>
-        Take {SEAT_WORDS[seat.plan]?.toLowerCase() || seat.plan} — ${(seat.amount / 100).toFixed(0)}/{seat.interval}
+        Take a seat {SEAT_WORDS[seat.plan]?.replace('Patron ', '') || seat.plan} — {priceWords(seat)}
       </button>)}
       {toll.portal && <button className="text-button" disabled={busy} onClick={() => act(() => visitRoom('/api/toll/portal'))}>
         Open the ledger — change or leave your seat
       </button>}
       {/* The small print at the point of coin: every seat is bound by the house rules. */}
-      <p className="toll-legal">Seats are bound by the <a href="/terms.html">house rules</a> and the <a href="/privacy.html">privacy of the table</a>.</p>
+      <p className="toll-legal">Seats are bound by the <a href="/terms.html">house rules</a> and the <a href="/privacy.html">privacy of the table</a>. The weekly seat renews each week, the yearly each year — leave any time from the ledger.</p>
     </div>}
     {word && <p className="muted">{word}</p>}
   </>;

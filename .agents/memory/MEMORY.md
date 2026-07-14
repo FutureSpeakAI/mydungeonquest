@@ -12,7 +12,7 @@
 - [Strict media doors](strict-media-doors.md) — client strings that become HTML/CSS, ffmpeg graphs, or file names pass a whitelist regex at the boundary (data:image…, ref law); two same-class holes proved it.
 - [MyDungeon redaction law](mydungeon-redaction-law.md) — journal strikes outrank snapshot flags; retellings fall WHOLE if any cited turn is struck; citeless pages are never used.
 - [CSS animation-fill overrides](css-animation-fill-conflict.md) — fill forwards/both beats property+transition opacity; set animation:none while a class must own the value.
-- [MyDungeon door is opt-in](mydungeon-door.md) — auth mirrors the media doctrine: no Clerk keys → no door, guests pass forever; evals scrub keys + pin '' in the jsx loader; Clerk CAPTCHA blocks browser e2e sign-up.
+- [MyDungeon door is locked when keyed](mydungeon-door.md) — namedOnly 401s pouring rooms pre-innkeeper; signed-out get LockedTitle; keyless forks stay doorless.
 - [MyDungeon Vault laws](mydungeon-vault.md) — sync stores & chain-verifies, never signs; fail-closed; fork-on-divergence, never merge; restored spines continue hash-only; deletes are lane-joined pyre tombstones.
 - [MyDungeon Watchtower laws](mydungeon-watchtower.md) — spend ceilings skip providers (degrade to mock, never error); durable rate limits fall back to memory; front gate/legal pages stay static HTML in public/.
-- [Toll-House laws & Stripe connector shape](toll-house-laws.md) — gateway opt-in twice over; debit only real work; connector: unfiltered fetch, settings.secret, syncBackfill({object:'all'}).
+- [Toll-House laws & connector](toll-house-laws.md) — 6-turn lifetime taste; $5/wk & $129.99/yr unmetered; renewsAt honest-null; retired marks raise nothing; never sell a seated patron a second chair.

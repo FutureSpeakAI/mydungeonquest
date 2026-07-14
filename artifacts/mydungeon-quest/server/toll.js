@@ -15,8 +15,13 @@
  *   words, never a raw error.
  * - Fail closed for money, open for the table: when the ledger cannot be
  *   read, paid pours are refused (loudly) but the tale itself never dies.
- * - Quotas turn with the calendar month (UTC): the page turns on the 1st.
- *   Billing anniversaries belong to Stripe's portal, not this file.
+ * - The free seat is a TASTE, counted for life, not by the month: six
+ *   turns with every pour flowing, then the wall. Paid seats pour without
+ *   measure — burst caps and the watchtower's ceilings still stand watch.
+ *   Monthly page-turns apply only to numbered quotas (the taste has no
+ *   page to turn; its tallies never reset).
+ * - Owner's directive (July 2026): the house sells two seats — $5 by the
+ *   week, auto-renewed, or $129.99 by the year in a single charge.
  */
 import express from 'express';
 import { doorOpen, ensureLedger, runQuery } from './patrons.js';
@@ -25,8 +30,11 @@ import { getClerkProxyHost } from './clerkProxy.js';
 
 // ---------------------------------------------------------------- the plans
 // Quota of `null` = unmetered (burst limits still stand watch); `0` = that
-// pour is not on this table's menu. Numbers are the house's opening prices —
-// the owner may re-chalk the board without touching any other law.
+// pour is not on this table's menu. `lifetime: true` = tallies count from
+// the first inscription and never reset — the taste is poured once.
+// `guest` survives only as the innkeeper's fail-closed sentinel and for the
+// standing page a signed-out visitor reads; with the door standing, no
+// guest reaches a pouring route at all.
 export const PLANS = Object.freeze({
   guest: {
     label: 'Guest at the fire',
@@ -34,23 +42,24 @@ export const PLANS = Object.freeze({
     quotas: { dm: null, retell: null, paint: 0, speak: 0, music: 0, sfx: 0, podcast: 0, pdf: 0 },
   },
   free: {
-    label: 'Parchment',
-    ceiling: 'illuminated', // the free seat gets a small taste of illumination
+    label: 'The taste',
+    ceiling: 'voiced', // the taste is the FULL flavor — plates, voices, all of it
     taste: true,
-    quotas: { dm: 300, retell: 30, paint: 30, speak: 0, music: 8, sfx: 20, podcast: 0, pdf: 0 },
+    lifetime: true,
+    quotas: { dm: 6, retell: 2, paint: 12, speak: 40, music: 6, sfx: 18, podcast: 1, pdf: 1 },
   },
-  illuminated: {
-    label: 'Illuminated',
-    ceiling: 'illuminated',
-    quotas: { dm: 2000, retell: 200, paint: 600, speak: 0, music: 150, sfx: 500, podcast: 0, pdf: 0 },
-  },
-  voiced: {
-    label: 'Voiced',
+  weekly: {
+    label: 'Patron by the week',
     ceiling: 'voiced',
-    quotas: { dm: 5000, retell: 500, paint: 1500, speak: 4000, music: 400, sfx: 1200, podcast: 10, pdf: 30 },
+    quotas: { dm: null, retell: null, paint: null, speak: null, music: null, sfx: null, podcast: null, pdf: null },
+  },
+  yearly: {
+    label: 'Patron by the year',
+    ceiling: 'voiced',
+    quotas: { dm: null, retell: null, paint: null, speak: null, music: null, sfx: null, podcast: null, pdf: null },
   },
 });
-export const PLAN_RANK = { guest: 0, free: 1, illuminated: 2, voiced: 3 };
+export const PLAN_RANK = { guest: 0, free: 1, weekly: 2, yearly: 3 };
 export const KINDS = ['dm', 'retell', 'paint', 'speak', 'music', 'sfx', 'podcast', 'pdf'];
 
 // Kinds whose work is done by a paid artisan: billed only when the artisan
@@ -129,12 +138,13 @@ export async function grantFor(req, deps = {}) {
   return { metered: true, plan, hasCustomer: Boolean(row.stripe_customer_id), ...PLANS[plan] };
 }
 
-async function usedByKind(userId, deps = {}) {
+// The month's page for monthly quotas; the whole book for the lifetime taste.
+async function usedByKind(userId, deps = {}, lifetime = false) {
   const query = deps.query || runQuery;
   await ensureToll(query);
   const { rows } = await query(
     `SELECT kind, count(*)::int AS n FROM usage_events
-     WHERE user_id = $1 AND created_at >= date_trunc('month', now() AT TIME ZONE 'UTC')
+     WHERE user_id = $1 ${lifetime ? '' : `AND created_at >= date_trunc('month', now() AT TIME ZONE 'UTC')`}
      GROUP BY kind`,
     [userId],
   );
@@ -155,8 +165,8 @@ const KIND_WORD = {
 
 function upsellFor(plan, kind) {
   if (plan === 'guest') return 'free';
-  for (const cand of ['illuminated', 'voiced']) {
-    if (PLAN_RANK[cand] > PLAN_RANK[plan] && PLANS[cand].quotas[kind] > 0) return cand;
+  for (const cand of ['weekly', 'yearly']) {
+    if (PLAN_RANK[cand] > PLAN_RANK[plan] && PLANS[cand].quotas[kind] !== 0) return cand;
   }
   return null;
 }
@@ -168,22 +178,23 @@ const refusal = (res, body) => res.status(402).json({ closed: true, ...body });
 const TALE_KINDS = new Set(['dm', 'retell']);
 
 // One consistent 402 shape even when the ledger is unreadable — the unknown
-// tallies are honest nulls, never invented numbers.
+// tallies are honest nulls, never invented numbers or invented dates.
 const mislaid = (kind, plan = 'unknown') => ({
   kind,
   plan,
   reason: 'mislaid',
   quota: null,
   used: null,
-  renewsAt: nextMonthUtc().toISOString(),
+  renewsAt: null,
   upsell: null,
   error: 'The innkeeper has mislaid the ledger — the house pours nothing it cannot record. Try again shortly.',
 });
 
 /**
  * The innkeeper stands between the rate limiter and the room. He reads the
- * grant, counts the month's page, and either waves the patron through or
- * closes the ledger in his own words — never a raw error.
+ * grant, counts the page — the month's for numbered tables, the whole book
+ * for the lifetime taste — and either waves the patron through or closes
+ * the ledger in his own words, never a raw error.
  */
 export function innkeeper(kind, deps = {}) {
   return async (req, res, next) => {
@@ -205,7 +216,9 @@ export function innkeeper(kind, deps = {}) {
     res.setHeader('X-Toll-Plan', grant.plan);
     const quota = grant.quotas[kind];
     if (quota === null || quota === undefined) return next();
-    const renewsAt = nextMonthUtc();
+    const lifetime = Boolean(grant.lifetime);
+    const pageTurn = lifetime ? null : nextMonthUtc();
+    const renewsAt = pageTurn ? pageTurn.toISOString() : null;
     if (quota === 0) {
       const upsell = upsellFor(grant.plan, kind);
       const word = KIND_WORD[kind] || kind;
@@ -215,7 +228,9 @@ export function innkeeper(kind, deps = {}) {
         reason: 'table',
         quota,
         used: 0,
-        renewsAt: renewsAt.toISOString(),
+        // A kind that is not on this table's menu never renews — the
+        // honest-nulls law: no invented page-turn dates, ever.
+        renewsAt: null,
         upsell,
         error:
           grant.plan === 'guest'
@@ -227,9 +242,9 @@ export function innkeeper(kind, deps = {}) {
     }
     let used;
     try {
-      used = (await usedByKind(req.patron.id, deps))[kind] || 0;
+      used = (await usedByKind(req.patron.id, deps, lifetime))[kind] || 0;
     } catch (error) {
-      console.error(`[toll] the month's page could not be counted (${error.message})`);
+      console.error(`[toll] the ledger's page could not be counted (${error.message})`);
       // The tale never dies of a mislaid ledger — only paid pours fail closed.
       if (TALE_KINDS.has(kind)) return next();
       return refusal(res, mislaid(kind, grant.plan));
@@ -242,9 +257,11 @@ export function innkeeper(kind, deps = {}) {
         reason: 'spent',
         quota,
         used,
-        renewsAt: renewsAt.toISOString(),
+        renewsAt,
         upsell,
-        error: `The innkeeper closes the ledger — this month's ${KIND_WORD[kind]} are spent. The page turns on ${fmtDay(renewsAt)}.`,
+        error: lifetime
+          ? `The taste is poured — ${quota} free ${KIND_WORD[kind] || kind}, told true. A seat at the table pours without measure: $5 by the week, or $129.99 for the year.`
+          : `The innkeeper closes the ledger — this month's ${KIND_WORD[kind]} are spent. The page turns on ${fmtDay(pageTurn)}.`,
       });
     }
     return next();
@@ -299,7 +316,7 @@ export async function reconcileEntitlement({ userId, customerId }, deps = {}) {
       if (!ENTITLED.has(sub.status)) continue;
       for (const item of sub.items?.data || []) {
         const p = item.price?.metadata?.mdq_plan;
-        if (p && (PLAN_RANK[p] || 0) > (PLAN_RANK[plan] || 0)) plan = p;
+        if (p && PLANS[p] && (PLAN_RANK[p] || 0) > (PLAN_RANK[plan] || 0)) plan = p;
       }
     }
   }
@@ -315,8 +332,10 @@ export async function reconcileEntitlement({ userId, customerId }, deps = {}) {
 // The price board. Read from the mint's synced ledger (the `stripe` schema)
 // when it is bound; fall back to asking Stripe directly; chalk it in memory
 // for ten minutes either way. Only prices bearing our own mark
-// (metadata.mdq_plan) are listed — a foreign product in the same account is
-// not our menu.
+// (metadata.mdq_plan) for a seat above the taste are listed — a foreign
+// product in the same account is not our menu, and a retired mark is not
+// our board.
+const forSale = (plan) => Boolean(PLANS[plan]) && (PLAN_RANK[plan] || 0) > PLAN_RANK.free;
 let board = { at: 0, prices: [] };
 async function catalog(deps = {}) {
   if (board.prices.length && Date.now() - board.at < 600000) return board.prices;
@@ -335,7 +354,7 @@ async function catalog(deps = {}) {
         interval:
           (typeof r.recurring === 'string' ? JSON.parse(r.recurring) : r.recurring)?.interval || 'month',
       }))
-      .filter((p) => p.plan === 'illuminated' || p.plan === 'voiced');
+      .filter((p) => forSale(p.plan));
   } catch {
     prices = [];
   }
@@ -344,7 +363,7 @@ async function catalog(deps = {}) {
       const stripe = deps.stripe ? await deps.stripe() : await getUncachableStripeClient();
       const list = await stripe.prices.list({ active: true, limit: 100 });
       prices = (list.data || [])
-        .filter((p) => p.metadata?.mdq_plan === 'illuminated' || p.metadata?.mdq_plan === 'voiced')
+        .filter((p) => forSale(p.metadata?.mdq_plan))
         .map((p) => ({
           plan: p.metadata.mdq_plan,
           priceId: p.id,
@@ -376,13 +395,20 @@ export async function buildToll(req, deps = {}) {
     label: grant.label,
     ceiling: grant.ceiling,
     taste: Boolean(grant.taste),
+    lifetime: Boolean(grant.lifetime),
     quotas: grant.quotas,
     used: {},
-    renewsAt: nextMonthUtc().toISOString(),
+    // The honest-nulls law: a page-turn date is only spoken where a real
+    // monthly meter turns. The lifetime taste, the unmetered seats, and the
+    // zeroed guest all have no page to turn — null, never an invented date.
+    renewsAt:
+      !grant.lifetime && Object.values(grant.quotas || {}).some((q) => typeof q === 'number' && q > 0)
+        ? nextMonthUtc().toISOString()
+        : null,
     portal: Boolean(grant.hasCustomer),
     prices: [],
   };
-  if (req.patron) payload.used = await usedByKind(req.patron.id, deps).catch(() => ({}));
+  if (req.patron) payload.used = await usedByKind(req.patron.id, deps, Boolean(grant.lifetime)).catch(() => ({}));
   payload.prices = await catalog(deps);
   return payload;
 }
@@ -416,8 +442,8 @@ export function tollRoutes(deps = {}) {
       if (!gateway(deps)) return res.status(409).json({ error: 'The toll-house was never built here.' });
       if (!req.patron) return res.status(401).json({ error: 'The ledger needs a name — give yours at the door first.' });
       const want = String(req.body?.plan || '');
-      if (want !== 'illuminated' && want !== 'voiced') {
-        return res.status(400).json({ error: 'The house sells two seats: illuminated and voiced.' });
+      if (want !== 'weekly' && want !== 'yearly') {
+        return res.status(400).json({ error: 'The house sells two seats: by the week and by the year.' });
       }
       const query = deps.query || runQuery;
       await ensureToll(query);
@@ -436,11 +462,12 @@ export function tollRoutes(deps = {}) {
         ]);
         bustGrant(req.patron.id);
       }
-      // Already seated this high or higher? Changing seats is the portal's
-      // trade — never sell the same chair twice. The guard reads LIVE truth:
-      // a seat bought seconds ago (its webhook still on the road) must not
-      // be sold again, so an existing customer's line is reconciled against
-      // Stripe itself before any sale.
+      // Already seated at ANY paid table? Changing seats — weekly to yearly,
+      // yearly to weekly, or leaving — is the portal's trade: the house never
+      // sells a second chair to a seated patron (that would bill twice). The
+      // guard reads LIVE truth: a seat bought seconds ago (its webhook still
+      // on the road) must not be sold again, so an existing customer's line
+      // is reconciled against Stripe itself before any sale.
       let standing = current.plan;
       if (current.stripe_customer_id) {
         try {
@@ -449,12 +476,12 @@ export function tollRoutes(deps = {}) {
           console.error(`[toll] pre-sale reconciliation stumbled (${error.message}) — selling on the book's word`);
         }
       }
-      if ((PLAN_RANK[standing] || 0) >= PLAN_RANK[want]) {
+      if ((PLAN_RANK[standing] || 0) > PLAN_RANK.free) {
         const portal = await stripe.billingPortal.sessions.create({
           customer: customerId,
           return_url: `${requestOrigin(req)}/?toll=seen`,
         });
-        return res.json({ url: portal.url, note: 'Your seat is already this high — the portal handles changes.' });
+        return res.json({ url: portal.url, note: 'You already hold a seat — the portal handles changes.' });
       }
       const prices = await catalog(deps);
       const price = prices.find((p) => p.plan === want);

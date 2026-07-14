@@ -2,25 +2,32 @@
 //
 // The gateway is OPT-IN twice over: it stands only when BOTH the door
 // (Clerk) and the mint (Stripe) are live. Judged headless, stub-benched:
+//   0. The locked door: with keys standing, a nameless knock on a pouring
+//      room is refused 401 BEFORE any ledger is read; named patrons pass;
+//      a keyless bench passes everyone (the fork's free table).
 //   1. Dormant house: no door, no mint → every room is a hallway. grantFor
 //      answers unmetered, the innkeeper waves everyone through, buildToll
 //      says live:false, debit writes nothing.
 //   2. The innkeeper's law (gate stubbed open): guests are refused paid
-//      pours in the house's own words; the free seat's clamp holds (speak
-//      pours only at the Voiced table); a spent month closes the ledger
-//      with the page-turn date; a mislaid ledger fails CLOSED for money
-//      and OPEN for the table.
+//      pours in the house's own words; the taste is counted for LIFE (the
+//      whole book, never the month's page) and closes with honest words —
+//      no invented page-turn dates, renewsAt is null; a mislaid ledger
+//      fails CLOSED for money and OPEN for the table.
 //   3. The billing law: stand-ins (mock/fallback) are never debited; real
 //      artisans are; house work debits as 'house'; a slipped debit is loud
 //      but never claws back the response.
 //   4. The seat flip, both directions: a live subscription raises the
-//      patron's line, a lapsed one lowers it back to the hearth; the
-//      highest active seat wins; past_due keeps grace; strangers flip
-//      nothing.
+//      patron's line, a lapsed one lowers it back to the taste; the
+//      highest active seat wins (yearly over weekly); past_due keeps
+//      grace; a RETIRED mark (illuminated, voiced) raises nothing;
+//      strangers flip nothing.
 //   5. The courier: unsigned parcels bounce, parsed bodies are refused as
 //      misbound (the raw-mount law), a lawful parcel is synced then the
 //      seat reconciled fire-and-forget, a refused seal flips nothing.
-//   6. Client, keyless build: the toll window renders nothing and asks the
+//   6. The standing page & the price board: the taste reads lifetime
+//      tallies with no page-turn; only today's menu (weekly, yearly) is
+//      chalked — retired marks and foreign products never listed.
+//   7. Client, keyless build: the toll window renders nothing and asks the
 //      network for nothing — a keyless fork never learns money exists.
 
 import assert from 'node:assert/strict';
@@ -34,9 +41,9 @@ delete process.env.REPL_IDENTITY;
 delete process.env.WEB_REPL_RENEWAL;
 delete process.env.DATABASE_URL;
 
-const { __resetDoorForEval } = await import('../server/patrons.js');
+const { __resetDoorForEval, namedOnly } = await import('../server/patrons.js');
 const {
-  PLANS, grantFor, innkeeper, debit, reconcileEntitlement,
+  PLANS, PLAN_RANK, grantFor, innkeeper, debit, reconcileEntitlement,
   buildToll, tollWebhook, __resetTollForEval,
 } = await import('../server/toll.js');
 const { mintConfigured, mintLive } = await import('../server/mint.js');
@@ -63,6 +70,32 @@ const bench = (answers = {}) => {
   return query;
 };
 
+// ---- 0. the locked door ----
+{
+  // Keyless: the lock does not exist — everyone passes (the fork's table).
+  let walked = false;
+  await new Promise((r) => { namedOnly()({ patron: null }, resSpy(), () => { walked = true; r(); }); });
+  assert.equal(walked, true, 'a keyless house has no lock');
+  // Keys standing: the nameless are refused 401 in the door\'s own words,
+  // and the named pass. (Set/strike the env inside this block only.)
+  process.env.CLERK_SECRET_KEY = 'sk_test_bench';
+  process.env.CLERK_PUBLISHABLE_KEY = 'pk_test_bench';
+  try {
+    const res = resSpy(); walked = false;
+    await namedOnly()({ patron: null }, res, () => { walked = true; });
+    assert.equal(walked, false, 'no name, no table');
+    assert.equal(res.code, 401, 'identity is a 401, never a 402');
+    assert.equal(res.body.door, true, 'the refusal names the door');
+    assert.match(res.body.error, /six turns on the house/i, 'the door speaks the offer');
+    let named = false;
+    await new Promise((r) => { namedOnly()({ patron: { id: 'u-1' } }, resSpy(), () => { named = true; r(); }); });
+    assert.equal(named, true, 'a named patron passes the lock');
+  } finally {
+    delete process.env.CLERK_SECRET_KEY;
+    delete process.env.CLERK_PUBLISHABLE_KEY;
+  }
+}
+
 // ---- 1. the dormant house ----
 assert.equal(mintConfigured(), false, 'scrubbed env reads as no mint');
 assert.equal(mintLive(), false, 'the mint never stood up on this bench');
@@ -86,12 +119,14 @@ assert.equal(mintLive(), false, 'the mint never stood up on this bench');
 // ---- 2. the innkeeper's law (gate stubbed open) ----
 const gate = () => true;
 {
-  // Guests: unmetered kinds pass with the plan spoken; paid pours refused.
+  // Guests (the standing-page fallback; live pouring routes never reach
+  // here nameless — the locked door is upstream): unmetered kinds pass
+  // with the plan spoken; paid pours refused toward a named seat.
   fresh();
   const deps = { gate, query: bench() };
   const pass = resSpy(); let walked = false;
   await innkeeper('dm', deps)({ patron: null }, pass, () => { walked = true; });
-  assert.equal(walked, true, 'a guest turn passes');
+  assert.equal(walked, true, 'a guest turn passes the innkeeper (the lock upstream is the gate)');
   assert.equal(pass.headers['X-Toll-Plan'], 'guest', 'and the plan rides the header');
   const res = resSpy(); walked = false;
   await innkeeper('paint', deps)({ patron: null }, res, () => { walked = true; });
@@ -99,43 +134,59 @@ const gate = () => true;
   assert.equal(res.code, 402);
   assert.equal(res.body.closed, true);
   assert.equal(res.body.reason, 'table');
+  assert.equal(res.body.renewsAt, null, 'a kind not on the menu never renews — no invented dates');
   assert.match(res.body.error, /named patrons/i, 'refused in the house voice');
   assert.equal(res.body.upsell, 'free', 'the guest is pointed to a named seat');
 }
 {
-  // The free seat's clamp: speak pours only at the Voiced table.
+  // The taste pours the FULL flavor — speak flows at the free table now.
   fresh();
   const q = bench({ 'SELECT plan': [{ plan: 'free', stripe_customer_id: null }] });
-  const res = resSpy();
-  await innkeeper('speak', { gate, query: q })({ patron: { id: 'u-free' } }, res, () => {});
-  assert.equal(res.code, 402);
-  assert.equal(res.body.reason, 'table');
-  assert.equal(res.body.upsell, 'voiced');
-  assert.match(res.body.error, /Voiced/, 'the clamp names the table where it pours');
+  let walked = false;
+  await innkeeper('speak', { gate, query: q })({ patron: { id: 'u-free' } }, resSpy(), () => { walked = true; });
+  assert.equal(walked, true, 'the taste pours voices too');
 }
 {
-  // A spent month closes the ledger; a coin left passes.
+  // THE SIX-TURN WALL — the heart of the owner's directive. Counted for
+  // life (the whole book, not the month's page), closed with the offer,
+  // and honest: no page-turn date is ever invented for a taste.
   fresh();
-  const q = bench({
+  assert.equal(PLANS.free.quotas.dm, 6, 'the taste is six turns, chalked in the law');
+  const spent = bench({
     'SELECT plan': [{ plan: 'free', stripe_customer_id: null }],
-    'GROUP BY kind': [{ kind: 'paint', n: 30 }],
+    'GROUP BY kind': [{ kind: 'dm', n: 6 }],
   });
   const res = resSpy();
-  await innkeeper('paint', { gate, query: q })({ patron: { id: 'u-free' } }, res, () => {});
+  await innkeeper('dm', { gate, query: spent })({ patron: { id: 'u-free' } }, res, () => {});
   assert.equal(res.code, 402);
   assert.equal(res.body.reason, 'spent');
-  assert.equal(res.body.used, 30);
-  assert.equal(res.body.quota, 30);
-  assert.ok(res.body.renewsAt && !Number.isNaN(Date.parse(res.body.renewsAt)), 'the page-turn date rides along');
-  assert.match(res.body.error, /spent/i);
+  assert.equal(res.body.used, 6);
+  assert.equal(res.body.quota, 6);
+  assert.equal(res.body.renewsAt, null, 'a lifetime taste has no page-turn date — never invented');
+  assert.equal(res.body.upsell, 'weekly', 'the wall points to the cheapest seat');
+  assert.match(res.body.error, /\$5 by the week/, 'the wall speaks the weekly price');
+  assert.match(res.body.error, /\$129\.99 for the year/, 'and the yearly');
+  const tally = spent.spoken.find((s) => s.text.includes('GROUP BY kind'));
+  assert.ok(!tally.text.includes('date_trunc'), 'the taste is counted from the whole book, not the month');
   fresh();
-  const q2 = bench({
+  const oneLeft = bench({
     'SELECT plan': [{ plan: 'free', stripe_customer_id: null }],
-    'GROUP BY kind': [{ kind: 'paint', n: 29 }],
+    'GROUP BY kind': [{ kind: 'dm', n: 5 }],
   });
   let walked = false;
-  await innkeeper('paint', { gate, query: q2 })({ patron: { id: 'u-free' } }, resSpy(), () => { walked = true; });
-  assert.equal(walked, true, 'a coin left in the month passes');
+  await innkeeper('dm', { gate, query: oneLeft })({ patron: { id: 'u-free' } }, resSpy(), () => { walked = true; });
+  assert.equal(walked, true, 'the sixth turn still pours');
+}
+{
+  // A paid seat pours without measure — no quota, no ledger count at all.
+  fresh();
+  const q = bench({ 'SELECT plan': [{ plan: 'weekly', stripe_customer_id: 'cus_w' }] });
+  let walked = false;
+  const res = resSpy();
+  await innkeeper('podcast', { gate, query: q })({ patron: { id: 'u-week' } }, res, () => { walked = true; });
+  assert.equal(walked, true, 'a weekly patron pours');
+  assert.equal(res.headers['X-Toll-Plan'], 'weekly');
+  assert.ok(!q.spoken.some((s) => s.text.includes('GROUP BY kind')), 'an unmetered pour never counts the book');
 }
 {
   // The mislaid ledger: closed for money, open for the table — loudly.
@@ -147,12 +198,13 @@ const gate = () => true;
     await innkeeper('paint', { gate, query: broken })({ patron: { id: 'u-x' } }, res, () => {});
     assert.equal(res.code, 402);
     assert.equal(res.body.reason, 'mislaid', 'money fails closed');
+    assert.equal(res.body.renewsAt, null, 'a mislaid ledger invents no dates');
     fresh();
     let walked = false;
     await innkeeper('dm', { gate, query: broken })({ patron: { id: 'u-x' } }, resSpy(), () => { walked = true; });
     assert.equal(walked, true, 'the table itself never dies');
 
-    // A seated patron whose month cannot be COUNTED (the grant read fine,
+    // A seated patron whose book cannot be COUNTED (the grant read fine,
     // the tally tore): the tale flows on, the paid pours close — and the
     // refusal carries the full shape, unknown tallies as honest nulls.
     const countBroken = async (text) => {
@@ -177,7 +229,7 @@ const gate = () => true;
     assert.equal(shape.body.quota, null, 'unknown tallies are honest nulls, never invented numbers');
     assert.equal(shape.body.used, null);
     assert.equal(shape.body.upsell, null);
-    assert.ok(shape.body.renewsAt && !Number.isNaN(Date.parse(shape.body.renewsAt)), 'the page-turn date still rides');
+    assert.equal(shape.body.renewsAt, null, 'and no invented dates');
   } finally { console.error = hush; }
 }
 
@@ -185,7 +237,7 @@ const gate = () => true;
 {
   fresh();
   const q = bench();
-  const req = { grant: { metered: true, plan: 'illuminated' }, patron: { id: 'u-9' } };
+  const req = { grant: { metered: true, plan: 'weekly' }, patron: { id: 'u-9' } };
   assert.equal(await debit(req, 'paint', 'mock', { query: q }), 'stand-in', 'mock work is never billed');
   assert.equal(await debit(req, 'paint', 'fallback', { query: q }), 'stand-in', 'fallback work is never billed');
   assert.equal(q.spoken.length, 0, 'no ledger line for stand-ins');
@@ -204,6 +256,7 @@ const gate = () => true;
 // ---- 4. the seat flip, both directions ----
 {
   fresh();
+  assert.ok(PLAN_RANK.yearly > PLAN_RANK.weekly, 'the year outranks the week');
   const subs = { data: [] };
   const stripe = { subscriptions: { list: async () => subs } };
   const users = new Map([['cus_1', { id: 'u-1', plan: 'free', stripe_customer_id: 'cus_1' }]]);
@@ -215,15 +268,17 @@ const gate = () => true;
   const hushLog = console.log; console.log = () => {};
   try {
     subs.data = [
-      { status: 'active', items: { data: [{ price: { metadata: { mdq_plan: 'illuminated' } } }] } },
-      { status: 'active', items: { data: [{ price: { metadata: { mdq_plan: 'voiced' } } }] } },
+      { status: 'active', items: { data: [{ price: { metadata: { mdq_plan: 'weekly' } } }] } },
+      { status: 'active', items: { data: [{ price: { metadata: { mdq_plan: 'yearly' } } }] } },
     ];
-    assert.equal(await reconcileEntitlement({ customerId: 'cus_1' }, deps), 'voiced', 'the highest active seat wins');
-    assert.equal(users.get('cus_1').plan, 'voiced');
-    subs.data = [{ status: 'past_due', items: { data: [{ price: { metadata: { mdq_plan: 'illuminated' } } }] } }];
-    assert.equal(await reconcileEntitlement({ customerId: 'cus_1' }, deps), 'illuminated', 'past_due keeps grace while the card retries');
-    subs.data = [{ status: 'canceled', items: { data: [{ price: { metadata: { mdq_plan: 'voiced' } } }] } }];
-    assert.equal(await reconcileEntitlement({ customerId: 'cus_1' }, deps), 'free', 'a lapsed seat falls back to the hearth');
+    assert.equal(await reconcileEntitlement({ customerId: 'cus_1' }, deps), 'yearly', 'the highest active seat wins');
+    assert.equal(users.get('cus_1').plan, 'yearly');
+    subs.data = [{ status: 'past_due', items: { data: [{ price: { metadata: { mdq_plan: 'weekly' } } }] } }];
+    assert.equal(await reconcileEntitlement({ customerId: 'cus_1' }, deps), 'weekly', 'past_due keeps grace while the card retries');
+    subs.data = [{ status: 'active', items: { data: [{ price: { metadata: { mdq_plan: 'voiced' } } }] } }];
+    assert.equal(await reconcileEntitlement({ customerId: 'cus_1' }, deps), 'free', 'a RETIRED mark raises no seat — the menu is the law');
+    subs.data = [{ status: 'canceled', items: { data: [{ price: { metadata: { mdq_plan: 'yearly' } } }] } }];
+    assert.equal(await reconcileEntitlement({ customerId: 'cus_1' }, deps), 'free', 'a lapsed seat falls back to the taste');
     assert.equal(users.get('cus_1').plan, 'free');
     assert.equal(await reconcileEntitlement({ customerId: 'cus_stranger' }, deps), null, 'strangers flip nothing');
   } finally { console.log = hushLog; }
@@ -289,22 +344,33 @@ const gate = () => true;
   fresh();
   const q = bench({
     'SELECT plan': [{ plan: 'free', stripe_customer_id: null }],
-    'GROUP BY kind': [{ kind: 'paint', n: 3 }],
+    'GROUP BY kind': [{ kind: 'dm', n: 3 }],
     'FROM stripe.prices': [
-      { id: 'price_a', unit_amount: '900', currency: 'usd', recurring: { interval: 'month' }, metadata: { mdq_plan: 'illuminated' } },
-      { id: 'price_b', unit_amount: '1900', currency: 'usd', recurring: '{"interval":"month"}', metadata: '{"mdq_plan":"voiced"}' },
+      { id: 'price_w', unit_amount: '500', currency: 'usd', recurring: { interval: 'week' }, metadata: { mdq_plan: 'weekly' } },
+      { id: 'price_y', unit_amount: '12999', currency: 'usd', recurring: '{"interval":"year"}', metadata: '{"mdq_plan":"yearly"}' },
+      { id: 'price_old', unit_amount: '900', currency: 'usd', recurring: { interval: 'month' }, metadata: { mdq_plan: 'illuminated' } },
       { id: 'price_x', unit_amount: '99', currency: 'usd', recurring: null, metadata: {} },
     ],
   });
   const toll = await buildToll({ patron: { id: 'u-free' } }, { gate, query: q });
   assert.equal(toll.live, true);
   assert.equal(toll.plan, 'free');
-  assert.equal(toll.taste, true, 'the hearth seat tastes illumination');
-  assert.equal(toll.ceiling, 'illuminated');
+  assert.equal(toll.taste, true, 'the free seat is the taste');
+  assert.equal(toll.lifetime, true, 'and it is counted for life');
+  assert.equal(toll.ceiling, 'voiced', 'the taste is the full flavor');
+  assert.equal(toll.renewsAt, null, 'a lifetime taste shows no page-turn');
   assert.deepEqual(toll.quotas, PLANS.free.quotas);
-  assert.equal(toll.used.paint, 3);
+  assert.equal(toll.used.dm, 3);
+  const tallyText = q.spoken.find((s) => s.text.includes('GROUP BY kind')).text;
+  assert.ok(!tallyText.includes('date_trunc'), 'the standing page reads the whole book for a taste');
   assert.equal(toll.portal, false, 'no coin yet, no portal');
-  assert.deepEqual(toll.prices.map((p) => p.plan).sort(), ['illuminated', 'voiced'], 'only the house marks are chalked, both metadata shapes read');
+  assert.deepEqual(toll.prices.map((p) => p.plan).sort(), ['weekly', 'yearly'],
+    'only today\'s menu is chalked — retired marks and foreign products never listed, both metadata shapes read');
+  assert.deepEqual(
+    toll.prices.map((p) => `${p.plan}:${p.amount}/${p.interval}`).sort(),
+    ['weekly:500/week', 'yearly:12999/year'],
+    'the board speaks the owner\'s prices',
+  );
   const guest = await buildToll({ patron: null }, { gate, query: q });
   assert.equal(guest.live, true);
   assert.equal(guest.plan, 'guest');
@@ -323,6 +389,8 @@ let asked = 0;
 globalThis.fetch = async () => { asked += 1; return { ok: false }; };
 const toll = await import('../src/patron/toll.jsx');
 assert.equal(toll.tollAllows('paint'), true, 'an unknown standing never blocks the table');
+assert.equal(toll.priceWords({ amount: 500, interval: 'week' }), '$5/week', 'whole dollars stay whole');
+assert.equal(toll.priceWords({ amount: 12999, interval: 'year' }), '$129.99/year', 'split coins spoken in full');
 
 function Probe() { const t = toll.useToll(); return t ? h('b', null, 'lit') : null; }
 let probe;
@@ -336,4 +404,4 @@ await act(async () => { section = TestRenderer.create(h(toll.TollSection, { toll
 assert.equal(section.toJSON(), null, 'the toll window renders nothing keyless');
 await act(async () => { section.unmount(); });
 
-console.log('toll-house eval — the gateway is lawful: dormant house unchanged, the innkeeper speaks for the ledger, stand-ins are never billed, seats flip both ways, the courier honors the seal, and a keyless fork never learns money exists.');
+console.log('toll-house eval — the gateway is lawful: the door is locked (keyed) and absent (keyless), the taste is six turns counted for life with honest nulls for dates, paid seats pour unmeasured, stand-ins are never billed, seats flip both ways and retired marks raise nothing, the courier honors the seal, and a keyless fork never learns money exists.');

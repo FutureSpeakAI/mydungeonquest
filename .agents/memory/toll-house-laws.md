@@ -1,11 +1,24 @@
 ---
 name: Toll-House laws & Stripe connector shape
-description: MyDungeon.Quest metered-gateway invariants + hard-won Replit Stripe connector payload lessons
+description: MyDungeon.Quest billing doctrine — the menu, honest-nulls law, reconcile rules, the price mason, connector quirks
 ---
 
-- The gateway is opt-in twice over: live only when the door (Clerk) AND the mint (Stripe) stand; otherwise dormant — unmetered, byte-for-byte legacy behavior, and the eval bench asserts the dormant house. Never make the toll-house load-bearing for keyless forks.
-- **Why:** the product doctrine is "a keyless fork stays whole"; money must never leak into that path, and evals run keyless.
-- Billing law: debit AFTER work is served, only for real providers (mock/fallback stand-ins never billed; declined retells never billed); house compute (podcast/pdf) debits as `'house'`. Fail CLOSED for paid pours, OPEN for the tale itself (dm/retell). Refusals are 402s in the innkeeper's voice: `{closed:true, reason:'table'|'spent'|'mislaid', upsell, error}` — never a raw error.
-- Entitlement truth is re-read from `subscriptions.list` (`price.metadata.mdq_plan`, highest active/trialing/past_due rank wins) and written to `users.plan` — never trusted from a webhook body; webhooks only trigger the re-read.
-- Replit Stripe connector payload (hard-won, July 2026): the `connector_names=stripe` query filter returns 0 items — fetch ALL connections unfiltered and pick `connector_name === 'stripe'` client-side. The secret lives at `settings.secret` (NOT `settings.secret_key`); accept both. `stripe-replit-sync`'s `syncBackfill()` syncs NOTHING when called bare — it must be `syncBackfill({ object: 'all' })`.
-- **How to apply:** any new Stripe-touching code (seed scripts, server boot, evals) goes through these shapes; when the price board looks blank or plans don't sync, check these three payload quirks before anything else.
+## The menu (owner directive, July 2026 — replaced parchment/illuminated/voiced)
+- `free` "The taste": **lifetime** quotas (never reset — counted from the whole book, no month filter): dm 6, retell 2, paint 12, speak 40, music 6, sfx 18, podcast 1, pdf 1. Full flavor (ceiling `voiced`).
+- `weekly` $5/week and `yearly` $129.99/year — both **unmetered** (all quotas null). Watchtower spend ceilings + burst caps are the real safety net behind "unlimited".
+- `guest` is a sentinel (zeros) reachable only via the standing page — the locked door (see mydungeon-door.md) answers 401 on pouring rooms before the innkeeper ever runs.
+
+## Laws
+- Gateway opt-in twice over: stands only when BOTH door (Clerk) and mint (Stripe) live; otherwise every room is a hallway and buildToll says `{live:false}`.
+- **Honest-nulls law**: `renewsAt` is spoken only where a real monthly meter turns. Lifetime taste, unmetered seats, zeroed kinds ('table' refusals), and mislaid ledgers all carry `renewsAt: null`. Never invent a page-turn date.
+- Debit only real work: mock/fallback answer 'stand-in' (never billed); house-made work debits as 'house'; a slipped debit is loud but never claws back a poured response.
+- reconcileEntitlement: highest ACTIVE seat wins (past_due keeps grace); the price's `metadata.mdq_plan` must exist in today's `PLANS` — **retired marks (illuminated, voiced) raise no seat**.
+- Never sell a seated patron a second chair: any paid standing → portal, not checkout.
+- The 402 payload shape is load-bearing (refusal-receipt UI): `kind/plan/reason/quota/used/renewsAt/upsell/error` — keep stable.
+
+## Tools of the trade
+- `scripts/chalk-board.mjs` — the price mason: idempotent; chalks weekly/yearly (mdq_plan on price AND product), retires any active mdq_plan-marked price not on today's menu (+ its product if orphaned), never touches unmarked/foreign prices.
+- `scripts/toll-road.mjs` — walks the REAL road (checkout → 4242 → webhook flips users.plan → unmetered standing → second-sale refusal → portal → cancel lowers to free → sweep). Needs the dev workflow running (webhook lands there).
+
+**Why:** the July 2026 business-model overhaul (mandatory door, six-turn lifetime taste, $5/wk or $129.99/yr unlimited) replaced the old monthly-allowance menu; several laws (honest nulls, retired marks) exist because the overhaul left stale dates and stale Stripe marks behind.
+**How to apply:** any re-chalk of the menu = edit `PLANS` + run chalk-board + re-run toll-road + keep `evals/tollhouse.test.mjs` §6 board asserts in lockstep.

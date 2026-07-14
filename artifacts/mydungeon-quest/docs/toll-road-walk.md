@@ -14,6 +14,14 @@ the entitlement flips):
 npm run toll-road
 ```
 
+**The dev server MUST be running first.** The walk preflight-pings
+`https://<domain>/api/health` before opening checkout and aborts with
+"start the dev server first" if it doesn't answer — without a live server the
+registered webhook has nowhere to land. And once the preflight has passed, a
+webhook that still fails to flip `users.plan` within the 60s wait window FAILS
+the walk outright; the `/toll/refresh` fallback exists for real users' resilience,
+but it is never a pass condition on this road.
+
 The rig needs a live gateway — `DATABASE_URL` and the Stripe connector — so it is NOT
 part of the keyless eval bench (`npm run check`). Re-walk the road after any change to
 the toll, the mint, or the prices.

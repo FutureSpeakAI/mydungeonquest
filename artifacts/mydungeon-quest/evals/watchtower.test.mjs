@@ -26,7 +26,7 @@ delete process.env.ALERT_WEBHOOK_URL;
 const {
   rateLimit, abuseCaps, logLine,
   recordSpend, spendAllowed, spentToday, ceilingFor,
-  notifyOwner, ringAlarm, alarmReport,
+  notifyOwner, ringAlarm, alarmReport, testHerald, heraldReport, watchReport,
   __resetWatchtowerForEval,
 } = await import('../server/watchtower.js');
 
@@ -232,6 +232,26 @@ const run = (mw, rq) => new Promise((resolve) => {
     assert.equal(await notifyOwner('alarm:crash', 3600000, 'x', stumble), 'undelivered', 'a refused webhook is undelivered, not fatal');
   } finally { console.error = realErr; }
   assert.equal(errs2.length, 1, 'the stumble is one log line');
+
+  // the test ping: skips the throttle, records the outcome for /api/health
+  __resetWatchtowerForEval();
+  assert.deepEqual(heraldReport(), { configured: false, last: null }, 'an unhired herald reports honestly');
+  assert.equal(await testHerald(), 'mute', 'no webhook → the test ping is mute, forks unchanged');
+  assert.equal(heraldReport().last, null, 'a mute ping records nothing');
+  const pings = [];
+  const pingDeps = { url: 'https://hooks.example/eval', fetch: async (url, opts) => { pings.push(JSON.parse(opts.body)); return { ok: true }; } };
+  assert.equal(await testHerald(pingDeps), 'sent', 'a chalked herald delivers the test ping');
+  assert.equal(await testHerald(pingDeps), 'sent', 'the test ping is never throttled');
+  assert.equal(pings.length, 2, 'each ask rings');
+  assert.match(pings[0].text, /test ping/i, 'the message says it is a test');
+  assert.equal(heraldReport().last.status, 'sent', 'the delivery is recorded');
+  const stumblePing = { url: 'https://hooks.example/eval', fetch: async () => ({ ok: false, status: 404 }) };
+  console.error = () => {};
+  try { assert.equal(await testHerald(stumblePing), 'undelivered', 'a mislaid URL is reported, not thrown'); }
+  finally { console.error = realErr; }
+  assert.equal(heraldReport().last.status, 'undelivered', 'the stumble is recorded for health');
+  const report = await watchReport({ durable: () => false });
+  assert.equal(report.herald.last.status, 'undelivered', 'watchReport carries the herald record to /api/health');
 }
 
 __resetWatchtowerForEval();

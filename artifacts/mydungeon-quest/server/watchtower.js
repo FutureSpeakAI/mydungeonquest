@@ -47,6 +47,10 @@ export function logLine(level, evt, fields = {}) {
 // kind per hour, one per provider-ceiling per UTC day.
 const heraldUrl = () => String(process.env.ALERT_WEBHOOK_URL || '').trim();
 const heraldSent = new Map(); // dedupe key → last-sent epoch ms
+// The herald's own record: was the last message delivered? Health reads this,
+// so the owner learns of a mislaid webhook before a real incident does.
+let heraldLast = null; // { status: 'sent'|'undelivered', key, at }
+export const heraldReport = () => ({ configured: Boolean(heraldUrl()), last: heraldLast ? { ...heraldLast } : null });
 function heraldDue(key, ttlMs) {
   const last = heraldSent.get(key) || 0;
   if (Date.now() - last < ttlMs) return false;
@@ -67,14 +71,31 @@ export function notifyOwner(key, ttlMs, text, deps = {}) {
   })
     .then((r) => {
       if (!r.ok) throw new Error(`webhook answered ${r.status}`);
+      heraldLast = { status: 'sent', key, at: new Date().toISOString() };
       return 'sent';
     })
     .catch((error) => {
       // A herald who stumbles is noted, never fatal — and never re-throws
       // into the very alarm path that hired him.
+      heraldLast = { status: 'undelivered', key, at: new Date().toISOString() };
       logLine('error', 'herald_undelivered', { key, message: String(error?.message || error).slice(0, 200) });
       return 'undelivered';
     });
+}
+
+/**
+ * The test ping — proof the chalked webhook actually delivers. Skips the
+ * throttle (a fresh key each call) so the owner can ring it at will; the
+ * outcome lands in heraldReport() and on /api/health. Mute when no herald
+ * was ever hired, so keyless/unconfigured forks are unchanged.
+ */
+export function testHerald(deps = {}) {
+  return notifyOwner(
+    `test:${Date.now()}`,
+    0,
+    `🔔 MyDungeon.Quest herald test ping — if you can read this, alarm and spend-ceiling notifications will reach you here.`,
+    deps,
+  );
 }
 
 // The alarm bell: alerts are errors the owner should hear about. They ring
@@ -355,6 +376,7 @@ export async function watchReport(deps = {}) {
     uptimeSec: Math.floor(process.uptime()),
     ledger: await ledgerHealthy(deps),
     alarms: alarmReport(),
+    herald: heraldReport(),
     spend,
   };
 }
@@ -369,4 +391,5 @@ export function __resetWatchtowerForEval() {
   alarms.count = 0;
   alarms.last = null;
   heraldSent.clear();
+  heraldLast = null;
 }

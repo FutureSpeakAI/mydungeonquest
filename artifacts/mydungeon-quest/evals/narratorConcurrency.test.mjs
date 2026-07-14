@@ -229,5 +229,61 @@ async function reset() {
   console.log('PASS — toggling the same turn pauses/resumes in place without a second voice.');
 }
 
+// ---------------------------------------------------------------------------
+// 5. MULTI-SEGMENT turn (narrator prose + a character's OWN voice). Segments are
+//    generated one at a time, so between the narrator segment ending and the
+//    dialogue segment arriving there is an inter-segment gap. A pause tap in that
+//    gap must NOT resume the finished segment, and the arriving segment must NOT
+//    start a second voice. Resume then plays exactly the next segment; stop
+//    leaves nothing audible. This guards the multi-voice reader against overlap.
+// ---------------------------------------------------------------------------
+{
+  await reset();
+  const campaign = { id: 'camp-multi', codex: { cast: [] } };
+  const multiTurn = {
+    id: 'turn-multi', recordHash: 'hash-multi',
+    dm: { narration_blocks: [
+      { text: 'The hall fell silent.', speaker: null },
+      { text: 'You will not pass.', speaker: 'Mara' },
+    ] },
+  };
+
+  const play = playNarration(campaign, multiTurn, { withBed: false });
+  await tick();
+  assert.equal(speakCalls.length, 1, 'a multi-segment turn generates one segment at a time');
+  const seg0 = speakCalls[0].text;
+  releaseSpeak(seg0);
+  await play;
+  await tick();
+  assert.equal(audible('voice').length, 1, 'the first (narrator) segment plays');
+  const firstEl = audible('voice')[0];
+
+  // The narrator segment finishes (a real ended element reports ended+paused),
+  // so the chain requests the dialogue segment — the gap begins.
+  firstEl.ended = true; firstEl.paused = true; firstEl.onended();
+  await tick();
+  assert.equal(audible('voice').length, 0, 'nothing plays during the inter-segment gap');
+  assert.equal(speakCalls.filter((c) => !c.done).length, 1, 'the next segment is being generated');
+
+  // Player taps PAUSE inside the gap; then the dialogue segment's audio arrives.
+  toggleNarration(campaign, multiTurn);
+  const seg1 = speakCalls.find((c) => !c.done).text;
+  releaseSpeak(seg1);
+  await tick();
+  assert.equal(audible('voice').length, 0, 'a pause in the gap must not start the arriving segment');
+  assert.ok(audios.every((a) => a.paused || a.ended), 'no orphan voice is left playing while paused');
+
+  // Resume: exactly the dialogue segment plays — never a replay of the narrator.
+  toggleNarration(campaign, multiTurn);
+  await tick();
+  const live = audible('voice');
+  assert.equal(live.length, 1, 'resume plays exactly one voice, the next segment');
+  assert.ok(live[0].src.includes(seg1), 'resume plays the dialogue segment, not a replay of the narrator');
+
+  stopNarration();
+  assert.equal(audible('voice').length, 0, 'stop silences the reading with no orphan track');
+  console.log('PASS — multi-segment: a pause in the inter-segment gap never overlaps or orphans a voice.');
+}
+
 await reset();
 console.log('PASS — the narrator never talks over itself (concurrency guard holds under every race).');

@@ -224,3 +224,7 @@
 .chronicle-page .page-wax{color:#d4a24e}
 @media (max-width:640px){.chronicle-page .page-body{flex-direction:column}.chronicle-page .page-margin{width:auto;border-left:none;border-top:1px solid rgba(212,162,78,.25);padding:10px 0 0}}
 @media (prefers-reduced-motion: reduce){.chronicle-page{transition:none}}
+
+/* THE BOUND CHRONICLE — the folio toggle (Letter | A5) */
+.size-toggle{display:inline-flex;gap:.4rem;margin-right:auto}
+.size-toggle .secondary-button.selected{border-color:#d4a24e;color:#d4a24e}

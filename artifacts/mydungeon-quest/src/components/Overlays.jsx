@@ -102,7 +102,8 @@ export function Settings({ campaign, settings, onChange, onDownloadAudio, audioB
     {onDownloadAudio && <>
       <h3>The chronicle, read aloud</h3>
       <p className="muted">Stitch every turn's narration — each soul in its own voice, nothing playing beneath — into one reading you can keep.</p>
-      <button className="secondary-button" disabled={audioBusy} onClick={onDownloadAudio}><Download/> {audioBusy ? 'Binding audio…' : 'Download quest audio'}</button>
+      <button className="secondary-button" disabled={audioBusy} onClick={onDownloadAudio}><Download/> {audioBusy ? 'Forging the episode…' : 'Forge the podcast'}</button>
+      <p className="muted">One produced episode from the sealed record — the Chronicler retells, the cast re-speak their own lines, stings sound only between sections. The forge binds real voices only; a keyless table keeps the book.</p>
     </>}
     <div className="law-note"><Heart/><span>No accounts. Nothing leaves this device without you.</span></div>
   </Frame>;

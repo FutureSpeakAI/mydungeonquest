@@ -131,10 +131,11 @@ for (const kind of ['paint','speak','music','sfx']) {
   });
 }
 
-// THE BOUND AUDIOBOOK — mix an ordered set of narration segments into one MP3,
-// ducking an optional looped music bed underneath. Segments arrive base64 (they
-// live on the player's device); ffmpeg normalizes each to a common format before
-// concat so mixed mock-WAV + real-MP3 clips stitch cleanly.
+// THE PODCAST FORGE — sequence voices, gaps, and stings into one MP3 episode.
+// THE SOUND LAW holds at this boundary: the old music BED IS RETIRED (a bed
+// request is refused by name), mock provenance is refused at the door, and the
+// plan is re-judged here — the graph the sequencer builds is one concat chain
+// that cannot overlap two sounds. Chapter markers and cover art ride along.
 function runFfmpeg(args) {
   return new Promise((resolve, reject) => {
     const proc = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
@@ -146,49 +147,100 @@ function runFfmpeg(args) {
 }
 
 app.post('/api/quest-audio', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), async (req, res) => {
-  const { segments = [], bed = null, title = 'chronicle' } = req.body || {};
-  if (!Array.isArray(segments) || !segments.length) return res.status(400).json({ error: 'No narration segments were provided.' });
+  const { segments = [], stings = [], plan = null, cover = null, bed = null, title = 'chronicle' } = req.body || {};
+  if (bed) return res.status(400).json({ error: 'The bed is retired. Music is punctuation between voices — never underneath them.' });
+  if (!Array.isArray(segments) || !segments.length) return res.status(400).json({ error: 'The forge needs voices. A keyless table keeps the book.' });
+  if ([...segments, ...(Array.isArray(stings) ? stings : [])].some((clip) => clip?.provider === 'mock')) {
+    return res.status(422).json({ error: 'The forge binds real voices only — placeholder audio is refused at the door.' });
+  }
+  const { assertLawfulPlan } = await import('../src/lib/podcast.js');
+  const { LAWFUL_REF, buildSequencerArgs, buildChapterMetadata, probeDurationMs } = await import('./sequencer.js');
+
+  // The forge's measure — hard caps before any work is done. A plan is an
+  // episode, not a denial of service: bounded clips, bounded items, bounded
+  // breath. (The body cap and rate limit stand watch outside this door.)
+  const stingList = Array.isArray(stings) ? stings : [];
+  const planItems = Array.isArray(plan?.items) ? plan.items : [];
+  const planChapters = Array.isArray(plan?.chapters) ? plan.chapters : [];
+  if (segments.length > 200 || stingList.length > 8) return res.status(400).json({ error: 'The forge refuses a payload that large.' });
+  if (planItems.length > 400 || planChapters.length > 40) return res.status(400).json({ error: 'The forge refuses a plan that large.' });
+  if (planItems.filter((item) => item?.type === 'voice' || item?.type === 'sting').length > 250) return res.status(400).json({ error: 'The forge refuses a plan that large.' });
+  if (planItems.some((item) => item?.type === 'gap' && !(Number(item.ms) > 0 && Number(item.ms) <= 15000))) return res.status(400).json({ error: 'A gap must breathe — longer than nothing, shorter than fifteen seconds.' });
+
+  // THE REF LAW — refs become file names in the binder's room, so they pass
+  // one strict gate: lowercase letter first, then letters/digits/hyphens, no
+  // duplicates. Nothing a ref can say will ever climb out of the temp dir.
+  const clips = [
+    ...segments.map((clip, i) => ({ ...clip, ref: clip?.ref || `v${i}` })),
+    ...stingList.map((clip, i) => ({ ...clip, ref: clip?.ref || `s${i}` }))
+  ];
+  const seenRefs = new Set();
+  for (const clip of clips) {
+    if (!LAWFUL_REF.test(clip.ref) || seenRefs.has(clip.ref)) {
+      return res.status(400).json({ error: 'Unlawful or duplicate clip ref — the binder\'s room has one strict door.' });
+    }
+    seenRefs.add(clip.ref);
+  }
+
   const dir = await mkdtemp(join(tmpdir(), 'quest-audio-'));
   try {
-    const inputs = [];
-    for (let i = 0; i < segments.length; i += 1) {
-      const ext = String(segments[i].mime || '').includes('wav') ? 'wav' : 'mp3';
-      const file = join(dir, `seg${i}.${ext}`);
-      await writeFile(file, Buffer.from(String(segments[i].audio || ''), 'base64'));
-      inputs.push(file);
-    }
-    let bedFile = null;
-    if (bed?.audio) {
-      const ext = String(bed.mime || '').includes('wav') ? 'wav' : 'mp3';
-      bedFile = join(dir, `bed.${ext}`);
-      await writeFile(bedFile, Buffer.from(String(bed.audio), 'base64'));
+    const files = {};
+    for (const clip of clips) {
+      const ext = String(clip.mime || '').includes('wav') ? 'wav' : 'mp3';
+      const file = join(dir, `${clip.ref}.${ext}`);
+      await writeFile(file, Buffer.from(String(clip.audio || ''), 'base64'));
+      files[clip.ref] = file;
     }
 
-    const out = join(dir, 'chronicle.mp3');
-    const args = ['-y'];
-    for (const file of inputs) args.push('-i', file);
-    if (bedFile) args.push('-stream_loop', '-1', '-i', bedFile);
-
-    const norm = 'aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo';
-    const prep = inputs.map((_, i) => `[${i}:a]${norm}[a${i}]`).join(';');
-    const chain = inputs.map((_, i) => `[a${i}]`).join('');
-    let filter = `${prep};${chain}concat=n=${inputs.length}:v=0:a=1[voice]`;
-    let mapLabel = '[voice]';
-    if (bedFile) {
-      filter += `;[${inputs.length}:a]${norm},volume=0.16[bed];[voice][bed]amix=inputs=2:duration=first:dropout_transition=0[mix]`;
-      mapLabel = '[mix]';
+    // Legacy callers send a bare voice list — synthesize the lawful sequence
+    // (a breath before the first word, breathing gaps between voices).
+    let items = planItems;
+    let chapters = planChapters;
+    if (!items.length) {
+      items = [];
+      segments.forEach((segment, i) => {
+        items.push({ type: 'gap', ms: i ? 650 : 400 });
+        items.push({ type: 'voice', ref: segment?.ref || `v${i}` });
+      });
+      chapters = [];
     }
-    args.push('-filter_complex', filter, '-map', mapLabel, '-ac', '2', '-ar', '44100', '-b:a', '160k', out);
+    // The plan is re-judged at this door, whoever built it — and it may only
+    // cite clips that actually walked in with it.
+    const lawful = assertLawfulPlan({ items });
+    if (!lawful.ok) return res.status(400).json({ error: `Unlawful sequence: ${lawful.errors[0]}` });
+    for (const item of items) {
+      if (item.type !== 'gap' && !files[item.ref]) return res.status(400).json({ error: 'The plan cites a clip that never arrived.' });
+    }
+
+    // Cover art through the strict door only: plain base64 png/jpeg data URI.
+    let coverFile = null;
+    const coverMatch = typeof cover === 'string' && /^data:image\/(?:png|jpe?g);base64,([A-Za-z0-9+/=]+)$/.exec(cover);
+    if (coverMatch) { coverFile = join(dir, 'cover.img'); await writeFile(coverFile, Buffer.from(coverMatch[1], 'base64')); }
+
+    // Chapter markers need true durations; markers are garnish — a failed
+    // probe skips the markers, never the episode.
+    let metaFile = null;
+    if (chapters.length) {
+      try {
+        const durations = [];
+        for (const item of items) durations.push(item.type === 'gap' ? Math.max(1, item.ms | 0) : await probeDurationMs(files[item.ref]));
+        metaFile = join(dir, 'chapters.txt');
+        await writeFile(metaFile, buildChapterMetadata(chapters, durations));
+      } catch { metaFile = null; }
+    }
+
+    const out = join(dir, 'episode.mp3');
+    const { args } = buildSequencerArgs({ items, files, out, coverFile, metaFile });
     await runFfmpeg(args);
 
     const data = await readFile(out);
     const slug = String(title).replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'chronicle';
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Disposition', `attachment; filename="${slug}.quest.mp3"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${slug}.podcast.mp3"`);
     res.send(data);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'The chronicle audio could not be mixed.' });
+    res.status(500).json({ error: 'The episode could not be sequenced.' });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

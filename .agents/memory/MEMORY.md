@@ -9,3 +9,5 @@
 - [MyDungeon component tests in node harness](mydungeon-component-tests.md) — render React (onError fallbacks etc.) in the pure-node eval: esbuild jsx loader + react-test-renderer + fake-indexeddb (separate process), stub createObjectURL by blob.type.
 - [MyDungeon multi-voice narrator](mydungeon-multivoice-narrator.md) — per-character voice segments chain on onended; never infer pause from element.paused (ended reports paused → overlap); scene-cue `subjects` drive character consistency.
 - [MyDungeon turn presentation](mydungeon-turn-presentation.md) — user-approved order: text → Listen → plate below; chapter cards fire before paint lands, so backdrops ladder to the latest painted scene.
+- [Strict media doors](strict-media-doors.md) — client strings that become HTML/CSS, ffmpeg graphs, or file names pass a whitelist regex at the boundary (data:image…, ref law); two same-class holes proved it.
+- [MyDungeon redaction law](mydungeon-redaction-law.md) — journal strikes outrank snapshot flags; retellings fall WHOLE if any cited turn is struck; citeless pages are never used.

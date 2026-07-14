@@ -327,3 +327,15 @@
 .toll-tallies .spent,.toll-tallies .spent b{color:#c96f6f}
 .toll-seats{display:grid;gap:.55rem;margin:.4rem 0 1rem}
 .toll-seats .text-button{justify-self:start}
+
+/* THE VAULT — quiet marks and the vaulted shelf */
+.spine-vault{position:absolute;top:6px;left:0;right:0;text-align:center;color:rgba(212,162,78,.7);font-size:.6rem}
+.book-spine{position:relative}
+.vault-mark{color:#95876c;margin-left:.8rem;white-space:nowrap}
+.vault-shelf{margin-top:1.6rem;text-align:center}
+.vault-shelf .eyebrow{letter-spacing:.22em;font-size:.66rem;color:var(--gold)}
+.vault-row{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;margin-top:.7rem}
+.vault-spine{border:1px dashed rgba(212,162,78,.45);background:linear-gradient(180deg,rgba(26,20,31,.85),rgba(20,16,25,.85));border-radius:10px;padding:.6rem .9rem;display:grid;gap:.15rem;text-align:left;color:var(--vellum,#e9dfc8)}
+.vault-spine:hover{border-color:var(--gold)}
+.vault-spine b{font-family:Cinzel,Georgia,serif;font-size:.82rem}
+.vault-spine small{color:var(--vellum-dim);font-size:.68rem}

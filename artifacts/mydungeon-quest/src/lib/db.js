@@ -23,12 +23,20 @@ export async function listCampaigns() {
 // takes, so the two can never interleave.
 const CHAIN_FIELDS = ['headHash', 'turnCount', 'signatureStatus'];
 export async function saveCampaign(campaign) {
-  const value = { ...campaign, updatedAt: Date.now() };
+  // A forked spine redirects late writers: a stale in-memory campaign can
+  // never quietly recreate a spine the vault's fork law deleted.
+  let id = campaign.id;
+  try { const { redirectSpine } = await import('./vault.js'); id = redirectSpine(id); } catch { /* the vault is optional; the shelf is not */ }
+  const value = { ...campaign, id, updatedAt: Date.now() };
   await db.transaction('rw', db.campaigns, async () => {
-    const existing = await db.campaigns.get(campaign.id);
+    const existing = await db.campaigns.get(id);
     if (existing) for (const field of CHAIN_FIELDS) value[field] = existing[field];
     await db.campaigns.put(value);
   });
+  // Every save nudges the vault (a debounced whisper — signed-out players
+  // and keyless forks never even knock). Lazy import keeps this module
+  // dependency-light for the node harness.
+  import('./vault.js').then(({ nudgeVault }) => nudgeVault(campaign.id)).catch(() => {});
   return value;
 }
 

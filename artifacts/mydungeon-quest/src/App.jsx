@@ -25,6 +25,7 @@ import { downloadQuestAudio } from './lib/cinema/questaudio.js';
 import { buildStorybook } from './lib/storybook.js';
 import { slugify } from './lib/canonical.js';
 import { PatronDoor } from './patron/door.jsx';
+import { nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
 import { settleTollReturn, tollAllows } from './patron/toll.jsx';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
@@ -75,6 +76,8 @@ async function ensureSigner(campaignId) {
 let __sealChain = Promise.resolve();
 function seal(campaignId, type, payload) {
   const attempt = async () => {
+    // A forked spine redirects late seals — never append to a deleted name.
+    campaignId = redirectSpine(campaignId);
     const campaign = await db.campaigns.get(campaignId);
     if (!campaign) throw new Error('Campaign not found');
     const signer = await ensureSigner(campaignId);
@@ -88,6 +91,8 @@ function seal(campaignId, type, payload) {
   };
   const run = __sealChain.then(attempt);
   __sealChain = run.then(() => {}, () => {});
+  // Every seal nudges the vault — a debounced whisper, never a spinner storm.
+  run.then(() => nudgeVault(campaignId), () => {});
   return run;
 }
 
@@ -150,6 +155,36 @@ export default function App() {
   const ceremonyShownRef = useRef(new Set());
 
   const refreshShelf = useCallback(async () => setCampaigns(await listCampaigns()), []);
+  // THE VAULT — quiet marks per spine, the vaulted shelf for restores, and
+  // one whole-shelf sync when a signed-in table sits down.
+  const [vaultMarks, setVaultMarks] = useState(new Map());
+  const [vaultShelf, setVaultShelf] = useState([]);
+  useEffect(() => subscribeVault(setVaultMarks), []);
+  const refreshVaultShelf = useCallback(async () => setVaultShelf(await listVaultShelf()), []);
+  useEffect(() => {
+    syncShelf().then(refreshShelf).catch(() => {});
+    refreshVaultShelf();
+  }, [refreshShelf, refreshVaultShelf]);
+  // Sign-in/sign-out mid-session: the shelf and the vaulted row redraw the
+  // moment the door speaks — no reload asked of the player.
+  useEffect(() => onVaultSession(() => { refreshShelf(); refreshVaultShelf(); }), [refreshShelf, refreshVaultShelf]);
+  // When two tellings meet, this device's spine forks under a new name —
+  // the open table follows it immediately so no write can chase the old one.
+  const currentIdRef = useRef(null); currentIdRef.current = current?.id || null;
+  useEffect(() => onSpineForked(async ({ from, to }) => {
+    await refreshShelf();
+    if (currentIdRef.current !== from) return;
+    const next = await db.campaigns.get(to);
+    if (next) setCurrent(next);
+    setStatus('⑂ Two tellings met — this device keeps its own spine.');
+  }), [refreshShelf]);
+  const drawFromVault = useCallback(async (campaignId) => {
+    try {
+      const restored = await restoreFromVault(campaignId);
+      await refreshShelf(); await refreshVaultShelf();
+      setCurrent(restored); setFlow('table');
+    } catch (error) { setStatus(`✦ The vault would not open: ${error.message}`); }
+  }, [refreshShelf, refreshVaultShelf]);
   useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => { if (!row) return; const { score: _score, voice: _voice, ...kept } = row.value || {}; const value = { ...DEFAULT_SETTINGS, ...kept }; if (value.mediaTier === 'cinema') value.mediaTier = 'illuminated'; setSettings(value); }); }, [refreshShelf]);
   // Returning from the Stripe rooms: settle the ?toll= mark once — refresh
   // the standing server-side, wipe the mark from the bar, speak the outcome.
@@ -607,7 +642,7 @@ export default function App() {
 
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'title') return <TitleScreen campaigns={campaigns} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} />;
+  if (flow === 'title') return <TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} />;
   if (!current) return null;
 
   const chapter = chapterInfo(current.codex);
@@ -655,7 +690,7 @@ export default function App() {
     {!current.readOnly && nearEnd && <div className="near-end"><span>✦ The final chapters draw near.</span><button onClick={() => setOverlay('seal-ask')}>Seal the Tale</button></div>}
     {!current.readOnly && !current.completed && <Composer campaign={current} busy={busy} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
     {!current.readOnly && current.completed && <section className="tale-told"><span>✦ Your tale is told.</span><button onClick={() => setOverlay('sealing')}>{current.sealedAt ? 'Open the keepsakes' : 'Seal the chronicle'}</button></section>}
-    <footer className="seal-status"><span>{status}</span></footer>
+    <footer className="seal-status"><span>{status}</span>{VAULT_MARKS[vaultMarks.get(current.id)?.state] && <span className="vault-mark" title={VAULT_MARKS[vaultMarks.get(current.id).state].word}>{VAULT_MARKS[vaultMarks.get(current.id).state].glyph} {VAULT_MARKS[vaultMarks.get(current.id).state].word}</span>}</footer>
     {diceResult && <DiceOverlay result={diceResult} haptics={settings.haptics} onDone={() => setDiceResult(null)} />}
     {cinematic && <Cinematic cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
     {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
@@ -675,7 +710,15 @@ export default function App() {
 const SPINE_DYES = ['#4a2b33', '#33463b', '#2e3350', '#54331f', '#3a2f45', '#463b28'];
 const dyeOf = (id) => SPINE_DYES[Math.abs([...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)) % SPINE_DYES.length];
 
-function TitleScreen({ campaigns, onNew, onOpen, onRestore, reduceMotion, mediaTier }) {
+// The vault's quiet marks — one glyph, in-brand, never a spinner storm.
+const VAULT_MARKS = {
+  vaulted: { glyph: '⛨', word: 'kept in the vault' },
+  syncing: { glyph: '…', word: 'reaching the vault' },
+  'diverged-forked': { glyph: '⑂', word: 'two tellings — this device kept its own spine' },
+  error: { glyph: '◌', word: 'the vault is out of reach — the tale is safe on this device' },
+};
+
+function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVaultRestore, onNew, onOpen, onRestore, reduceMotion, mediaTier }) {
   const input = useRef(null);
   const bundled = ['drowned', 'frontier', 'gate', 'mountain'].map((n) => `${import.meta.env.BASE_URL}keyart/${n}.jpg`);
   const [bgIndex, setBgIndex] = useState(0);
@@ -743,6 +786,7 @@ function TitleScreen({ campaigns, onNew, onOpen, onRestore, reduceMotion, mediaT
               onClick={() => { firstTouch(); onOpen(c, { keepsakes: Boolean(c.sealedAt) }); }}>
               <span className="spine-bands" aria-hidden><i/><i/><i/></span>
               <span className="spine-title">{c.title}</span>
+              {VAULT_MARKS[vaultMarks.get(c.id)?.state] && <span className="spine-vault" aria-hidden title={VAULT_MARKS[vaultMarks.get(c.id).state].word}>{VAULT_MARKS[vaultMarks.get(c.id).state].glyph}</span>}
               {waxed ? <span className="spine-wax" aria-hidden>{c.hero?.sigil || '✦'}</span> : <span className="spine-foot" aria-hidden>✦</span>}
             </button>;
           })}
@@ -756,6 +800,22 @@ function TitleScreen({ campaigns, onNew, onOpen, onRestore, reduceMotion, mediaT
         <div className="shelf-plank" aria-hidden/>
         <p className="shelf-plaque">{plaque || (campaigns.length ? 'Draw a spine from the shelf.' : 'The shelf waits for its first book.')}</p>
       </div>
+      {(() => {
+        // The vaulted shelf: spines kept in the vault that this device does
+        // not hold — one quiet row, drawn only when there is something to draw.
+        const local = new Set(campaigns.map((c) => c.id));
+        const away = vaultShelf.filter((s) => !local.has(s.campaignId));
+        if (!away.length) return null;
+        return <div className="vault-shelf">
+          <span className="eyebrow">⛨ Kept in the vault</span>
+          <div className="vault-row">
+            {away.map((s) => <button key={s.campaignId} className="vault-spine" onClick={() => onVaultRestore?.(s.campaignId)}
+              title={`Restore "${s.title}" to this device`}>
+              <b>{s.title}</b><small>{s.hero || 'a hero'} · {s.turnCount} seals{s.sealedAt ? ' · sealed' : ''}</small>
+            </button>)}
+          </div>
+        </div>;
+      })()}
     </section>}
     <footer className="title-footer"><span>Yours alone · Plays offline · Every turn sealed</span><PatronDoor/></footer>
   </main>;

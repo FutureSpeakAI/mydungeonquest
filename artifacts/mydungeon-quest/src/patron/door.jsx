@@ -7,7 +7,8 @@
 // so always walks the doorless house. With a key, the shell adds wouter
 // routing for /sign-in and /sign-up (Clerk needs real paths for its OAuth
 // callbacks) and the title footer offers a quiet line at the door.
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { vaultSessionChanged } from '../lib/vault.js';
 import { ClerkProvider, SignIn, SignUp, useClerk, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { Link, Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
@@ -134,6 +135,15 @@ function SignUpPage() {
   );
 }
 
+// Always mounted while the door stands: tells the vault the moment the
+// session changes, so sign-in awakens sync without a reload and sign-out
+// returns every spine to quiet local custody.
+function VaultWatch() {
+  const { user, isLoaded } = useUser();
+  useEffect(() => { if (isLoaded) vaultSessionChanged(user?.id || null); }, [isLoaded, user?.id]);
+  return null;
+}
+
 function DoorFrame({ children }) {
   const [, setLocation] = useLocation();
   const appearance = useDoorAppearance();
@@ -148,6 +158,7 @@ function DoorFrame({ children }) {
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
+      <VaultWatch />
       <Switch>
         {/* Verbatim wouter patterns — the /*? optional wildcard is the only
             syntax that matches both the bare URL and Clerk's OAuth sub-paths

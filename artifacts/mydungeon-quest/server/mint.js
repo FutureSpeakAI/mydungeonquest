@@ -73,6 +73,21 @@ async function getStripeCredentials() {
   return { secretKey, webhookSecret: settings.webhook_secret };
 }
 
+/**
+ * Hard gate for test rigs: throws unless the connected Stripe key is a
+ * TEST-mode key. Call this before any rig that creates/cancels/deletes
+ * Stripe objects — it must never run against live money.
+ */
+export async function assertStripeTestMode() {
+  const { secretKey } = await getStripeCredentials();
+  if (!/^(sk|rk)_test_/.test(secretKey)) {
+    throw new Error(
+      `REFUSED: the connected Stripe key (${secretKey.slice(0, 7)}…) is not a test-mode key — ` +
+        'the toll-road walk only runs against Stripe TEST mode.',
+    );
+  }
+}
+
 /** A fresh authenticated Stripe client (never cache — keys rotate). */
 export async function getUncachableStripeClient() {
   const { secretKey } = await getStripeCredentials();

@@ -22,12 +22,12 @@
  *      the seat lowers back to the taste
  *   9. sweep the road: cancel subs, delete the test customer and the row
  *
- * Run: node scripts/toll-road.mjs   (needs DATABASE_URL + Stripe connector)
+ * Run: npm run toll-road   (needs DATABASE_URL + Stripe connector, TEST mode)
  */
 import express from 'express';
 import { tollRoutes, ensureToll, PLANS } from '../server/toll.js';
 import { runQuery } from '../server/patrons.js';
-import { getUncachableStripeClient } from '../server/mint.js';
+import { getUncachableStripeClient, assertStripeTestMode } from '../server/mint.js';
 
 const CLERK_ID = 'toll_road_walk_test';
 const HOST = process.env.REPLIT_DOMAINS?.split(',')[0];
@@ -35,6 +35,11 @@ if (!HOST) throw new Error('REPLIT_DOMAINS missing');
 
 const say = (s) => console.log(`\n== ${s}`);
 const die = (s) => { console.error(`\nFAILED: ${s}`); process.exit(1); };
+
+// -- 0. the live-money gate: refuse anything but a test-mode key -------------
+say('0. checking the gate — test-mode keys only');
+await assertStripeTestMode();
+console.log('Stripe key is test-mode. The road may be walked.');
 
 // -- 1. seat the patron ------------------------------------------------------
 say('1. seating the test patron');

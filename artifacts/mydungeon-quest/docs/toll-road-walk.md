@@ -3,8 +3,24 @@
 **Date:** July 14, 2026 · **Mode:** Stripe TEST mode · **Card:** 4242 4242 4242 4242 (`pm_card_visa`)
 **Rig:** `scripts/toll-road.mjs` — the real `tollRoutes` mounted locally against the live
 database and live Stripe test account, with the running dev server's registered webhook
-(`https://<domain>/api/stripe/webhook`) doing the entitlement flips. Re-run any time with
-`node scripts/toll-road.mjs` from the artifact directory (gateway must be live).
+(`https://<domain>/api/stripe/webhook`) doing the entitlement flips.
+
+## Re-running the walk
+
+From the artifact directory, with the dev server running (its registered webhook does
+the entitlement flips):
+
+```
+npm run toll-road
+```
+
+The rig needs a live gateway — `DATABASE_URL` and the Stripe connector — so it is NOT
+part of the keyless eval bench (`npm run check`). Re-walk the road after any change to
+the toll, the mint, or the prices.
+
+**Safety:** step 0 of the script hard-refuses to run unless the connected Stripe key is
+a test-mode key (`sk_test_`/`rk_test_`). A live-mode key aborts before anything is
+touched. It also sweeps its own test data (Stripe customer + patron row) at the end.
 
 ## What was proven
 

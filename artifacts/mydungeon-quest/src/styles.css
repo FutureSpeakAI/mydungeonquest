@@ -228,3 +228,81 @@
 /* THE BOUND CHRONICLE — the folio toggle (Letter | A5) */
 .size-toggle{display:inline-flex;gap:.4rem;margin-right:auto}
 .size-toggle .secondary-button.selected{border-color:#d4a24e;color:#d4a24e}
+
+/* ============================================================
+   PHASE 6 — DRAMA & BRAND (the Experience Cut)
+   The arrival is a cold open; the shelf is a library; the die
+   is a ritual; the page is illuminated; the wax is one mark.
+   MOTION LAW: fades, page turns, ember drift — nothing bounces,
+   nothing spins. prefers-reduced-motion collapses it all.
+   ============================================================ */
+
+/* ---- The Arrival: darkness, one candle, the title warms in ---- */
+.candle{position:relative;width:26px;height:64px;margin:0 auto}
+.candle .stem{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:10px;height:32px;border-radius:3px 3px 4px 4px;background:linear-gradient(180deg,#e9dfc8,#a99c82);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.candle .flame{position:absolute;bottom:29px;left:50%;width:14px;height:23px;transform:translateX(-50%);transform-origin:50% 100%;border-radius:50% 50% 50% 50%/64% 64% 36% 36%;background:radial-gradient(circle at 50% 76%,#fff6d8 0 16%,#f3c96b 46%,#d4a24e 74%,rgba(212,162,78,0) 100%);filter:drop-shadow(0 0 14px rgba(212,162,78,.8));animation:flame 2.8s ease-in-out infinite;transition:opacity .6s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+.candle .halo{position:absolute;inset:-52px -78px;background:radial-gradient(circle,rgba(212,162,78,.26),transparent 62%);animation:halo 2.8s ease-in-out infinite;transition:opacity .8s ease;pointer-events:none}
+@keyframes flame{26%{transform:translateX(-50%) scaleY(1.06) skewX(1.6deg)}58%{transform:translateX(-50%) scaleY(.94)}82%{transform:translateX(-50%) scaleY(1.04) skewX(-1.5deg)}}
+@keyframes halo{50%{opacity:.68}}
+.title-bg,.title-veil,.title-hero>:not(.candle),.title-page.cinematic .shelf,.title-footer{transition:opacity 1.15s ease,transform 1.15s ease}
+/* The hall stays dark through the whole staging: `bgFade` fills forward at
+   opacity 1, which would override any dimmed value — so the arrival SUSPENDS
+   the bg animations outright (animation:none) and holds the art at 0. When
+   the classes drop at "set", bgFade restarts from black and reveals the hall
+   in one breath — the reveal IS the entrance, with no half-lit blink. */
+.title-page.arrival-dark .title-bg,.title-page.arrival-dark .title-veil{animation:none;opacity:0}
+.title-page.arrival-dark .title-hero>:not(.candle),.title-page.arrival-dark .shelf,.title-page.arrival-dark .title-footer{opacity:0;transform:translateY(12px)}
+.title-page.arrival-dark .candle .flame,.title-page.arrival-dark .candle .halo{opacity:0;transform:translateX(-50%) scaleY(.15)}
+.title-page.arrival-dark .candle .halo{transform:none}
+.title-page.arrival-candle .title-bg,.title-page.arrival-candle .title-veil{animation:none;opacity:0}
+.title-page.arrival-candle .title-hero>:not(.candle),.title-page.arrival-candle .shelf,.title-page.arrival-candle .title-footer{opacity:0;transform:translateY(12px)}
+.title-page.arrival-title .title-bg{animation:none;opacity:0}
+.title-page.arrival-title .shelf,.title-page.arrival-title .title-footer{opacity:0;transform:translateY(12px)}
+.title-page.arrival-title .title-hero h1{animation:tracking 1.7s ease both}
+.title-embers{position:fixed;inset:0;z-index:1;pointer-events:none}
+.title-embers i{position:absolute;width:3px;height:3px;border-radius:50%;background:var(--gold);left:calc((var(--i)*41)%100 * 1%);top:104%;opacity:.3;animation:drift calc(9s + (var(--i)%5)*2s) calc((var(--i)%7)*-1.4s) linear infinite}
+
+/* ---- The Shelf as a library: embossed spines on a plank ---- */
+.book-wall{position:relative}
+.book-row{display:flex;align-items:flex-end;gap:.5rem;padding:0 .7rem;flex-wrap:wrap}
+.shelf-plank{height:11px;border-radius:2px;background:linear-gradient(180deg,#31253433 0,#2c2130 30%,#161119);box-shadow:0 7px 20px rgba(0,0,0,.55);margin:.1rem .2rem .6rem}
+.book-spine{position:relative;width:56px;height:178px;flex:none;border:0;border-radius:4px 8px 8px 4px;padding:.65rem 0 .5rem;display:flex;flex-direction:column;align-items:center;justify-content:space-between;background:linear-gradient(90deg,rgba(0,0,0,.45),transparent 24% 76%,rgba(255,255,255,.09) 92%),var(--dye,#3a2f45);box-shadow:inset 2px 0 4px rgba(0,0,0,.55),0 9px 22px rgba(0,0,0,.45);transition:transform .5s ease,box-shadow .5s ease}
+.book-spine:hover,.book-spine:focus-visible{transform:translateY(-9px);box-shadow:inset 2px 0 4px rgba(0,0,0,.55),0 16px 30px rgba(0,0,0,.55)}
+.book-spine .spine-bands{width:74%;display:grid;gap:3px}
+.book-spine .spine-bands i{height:2px;background:linear-gradient(90deg,transparent,rgba(240,223,174,.5),transparent)}
+.book-spine .spine-title{writing-mode:vertical-rl;font-family:Cinzel,Georgia,serif;font-size:.7rem;font-weight:700;letter-spacing:.09em;color:#f0dfae;text-shadow:0 1px 1px rgba(0,0,0,.65);max-height:112px;overflow:hidden}
+.book-spine .spine-foot{height:22px;display:grid;place-items:center;color:rgba(240,223,174,.55);font-size:.8rem}
+.spine-wax{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#b0685a,#7c352c 72%);box-shadow:0 1px 4px rgba(0,0,0,.55);display:grid;place-items:center;color:#f3d9b0;font-size:.58rem}
+.shelf-plaque{min-height:1.5rem;text-align:center;color:var(--vellum-dim);font-size:.84rem;font-style:italic;transition:opacity .4s ease}
+.new-spine{background:linear-gradient(90deg,rgba(0,0,0,.3),transparent 24% 76%,rgba(255,255,255,.05) 92%),repeating-linear-gradient(0deg,#1c1622 0 8px,#201a27 8px 16px);border:1px dashed rgba(212,162,78,.4);color:var(--gold)}
+.new-spine .spine-title{color:var(--gold);text-shadow:none}
+
+/* ---- The stage: combat draws a slow vignette over the table ---- */
+.app-shell.under-arms:after{content:"";position:fixed;inset:0;z-index:18;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,transparent 50%,rgba(31,10,12,.5) 100%);animation:vignette-in 1.9s ease both}
+@keyframes vignette-in{from{opacity:0}}
+
+/* ---- The dice ritual: spotlight, leather circle, gold or ash ---- */
+.dice-overlay{background:radial-gradient(circle at 50% 42%,rgba(44,32,20,.4) 0,rgba(5,4,8,.94) 58%);backdrop-filter:blur(10px)}
+.dice-stage{position:relative;display:grid;place-items:center;padding:34px}
+.dice-parchment{position:absolute;width:238px;height:238px;border-radius:50%;background:radial-gradient(circle,#241c11 0 58%,#161009 70%,transparent 71%);box-shadow:inset 0 0 44px rgba(0,0,0,.75),0 0 0 1px rgba(212,162,78,.16);animation:vignette-in .5s ease both}
+.die.ash{filter:saturate(.3) brightness(.72) drop-shadow(0 20px 35px #000)}
+.dice-math strong.gold{color:#e8c56a;text-shadow:0 0 28px rgba(212,162,78,.7)}
+.dice-math strong.ash{color:#9aa0a8;text-shadow:0 0 18px rgba(122,130,142,.45)}
+
+/* ---- The illuminated page: tabular figures, flanked rules, folio plates ---- */
+.roll-stamp,.dice-math,.header-stats,.stat-ribbon,.enemy-bars,.blight{font-variant-numeric:tabular-nums lining-nums}
+.turn-entry:after{background:linear-gradient(90deg,transparent 12%,rgba(212,162,78,.22) 30% 44%,transparent 44% 56%,rgba(212,162,78,.22) 56% 70%,transparent 88%) center bottom .55em/min(340px,72%) 1px no-repeat}
+
+.illustration-panel figcaption .plate-no{font-variant-caps:small-caps;letter-spacing:.09em;color:var(--gold)}
+
+/* ---- The seal, everywhere once: the badge is wax now ---- */
+.seal-badge{border:0;background:radial-gradient(circle at 35% 30%,#a03a2e,#5f1f18 72%);color:#f3d9b0;box-shadow:0 1px 4px rgba(0,0,0,.5),inset 0 1px 3px rgba(255,255,255,.18);gap:.35rem}
+
+@media (max-width:720px){
+  .book-spine{width:48px;height:158px}
+  .book-spine .spine-title{font-size:.64rem;max-height:96px}
+}
+@media (prefers-reduced-motion:reduce){
+  .candle .flame,.candle .halo,.title-embers i{animation:none}
+  .title-bg,.title-veil,.title-hero>:not(.candle),.title-page.cinematic .shelf,.title-footer,.book-spine{transition:none}
+}

@@ -151,6 +151,7 @@ The suite runs headless in Node — no browser, no keys, no network:
 - `evals/mediaFallback.test.mjs` — the legacy-media contract: film-era logs render their painted posters as still plates (never a `<video>`), overlays ignore retired media rows, and the retired `cinema` tier is canonicalized to `illuminated` across export, import, and persistence round-trips.
 - `evals/narratorConcurrency.test.mjs` — the narrator never overlaps voice tracks no matter how fast turns arrive, constructs no music bed, and refuses mock-provenance segments (a keyless reading is silence, not sine tones).
 - `evals/audioDirector.test.mjs` — the Sound Law: one live sound, instant voice preemption, punctuation windows (late accents are dropped, never played), provenance refusal at the door.
+- `evals/arrival.test.mjs` — the experience cut: the Arrival cold open stages dark → candle → title → shelf and settles without a sound; the dice ritual glows gold, goes ash, and holds one extra breath on a critical; a sealed spine wears its wax and opens straight to its keepsakes; and the Notary's Desk copy stands over a byte-for-byte untouched verifier. The keyless first-run is full drama, total silence.
 
 React components are exercised inside the same harness via an esbuild JSX loader, `react-test-renderer`, and `fake-indexeddb`. The suite must pass **keyless** — it asserts the mock floor, which is the design mandate: the game degrades, it never blocks. After touching the cLaws or the prompt, also spot-check a handful of live turns; nondeterminism hides there.
 

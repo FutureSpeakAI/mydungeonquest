@@ -7,13 +7,14 @@ import { campaignJournal } from '../lib/db.js';
 // screen: a ceremony. The journal's final block signs the whole
 // chronicle; the wax presses; the verification badge speaks in
 // green wax — "This tale is true." Then the offer, which is the
-// whole point: your tale is told. Bind it.
+// whole point: your tale is told. Bind it — the book, the export,
+// and (since the Forge was lit) the episode.
 // The press itself (journal event + campaign.sealedAt) belongs to
 // the App, which owns campaign state; this screen reads, stages,
 // and asks.
 // ------------------------------------------------------------
 
-export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport, onClose }) {
+export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport, onPodcast, audioBusy, onClose }) {
   const [stats, setStats] = useState(null);
   const [pressing, setPressing] = useState(false);
   const sealed = Boolean(campaign.sealedAt);
@@ -68,8 +69,9 @@ export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport,
         <div className="keepsake-row">
           <button onClick={onStorybook}><BookOpen size={16} /> Open the storybook</button>
           <button className="secondary-button" onClick={onExport}><Download size={16} /> Export the chronicle</button>
+          {onPodcast && <button className="secondary-button" disabled={audioBusy} onClick={onPodcast}><Mic size={16} /> {audioBusy ? 'Forging the episode…' : 'Forge the podcast'}</button>}
         </div>
-        <p className="keepsake-note"><Mic size={13} /> The podcast forge is not yet lit — the book is ready today.</p>
+        <p className="keepsake-note"><Mic size={13} /> The episode speaks only sealed words, in real voices only — a keyless table keeps the book.</p>
       </div>}
     </div>
   </div>;

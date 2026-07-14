@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { getDmTurn } from './dm.js';
 import { adapters, providerChains } from './adapters/index.js';
 import { CLERK_PROXY_PATH, clerkProxyMiddleware } from './clerkProxy.js';
-import { doorkeeper, whoami } from './patrons.js';
+import { doorkeeper, doorOpen, whoami } from './patrons.js';
+import { initMint, mintConfigured } from './mint.js';
+import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
 
 // Per-kind wall-clock budget for one provider attempt. A stalled upstream call
 // must not block failover, so every real provider is bounded; on timeout the
@@ -57,6 +59,11 @@ app.disable('x-powered-by');
 // Mounted before any body parser — the proxy streams raw bytes. Inert in
 // dev and on a keyless fork (see clerkProxy.js).
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+// THE MINT's courier: Stripe webhooks arrive sealed, and the seal is checked
+// against the RAW bytes — so this room is mounted before every parser and
+// before the doorkeeper (a courier is not a patron). Dormant instances
+// simply have no working mint behind it; the seal check refuses strangers.
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), tollWebhook());
 // A whole-quest audiobook ships every turn's narration as base64 in one body,
 // which can exceed the default limit; give this route its own headroom BEFORE
 // the global parser so the smaller limit doesn't reject a long chronicle.
@@ -69,12 +76,18 @@ app.use(express.text({ type: 'text/html', limit: process.env.MAX_PDF_HTML_BYTES 
 // keyless fork has no door at all. Every route below sees the same law.
 app.use('/api', doorkeeper());
 app.get('/api/whoami', whoami);
+// THE TOLL-HOUSE's public rooms: standing, checkout, portal, refresh. All
+// honest when dormant ({ live: false }) — the client then hides the counter.
+app.use('/api', tollRoutes());
 
 const windows = new Map();
 function rateLimit(max) {
   const windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
   return (req, res, next) => {
-    const key = `${req.ip}:${req.path}`;
+    // Burst limits key to the NAME when one was given at the door, else the
+    // address — a patron's pace follows them across devices; guests share
+    // their gate's pace. (Monthly quotas are the innkeeper's, not ours.)
+    const key = `${req.patron?.id || req.ip}:${req.path}`;
     const now = Date.now();
     const item = windows.get(key) || { start: now, count: 0 };
     if (now - item.start > windowMs) { item.start = now; item.count = 0; }
@@ -96,7 +109,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, node: process.version, providers: Object.fromEntries(['paint','speak','music','sfx'].map((kind) => [kind, { provider: a[kind].name, ...a[kind].capabilities }])) });
 });
 
-app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), async (req, res) => {
+app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), innkeeper('dm'), async (req, res) => {
   // Real streaming: narration text is forwarded to the player as it
   // forms inside the tool call; the validated turn arrives last.
   if (req.query.stream === '1') {
@@ -115,17 +128,26 @@ app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), asyn
       onRetract: () => { if (!closed) res.write('event: retract\ndata: {}\n\n'); }
     });
     if (!closed) { res.write(`event: turn\ndata: ${JSON.stringify(result)}\n\n`); res.end(); }
+    // A turn told by a real voice is one line in the ledger of use;
+    // stand-ins are never billed (debit itself keeps that law).
+    debit(req, 'dm', result.provider);
     return;
   }
-  res.json(await getDmTurn(req.body || {}));
+  const result = await getDmTurn(req.body || {});
+  debit(req, 'dm', result.provider);
+  res.json(result);
 });
 
 // THE CHRONICLER — the second, smaller harness (§7): one forced tool call,
 // the shared strict validator, one guided repair, and an honest keyless
 // decline (the client binds the raw sealed text; mock prose is never sealed).
-app.post('/api/retell', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), async (req, res) => {
+app.post('/api/retell', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), innkeeper('retell'), async (req, res) => {
   const { getChroniclePassage } = await import('./retell.js');
-  res.json(await getChroniclePassage(req.body || {}));
+  const result = await getChroniclePassage(req.body || {});
+  // A decline is not a retelling — only a passage spoken by a real voice
+  // is debited (`provider: 'exhausted'` declines carry no passage).
+  if (!result.declined) debit(req, 'retell', result.provider);
+  res.json(result);
 });
 
 async function sendAsset(res, result) {
@@ -137,8 +159,14 @@ async function sendAsset(res, result) {
 }
 
 for (const kind of ['paint','speak','music','sfx']) {
-  app.post(`/api/${kind}`, rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), async (req, res) => {
-    try { await sendAsset(res, await runChain(kind, req.body || {})); }
+  app.post(`/api/${kind}`, rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), innkeeper(kind), async (req, res) => {
+    try {
+      const result = await runChain(kind, req.body || {});
+      // Debit when real work was PRODUCED (our cost is already spent even if
+      // the courier drops the parcel); the mock floor is never billed.
+      debit(req, kind, result.provider);
+      await sendAsset(res, result);
+    }
     catch (error) { console.error(error); await sendAsset(res, await adapters().mock[kind](req.body || {})); }
   });
 }
@@ -158,7 +186,7 @@ function runFfmpeg(args) {
   });
 }
 
-app.post('/api/quest-audio', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), async (req, res) => {
+app.post('/api/quest-audio', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), innkeeper('podcast'), async (req, res) => {
   const { segments = [], stings = [], plan = null, cover = null, bed = null, title = 'chronicle' } = req.body || {};
   if (bed) return res.status(400).json({ error: 'The bed is retired. Music is punctuation between voices — never underneath them.' });
   if (!Array.isArray(segments) || !segments.length) return res.status(400).json({ error: 'The forge needs voices. A keyless table keeps the book.' });
@@ -250,6 +278,8 @@ app.post('/api/quest-audio', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX |
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Disposition', `attachment; filename="${slug}.podcast.mp3"`);
     res.send(data);
+    // One bound episode, one line — house work, billed as 'house'.
+    debit(req, 'podcast', 'house');
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'The episode could not be sequenced.' });
@@ -258,7 +288,7 @@ app.post('/api/quest-audio', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX |
   }
 });
 
-app.post('/api/bind-pdf', async (req, res) => {
+app.post('/api/bind-pdf', innkeeper('pdf'), async (req, res) => {
   if (typeof req.body !== 'string' || !req.body.includes('<!doctype html')) return res.status(400).json({ error: 'Expected a self-contained HTML book.' });
   if (/\b(?:src|href)=["']https?:/i.test(req.body)) return res.status(400).json({ error: 'External URLs are forbidden in bound books.' });
   let browser;
@@ -272,6 +302,8 @@ app.post('/api/bind-pdf', async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="mydungeon.storybook.pdf"');
     res.send(pdf);
+    // One bound book, one line — house work, billed as 'house'.
+    debit(req, 'pdf', 'house');
   } catch (error) {
     console.error(error);
     res.status(503).json({ error: 'PDF binding requires the Playwright Chromium browser. Run: npx playwright install chromium' });
@@ -284,4 +316,11 @@ if (existsSync(dist)) {
   app.use((_req, res) => res.sendFile(join(dist, 'index.html')));
 }
 
-app.listen(port, '0.0.0.0', () => console.log(`MyDungeon.Quest listening on 0.0.0.0:${port}`));
+app.listen(port, '0.0.0.0', () => {
+  console.log(`MyDungeon.Quest listening on 0.0.0.0:${port}`);
+  // THE MINT stands up after the table is serving (migrations, managed
+  // webhook, backfill — none of it blocks a turn). A mint with no door is a
+  // folly: billing needs names, so without Clerk the gateway stays dormant.
+  if (doorOpen()) initMint();
+  else if (mintConfigured()) console.error('[toll] a mint with no door is a folly — open the door (sign-in keys) or the gateway stays dormant.');
+});

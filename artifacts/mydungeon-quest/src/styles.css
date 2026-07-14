@@ -319,3 +319,11 @@
 .door-return{text-align:center;margin-top:1.1rem}
 /* Clerk renders its own inputs; placeholders need explicit contrast on ink. */
 .cl-formFieldInput::placeholder{color:#71687c;opacity:1}
+
+/* THE TOLL-HOUSE — the settings window where a patron reads their standing */
+.toll-standing{color:var(--vellum-dim);font-size:.9rem;margin:.2rem 0 .6rem}
+.toll-tallies{display:flex;flex-wrap:wrap;gap:.45rem .9rem;margin:.2rem 0 .8rem;color:var(--vellum-dim);font-size:.8rem}
+.toll-tallies b{color:var(--vellum)}
+.toll-tallies .spent,.toll-tallies .spent b{color:#c96f6f}
+.toll-seats{display:grid;gap:.55rem;margin:.4rem 0 1rem}
+.toll-seats .text-button{justify-self:start}

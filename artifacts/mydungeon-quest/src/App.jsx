@@ -25,6 +25,7 @@ import { downloadQuestAudio } from './lib/cinema/questaudio.js';
 import { buildStorybook } from './lib/storybook.js';
 import { slugify } from './lib/canonical.js';
 import { PatronDoor } from './patron/door.jsx';
+import { settleTollReturn, tollAllows } from './patron/toll.jsx';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
 
@@ -150,6 +151,9 @@ export default function App() {
 
   const refreshShelf = useCallback(async () => setCampaigns(await listCampaigns()), []);
   useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => { if (!row) return; const { score: _score, voice: _voice, ...kept } = row.value || {}; const value = { ...DEFAULT_SETTINGS, ...kept }; if (value.mediaTier === 'cinema') value.mediaTier = 'illuminated'; setSettings(value); }); }, [refreshShelf]);
+  // Returning from the Stripe rooms: settle the ?toll= mark once — refresh
+  // the standing server-side, wipe the mark from the bar, speak the outcome.
+  useEffect(() => { settleTollReturn().then((word) => { if (word) setStatus(word); }).catch(() => {}); }, []);
   useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, settings.reduceMotion]);
   // Follow the prose as it streams in: as each chunk of the weaving turn arrives,
   // keep the newest text in view (instant, so rapid updates don't fight a smooth
@@ -224,7 +228,11 @@ export default function App() {
     }
     briefUpcomingBeat(campaign, foundry, campaign.codex.beatIndex);
     const clearPainting = (logId) => setPaintingImages((prev) => { if (!prev[logId]) return prev; const next = { ...prev }; delete next[logId]; return next; });
-    for (const job of jobs) {
+    // THE TOLL-HOUSE, advisory: when the last-read standing says a kind's
+    // measure is spent (or was never on this table), don't send the request
+    // at all — the house would only refuse it. The server clamp remains the
+    // law; an unknown or dormant standing changes nothing.
+    for (const job of jobs.filter((entry) => tollAllows(entry.kind))) {
       // The scene plate is painting: show a shimmer over the procedural stand-in
       // until the illuminated image lands (or the job resolves without one).
       if (job.logId && job.kind === 'paint') setPaintingImages((prev) => ({ ...prev, [job.logId]: true }));
@@ -269,6 +277,12 @@ export default function App() {
         story, memory, entropy, player, resolution, turn: base.turnNumber || 0, genesis: (base.turnNumber || 0) === 0
       };
       const response = await fetch('/api/dm?stream=1', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (response.status === 402) {
+        // THE INNKEEPER at the table's edge — the refusal arrives in the
+        // house's own voice, and is shown exactly as spoken.
+        const closed = await response.json().catch(() => ({}));
+        throw new Error(closed.error || 'The innkeeper leans in: this month\'s measure is spent. The ledger turns its page on the first.');
+      }
       if (!response.ok) throw new Error(`The Dungeon Master could not be reached (${response.status}).`);
       let body = null;
       if ((response.headers.get('content-type') || '').includes('event-stream')) {

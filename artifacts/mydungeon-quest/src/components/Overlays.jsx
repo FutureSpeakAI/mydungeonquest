@@ -3,6 +3,8 @@ import { Download, Film, Heart, ScrollText, Shield, Sparkles, X } from 'lucide-r
 import { CONDITIONS } from '../lib/rules.js';
 import { db } from '../lib/db.js';
 import { ACT_NAMES, romanNumeral } from '../lib/story.js';
+import { doorBuilt } from '../patron/door.jsx';
+import { TollSection, useToll } from '../patron/toll.jsx';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -90,22 +92,32 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
 }
 
 export function Settings({ campaign, settings, onChange, onDownloadAudio, audioBusy, onClose }) {
+  const toll = useToll();
+  // Honest hints, spoken only when the gateway truly stands: a guest at a lit
+  // house is told plainly the paints wait behind the door; a hearth or
+  // illuminated seat is told plainly which throat the voiced seat opens.
+  const paintsBehindDoor = toll?.live && toll.plan === 'guest';
+  const voiceElsewhere = toll?.live && toll.plan !== 'guest' && toll.quotas?.speak === 0;
+  const forgeElsewhere = toll?.live && toll.plan !== 'guest' && toll.quotas?.podcast === 0;
   return <Frame title="Settings & Care" icon={<Sparkles/>} onClose={onClose}>
     <label className="toggle"><span>Reduce motion<small>Replace cinematics with quiet beat lines.</small></span><input type="checkbox" checked={settings.reduceMotion} onChange={(e)=>onChange({...settings,reduceMotion:e.target.checked})}/></label>
     <label className="toggle"><span>Haptics<small>Use a brief vibration for dice.</small></span><input type="checkbox" checked={settings.haptics} onChange={(e)=>onChange({...settings,haptics:e.target.checked})}/></label>
-    <label className="toggle"><span>The narrator<small>Each new turn is read aloud — the storyteller's voice for the prose, each soul's own voice for its lines. One voice at a time, nothing beneath it. Tap “Listen” on any turn to replay it.</small></span><input type="checkbox" checked={settings.narrator} onChange={(e)=>onChange({...settings,narrator:e.target.checked})}/></label>
+    <label className="toggle"><span>The narrator<small>Each new turn is read aloud — the storyteller's voice for the prose, each soul's own voice for its lines. One voice at a time, nothing beneath it. Tap “Listen” on any turn to replay it.{voiceElsewhere ? ' The voiced seat opens this throat — see the toll-house below.' : ''}</small></span><input type="checkbox" checked={settings.narrator} onChange={(e)=>onChange({...settings,narrator:e.target.checked})}/></label>
     <label>Text scale<input type="range" min=".9" max="1.3" step=".05" value={settings.textScale} onChange={(e)=>onChange({...settings,textScale:Number(e.target.value)})}/></label>
     <h3>Foundry tier</h3><div className="tier-grid">{[
       ['parchment','Parchment','Procedural woodcut art, instant, free — and silent.'],['illuminated','Illuminated','Painted stills, voiced narration, music only at the turning points.']
-    ].map(([id,label,desc])=><button className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{label}</b><span>{desc}</span></button>)}</div>
+    ].map(([id,label,desc])=><button className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{label}</b><span>{desc}{id==='illuminated' && paintsBehindDoor ? ' The house paints for named patrons — give your name at the door.' : ''}</span></button>)}</div>
     <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Music {campaign.spend?.music||0}/8</span></div>
+    <TollSection toll={toll} />
     {onDownloadAudio && <>
       <h3>The chronicle, read aloud</h3>
       <p className="muted">Stitch every turn's narration — each soul in its own voice, nothing playing beneath — into one reading you can keep.</p>
       <button className="secondary-button" disabled={audioBusy} onClick={onDownloadAudio}><Download/> {audioBusy ? 'Forging the episode…' : 'Forge the podcast'}</button>
-      <p className="muted">One produced episode from the sealed record — the Chronicler retells, the cast re-speak their own lines, stings sound only between sections. The forge binds real voices only; a keyless table keeps the book.</p>
+      <p className="muted">One produced episode from the sealed record — the Chronicler retells, the cast re-speak their own lines, stings sound only between sections. The forge binds real voices only; a keyless table keeps the book.{forgeElsewhere ? ' The forge lights for the voiced seat — the toll-house below tells the way.' : ''}</p>
     </>}
-    <div className="law-note"><Heart/><span>No accounts. Nothing leaves this device without you.</span></div>
+    <div className="law-note"><Heart/><span>{doorBuilt
+      ? 'Your chronicles stay on this device. A name at the door is only a key — the tale itself never leaves without you.'
+      : 'No accounts. Nothing leaves this device without you.'}</span></div>
   </Frame>;
 }
 

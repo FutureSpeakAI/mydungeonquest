@@ -108,9 +108,20 @@ export function Settings({ campaign, settings, onChange, onDownloadAudio, audioB
   </Frame>;
 }
 
-export function Storybook({ html, onClose, onPdf, onHtml }) {
+export function Storybook({ html, onClose, onPdf, onHtml, onSize }) {
+  // The folio choice lives here: the compiler rebinds the same book to
+  // Letter or A5, and the reader in the iframe re-opens on page one.
+  const [size, setSize] = useState('Letter');
   return <Frame title="The Bound Chronicle" icon={<ScrollText/>} onClose={onClose} wide>
-    <iframe className="book-frame" srcDoc={html} title="The bound chronicle" />
-    <div className="button-row"><button className="secondary-button" onClick={onHtml}><Download/> Save HTML</button><button className="primary-button" onClick={onPdf}><Download/> Bind to PDF</button></div>
+    {/* Sandboxed: the book's reader script runs, but in an opaque origin —
+        a crafted chronicle can never reach the table's own vault from here. */}
+    <iframe className="book-frame" srcDoc={html} sandbox="allow-scripts allow-downloads" title="The bound chronicle" />
+    <div className="button-row">
+      {onSize && <div className="size-toggle" role="group" aria-label="Folio size">{['Letter', 'A5'].map((option) =>
+        <button key={option} className={`secondary-button${size === option ? ' selected' : ''}`} onClick={() => { if (size !== option) { setSize(option); onSize(option); } }}>{option}</button>)}</div>}
+      <button className="secondary-button" onClick={onHtml}><Download/> Keep as HTML</button>
+      <button className="primary-button" onClick={onPdf}><Download/> Bind to PDF</button>
+    </div>
+    <p className="muted">Your tale is told. Bind it — the book turns its own pages here, prints to {size}, and carries its proof for the notary.</p>
   </Frame>;
 }

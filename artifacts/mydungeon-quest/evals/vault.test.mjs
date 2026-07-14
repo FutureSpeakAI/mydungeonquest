@@ -85,6 +85,14 @@ function memLedger() {
         const row = media.get(`${params[0]}:${params[1]}`);
         return { rows: row ? [row] : [] };
       }
+      if (/DELETE FROM vault_journal/.test(text)) {
+        journal.delete(`${params[0]}:${params[1]}`);
+        return { rows: [] };
+      }
+      if (/DELETE FROM vault_campaigns/.test(text)) {
+        const had = campaigns.delete(`${params[0]}:${params[1]}`);
+        return { rows: [], rowCount: had ? 1 : 0 };
+      }
       throw new Error(`the stand-in ledger does not know this verse: ${text.slice(0, 60)}`);
     },
   };
@@ -314,5 +322,76 @@ const chain = await makeChain(4);
   globalThis.fetch = realFetch;
 }
 
+{
+  // THE PYRE — burning is owner-scoped, idempotent, and never resurrected.
+  const del = (path, patron) => fetch(`${base}${path}`, { method: 'DELETE', headers: as(patron) });
+
+  // Two patrons, one campaign name: burning mine never touches yours.
+  const mine = await makeChain(2);
+  const yours = await makeChain(2);
+  await post('/api/vault/push', { campaignId: 'shared-name', records: mine, meta: { title: 'Mine' } }, 'user-burn');
+  await post('/api/vault/push', { campaignId: 'shared-name', records: yours, meta: { title: 'Yours' } }, 'user-else');
+  ledger.media.set('user-burn:aa11', { mime: 'image/png', byte_length: 4 });
+
+  const guest = await del('/api/vault/campaign/shared-name');
+  assert.equal(guest.status, 401, 'the pyre lights for named patrons only');
+
+  const burned = await del('/api/vault/campaign/shared-name', 'user-burn');
+  assert.equal(burned.status, 200);
+  assert.equal((await burned.json()).burned, true, 'the vault admits what it let go');
+  assert.equal(ledger.campaigns.has('user-burn:shared-name'), false, 'the spine is gone');
+  assert.equal((ledger.journal.get('user-burn:shared-name') || []).length, 0, 'the journal burned with it');
+  assert.equal(ledger.campaigns.get('user-else:shared-name')?.meta?.title, 'Yours', 'another patron\'s tale never smells the smoke');
+  assert.equal(ledger.media.has('user-burn:aa11'), true, 'content-addressed reference rows stay — blobs may serve other spines');
+
+  const again = await del('/api/vault/campaign/shared-name', 'user-burn');
+  assert.equal((await again.json()).burned, false, 'a second match finds only ash — idempotent, never an error');
+
+  // The client's pyre registry: a burned spine takes no ink from stragglers.
+  const { burnCampaign, saveCampaign, spineBurned, unburnSpine, db } = await import('../src/lib/db.js');
+  await db.campaigns.put({ id: 'to-ash', title: 'Soon Ash', headHash: 'h1', turnCount: 1, updatedAt: 1 });
+  await db.media.put({ assetHash: 'ff00', cacheKey: 'ck', campaignId: 'to-ash', kind: 'paint', createdAt: 1 });
+  await burnCampaign('to-ash');
+  assert.equal(await db.campaigns.get('to-ash'), undefined, 'the local spine burned');
+  assert.equal((await db.media.where('campaignId').equals('to-ash').toArray()).length, 0, 'its plates burned with it');
+  assert.equal(spineBurned('to-ash'), true);
+  await saveCampaign({ id: 'to-ash', title: 'A Straggler Writes' });
+  assert.equal(await db.campaigns.get('to-ash'), undefined, 'a straggling save lands in ash, never back on the shelf');
+  unburnSpine('to-ash'); // the player's own restore outranks the pyre
+  await saveCampaign({ id: 'to-ash', title: 'Recalled From Ash' });
+  assert.equal((await db.campaigns.get('to-ash'))?.title, 'Recalled From Ash', 'a deliberate restore may recall the name');
+  await db.campaigns.delete('to-ash');
+}
+
+{
+  // THE PYRE vs THE LANE — a sync already queued when the match strikes
+  // settles first, then the vault burns; and nothing queued later may push
+  // the spine back. Order, not luck.
+  const { vaultSessionChanged, syncCampaign, burnFromVault } = await import('../src/lib/vault.js');
+  const { db, unburnSpine } = await import('../src/lib/db.js');
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (url, opts = {}) => realFetch(new URL(url, base), { ...opts, headers: { ...(opts.headers || {}), 'X-Patron': 'user-race' } });
+  await vaultSessionChanged('user-race');
+
+  const turn = await makeRecord({ i: 0, prevHash: null, payload: { player: 'a deed soon to burn' } });
+  await db.campaigns.put({ id: 'race-me', title: 'The Race', headHash: turn.recordHash, turnCount: 1, updatedAt: 1, logs: [] });
+  await db.journal.put({ campaignId: 'race-me', ...turn });
+
+  const inflight = syncCampaign('race-me'); // queued before the match strikes
+  const word = await burnFromVault('race-me'); // joins the same lane, burns after
+  await inflight;
+  assert.equal(word, 'burned');
+  assert.equal(ledger.campaigns.has('user-race:race-me'), false, 'the in-flight push settles first, then the vault burns — no resurrection');
+
+  await syncCampaign('race-me'); // queued after the match: finds only ash
+  assert.equal(ledger.campaigns.has('user-race:race-me'), false, 'a later sync finds only ash and pushes nothing');
+
+  unburnSpine('race-me');
+  await db.campaigns.delete('race-me');
+  await db.journal.where('campaignId').equals('race-me').delete();
+  await vaultSessionChanged(null);
+  globalThis.fetch = realFetch;
+}
+
 server.close();
-console.log('vault.test: the vault holds — dormancy honest, chain law kept, tampering refused, no silent merges, blobs owner-locked, strikes cross devices. ✦');
+console.log('vault.test: the vault holds — dormancy honest, chain law kept, tampering refused, no silent merges, blobs owner-locked, strikes cross devices, the pyre burns owner-scoped and stays burned. ✦');

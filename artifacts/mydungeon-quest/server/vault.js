@@ -191,6 +191,19 @@ export function vaultRoutes(deps = {}) {
     } catch (error) { console.error(`[vault] campaign: ${error.message}`); res.status(500).json({ error: 'The vault could not be read.' }); }
   });
 
+  // BURN — the owner's right to let a tale go: spine and journal together,
+  // this patron's shelf only. vault_media reference rows stay where they
+  // are: blobs are content-addressed and may be cited by other spines, and
+  // a reference row without its campaign is unreachable from any shelf.
+  router.delete('/vault/campaign/:id', async (req, res) => {
+    try {
+      await ensureVault(query);
+      await query(`DELETE FROM vault_journal WHERE user_id = $1 AND campaign_id = $2`, [req.patron.id, req.params.id]);
+      const gone = await query(`DELETE FROM vault_campaigns WHERE user_id = $1 AND campaign_id = $2`, [req.patron.id, req.params.id]);
+      res.json({ ok: true, burned: Boolean(gone?.rowCount) });
+    } catch (error) { console.error(`[vault] burn: ${error.message}`); res.status(500).json({ error: 'The vault would not let go.' }); }
+  });
+
   // Incremental by journal index: ?from=N returns records i >= N, in order.
   router.get('/vault/campaign/:id/journal', async (req, res) => {
     try {

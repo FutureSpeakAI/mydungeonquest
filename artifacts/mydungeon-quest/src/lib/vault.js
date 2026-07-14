@@ -177,6 +177,13 @@ function serialized(campaignId, work) {
 export function syncCampaign(campaignId) {
   return serialized(campaignId, async () => {
     if (!(await vaultReady())) { mark(campaignId, 'local'); return; }
+    // THE PYRE GUARD — a burned name takes no ink here either. A sync that
+    // was already queued when the match was struck runs after the burn joins
+    // this same lane; checking the registry at execution time (not enqueue
+    // time) means it finds only ash and never pushes the spine back into
+    // the vault it was just burned from.
+    const { spineBurned } = await import('./db.js');
+    if (spineBurned(campaignId)) return;
     const campaign = await db.campaigns.get(campaignId);
     if (!campaign) return;
     mark(campaignId, 'syncing');
@@ -342,4 +349,37 @@ export async function syncShelf() {
   if (!(await vaultReady())) return;
   const campaigns = await db.campaigns.toArray();
   for (const campaign of campaigns) await syncCampaign(campaign.id);
+}
+
+// ------------------------------------------------------------- the burning
+// Ask the vault to let a spine go. Answers 'dormant' when there is no vault
+// to ask (signed out, keyless, or the vault is down on status — the local
+// pyre is then the whole truth), 'burned' when the vault has let go (or
+// never held it), and THROWS when the vault refused — the caller must not
+// burn locally in that case, or the spine haunts the vault shelf as a
+// "deleted" tale that keeps coming back.
+export async function burnFromVault(campaignId) {
+  if (!(await vaultReady())) return 'dormant';
+  const { markPyre, unburnSpine } = await import('./db.js');
+  // Strike the match FIRST: from this moment any freshly-queued sync finds
+  // only ash (the guard reads the registry at execution time, not enqueue
+  // time). Then join the campaign's own sync lane, so a push already in
+  // flight settles BEFORE the vault burns — order, not luck, closes the
+  // resurrection window.
+  markPyre(campaignId);
+  clearTimeout(timers.get(campaignId)); timers.delete(campaignId);
+  try {
+    await serialized(campaignId, async () => {
+      const response = await fetch(`/api/vault/campaign/${encodeURIComponent(campaignId)}`, { method: 'DELETE' });
+      if (!response.ok && response.status !== 404) throw new Error(`the vault would not let go (${response.status})`);
+    });
+  } catch (error) {
+    // Refusal keeps the tale whole — and lifts the mark, so syncs may speak
+    // for this spine again.
+    unburnSpine(campaignId);
+    throw error;
+  }
+  marks.delete(campaignId);
+  for (const listener of listeners) listener(new Map(marks));
+  return 'burned';
 }

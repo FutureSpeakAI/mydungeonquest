@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, ChevronRight, Download, Dices, Feather, FileUp, HeartPulse, Menu, MessageCircleWarning, Pause, Play, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords, X } from 'lucide-react';
+import { BookOpen, ChevronRight, DoorOpen, Download, Dices, Feather, FileUp, Flame, HeartPulse, Menu, MessageCircleWarning, Pause, Play, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords, X } from 'lucide-react';
 import { WorldForge, HeroForge } from './components/Forge.jsx';
 import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
@@ -10,7 +10,7 @@ import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } fr
 import { applyStateUpdates, createHero, heroRoll, rollInitiative } from './lib/rules.js';
 import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from './lib/story.js';
 import { makeEntropy, validateDmTurn } from './lib/protocol.js';
-import { campaignJournal, db, listCampaigns, saveCampaign } from './lib/db.js';
+import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
@@ -25,7 +25,7 @@ import { downloadQuestAudio } from './lib/cinema/questaudio.js';
 import { buildStorybook } from './lib/storybook.js';
 import { slugify } from './lib/canonical.js';
 import { PatronDoor } from './patron/door.jsx';
-import { nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
+import { burnFromVault, nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
 import { settleTollReturn, tollAllows } from './patron/toll.jsx';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
@@ -181,9 +181,47 @@ export default function App() {
   const drawFromVault = useCallback(async (campaignId) => {
     try {
       const restored = await restoreFromVault(campaignId);
+      // A deliberate restore recalls the name from the ashes — the player's
+      // own hand outranks the pyre registry, but only once the pages are
+      // truly back (a failed restore must not lift the burn guard early).
+      unburnSpine(campaignId);
       await refreshShelf(); await refreshVaultShelf();
       setCurrent(restored); setFlow('table');
     } catch (error) { setStatus(`✦ The vault would not open: ${error.message}`); }
+  }, [refreshShelf, refreshVaultShelf]);
+  // THE PYRE — burning a tale is vault-first: local ash only after the vault
+  // lets go (or has nothing to hold), so a "deleted" spine can never haunt
+  // the vaulted shelf and drift back on the next sitting.
+  const burnSpine = useCallback(async (campaign) => {
+    try {
+      const word = await burnFromVault(campaign.id);
+      await burnCampaign(campaign.id);
+      if (currentIdRef.current === campaign.id) setCurrent(null);
+      await refreshShelf(); await refreshVaultShelf();
+      setStatus(word === 'burned' ? `✦ "${campaign.title}" is burned — this shelf and the vault both.` : `✦ "${campaign.title}" is burned from this device.`);
+    } catch {
+      setStatus('✦ The vault would not let go — the tale stays whole until it can burn everywhere at once.');
+    }
+  }, [refreshShelf, refreshVaultShelf]);
+  const burnVaultSpine = useCallback(async (spine) => {
+    try {
+      const word = await burnFromVault(spine.campaignId);
+      if (word === 'dormant') { setStatus('✦ The vault is out of reach — nothing was burned.'); return; }
+      await refreshVaultShelf();
+      setStatus(`✦ "${spine.title}" is burned from the vault.`);
+    } catch { setStatus('✦ The vault would not let go — nothing was burned.'); }
+  }, [refreshVaultShelf]);
+  // CLOSE THE BOOK — leave the table for the hearth. Every told page is
+  // already sealed as it was lived; closing loses nothing but the chair's
+  // warmth. (The header disables this while the scribe is mid-stroke, so a
+  // landing turn can never chase a player onto another table.)
+  const closeBook = useCallback(async () => {
+    setOverlay(null); setCinematic(null); setDiceResult(null); setWeaving(null);
+    pendingNarrationRef.current = null; pendingActRef.current = null;
+    setPaintingImages({});
+    setCurrent(null); setFlow('title');
+    await refreshShelf(); refreshVaultShelf();
+    setStatus('✦ The book rests on the shelf — every page kept.');
   }, [refreshShelf, refreshVaultShelf]);
   useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => { if (!row) return; const { score: _score, voice: _voice, ...kept } = row.value || {}; const value = { ...DEFAULT_SETTINGS, ...kept }; if (value.mediaTier === 'cinema') value.mediaTier = 'illuminated'; setSettings(value); }); }, [refreshShelf]);
   // Returning from the Stripe rooms: settle the ?toll= mark once — refresh
@@ -642,7 +680,7 @@ export default function App() {
 
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'title') return <TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} />;
+  if (flow === 'title') return <TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} />;
   if (!current) return null;
 
   const chapter = chapterInfo(current.codex);
@@ -656,7 +694,7 @@ export default function App() {
     <header className="table-header">
       <button className="sigil-button" onClick={() => setOverlay('sheet')}><span>{current.hero.sigil}</span><div><b>{current.hero.name}</b><small>Level {current.hero.level} {current.hero.className}</small></div></button>
       <div className="header-stats"><span><HeartPulse/> {current.hero.hp}/{current.hero.maxHp}</span><span><Shield/> {current.hero.ac}</span><span className="desktop-stat">{current.hero.gold} gold</span></div>
-      <nav><button onClick={() => setOverlay('codex')}><BookOpen/><span>Codex</span></button><button onClick={() => setOverlay('settings')}><SettingsIcon/><span>Care</span></button><button className="wax-seal" onClick={openStorybook} title="The bound chronicle and its seal" aria-label="Open the bound chronicle"><span key={sealPulse} className="wax-emboss">{current.hero.sigil}</span></button></nav>
+      <nav><button onClick={closeBook} disabled={busy} title={busy ? 'The scribe is mid-stroke — the page must land first' : 'Close the book and return to the shelf'} aria-label="Close the book and return to the shelf"><DoorOpen/><span>Hearth</span></button><button onClick={() => setOverlay('codex')}><BookOpen/><span>Codex</span></button><button onClick={() => setOverlay('settings')}><SettingsIcon/><span>Care</span></button><button className="wax-seal" onClick={openStorybook} title="The bound chronicle and its seal" aria-label="Open the bound chronicle"><span key={sealPulse} className="wax-emboss">{current.hero.sigil}</span></button></nav>
     </header>
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
@@ -718,8 +756,11 @@ const VAULT_MARKS = {
   error: { glyph: '◌', word: 'the vault is out of reach — the tale is safe on this device' },
 };
 
-function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVaultRestore, onNew, onOpen, onRestore, reduceMotion, mediaTier }) {
+function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVaultRestore, onBurn, onBurnVault, onNew, onOpen, onRestore, reduceMotion, mediaTier }) {
   const input = useRef(null);
+  // THE PYRE'S ASKING — a burn is asked once, in ember, with honest scope:
+  // what is taken (device / vault / both) is said before any match is struck.
+  const [pyre, setPyre] = useState(null);
   const bundled = ['drowned', 'frontier', 'gate', 'mountain'].map((n) => `${import.meta.env.BASE_URL}keyart/${n}.jpg`);
   const [bgIndex, setBgIndex] = useState(0);
   const [attract, setAttract] = useState(false);
@@ -780,15 +821,20 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
             const waxed = Boolean(c.sealedAt || c.completed);
             const label = `${c.title} — ${c.hero?.name || 'a hero'}${c.completed ? (c.sealedAt ? ', told and sealed' : ', told') : ', still being lived'}`;
             const engrave = () => setPlaque(`${c.title} — ${c.hero?.name || 'a hero'} · ${c.codex?.spine?.label || 'a spine'}${c.sealedAt ? ' · opens to its keepsakes' : c.completed ? ' · told, awaiting the wax' : ''}`);
-            return <button key={c.id} className="book-spine" style={{ '--dye': dyeOf(c.id), height: `${158 + Math.min(26, c.turnCount || 0)}px` }}
-              aria-label={label} title={label}
-              onMouseEnter={engrave} onFocus={engrave} onMouseLeave={() => setPlaque('')} onBlur={() => setPlaque('')}
-              onClick={() => { firstTouch(); onOpen(c, { keepsakes: Boolean(c.sealedAt) }); }}>
-              <span className="spine-bands" aria-hidden><i/><i/><i/></span>
-              <span className="spine-title">{c.title}</span>
-              {VAULT_MARKS[vaultMarks.get(c.id)?.state] && <span className="spine-vault" aria-hidden title={VAULT_MARKS[vaultMarks.get(c.id).state].word}>{VAULT_MARKS[vaultMarks.get(c.id).state].glyph}</span>}
-              {waxed ? <span className="spine-wax" aria-hidden>{c.hero?.sigil || '✦'}</span> : <span className="spine-foot" aria-hidden>✦</span>}
-            </button>;
+            return <div key={c.id} className="spine-slot">
+              <button className="book-spine" style={{ '--dye': dyeOf(c.id), height: `${158 + Math.min(26, c.turnCount || 0)}px` }}
+                aria-label={label} title={label}
+                onMouseEnter={engrave} onFocus={engrave} onMouseLeave={() => setPlaque('')} onBlur={() => setPlaque('')}
+                onClick={() => { firstTouch(); onOpen(c, { keepsakes: Boolean(c.sealedAt) }); }}>
+                <span className="spine-bands" aria-hidden><i/><i/><i/></span>
+                <span className="spine-title">{c.title}</span>
+                {VAULT_MARKS[vaultMarks.get(c.id)?.state] && <span className="spine-vault" aria-hidden title={VAULT_MARKS[vaultMarks.get(c.id).state].word}>{VAULT_MARKS[vaultMarks.get(c.id).state].glyph}</span>}
+                {waxed ? <span className="spine-wax" aria-hidden>{c.hero?.sigil || '✦'}</span> : <span className="spine-foot" aria-hidden>✦</span>}
+              </button>
+              <button className="spine-burn" aria-label={`Burn “${c.title}” — remove this tale`} title="Burn this tale"
+                onMouseEnter={() => setPlaque(`Burn “${c.title}” — ash keeps no pages.`)} onMouseLeave={() => setPlaque('')}
+                onClick={(e) => { e.stopPropagation(); setPyre({ scope: 'local', title: c.title, campaign: c }); }}><Flame/></button>
+            </div>;
           })}
           <button className="book-spine new-spine" style={{ height: '158px' }} onClick={() => { firstTouch(); onNew(); }} aria-label="Begin a new legend"
             onMouseEnter={() => setPlaque('An empty binding, waiting for a life.')} onFocus={() => setPlaque('An empty binding, waiting for a life.')} onMouseLeave={() => setPlaque('')} onBlur={() => setPlaque('')}>
@@ -809,14 +855,29 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
         return <div className="vault-shelf">
           <span className="eyebrow">⛨ Kept in the vault</span>
           <div className="vault-row">
-            {away.map((s) => <button key={s.campaignId} className="vault-spine" onClick={() => onVaultRestore?.(s.campaignId)}
-              title={`Restore "${s.title}" to this device`}>
-              <b>{s.title}</b><small>{s.hero || 'a hero'} · {s.turnCount} seals{s.sealedAt ? ' · sealed' : ''}</small>
-            </button>)}
+            {away.map((s) => <div key={s.campaignId} className="vault-spine-slot">
+              <button className="vault-spine" onClick={() => onVaultRestore?.(s.campaignId)}
+                title={`Restore "${s.title}" to this device`}>
+                <b>{s.title}</b><small>{s.hero || 'a hero'} · {s.turnCount} seals{s.sealedAt ? ' · sealed' : ''}</small>
+              </button>
+              <button className="spine-burn" aria-label={`Burn “${s.title}” from the vault`} title="Burn the vault's copy"
+                onClick={(e) => { e.stopPropagation(); setPyre({ scope: 'vault', title: s.title, spine: s }); }}><Flame/></button>
+            </div>)}
           </div>
         </div>;
       })()}
     </section>}
+    {pyre && <div className="ritual pyre-ask" role="alertdialog" aria-modal="true" aria-label={`Burn ${pyre.title}?`}>
+      <Flame className="ritual-flame" size={40} aria-hidden/>
+      <h2>Burn “{pyre.title}”?</h2>
+      <p>{pyre.scope === 'vault'
+        ? 'This takes the vault’s copy to ash. Any device that still holds the tale keeps its own pages.'
+        : 'This takes the tale to ash on this device — and in the vault, if it is kept there. Every page, plate, and voice. Ash keeps no pages.'}</p>
+      <div className="ritual-row">
+        <button className="secondary-button" onClick={() => setPyre(null)} autoFocus>Keep the tale</button>
+        <button className="danger-button" onClick={() => { const p = pyre; setPyre(null); if (p.scope === 'vault') onBurnVault?.(p.spine); else onBurn?.(p.campaign); }}><span className="burn-word">Burn it</span></button>
+      </div>
+    </div>}
     <footer className="title-footer">
       <span>Yours alone · Plays offline · Every turn sealed</span><PatronDoor/>
       {/* The house's small print — quiet vellum links, never louder than the fire. */}

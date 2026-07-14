@@ -22,3 +22,6 @@ description: MyDungeon.Quest billing doctrine — the menu, honest-nulls law, re
 
 **Why:** the July 2026 business-model overhaul (mandatory door, six-turn lifetime taste, $5/wk or $129.99/yr unlimited) replaced the old monthly-allowance menu; several laws (honest nulls, retired marks) exist because the overhaul left stale dates and stale Stripe marks behind.
 **How to apply:** any re-chalk of the menu = edit `PLANS` + run chalk-board + re-run toll-road + keep `evals/tollhouse.test.mjs` §6 board asserts in lockstep.
+
+## The refused-pour resume (July 2026)
+A 402 refusal is remembered as an intent in sessionStorage (module state dies at the Stripe redirect): kind + campaignId/logId via an ambient pour context in tollNotice. `settleTollReturn` now returns `{ word, retry }` — retry only on `?toll=paid`; kept/seen clear the intent. Paint auto-retries (idempotent); other kinds get a one-shot "Pour it now" banner. lastStanding=null on any mark clears the advisory "spent" patch.

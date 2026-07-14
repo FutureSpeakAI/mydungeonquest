@@ -30,10 +30,16 @@ async function getStripeCredentials(): Promise<{ secretKey: string; webhookSecre
     throw new Error(`Failed to fetch Stripe credentials: ${resp.status} ${resp.statusText}`);
   }
 
-  const data = await resp.json();
-  const item = (data.items || []).find(
-    (it: { connector_name?: string }) => (it.connector_name || '').toLowerCase() === 'stripe',
-  );
+  type Connection = {
+    connector_name?: string;
+    settings?: { secret?: string; secret_key?: string; webhook_secret?: string };
+  };
+  const data: unknown = await resp.json();
+  const items: Connection[] =
+    data && typeof data === 'object' && Array.isArray((data as { items?: unknown }).items)
+      ? (data as { items: Connection[] }).items
+      : [];
+  const item = items.find((it) => (it.connector_name || '').toLowerCase() === 'stripe');
   const settings = item?.settings;
   // The live connector payload names the key `secret` (older shapes said
   // `secret_key`) — honor both, prefer the one actually observed.
@@ -46,7 +52,7 @@ async function getStripeCredentials(): Promise<{ secretKey: string; webhookSecre
     );
   }
 
-  return { secretKey, webhookSecret: settings.webhook_secret };
+  return { secretKey, webhookSecret: settings?.webhook_secret };
 }
 
 /**

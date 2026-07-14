@@ -23,9 +23,22 @@ async function resolveAssets(campaign, turnRecordHash, beatIndex) {
   const byKey = (key) => rows.find((row) => row.cacheKey === key && row.blob);
   const byTurn = (kind) => rows.filter((row) => row.kind === kind && row.blob && turnRecordHash && row.originTurnHash === turnRecordHash)
     .sort((a, b) => b.createdAt - a.createdAt)[0];
+  const newest = (list) => list.sort((a, b) => b.createdAt - a.createdAt)[0];
+  const paints = rows.filter((row) => row.kind === 'paint' && row.blob);
+  // Prefer a true scene so the backdrop is a place, not a character bust. New
+  // rows carry an explicit subtype; older rows are inferred — scene plates are
+  // the only paint jobs enqueued without a label/variant.
+  const isScene = (row) => (row.subtype ? row.subtype === 'scene' : !row.label && !row.variant);
+  const latestScene = newest(paints.filter(isScene));
+  const latestPaint = newest(paints);
   return {
     film: byKey(keys.film) || byTurn('video') || null,
-    still: byKey(keys.still) || byTurn('paint') || null,
+    // The chapter card usually fires the instant a turn seals, BEFORE that
+    // turn's paint has landed — so a beat-key/turn-hash miss used to drop all
+    // the way to the flat procedural gradient. Borrow the campaign's most
+    // recent painted scene instead (any painted art beats the gradient, which
+    // remains a true last resort).
+    still: byKey(keys.still) || byTurn('paint') || latestScene || latestPaint || null,
     music: byKey(keys.score) || byTurn('music') || null
   };
 }

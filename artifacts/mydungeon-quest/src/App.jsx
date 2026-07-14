@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, ChevronRight, Download, Dices, Feather, FileUp, HeartPulse, Menu, MessageCircleWarning, Pause, Play, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords } from 'lucide-react';
+import { BookOpen, ChevronRight, Download, Dices, Feather, FileUp, HeartPulse, Menu, MessageCircleWarning, Pause, Play, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords, X } from 'lucide-react';
 import { WorldForge, HeroForge } from './components/Forge.jsx';
 import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
@@ -626,14 +626,43 @@ export function LogEntry({ log, campaign, rendering, painting }) {
   // the scene still, or the procedural plate — so cinema-tier players never see
   // a blank black box.
   const [filmFailed, setFilmFailed] = useState(false);
+  // Tap-to-expand for painted stills: the plate and the keyframe open a
+  // full-screen lightbox so the art can actually be studied — faces, costume,
+  // brushwork — instead of living only inside the log column.
+  const [expandedSrc, setExpandedSrc] = useState(null);
+  const closeRef = useRef(null);
+  useEffect(() => {
+    if (!expandedSrc) return undefined;
+    // Minimal focus management for a one-control dialog: focus moves to the
+    // close button on open, Tab stays on it (nothing beneath is reachable by
+    // keyboard while the lightbox claims aria-modal), Escape closes, and focus
+    // returns to whatever opened it.
+    const opener = document.activeElement;
+    const onKey = (event) => {
+      if (event.key === 'Escape') setExpandedSrc(null);
+      if (event.key === 'Tab') { event.preventDefault(); closeRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    closeRef.current?.focus();
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (opener && document.contains(opener)) opener.focus?.();
+    };
+  }, [expandedSrc]);
   const keyframeStill = log.videoPosterUrl || log.imageUrl || art || proceduralArtDataUrl(`${campaign.id}:${log.id}:keyframe`, log.dm.cinematic?.subtitle || cinematicTitle, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
   const showFilm = log.videoUrl && !filmFailed;
   return <article className="turn-entry">
     {log.player && <div className="player-line"><span>You</span><p>{log.player}</p></div>}
     {log.dm.cinematic && <div className="beat-line"><span>✦</span><b>{log.dm.cinematic.title}</b><small>{log.dm.cinematic.subtitle}</small></div>}
-    {showScene && <figure className={`illustration-panel full-bleed ${!log.imageUrl && painting ? 'painting' : ''}`}><img src={log.imageUrl || art} alt={mood}/><figcaption>{mood}{log.imageUrl ? <span>illuminated</span> : <span>{painting ? 'painting…' : 'procedural plate'}</span>}</figcaption></figure>}
+    {/* Reading order is deliberate: the words land first, the Listen control is
+        available immediately, and the painted plate slots in BELOW the text —
+        so a paint that finishes mid-read never shoves the paragraph you're on. */}
     <div className="narration">{log.dm.narration_blocks.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
     <NarrationButton campaign={campaign} log={log} />
+    {showScene && <figure className={`illustration-panel full-bleed ${!log.imageUrl && painting ? 'painting' : ''}`}>
+      <button type="button" className="plate-zoom" onClick={() => setExpandedSrc(log.imageUrl || art)} aria-label="Expand the illustration"><img src={log.imageUrl || art} alt={mood}/></button>
+      <figcaption>{mood}{log.imageUrl ? <span>illuminated</span> : <span>{painting ? 'painting…' : 'procedural plate'}</span>}</figcaption>
+    </figure>}
     {rendering && !hasFilm && !log.videoFailed && <figure className="illustration-panel full-bleed cinematic-rendering" aria-live="polite">
       <div className="rendering-stage"><span className="rendering-spinner" aria-hidden/><b>Rendering cinematic…</b><small>“{cinematicTitle}” is being filmed. This can take a few minutes.</small></div>
       <figcaption>{cinematicTitle}<span>rendering</span></figcaption>
@@ -646,10 +675,14 @@ export function LogEntry({ log, campaign, rendering, painting }) {
       {showFilm
         ? <video src={log.videoUrl} poster={log.videoPosterUrl || undefined} controls playsInline loop muted preload="metadata" aria-label={cinematicTitle}
             onError={() => setFilmFailed(true)} />
-        : <img src={keyframeStill} alt={log.dm.cinematic?.title || 'cinematic keyframe'} />}
+        : <button type="button" className="plate-zoom" onClick={() => setExpandedSrc(keyframeStill)} aria-label="Expand the keyframe still"><img src={keyframeStill} alt={log.dm.cinematic?.title || 'cinematic keyframe'} /></button>}
       <figcaption>{cinematicTitle}{showFilm ? (log.videoDegraded ? <span>procedural animatic</span> : <span>cinematic film</span>) : <span>keyframe</span>}</figcaption>
     </figure>}
     {log.resolution && <div className={`roll-stamp ${log.resolution.outcome.includes('success')?'success':'failure'}`}><Dices/><span>{log.resolution.selectedDie} → {log.resolution.total}</span><b>{log.resolution.outcome.replaceAll('_',' ')}</b></div>}
+    {expandedSrc && <div className="plate-lightbox" role="dialog" aria-modal="true" aria-label="Illustration, expanded" onClick={() => setExpandedSrc(null)}>
+      <img src={expandedSrc} alt={mood}/>
+      <button type="button" ref={closeRef} className="lightbox-close" aria-label="Close the illustration" onClick={() => setExpandedSrc(null)}><X/></button>
+    </div>}
   </article>;
 }
 

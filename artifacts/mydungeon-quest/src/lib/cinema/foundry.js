@@ -113,6 +113,10 @@ export class Foundry {
       campaignId: this.campaignId, kind: job.kind, cacheKey: job.cacheKey, promptHash: job.spec.promptHash,
       generationSpecHash: job.spec.hash, assetHash, originTurnHash: job.originTurnHash, mime: blob.type,
       label: job.options?.label || null, variant: job.options?.variant || null,
+      // The paint subtype ('scene', 'portrait', 'region', 'keyart', 'beat-still')
+      // travels onto the row so consumers can pick backdrops explicitly instead
+      // of inferring from label absence. Older rows lack it; keep a heuristic.
+      subtype: job.options?.kind || null,
       referenceAssetHashes,
       provider: response.headers.get('X-Media-Provider') || 'unknown', model: response.headers.get('X-Media-Model') || 'unknown',
       degraded: Boolean(job.__degraded),

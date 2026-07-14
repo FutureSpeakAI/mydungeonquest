@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="MyDungeon.Quest — a candle over a closed book">
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="38%" r="50%">
+      <stop offset="0" stop-color="#d4a24e" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#d4a24e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3d98b"/>
+      <stop offset=".6" stop-color="#e1b45f"/>
+      <stop offset="1" stop-color="#b8541f"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="24" r="20" fill="url(#halo)"/>
+  <path d="M32 10c5 7 8 10.5 8 15a8 8 0 1 1-16 0c0-4.5 3-8 8-15z" fill="url(#flame)"/>
+  <rect x="29.4" y="32" width="5.2" height="13" rx="2.4" fill="#e9dfc8"/>
+  <path d="M14 51.5c6-3.4 12-4.4 18-4.4s12 1 18 4.4c-6 1.8-12 2.6-18 2.6s-12-.8-18-2.6z" fill="#8e6b35"/>
+</svg>

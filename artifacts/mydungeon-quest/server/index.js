@@ -8,6 +8,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDmTurn } from './dm.js';
 import { adapters, providerChains } from './adapters/index.js';
+import { CLERK_PROXY_PATH, clerkProxyMiddleware } from './clerkProxy.js';
+import { doorkeeper, whoami } from './patrons.js';
 
 // Per-kind wall-clock budget for one provider attempt. A stalled upstream call
 // must not block failover, so every real provider is bounded; on timeout the
@@ -51,12 +53,22 @@ const app = express();
 const port = Number(process.env.PORT || 3001);
 const maxBody = process.env.MAX_REQUEST_BYTES || '25mb'; // references ride as base64
 app.disable('x-powered-by');
+// THE DOOR's production courier: Clerk Frontend API rides our own domain.
+// Mounted before any body parser — the proxy streams raw bytes. Inert in
+// dev and on a keyless fork (see clerkProxy.js).
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 // A whole-quest audiobook ships every turn's narration as base64 in one body,
 // which can exceed the default limit; give this route its own headroom BEFORE
 // the global parser so the smaller limit doesn't reject a long chronicle.
 app.use('/api/quest-audio', express.json({ limit: process.env.MAX_AUDIO_BYTES || '200mb' }));
 app.use(express.json({ limit: maxBody }));
 app.use(express.text({ type: 'text/html', limit: process.env.MAX_PDF_HTML_BYTES || '100mb' }));
+
+// THE DOORKEEPER stands at /api: patrons are read from the Clerk session and
+// inscribed in the ledger as req.patron; guests pass unchallenged, and a
+// keyless fork has no door at all. Every route below sees the same law.
+app.use('/api', doorkeeper());
+app.get('/api/whoami', whoami);
 
 const windows = new Map();
 function rateLimit(max) {

@@ -23,7 +23,6 @@
 
 /* v0.2 engine cut — the weaving caret and true film support */
 .weaving p:last-child:after{content:"▍";color:var(--gold);animation:caret .8s step-end infinite}
-.cinematic video.cinematic-art{width:100%;height:100%;object-fit:cover}
 
 /* ===== PHASE 1 — THE PROLOGUE RENDER ===== */
 .forge-keyart{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center;opacity:.22;filter:saturate(.92) blur(1px);mask-image:radial-gradient(circle at 50% 32%,#000,transparent 80%);animation:forgeArt 1.2s ease both}
@@ -48,26 +47,16 @@
 .player-line span{font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.75;flex:none}
 .player-line p{margin:0;font-style:italic;color:var(--vellum-dim);font-size:.86rem}
 .illustration-panel.full-bleed{margin:1.1rem 0 .9rem}
-.illustration-panel.full-bleed img,.illustration-panel.full-bleed video{width:100%;border-radius:14px;display:block;box-shadow:0 12px 40px rgba(0,0,0,.5);background:#000}
+.illustration-panel.full-bleed img{width:100%;border-radius:14px;display:block;box-shadow:0 12px 40px rgba(0,0,0,.5);background:#000}
 .illustration-panel.full-bleed figcaption{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--vellum-dim);letter-spacing:.04em;margin-top:.4rem}
 .illustration-panel.full-bleed figcaption span{color:var(--gold);text-transform:uppercase;font-size:.6rem;letter-spacing:.16em}
 @media (max-width:640px){
   .illustration-panel.full-bleed{margin-inline:calc(50% - 50vw);margin-block:.5rem 1rem}
-  .illustration-panel.full-bleed img,.illustration-panel.full-bleed video{border-radius:0;width:100vw;max-height:74vh;object-fit:cover;box-shadow:none}
+  .illustration-panel.full-bleed img{border-radius:0;width:100vw;max-height:74vh;object-fit:cover;box-shadow:none}
   .illustration-panel.full-bleed figcaption{padding-inline:1.1rem}
 }
 /* Cinematic film render placeholder — Veo can take minutes, so the turn shows
    this until the asset resolves (or the server degrades to the animatic). */
-.cinematic-rendering .rendering-stage{width:100%;aspect-ratio:16/9;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;text-align:center;padding:1rem;background:radial-gradient(circle at 50% 38%,rgba(212,162,78,.1),rgba(8,7,10,.96));box-shadow:0 12px 40px rgba(0,0,0,.5)}
-.cinematic-rendering .rendering-spinner{width:34px;height:34px;border-radius:50%;border:2px solid rgba(212,162,78,.22);border-top-color:var(--gold);animation:cinematic-spin 1s linear infinite}
-.cinematic-rendering b{font-family:Cinzel,Georgia,serif;color:var(--gold);letter-spacing:.06em;font-size:.9rem}
-.cinematic-rendering small{color:var(--vellum-dim);font-style:italic;max-width:32ch}
-.cinematic-failed .rendering-stage{background:radial-gradient(circle at 50% 38%,rgba(120,60,52,.16),rgba(8,7,10,.96))}
-.cinematic-failed b{color:#e0a99a}
-.cinematic-failed .rendering-mark{font-size:2rem;line-height:1;color:#c67a6c;opacity:.8}
-@keyframes cinematic-spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.cinematic-rendering .rendering-spinner{animation-duration:2.4s}}
-@media (max-width:640px){.cinematic-rendering .rendering-stage{border-radius:0}}
 .region-strip{background-size:cover;background-position:center;transition:filter .6s ease;will-change:background-position}
 .region-strip[data-blight="4"],.region-strip[data-blight="5"]{filter:saturate(.62) contrast(1.06)}
 .codex-grid.gallery article{overflow:hidden}

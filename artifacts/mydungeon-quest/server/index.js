@@ -1,5 +1,5 @@
 import express from 'express';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -12,10 +12,8 @@ import { adapters, providerChains } from './adapters/index.js';
 // Per-kind wall-clock budget for one provider attempt. A stalled upstream call
 // must not block failover, so every real provider is bounded; on timeout the
 // attempt is treated as a failure and the chain advances (ultimately to mock).
-// Video is generous because generation legitimately polls for minutes.
 const PROVIDER_BUDGET_MS = {
   paint: Number(process.env.PAINT_TIMEOUT_MS || 120000),
-  video: Number(process.env.VIDEO_TIMEOUT_MS || 960000),
   speak: Number(process.env.SPEAK_TIMEOUT_MS || 90000),
   music: Number(process.env.MUSIC_TIMEOUT_MS || 150000),
   sfx: Number(process.env.SFX_TIMEOUT_MS || 90000)
@@ -83,7 +81,7 @@ app.use((req, res, next) => {
 
 app.get('/api/health', (_req, res) => {
   const a = adapters();
-  res.json({ ok: true, node: process.version, providers: Object.fromEntries(['paint','video','speak','music','sfx'].map((kind) => [kind, { provider: a[kind].name, ...a[kind].capabilities }])) });
+  res.json({ ok: true, node: process.version, providers: Object.fromEntries(['paint','speak','music','sfx'].map((kind) => [kind, { provider: a[kind].name, ...a[kind].capabilities }])) });
 });
 
 app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), async (req, res) => {
@@ -183,28 +181,6 @@ app.post('/api/quest-audio', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX |
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
-});
-
-const videoJobs = new Map();
-app.post('/api/video', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), async (req, res) => {
-  const id = randomUUID();
-  videoJobs.set(id, { status: 'queued', created: Date.now(), body: req.body || {} });
-  queueMicrotask(async () => {
-    const job = videoJobs.get(id);
-    try { const r = await runChain('video', job.body); job.result = r; job.degraded = Boolean(r.degraded); job.status = 'ready'; }
-    catch (error) { console.error(error); job.result = await adapters().mock.video(job.body); job.status = 'ready'; job.degraded = true; }
-  });
-  res.status(202).json({ id, status: 'queued' });
-});
-app.get('/api/video/:id', (req, res) => {
-  const job = videoJobs.get(req.params.id);
-  if (!job) return res.status(404).json({ error: 'Unknown job' });
-  res.json({ id: req.params.id, status: job.status, degraded: Boolean(job.degraded), mime: job.result?.mime || null });
-});
-app.get('/api/video/:id/asset', async (req, res) => {
-  const job = videoJobs.get(req.params.id);
-  if (!job || job.status !== 'ready') return res.status(409).json({ error: 'Asset not ready' });
-  await sendAsset(res, job.result);
 });
 
 app.post('/api/bind-pdf', async (req, res) => {

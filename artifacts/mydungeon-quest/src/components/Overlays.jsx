@@ -64,9 +64,9 @@ export function Settings({ campaign, settings, onChange, onDownloadAudio, audioB
     <label className="toggle"><span>Voiced dialogue<small>Cast each soul once from this device's own voices.</small></span><input type="checkbox" checked={settings.voice} onChange={(e)=>onChange({...settings,voice:e.target.checked})}/></label>
     <label>Text scale<input type="range" min=".9" max="1.3" step=".05" value={settings.textScale} onChange={(e)=>onChange({...settings,textScale:Number(e.target.value)})}/></label>
     <h3>Foundry tier</h3><div className="tier-grid">{[
-      ['parchment','Parchment','Procedural, instant, free.'],['illuminated','Illuminated','Painted stills, narration, score & SFX.'],['cinema','Cinema','Adds cinematic film to every beat.']
+      ['parchment','Parchment','Procedural, instant, free.'],['illuminated','Illuminated','Painted stills, narration, score & SFX.']
     ].map(([id,label,desc])=><button className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{label}</b><span>{desc}</span></button>)}</div>
-    <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Video {campaign.spend?.videos||0}/16</span><span>Music {campaign.spend?.music||0}/8</span></div>
+    <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Music {campaign.spend?.music||0}/8</span></div>
     {onDownloadAudio && <>
       <h3>The chronicle, read aloud</h3>
       <p className="muted">Stitch every turn's narration — with its music bed beneath it — into one audio file you can keep.</p>

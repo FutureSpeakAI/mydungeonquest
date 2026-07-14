@@ -36,10 +36,6 @@ export const mockAdapter = {
     const anchored = references.length ? ` ⚓${hash(references.map((ref) => ref.assetHash || ref.data || '').join('|')).slice(0, 6)}` : '';
     return { bytes: svgBytes(`MOCK ${kind.toUpperCase()}${anchored}`, prompt, kind === 'portrait' ? 768 : 1280, kind === 'portrait' ? 1024 : 720), mime: 'image/svg+xml', provider: 'mock', model: 'procedural-svg', seed: hash(prompt).slice(0, 12), usage: { cost: 0 } };
   },
-  async video({ prompt, references = [] }) {
-    const anchored = references.length ? ` ⚓${hash(references.map((ref) => ref.assetHash || ref.data || '').join('|')).slice(0, 6)}` : '';
-    return { bytes: svgBytes(`MOCK CINEMATIC KEYFRAME${anchored}`, prompt), mime: 'image/svg+xml', provider: 'mock', model: 'animatic-keyframe', seed: hash(prompt).slice(0, 12), usage: { cost: 0 }, posterOnly: true };
-  },
   async speak({ text }) { return { bytes: wavTone({ seconds: Math.max(1.5, Math.min(5, text.length / 25)), frequency: 180 + parseInt(hash(text).slice(0,2), 16) }), mime: 'audio/wav', provider: 'mock', model: 'procedural-tone', seed: hash(text).slice(0, 12), usage: { cost: 0 } }; },
   async music({ prompt }) { return { bytes: wavTone({ seconds: 8, frequency: 110 + parseInt(hash(prompt).slice(0,2), 16) / 3, volume: .11 }), mime: 'audio/wav', provider: 'mock', model: 'procedural-stinger', seed: hash(prompt).slice(0, 12), usage: { cost: 0 } }; },
   async sfx({ prompt }) { return { bytes: wavTone({ seconds: 2.5, frequency: 70 + parseInt(hash(prompt).slice(0,2), 16) / 4, volume: .12 }), mime: 'audio/wav', provider: 'mock', model: 'procedural-impact', seed: hash(prompt).slice(0, 12), usage: { cost: 0 } }; }

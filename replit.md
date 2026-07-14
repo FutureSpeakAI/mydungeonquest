@@ -16,7 +16,7 @@ An AI-narrated solo tabletop RPG: a Dungeon Master model runs a persistent, loca
 - React 19 + Vite 7, plain JS/JSX (not TypeScript by design)
 - Express 5 server (`artifacts/mydungeon-quest/server/`) serving `/api/*` (DM turns, image/voice/music/sfx generation, PDF character sheet binding via Playwright) and, in production, the built static app
 - Client-side persistence via Dexie/IndexedDB — no shared Postgres database, fully local-first
-- Anthropic Claude (tool-calling) for the Dungeon Master; OpenAI for illustrations; ElevenLabs for voice/music/SFX; video generation is intentionally mocked (no real provider wired)
+- Anthropic Claude (tool-calling) for the Dungeon Master; OpenAI for illustrations; ElevenLabs for voice/music/SFX
 
 ## Where things live
 

@@ -4,14 +4,14 @@ import { sha256 } from '../canonical.js';
 
 // ------------------------------------------------------------
 // THE FOUNDRY — asynchronous media orchestrator.
-// v2: three independent lanes (image / video / audio) so a slow
-// video render never blocks portraits; explicit cacheKey support
+// v2: two independent lanes (image / audio) so a slow paint
+// never blocks narration or score; explicit cacheKey support
 // so beat packages briefed by lookahead are found again when the
 // cinematic actually fires. Spend caps, content-addressed cache,
 // and sealed attestations are unchanged.
 // ------------------------------------------------------------
 
-const laneOf = (kind) => (kind === 'video' ? 'video' : kind === 'paint' ? 'image' : 'audio');
+const laneOf = (kind) => (kind === 'paint' ? 'image' : 'audio');
 
 const blobToBase64 = (blob) => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -42,19 +42,17 @@ export class Foundry {
   constructor({ campaignId, tier = 'parchment', spend = {}, onAttestation = null }) {
     this.campaignId = campaignId;
     this.tier = tier;
-    this.spend = { images: 0, videos: 0, music: 0, ...spend };
-    this.caps = { images: 80, videos: 16, music: 8 };
-    this.lanes = { image: { queue: [], running: false }, video: { queue: [], running: false }, audio: { queue: [], running: false } };
+    this.spend = { images: 0, music: 0, ...spend };
+    this.caps = { images: 80, music: 8 };
+    this.lanes = { image: { queue: [], running: false }, audio: { queue: [], running: false } };
     this.onAttestation = onAttestation;
   }
 
   allowed(kind) {
     if (this.tier === 'parchment') return false;
     // Illuminated adds stills AND the audio layer (narration bed, score, sfx)
-    // so the interactive-podcast experience works at the default tier; only
-    // cinematic video remains reserved for the cinema tier.
-    if (kind === 'video' && this.tier !== 'cinema') return false;
-    const bucket = kind === 'paint' ? 'images' : kind === 'video' ? 'videos' : kind === 'music' ? 'music' : null;
+    // so the interactive-podcast experience works at the default tier.
+    const bucket = kind === 'paint' ? 'images' : kind === 'music' ? 'music' : null;
     return !bucket || this.spend[bucket] < this.caps[bucket];
   }
 
@@ -90,24 +88,12 @@ export class Foundry {
     const references = await Promise.all(anchors.map(async (row) => ({ mime: row.mime, data: await blobToBase64(row.blob), assetHash: row.assetHash })));
     const referenceAssetHashes = anchors.map((row) => row.assetHash);
     if (references.length) job.options = { ...job.options, references };
-    if (job.kind === 'video') {
-      const queued = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: job.prompt, ...job.options }) }).then((r) => r.json());
-      for (let attempt = 0; attempt < 240; attempt += 1) {
-        const status = await fetch(`/api/video/${queued.id}`).then((r) => r.json());
-        // The server flags `degraded` when the real render (Veo) throws and it
-        // falls back to the procedural animatic; carry it onto the sealed row.
-        if (status.status === 'ready') { job.__degraded = Boolean(status.degraded); response = await fetch(`/api/video/${queued.id}/asset`); break; }
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-      }
-      if (!response) throw new Error('Video generation timed out');
-    } else {
-      const route = job.kind === 'paint' ? 'paint' : job.kind;
-      response = await fetch(`/api/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: job.prompt, ...job.options }) });
-    }
+    const route = job.kind === 'paint' ? 'paint' : job.kind;
+    response = await fetch(`/api/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: job.prompt, ...job.options }) });
     if (!response.ok) throw new Error(`Foundry ${response.status}`);
     const blob = await response.blob();
     const assetHash = await sha256(new Uint8Array(await blob.arrayBuffer()));
-    const bucket = job.kind === 'paint' ? 'images' : job.kind === 'video' ? 'videos' : job.kind === 'music' ? 'music' : null;
+    const bucket = job.kind === 'paint' ? 'images' : job.kind === 'music' ? 'music' : null;
     if (bucket) this.spend[bucket] += 1;
     const row = {
       campaignId: this.campaignId, kind: job.kind, cacheKey: job.cacheKey, promptHash: job.spec.promptHash,
@@ -119,7 +105,6 @@ export class Foundry {
       subtype: job.options?.kind || null,
       referenceAssetHashes,
       provider: response.headers.get('X-Media-Provider') || 'unknown', model: response.headers.get('X-Media-Model') || 'unknown',
-      degraded: Boolean(job.__degraded),
       blob, createdAt: Date.now()
     };
     await db.media.put(row);

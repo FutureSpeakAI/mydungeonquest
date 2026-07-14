@@ -11,7 +11,7 @@ import { campaignJournal, db, listCampaigns, saveCampaign } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
-import { cinematicPrompt, portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
+import { portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
 import { KEYART_LABEL, actOf, heroBustJob, keyArtJob, nameSeed } from './lib/cinema/prologue.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
 import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
@@ -117,7 +117,6 @@ export default function App() {
   const [diceResult, setDiceResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [weaving, setWeaving] = useState(null);
-  const [renderingVideos, setRenderingVideos] = useState({});
   const [paintingImages, setPaintingImages] = useState({});
   const [audioBusy, setAudioBusy] = useState(false);
   const [status, setStatus] = useState('✦ The table is set.');
@@ -127,7 +126,7 @@ export default function App() {
   const logEndRef = useRef(null);
 
   const refreshShelf = useCallback(async () => setCampaigns(await listCampaigns()), []);
-  useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => row && setSettings({ ...DEFAULT_SETTINGS, ...row.value })); }, [refreshShelf]);
+  useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => { if (!row) return; const value = { ...DEFAULT_SETTINGS, ...row.value }; if (value.mediaTier === 'cinema') value.mediaTier = 'illuminated'; setSettings(value); }); }, [refreshShelf]);
   useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, settings.reduceMotion]);
   // Follow the prose as it streams in: as each chunk of the weaving turn arrives,
   // keep the newest text in view (instant, so rapid updates don't fight a smooth
@@ -194,29 +193,18 @@ export default function App() {
     if (dm.cinematic) {
       const keys = beatKeys(campaign.id, campaign.codex.beatIndex);
       // The beat's score and ambience underscore the narration at every media
-      // tier (they become the ducked bed of the audiobook); only the cinematic
-      // FILM itself is reserved for the cinema tier.
+      // tier (they become the ducked bed of the audiobook).
       jobs.push({ kind: 'music', prompt: `A 20 second cinematic stinger for ${dm.cinematic.type}; ${dm.cinematic.subtitle}`, priority: 4, cacheKey: keys.score });
       jobs.push({ kind: 'sfx', prompt: `A restrained PG-13 ambience and impact for ${dm.cinematic.type}`, priority: 4 });
       if (dm.dialogue_cue) jobs.push({ kind: 'speak', prompt: dm.dialogue_cue.line, options: { text: dm.dialogue_cue.line }, priority: 1 });
-      if (campaign.mediaTier === 'cinema') {
-        const prompt = cinematicPrompt(campaign, dm.cinematic, dm.image_cue || {});
-        const villainSoul = campaign.codex.cast.find((soul) => soul.role === 'villain');
-        jobs.push({ kind: 'video', prompt, priority: 2, cacheKey: keys.film, options: { kind: 'beat-film', label: dm.cinematic.title, referenceLabels: [...(dm.image_cue?.subjects || []), villainSoul?.name].filter(Boolean).slice(0, 2) }, logId });
-      }
     }
     briefUpcomingBeat(campaign, foundry, campaign.codex.beatIndex);
-    const clearRendering = (logId) => setRenderingVideos((prev) => { if (!prev[logId]) return prev; const next = { ...prev }; delete next[logId]; return next; });
     const clearPainting = (logId) => setPaintingImages((prev) => { if (!prev[logId]) return prev; const next = { ...prev }; delete next[logId]; return next; });
     for (const job of jobs) {
-      // A cinematic film (Veo) can take minutes; flag its turn as rendering so
-      // the story view shows a placeholder until the asset resolves or degrades.
-      if (job.logId && job.kind === 'video') setRenderingVideos((prev) => ({ ...prev, [job.logId]: true }));
       // The scene plate is painting: show a shimmer over the procedural stand-in
       // until the illuminated image lands (or the job resolves without one).
       if (job.logId && job.kind === 'paint') setPaintingImages((prev) => ({ ...prev, [job.logId]: true }));
       foundry.enqueue({ ...job, originTurnHash: turnRecord.recordHash }).then(async (asset) => {
-        if (job.logId && job.kind === 'video') clearRendering(job.logId);
         if (job.logId && job.kind === 'paint') clearPainting(job.logId);
         if (!asset) return;
         if (job.logId && job.kind === 'paint' && asset.mime.startsWith('image/')) {
@@ -228,40 +216,10 @@ export default function App() {
             saveCampaign(next); return next;
           });
         }
-        // A cinematic can be a real video/mp4 clip (Veo) or, on the mock
-        // provider, a posterOnly still. Attach whichever we got to its turn's
-        // log so the story view renders a playable film (or a keyframe).
-        if (job.logId && job.kind === 'video') {
-          const dataUrl = await blobToDataUrl(asset.blob);
-          const isVideo = asset.mime.startsWith('video/');
-          const degraded = Boolean(asset.degraded);
-          setCurrent((prev) => {
-            if (!prev || prev.id !== campaign.id) return prev;
-            const logs = prev.logs.map((log) => log.id === job.logId
-              ? { ...log, ...(isVideo ? { videoUrl: dataUrl } : { videoPosterUrl: dataUrl }), videoAssetHash: asset.assetHash, videoDegraded: degraded }
-              : log);
-            const next = { ...prev, logs, spend: foundry.spend };
-            saveCampaign(next); return next;
-          });
-        }
       }).catch(() => {
         // A paint rejection must clear the shimmer, or the turn's plate is stuck
         // "painting…" forever with no image ever arriving.
         if (job.logId && job.kind === 'paint') clearPainting(job.logId);
-        // A genuine video rejection (timeout after ~6min of polling, network
-        // error, or spend cap after enqueue). The degraded animatic fallback
-        // resolves with an asset above, so this only fires on true failures.
-        // Replace the rendering spinner with a permanent note rather than
-        // letting the placeholder silently vanish with no film and no reason.
-        if (job.logId && job.kind === 'video') {
-          clearRendering(job.logId);
-          setCurrent((prev) => {
-            if (!prev || prev.id !== campaign.id) return prev;
-            const logs = prev.logs.map((log) => log.id === job.logId ? { ...log, videoFailed: true } : log);
-            const next = { ...prev, logs };
-            saveCampaign(next); return next;
-          });
-        }
       });
     }
   }, []);
@@ -383,7 +341,7 @@ export default function App() {
       lines: worldDraft.lines, veils: worldDraft.veils, styleBible: worldDraft.styleBible, homeRegion: worldDraft.homeRegion,
       spineId: worldDraft.spineId, hero, codex, logs: [], combat: null, pendingRoll: null,
       turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null,
-      mediaTier: settings.mediaTier, spend: { images: 0, videos: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
+      mediaTier: settings.mediaTier, spend: { images: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };
     await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
     const started = await prologueRender(campaign);
@@ -425,7 +383,7 @@ export default function App() {
   };
 
   const restoreFile = async (file) => {
-    try { const restored = await importChronicle(JSON.parse(await file.text())); await refreshShelf(); setCurrent(restored); setFlow('table'); }
+    try { const restored = await importChronicle(JSON.parse(await file.text())); await refreshShelf(); setCurrent(restored.mediaTier === 'cinema' ? { ...restored, mediaTier: 'illuminated' } : restored); setFlow('table'); }
     catch (error) { setStatus(`Restore failed: ${error.message}`); }
   };
 
@@ -505,7 +463,7 @@ export default function App() {
 
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'title') return <TitleScreen campaigns={campaigns} onNew={() => setFlow('world')} onOpen={(campaign) => { setCurrent(campaign); setFlow('table'); }} onRestore={restoreFile} status={status} />;
+  if (flow === 'title') return <TitleScreen campaigns={campaigns} onNew={() => setFlow('world')} onOpen={(campaign) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); }} onRestore={restoreFile} status={status} />;
   if (!current) return null;
 
   return <div className="app-shell">
@@ -521,7 +479,7 @@ export default function App() {
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
       <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Beat {current.codex.beatIndex + 1}/{current.codex.spine.beats.length}</span><h1>{current.codex.spine.beats[current.codex.beatIndex]?.title}</h1><p>{current.codex.spine.beats[current.codex.beatIndex]?.goal}</p></div>
-      {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} rendering={Boolean(renderingVideos[log.id])} painting={Boolean(paintingImages[log.id])} />)}
+      {current.logs.map((log) => log.redacted ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div> : <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} />)}
       {busy && (weaving
         ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>
         : <div className="streaming"><span/>The Dungeon Master considers…</div>)}
@@ -608,27 +566,21 @@ function NarrationButton({ campaign, log }) {
   </button>;
 }
 
-export function LogEntry({ log, campaign, rendering, painting }) {
+export function LogEntry({ log, campaign, painting }) {
   const cue = log.dm.image_cue;
   // Every turn shows a plate: the DM's cue mood when present, otherwise the
   // opening line of narration. The procedural plate stands in until (or unless)
   // the painted scene arrives.
   const mood = cue?.mood || log.dm.narration_blocks?.[0]?.text?.slice(0, 90) || 'the scene';
   const art = proceduralArtDataUrl(`${campaign.id}:${log.id}`, mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
-  const cinematicTitle = log.dm.cinematic?.title || 'Cinematic';
-  const hasFilm = log.videoUrl || log.videoPosterUrl;
-  // The scene plate renders for every non-film turn (painted, painting, or the
-  // procedural stand-in). Film turns are owned by the film figure below — which
-  // itself falls back to the painted keyframe — so we never show two stills.
-  const showScene = !hasFilm && Boolean(log.imageUrl || cue || painting);
-  // A real video/mp4 clip can fail to decode (unsupported codec, corrupt data).
-  // When it does, fall back to the painted keyframe still — the video poster,
-  // the scene still, or the procedural plate — so cinema-tier players never see
-  // a blank black box.
-  const [filmFailed, setFilmFailed] = useState(false);
-  // Tap-to-expand for painted stills: the plate and the keyframe open a
-  // full-screen lightbox so the art can actually be studied — faces, costume,
-  // brushwork — instead of living only inside the log column.
+  // Chronicles sealed before films were retired may carry a painted keyframe
+  // poster on their film turns. Sealed history is immutable, so render that
+  // poster as the turn's still rather than pretending the turn had no art.
+  const still = log.imageUrl || log.videoPosterUrl || null;
+  const showScene = Boolean(still || cue || painting);
+  // Tap-to-expand for painted stills: the plate opens a full-screen lightbox
+  // so the art can actually be studied — faces, costume, brushwork — instead
+  // of living only inside the log column.
   const [expandedSrc, setExpandedSrc] = useState(null);
   const closeRef = useRef(null);
   useEffect(() => {
@@ -649,8 +601,6 @@ export function LogEntry({ log, campaign, rendering, painting }) {
       if (opener && document.contains(opener)) opener.focus?.();
     };
   }, [expandedSrc]);
-  const keyframeStill = log.videoPosterUrl || log.imageUrl || art || proceduralArtDataUrl(`${campaign.id}:${log.id}:keyframe`, log.dm.cinematic?.subtitle || cinematicTitle, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
-  const showFilm = log.videoUrl && !filmFailed;
   return <article className="turn-entry">
     {log.player && <div className="player-line"><span>You</span><p>{log.player}</p></div>}
     {log.dm.cinematic && <div className="beat-line"><span>✦</span><b>{log.dm.cinematic.title}</b><small>{log.dm.cinematic.subtitle}</small></div>}
@@ -659,24 +609,9 @@ export function LogEntry({ log, campaign, rendering, painting }) {
         so a paint that finishes mid-read never shoves the paragraph you're on. */}
     <div className="narration">{log.dm.narration_blocks.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
     <NarrationButton campaign={campaign} log={log} />
-    {showScene && <figure className={`illustration-panel full-bleed ${!log.imageUrl && painting ? 'painting' : ''}`}>
-      <button type="button" className="plate-zoom" onClick={() => setExpandedSrc(log.imageUrl || art)} aria-label="Expand the illustration"><img src={log.imageUrl || art} alt={mood}/></button>
-      <figcaption>{mood}{log.imageUrl ? <span>illuminated</span> : <span>{painting ? 'painting…' : 'procedural plate'}</span>}</figcaption>
-    </figure>}
-    {rendering && !hasFilm && !log.videoFailed && <figure className="illustration-panel full-bleed cinematic-rendering" aria-live="polite">
-      <div className="rendering-stage"><span className="rendering-spinner" aria-hidden/><b>Rendering cinematic…</b><small>“{cinematicTitle}” is being filmed. This can take a few minutes.</small></div>
-      <figcaption>{cinematicTitle}<span>rendering</span></figcaption>
-    </figure>}
-    {log.videoFailed && !hasFilm && <figure className="illustration-panel full-bleed cinematic-rendering cinematic-failed" aria-live="polite">
-      <div className="rendering-stage"><span className="rendering-mark" aria-hidden>⌁</span><b>The cinematic could not be filmed this time</b><small>“{cinematicTitle}” failed to render. Your turn is sealed and the story continues.</small></div>
-      <figcaption>{cinematicTitle}<span>unfilmed</span></figcaption>
-    </figure>}
-    {hasFilm && <figure className="illustration-panel full-bleed">
-      {showFilm
-        ? <video src={log.videoUrl} poster={log.videoPosterUrl || undefined} controls playsInline loop muted preload="metadata" aria-label={cinematicTitle}
-            onError={() => setFilmFailed(true)} />
-        : <button type="button" className="plate-zoom" onClick={() => setExpandedSrc(keyframeStill)} aria-label="Expand the keyframe still"><img src={keyframeStill} alt={log.dm.cinematic?.title || 'cinematic keyframe'} /></button>}
-      <figcaption>{cinematicTitle}{showFilm ? (log.videoDegraded ? <span>procedural animatic</span> : <span>cinematic film</span>) : <span>keyframe</span>}</figcaption>
+    {showScene && <figure className={`illustration-panel full-bleed ${!still && painting ? 'painting' : ''}`}>
+      <button type="button" className="plate-zoom" onClick={() => setExpandedSrc(still || art)} aria-label="Expand the illustration"><img src={still || art} alt={mood}/></button>
+      <figcaption>{mood}{still ? <span>illuminated</span> : <span>{painting ? 'painting…' : 'procedural plate'}</span>}</figcaption>
     </figure>}
     {log.resolution && <div className={`roll-stamp ${log.resolution.outcome.includes('success')?'success':'failure'}`}><Dices/><span>{log.resolution.selectedDie} → {log.resolution.total}</span><b>{log.resolution.outcome.replaceAll('_',' ')}</b></div>}
     {expandedSrc && <div className="plate-lightbox" role="dialog" aria-modal="true" aria-label="Illustration, expanded" onClick={() => setExpandedSrc(null)}>

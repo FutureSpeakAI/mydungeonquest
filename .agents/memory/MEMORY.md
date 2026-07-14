@@ -5,3 +5,4 @@
 - [Dexie crypto-in-transaction](dexie-crypto-transactions.md) — awaiting crypto.subtle inside a Dexie rw tx premature-commits ("Transaction committed too early"); do crypto OUTSIDE the tx, keep only sync db ops inside.
 - [/api path proxy conflict](api-path-proxy-conflict.md) — only one artifact may own a path prefix at the shared proxy; a self-serving /api web app + an /api api-server silently 404s the app through :80.
 - [MyDungeon media providers are opt-in](mydungeon-media-providers.md) — image/video/audio serve MOCK placeholders unless `*_PROVIDER` env is set (e.g. PAINT_PROVIDER=openai); mock keeps `npm run check` green but never looks "painted".
+- [MyDungeon component tests in node harness](mydungeon-component-tests.md) — render React (onError fallbacks etc.) in the pure-node eval: esbuild jsx loader + react-test-renderer + fake-indexeddb (separate process), stub createObjectURL by blob.type.

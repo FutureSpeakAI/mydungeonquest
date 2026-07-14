@@ -15,6 +15,7 @@
 // this table.
 import { useEffect, useState } from 'react';
 import { doorBuilt } from './door.jsx';
+import { dismissTollNotice, subscribeTollNotice } from './tollNotice.js';
 
 const SEAT_WORDS = {
   guest: 'Guest at the fire',
@@ -167,4 +168,65 @@ export function TollSection({ toll }) {
     </div>}
     {word && <p className="muted">{word}</p>}
   </>;
+}
+
+// -------------------------------------------------------- the refusal receipt
+// When a pour is refused mid-session, the patron gets a receipt, not a raw
+// error: the innkeeper's own words, the month's tally, the page-turn date,
+// and — when the house offers one — a single button straight into checkout.
+// Renders nothing on a doorless build (a keyless fork never hears a 402
+// anyway, but the law is stated twice on purpose).
+export function TollNotice() {
+  const [refusal, setRefusal] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [word, setWord] = useState(null);
+  useEffect(() => {
+    if (!doorBuilt) return undefined;
+    return subscribeTollNotice((body) => {
+      setRefusal(body);
+      setWord(null);
+      // The advisory gate learns from the refusal: mark this kind spent so
+      // the road stops sending requests the house will only refuse again.
+      if (body?.kind && typeof body.quota === 'number' && lastStanding?.live) {
+        lastStanding = {
+          ...lastStanding,
+          used: { ...(lastStanding.used || {}), [body.kind]: Math.max(lastStanding.used?.[body.kind] || 0, body.quota) },
+        };
+      }
+    });
+  }, []);
+  if (!doorBuilt || !refusal) return null;
+
+  const guest = refusal.plan === 'guest' || refusal.upsell === 'free';
+  const paidSeat = refusal.upsell === 'illuminated' || refusal.upsell === 'voiced' ? refusal.upsell : null;
+  const tallied = typeof refusal.used === 'number' && typeof refusal.quota === 'number' && refusal.quota > 0;
+  const pageTurn = refusal.renewsAt
+    ? new Date(refusal.renewsAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })
+    : null;
+  const raise = async () => {
+    setBusy(true);
+    const out = await visitRoom('/api/toll/checkout', { plan: paidSeat });
+    if (typeof out === 'string') setWord(out);
+    setBusy(false);
+  };
+
+  return <div className="toll-notice" role="alertdialog" aria-label="The innkeeper closes the ledger">
+    <div className="toll-notice-card">
+      <h3>{guest ? 'The house asks your name' : 'The innkeeper closes the ledger'}</h3>
+      <p className="toll-notice-word">{refusal.error || 'This pour is not on your table this month.'}</p>
+      {tallied && <p className="toll-notice-tally"><b>{Math.min(refusal.used, refusal.quota)}/{refusal.quota}</b> {KIND_WORDS[refusal.kind] || refusal.kind} poured this month</p>}
+      {pageTurn && !guest && <p className="toll-notice-turn">The ledger turns its page on <b>{pageTurn}</b>.</p>}
+      <div className="toll-notice-row">
+        {guest && <button disabled={busy} onClick={() => {
+          dismissTollNotice();
+          window.location.assign(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/sign-in`);
+        }}>Give your name at the door</button>}
+        {!guest && paidSeat && <button disabled={busy} onClick={raise}>
+          Raise your seat — take {SEAT_WORDS[paidSeat]?.toLowerCase() || paidSeat}
+        </button>}
+        <button className="secondary-button" disabled={busy} onClick={() => dismissTollNotice()}>Stay seated</button>
+      </div>
+      {word && <p className="muted">{word}</p>}
+    </div>
+  </div>;
 }

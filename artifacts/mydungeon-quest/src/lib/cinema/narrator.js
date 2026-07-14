@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import { sha256 } from '../canonical.js';
 import { narratorVoiceId, resolveVoiceId, dialogueLeadIn } from './casting.js';
 import { setVoiceActive } from './audioDirector.js';
+import { tollRefusal } from '../../patron/tollNotice.js';
 
 // ------------------------------------------------------------
 // THE NARRATOR — the interactive-podcast voice. Each turn is read
@@ -76,7 +77,10 @@ export async function ensureSegmentAsset(campaign, log, segment, index) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: segment.text, voiceId: segment.voiceId }),
   });
-  if (!response.ok) throw new Error(`Narration failed (${response.status})`);
+  if (!response.ok) {
+    const closed = await tollRefusal(response); // a 402 receipt reaches the patron
+    throw new Error(closed?.error || `Narration failed (${response.status})`);
+  }
   const blob = await response.blob();
   const provider = response.headers.get('X-Media-Provider') || 'unknown';
   try {

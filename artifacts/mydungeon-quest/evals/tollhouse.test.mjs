@@ -404,4 +404,33 @@ await act(async () => { section = TestRenderer.create(h(toll.TollSection, { toll
 assert.equal(section.toJSON(), null, 'the toll window renders nothing keyless');
 await act(async () => { section.unmount(); });
 
-console.log('toll-house eval — the gateway is lawful: the door is locked (keyed) and absent (keyless), the taste is six turns counted for life with honest nulls for dates, paid seats pour unmeasured, stand-ins are never billed, seats flip both ways and retired marks raise nothing, the courier honors the seal, and a keyless fork never learns money exists.');
+// ---- 8. the receipt of refusal ----
+// The React-free store carries the innkeeper's 402 from any lib module to
+// the window; the TollNotice component itself stays dark on a keyless fork
+// even if a stray report somehow fires.
+const receipt = await import('../src/patron/tollNotice.js');
+let heard = null;
+const unsub = receipt.subscribeTollNotice((body) => { heard = body; });
+receipt.reportTollRefusal({ error: 'not closed' });
+assert.equal(heard, null, 'a body without closed:true is never a receipt');
+const refusal402 = { closed: true, kind: 'paint', plan: 'free', reason: 'spent', quota: 30, used: 30, renewsAt: '2026-08-01T00:00:00.000Z', upsell: 'illuminated', error: 'The innkeeper closes the ledger.' };
+receipt.reportTollRefusal(refusal402);
+assert.equal(heard?.kind, 'paint', 'a true refusal reaches the subscriber');
+assert.equal(heard?.upsell, 'illuminated');
+receipt.dismissTollNotice();
+assert.equal(heard, null, 'dismissal clears the receipt');
+// tollRefusal reads only true 402s, and leaves the body drinkable via clone.
+const fake402 = { status: 402, clone() { return { json: async () => refusal402 }; } };
+assert.equal((await receipt.tollRefusal(fake402))?.reason, 'spent');
+assert.equal(heard?.reason, 'spent', 'the parsed 402 is reported as it is returned');
+receipt.dismissTollNotice();
+assert.equal(await receipt.tollRefusal({ status: 500, clone() { return { json: async () => refusal402 }; } }), null, 'a 500 is never a receipt');
+unsub();
+let noticeKeyless;
+await act(async () => { noticeKeyless = TestRenderer.create(h(toll.TollNotice)); });
+receipt.reportTollRefusal(refusal402);
+assert.equal(noticeKeyless.toJSON(), null, 'keyless: the receipt window never lights');
+await act(async () => { noticeKeyless.unmount(); });
+receipt.dismissTollNotice();
+
+console.log('toll-house eval — the gateway is lawful: the door is locked (keyed) and absent (keyless), the taste is six turns counted for life with honest nulls for dates, paid seats pour unmeasured, stand-ins are never billed, the refusal receipt reaches the window (and stays dark keyless), seats flip both ways and retired marks raise nothing, the courier honors the seal, and a keyless fork never learns money exists.');

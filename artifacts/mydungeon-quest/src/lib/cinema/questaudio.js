@@ -1,6 +1,6 @@
 import { db, campaignJournal } from '../db.js';
 import { bytesToBase64, sha256 } from '../canonical.js';
-import { narratorVoiceId, resolveVoiceId } from './casting.js';
+import { narratorVoiceId, resolveVoiceId, resolveHeroVoiceId, speakerIsHero } from './casting.js';
 import { buildPodcastScript, validatePodcastScript, buildMixPlan } from '../podcast.js';
 import { tollRefusal } from '../../patron/tollNotice.js';
 
@@ -77,9 +77,15 @@ export async function downloadQuestAudio(campaign, onProgress) {
   for (let i = 0; i < flat.length; i += 1) {
     onProgress?.(`Voicing line ${i + 1} of ${flat.length}…`);
     const { section, segment } = flat[i];
+    // The hero's sealed lines speak with the hero's own cast voice — the same
+    // resolution the live narrator uses, so the podcast and the table agree.
+    const speakerKey = String(segment.voice).toLowerCase();
+    const soul = cast.find((s) => String(s.name).toLowerCase() === speakerKey);
     const voiceId = segment.voice === 'narrator'
       ? narratorVoiceId()
-      : resolveVoiceId(cast.find((soul) => String(soul.name).toLowerCase() === String(segment.voice).toLowerCase()), segment.voice);
+      : soul ? resolveVoiceId(soul, segment.voice)
+        : speakerIsHero(segment.voice, campaign.hero, cast) ? resolveHeroVoiceId(campaign.hero)
+          : resolveVoiceId(null, segment.voice);
     const asset = await ensurePodcastAsset(campaign, voiceId, segment.text).catch(() => null);
     if (!asset?.blob) continue;
     if (asset.provider === 'mock') { refused += 1; continue; }

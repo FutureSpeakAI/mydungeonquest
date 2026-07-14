@@ -8,6 +8,16 @@
 // plays no music bed of any kind, and a segment of mock provenance is never
 // played (the keyless floor for audio is silence, not placeholder tones).
 //
+// THE ONE THROAT: narrator.js speaks through a single persistent element —
+// the autoplay blessing attaches to the element and survives src changes, so
+// gestures prime it once and later auto-reads start unprompted. This suite
+// therefore asserts "one element, ever" and "a stale take is never STARTED"
+// (the old per-take "never constructed a second Audio" claim, restated for a
+// reusable element), plus the refusal law: a browser that denies an
+// unprompted start leaves the reading STAGED and published as blocked, and
+// the tap that accepts the invitation plays the staged take without
+// regenerating it.
+//
 // It exercises the real narrator.js: we only stub the browser edges it touches
 // (fetch, Audio, object URLs) and back Dexie with fake-indexeddb, so a future
 // change to the playback controller that reintroduces overlap fails here.
@@ -17,7 +27,7 @@ import assert from 'node:assert/strict';
 
 const tick = (ms = 30) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// --- Stub: object URLs. Encode the blob's MIME (so a created Audio can be told
+// --- Stub: object URLs. Encode the blob's MIME (so an assigned src can be told
 //     apart as a voice track 'audio/mpeg' vs anything else) and a content tag
 //     (so a voice URL reveals WHICH turn it belongs to). Voice blobs are
 //     returned by our fake fetch with the same identity, so a Map keyed on
@@ -28,13 +38,19 @@ globalThis.URL.createObjectURL = (blob) =>
   `blob:${blob?.type || 'unknown'}|${blobTags.get(blob) || ''}#${urlSeq++}`;
 globalThis.URL.revokeObjectURL = () => {};
 
-// --- Stub: HTMLAudioElement. Every instance registers itself so the test can
-//     count how many tracks are audible at once. play()/pause() flip `paused`
-//     exactly like the real element (and fire the wired handlers). ---
+// --- Stub: HTMLAudioElement, mirroring the media-load semantics the ONE
+//     THROAT relies on: assigning src resets paused/ended (the load
+//     algorithm), so a reused element never carries a finished take's flags
+//     into the next one. Every constructed element registers itself (the
+//     suite asserts there is only ever ONE); every successful play() logs the
+//     src it started, proving stale takes are never started. `denyPlays`
+//     simulates a browser refusing an unprompted start (NotAllowedError). ---
 const audios = [];
+const plays = [];
+let denyPlays = false;
 class FakeAudio {
   constructor(src) {
-    this.src = src || '';
+    this._src = '';
     this.paused = true;
     this.ended = false;
     this.loop = false;
@@ -42,10 +58,27 @@ class FakeAudio {
     this.onended = null;
     this.onpause = null;
     this.onplay = null;
-    this.kind = this.src.includes('audio/beat') ? 'bed' : 'voice';
+    if (src) this.src = src;
     audios.push(this);
   }
-  play() { this.paused = false; this.onplay?.(); return Promise.resolve(); }
+  get src() { return this._src; }
+  set src(value) {
+    this._src = String(value || '');
+    this.paused = true; // a newly assigned source never auto-plays
+    this.ended = false; // the media-load algorithm resets 'ended'
+  }
+  get kind() { return this._src.includes('audio/beat') ? 'bed' : 'voice'; }
+  play() {
+    if (denyPlays) {
+      const refusal = new Error("play() failed because the user didn't interact with the document first.");
+      refusal.name = 'NotAllowedError';
+      return Promise.reject(refusal);
+    }
+    plays.push(this._src);
+    this.paused = false;
+    this.onplay?.();
+    return Promise.resolve();
+  }
   pause() { this.paused = true; this.onpause?.(); }
 }
 globalThis.Audio = FakeAudio;
@@ -67,7 +100,7 @@ globalThis.fetch = (url, opts) => {
   return promise;
 };
 
-const { playNarration, toggleNarration, stopNarration, subscribeNarration } =
+const { playNarration, toggleNarration, stopNarration, subscribeNarration, primeNarration } =
   await import('../src/lib/cinema/narrator.js');
 const { db } = await import('../src/lib/db.js');
 
@@ -81,7 +114,7 @@ const releaseSpeak = (text) => {
 };
 
 // Distinct turns; text is unique so we can match each to its speak() call and
-// to the blob its FakeAudio ends up playing.
+// to the blob the throat ends up playing.
 const turn = (n, extra = {}) => ({
   id: `turn-${n}`,
   recordHash: `hash-${n}`,
@@ -92,10 +125,15 @@ const lineOf = (n) => `Line ${n} of the chronicle.`;
 
 async function reset() {
   stopNarration();
-  audios.length = 0;
+  // NOTE: `audios` is deliberately NOT cleared — the ONE THROAT persists across
+  // readings by design (discarding it would forfeit the autoplay blessing), so
+  // the same element carries every test. Clearing the list would blind
+  // audible() to it.
+  plays.length = 0;
   speakCalls = [];
   urlSeq = 0;
   providerHeader = 'elevenlabs';
+  denyPlays = false;
   await db.media.clear();
 }
 
@@ -132,8 +170,9 @@ async function reset() {
   const voices = audible('voice');
   assert.equal(voices.length, 1, 'exactly one voice track may be audible after the race');
   assert.ok(voices[0].src.includes(lineOf(3)), 'the audible voice must be the LATEST requested turn (3)');
-  assert.equal(audios.filter((a) => a.kind === 'voice').length, 1,
-    'superseded turns must never construct an Audio element (no silent second track)');
+  assert.equal(audios.length, 1, 'THE ONE THROAT: a race must not mint extra elements');
+  assert.ok(!plays.some((src) => src.includes(lineOf(1)) || src.includes(lineOf(2))),
+    'superseded turns must never be STARTED (no silent second track)');
 
   const finalState = seen[seen.length - 1];
   assert.equal(finalState.id, 'turn-3', 'the published narration state must point at the latest turn');
@@ -169,15 +208,15 @@ async function reset() {
   const voices = audible('voice');
   assert.equal(voices.length, 1, 'auto+manual overlap must leave exactly one voice audible');
   assert.ok(voices[0].src.includes(lineOf(2)), 'the manually tapped turn must win over the racing auto-narrate');
-  assert.equal(audios.filter((a) => a.kind === 'voice').length, 1,
-    'the superseded auto-narrate must not have built a second Audio');
+  assert.ok(!plays.some((src) => src.includes(lineOf(1))),
+    'the superseded auto-narrate must never have started its take');
   console.log('PASS — auto-narrate racing a manual Listen: the tapped turn wins, no overlap.');
 }
 
 // ---------------------------------------------------------------------------
 // 3. THE SOUND LAW: no music bed, ever. Even with per-turn music stingers
 //    seeded in the media table (as older chronicles have), a reading must
-//    construct NO bed element — the voice stands alone.
+//    play NO bed — the voice stands alone.
 // ---------------------------------------------------------------------------
 {
   await reset();
@@ -203,7 +242,9 @@ async function reset() {
 
   assert.equal(audible('voice').length, 1, 'still exactly one voice audible');
   assert.equal(audios.filter((a) => a.kind === 'bed').length, 0,
-    'THE SOUND LAW: the narrator must never construct a music bed, even when stingers exist');
+    'THE SOUND LAW: the narrator must never take up a music bed, even when stingers exist');
+  assert.ok(!plays.some((src) => src.includes('audio/beat')),
+    'THE SOUND LAW: no bed source may ever have been started');
   console.log('PASS — no music bed exists: the voice stands alone over silence.');
 }
 
@@ -223,11 +264,13 @@ async function reset() {
 
   await toggleNarration(campaign, turn(1)); // second tap: pause in place
   assert.equal(audible('voice').length, 0, 'a second tap on the same turn pauses it');
-  assert.equal(audios.filter((a) => a.kind === 'voice').length, 1, 'pausing must not create a new Audio');
+  assert.equal(audios.length, 1, 'pausing must not mint a new element');
 
+  const playsBefore = plays.length;
   await toggleNarration(campaign, turn(1)); // third tap: resume in place
   assert.equal(audible('voice').length, 1, 'a third tap resumes the same track');
-  assert.equal(audios.filter((a) => a.kind === 'voice').length, 1, 'resuming reuses the same Audio, no second voice');
+  assert.equal(plays.length, playsBefore + 1, 'resuming re-starts the SAME take (one play, no regeneration)');
+  assert.ok(plays[plays.length - 1].includes(lineOf(1)), 'the resumed take is the same turn');
   console.log('PASS — toggling the same turn pauses/resumes in place without a second voice.');
 }
 
@@ -289,8 +332,8 @@ async function reset() {
 
 // ---------------------------------------------------------------------------
 // 6. THE SOUND LAW: provenance or silence. When /api/speak falls back to mock
-//    (keyless table), the narrator must play NOTHING — no element is built,
-//    and the reading ends reporting not-playing. Silence, not sine tones.
+//    (keyless table), the narrator must play NOTHING — the throat is never
+//    started, and the reading ends reporting not-playing. Silence, not tones.
 // ---------------------------------------------------------------------------
 {
   await reset();
@@ -299,18 +342,115 @@ async function reset() {
   const seen = [];
   const unsub = subscribeNarration((s) => seen.push(s));
 
+  const playsBefore = plays.length;
   const play = playNarration(campaign, turn(1));
   await tick();
   releaseSpeak(lineOf(1));
   await play;
   await tick();
 
-  assert.equal(audios.length, 0, 'mock provenance must never construct an Audio element');
+  assert.equal(plays.length, playsBefore, 'mock provenance must never start the throat');
+  assert.equal(audible('voice').length, 0, 'a keyless reading leaves nothing audible');
   const finalState = seen[seen.length - 1];
   assert.equal(finalState.playing, false, 'a keyless reading ends reporting not-playing');
   unsub();
   console.log('PASS — keyless tables are silent: mock narration is refused, never played.');
 }
 
+// ---------------------------------------------------------------------------
+// 7. THE REFUSAL LAW: a browser that denies an unprompted start (no gesture
+//    grace) must leave the reading STAGED, silent, and published as blocked —
+//    a visible invitation, not a dead button. The tap that accepts it plays
+//    the staged take itself: same audio, no regeneration, block cleared.
+// ---------------------------------------------------------------------------
+{
+  await reset();
+  denyPlays = true; // a strict browser: no gesture, no sound
+  const campaign = { id: 'camp-blocked' };
+  const seen = [];
+  const unsub = subscribeNarration((s) => seen.push(s));
+
+  const play = playNarration(campaign, turn(1)); // auto-narrate with no tap anywhere
+  await tick();
+  releaseSpeak(lineOf(1));
+  await play;
+  await tick();
+
+  assert.equal(audible('voice').length, 0, 'a refused start leaves nothing audible');
+  let state = seen[seen.length - 1];
+  assert.equal(state.id, 'turn-1', 'the staged reading still belongs to its turn');
+  assert.equal(state.playing, false, 'a blocked reading must not claim to be playing');
+  assert.equal(state.blocked, true, 'the refusal must be published so the button can invite the tap');
+
+  // The player accepts the invitation. The tap routes through toggle; being a
+  // gesture, the browser now permits it — and the STAGED take plays.
+  denyPlays = false;
+  const speaksBefore = speakCalls.length;
+  await toggleNarration(campaign, turn(1));
+  await tick();
+  const live = audible('voice');
+  assert.equal(live.length, 1, 'the blessing tap plays the staged reading');
+  assert.ok(live[0].src.includes(lineOf(1)), 'the staged take itself plays — same audio, same turn');
+  assert.equal(speakCalls.length, speaksBefore, 'the staged take is reused, never regenerated');
+  state = seen[seen.length - 1];
+  assert.equal(state.blocked, false, 'the invitation clears once the voice speaks');
+  assert.equal(state.playing, true, 'the reading reports playing after the tap');
+  unsub();
+  console.log('PASS — a refused unprompted start is staged and visibly invites the tap that plays it.');
+}
+
+// ---------------------------------------------------------------------------
+// 8. THE BREATH: priming inside a gesture blesses the throat with a moment of
+//    true silence — never audible, never narration state — and a prime landing
+//    mid-reading (every send taps it) must not clobber the live take.
+// ---------------------------------------------------------------------------
+{
+  await reset();
+  const campaign = { id: 'camp-breath' };
+
+  primeNarration(); // an idle-table gesture offers the breath
+  await tick();
+  assert.equal(audios.length, 1, 'THE ONE THROAT: priming speaks through the same single element');
+  assert.equal(audible('voice').length, 0, 'the breath is paused again at once — never audible');
+
+  const play = playNarration(campaign, turn(1));
+  await tick();
+  releaseSpeak(lineOf(1));
+  await play;
+  await tick();
+  const before = audible('voice')[0].src;
+  primeNarration(); // a send lands mid-reading
+  await tick();
+  assert.equal(audible('voice')[0]?.src, before, 'priming mid-reading must not clobber the live take');
+  console.log('PASS — the gesture breath blesses the throat without ever speaking over it.');
+}
+
+// ---------------------------------------------------------------------------
+// 9. THE HERO'S VOICE holds through alias forms: a bare first name reaches the
+//    hero's own cast voice when nobody else could claim it; an ambiguous first
+//    name touches nobody (legacy draw) — the same restraint canon uses for
+//    aliases. The full name is the hero even with a rival at the table.
+// ---------------------------------------------------------------------------
+{
+  const { narrationSegments } = await import('../src/lib/cinema/narrator.js');
+  const hero = { name: 'Ash Vale', voiceId: 'HERO-VOICE' };
+  const dm = { narration_blocks: [
+    { text: 'The gate held.', speaker: null },
+    { text: 'Not while I stand.', speaker: 'Ash' },
+  ] };
+
+  const spoken = narrationSegments(dm, [], hero).find((s) => s.speaker === 'Ash');
+  assert.equal(spoken.voiceId, 'HERO-VOICE', "a bare first name speaks with the hero's cast voice");
+
+  const rival = [{ name: 'Ash Thorn', voiceId: 'RIVAL-VOICE' }];
+  const contested = narrationSegments(dm, rival, hero).find((s) => s.speaker === 'Ash');
+  assert.notEqual(contested.voiceId, 'HERO-VOICE', 'an ambiguous first name must not be claimed for the hero');
+  assert.notEqual(contested.voiceId, 'RIVAL-VOICE', 'nor handed to the rival — ambiguity resolves to the legacy draw');
+
+  const exact = narrationSegments({ narration_blocks: [{ text: 'So be it.', speaker: 'Ash Vale' }] }, rival, hero);
+  assert.equal(exact[exact.length - 1].voiceId, 'HERO-VOICE', 'the full name is the hero even with a rival Ash at the table');
+  console.log("PASS — the hero's voice holds through alias forms; ambiguity is never guessed.");
+}
+
 await reset();
-console.log('PASS — the narrator never talks over itself, plays no bed, and refuses placeholders.');
+console.log('PASS — the narrator never talks over itself, plays no bed, refuses placeholders, and stages refusals as invitations.');

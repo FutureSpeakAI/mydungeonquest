@@ -20,7 +20,8 @@ import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
 import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
 import { stopAllSound } from './lib/cinema/audioDirector.js';
 import { playUiSfx } from './lib/cinema/uiSfx.js';
-import { playNarration, stopNarration, subscribeNarration, toggleNarration } from './lib/cinema/narrator.js';
+import { playNarration, primeNarration, stopNarration, subscribeNarration, toggleNarration } from './lib/cinema/narrator.js';
+import { castHeroVoice } from './lib/cinema/casting.js';
 import { downloadQuestAudio } from './lib/cinema/questaudio.js';
 import { buildStorybook } from './lib/storybook.js';
 import { slugify } from './lib/canonical.js';
@@ -574,8 +575,10 @@ export default function App() {
   };
 
   const beginCampaign = async (heroInput) => {
+    primeNarration(); // the Begin tap blesses the throat before Chapter I speaks
     const id = crypto.randomUUID();
     const hero = { ...createHero(heroInput), bearing: (heroInput.bearing || '').slice(0, 200) };
+    hero.voiceId = castHeroVoice(hero); // the casting session reads the finished forge card
     const codex = initCodex(worldDraft.spineId);
     const campaign = {
       id, title: worldDraft.title, covenant: worldDraft.covenant, tone: worldDraft.tone,
@@ -591,11 +594,13 @@ export default function App() {
 
   const submit = async (text) => {
     const clean = text.trim(); if (!clean || busy || current.pendingRoll) return;
+    primeNarration(); // the send tap blesses the throat while its grace holds
     await playTurn(current, clean);
   };
 
   const resolveRoll = async () => {
     if (!current.pendingRoll || busy) return;
+    primeNarration(); // the roll tap blesses the throat for the coming reading
     const result = heroRoll(current.hero, current.pendingRoll);
     setDiceResult(result);
     playUiSfx(current, 'die'); // one die on parchment — dropped if a voice holds the stage
@@ -610,6 +615,7 @@ export default function App() {
   const redactLast = async () => {
     const target = [...current.logs].reverse().find((log) => !log.redacted && log.recordHash);
     if (!target || busy || current.readOnly) return;
+    primeNarration(); // the X-card tap too — its redirect turn will want a voice
     await seal(current.id, 'redaction', { targetRecordHash: target.recordHash, scope: 'active_canon' });
     await db.memories.where('campaignId').equals(current.id).filter((row) => row.recordHash === target.recordHash).delete();
     const logs = current.logs.map((log) => log.id === target.id ? { ...log, redacted: true } : log);
@@ -762,7 +768,7 @@ export default function App() {
 
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} /></>;
+  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} /></>;
   if (!current) return null;
 
   const chapter = chapterInfo(current.codex);
@@ -973,12 +979,16 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
 // The per-turn "Listen" control. Any turn can be read aloud on demand; the
 // button mirrors the single shared narrator so only one turn plays at a time.
 function NarrationButton({ campaign, log }) {
-  const [state, setState] = useState({ id: null, playing: false });
+  const [state, setState] = useState({ id: null, playing: false, blocked: false });
   useEffect(() => subscribeNarration(setState), []);
   const active = state.id === log.id && state.playing;
+  // The browser refused an unprompted start: the reading is staged, and this
+  // button becomes the visible invitation — the tap that accepts it both plays
+  // the turn and blesses the throat for the rest of the session.
+  const invited = state.id === log.id && state.blocked && !state.playing;
   if (!log.dm?.narration_blocks?.length) return null;
-  return <button type="button" className={`narrate-button ${active ? 'playing' : ''}`} onClick={() => toggleNarration(campaign, log)} aria-label={active ? 'Pause narration' : 'Read this turn aloud'} title="Read this turn aloud">
-    {active ? <Pause/> : <Play/>}<span>{active ? 'Narrating' : 'Listen'}</span>
+  return <button type="button" className={`narrate-button ${active ? 'playing' : ''} ${invited ? 'invited' : ''}`} onClick={() => toggleNarration(campaign, log)} aria-label={invited ? 'Tap to hear this turn' : active ? 'Pause narration' : 'Read this turn aloud'} title={invited ? 'Tap to hear this turn' : 'Read this turn aloud'}>
+    {active ? <Pause/> : <Play/>}<span>{invited ? 'Tap to listen' : active ? 'Narrating' : 'Listen'}</span>
   </button>;
 }
 

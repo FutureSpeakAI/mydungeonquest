@@ -163,4 +163,54 @@ import { castVoiceId, castVoiceByCard, resolveVoiceId } from '../src/lib/cinema/
   assert.equal(codex.cast.some((s) => (s.known_facts || []).some((f) => f.includes('Ambiguity touches nobody'))), false, 'an ambiguous alias must resolve to no card — canon is never guessed');
 }
 
-console.log('PASS — the cast law: the dead do not speak, casting reads the card, migration recasts no one, and the card canon holds.');
+// ---- 5. The hero's casting law: the forge card is read --------
+{
+  const { castHeroVoice, resolveHeroVoiceId, heroVoiceCard } = await import('../src/lib/cinema/casting.js');
+  const FEM_IDS = ['EXAVITQu4vr4xnSDxMaL', 'AZnzlk1XvdvUeBnXmlld', 'XB0fDUnXU5powFXDhCwa', 'Xb7hH8MSUJpSbSDYk0k2', 'XrExE9yKIg1WjnnlVkGX', 'MF3mGyEYCl7XYWbV9V6O'];
+  const MASC_IDS = ['onwK4e9ZLuTAKqWW03F9', 'pNInz6obpgDQGcFmaJgB', 'VR6AewLTigWG4xSOukaG', 'N2lVS1w4EtoT3dr4eOWO', 'pqHfZKP75CvOlQylNhV4', 'TxGEqnHWrfWFTfGW9XjX'];
+
+  // The wrong-register bug, pinned: a neutrally-named hero whose BEARING
+  // carries the register. The legacy name-hash read only the name and could
+  // draw from the wrong side of the room; the card-cast reads what the player
+  // actually wrote at the forge.
+  const ash = { name: 'Ash', ancestry: 'Human', className: 'Ranger', bearing: "A quiet woman with storm-grey eyes, her mother's bow across her back", background: 'Raised by the road wardens' };
+  assert.ok(FEM_IDS.includes(castHeroVoice(ash)), 'a fem bearing must cast a fem voice, whatever the name-hash says');
+
+  const bram = { name: 'Bram', ancestry: 'Dwarf', className: 'Fighter', bearing: "A barrel-chested man, soot in his beard, his father's axe never far", background: 'Forge-born' };
+  assert.ok(MASC_IDS.includes(castHeroVoice(bram)), 'a masc bearing must cast a masc voice');
+
+  // Background carries register too when the bearing is quiet.
+  const wren = { name: 'Wren', ancestry: 'Elf', className: 'Bard', bearing: '', background: 'A priestess of the river choirs before she took the road' };
+  assert.ok(FEM_IDS.includes(castHeroVoice(wren)), 'the background must reach the casting session when the bearing is silent');
+
+  // Deterministic in the written card — same hero, same voice, every session,
+  // every replay, every export.
+  assert.equal(castHeroVoice(ash), castHeroVoice(structuredClone(ash)), 'hero casting must be deterministic');
+
+  // The card the session reads carries what the player wrote.
+  const card = heroVoiceCard(ash);
+  assert.ok(card.visual.includes('storm-grey'), 'the bearing must reach the card');
+  assert.ok(card.role.toLowerCase().includes('ranger'), 'ancestry and class stand as the role');
+
+  // Resolution mirrors the NPC law: a persisted voice is kept forever; an
+  // uncast hero (pre-law campaign, read-only spine) resolves to the card-cast
+  // answer in memory — never the blind name-draw.
+  assert.equal(resolveHeroVoiceId({ ...ash, voiceId: 'LOCKED-HERO-VOICE' }), 'LOCKED-HERO-VOICE', 'a cast hero keeps the persisted voice forever');
+  assert.equal(resolveHeroVoiceId(ash), castHeroVoice(ash), 'an uncast hero resolves by the card, deterministically');
+}
+
+// ---- 6. The hero answers to their first name — unless it's taken ----
+{
+  const { speakerIsHero } = await import('../src/lib/cinema/casting.js');
+  const hero = { name: 'Ash Vale', bearing: 'A quiet woman with storm-grey eyes' };
+  assert.equal(speakerIsHero('Ash Vale', hero, []), true, 'the full name is always the hero');
+  assert.equal(speakerIsHero('  ash vale ', hero, []), true, 'case and stray whitespace must not matter');
+  assert.equal(speakerIsHero('Ash', hero, []), true, 'a bare first name reaches the hero when nobody else claims it');
+  assert.equal(speakerIsHero('Ash', hero, [{ name: 'Ash Thorn' }]), false, 'an ambiguous first name touches nobody — a voice is never guessed');
+  assert.equal(speakerIsHero('Vale', hero, []), false, 'a surname alone is not an alias');
+  assert.equal(speakerIsHero('Mara', hero, []), false, 'a stranger is never the hero');
+  assert.equal(speakerIsHero('', hero, []), false, 'silence is nobody');
+  assert.equal(speakerIsHero('Ash', null, []), false, 'no hero, no claim');
+}
+
+console.log('PASS — the cast law: the dead do not speak, casting reads the card, migration recasts no one, the card canon holds, and the hero is cast by the forge card.');

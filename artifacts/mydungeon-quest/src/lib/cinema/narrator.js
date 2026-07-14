@@ -1,6 +1,6 @@
 import { db } from '../db.js';
 import { sha256 } from '../canonical.js';
-import { narratorVoiceId, resolveVoiceId, dialogueLeadIn } from './casting.js';
+import { narratorVoiceId, resolveVoiceId, resolveHeroVoiceId, speakerIsHero, dialogueLeadIn } from './casting.js';
 import { setVoiceActive } from './audioDirector.js';
 import { tollRefusal } from '../../patron/tollNotice.js';
 
@@ -21,6 +21,19 @@ import { tollRefusal } from '../../patron/tollNotice.js';
 // stage. A tiny pub/sub lets per-turn buttons reflect play/pause.
 // This bypasses the Foundry tier gate on purpose: hearing the
 // story read aloud is a comfort setting at any media tier.
+//
+// THE ONE THROAT: all playback speaks through a single persistent
+// element. Browsers grant autoplay to an ELEMENT that has once
+// played inside a user gesture, and that blessing survives src
+// changes — so the table's ordinary gestures (send, roll, begin)
+// prime the throat with a breath of true silence, and every later
+// auto-read speaks through it unprompted. A fresh element per
+// segment (the old way) was refused the moment a gesture's grace
+// expired, which is why voices demanded a press every turn. If a
+// browser still refuses, the reading is STAGED, never lost: the
+// turn's button becomes a visible invitation, and the tap that
+// accepts it both plays the turn and blesses the throat for the
+// rest of the session.
 // ------------------------------------------------------------
 
 // Break a turn into an ordered list of voiced segments. Narration (no speaker)
@@ -28,7 +41,10 @@ import { tollRefusal } from '../../patron/tollNotice.js';
 // names the speaker, then the character's own voice reading only the line.
 // Consecutive same-voice segments are merged so the narrator's stage-setting and
 // its hand-off ("…and that is when Halvard said,") are one smooth clip.
-export function narrationSegments(dm, cast = []) {
+// THE HERO'S LINES resolve through the hero's own cast voice (the forge card),
+// never the blind name-draw — the draw read nothing but the name, which is how
+// a hero could speak from the wrong side of the room.
+export function narrationSegments(dm, cast = [], hero = null) {
   const blocks = (dm?.narration_blocks || []).filter((block) => block && block.text);
   const raw = [];
   blocks.forEach((block, i) => {
@@ -36,7 +52,11 @@ export function narrationSegments(dm, cast = []) {
       raw.push({ voiceId: narratorVoiceId(), speaker: null, text: block.text });
       return;
     }
-    const soul = cast.find((entry) => String(entry.name).toLowerCase() === String(block.speaker).toLowerCase());
+    const key = String(block.speaker).toLowerCase();
+    let soul = cast.find((entry) => String(entry.name).toLowerCase() === key);
+    if (!soul && speakerIsHero(block.speaker, hero, cast)) {
+      soul = { name: hero.name, voiceId: resolveHeroVoiceId(hero) };
+    }
     const leadIn = dialogueLeadIn(block.speaker, blocks[i - 1]);
     if (leadIn) raw.push({ voiceId: narratorVoiceId(), speaker: null, text: leadIn });
     raw.push({ voiceId: resolveVoiceId(soul, block.speaker), speaker: block.speaker, text: block.text });
@@ -55,8 +75,8 @@ export function narrationSegments(dm, cast = []) {
 
 // Back-compat: the flattened plain-text reading of a turn (used nowhere critical
 // now, but kept stable for any external caller).
-export function narrationText(dm, cast = []) {
-  return narrationSegments(dm, cast).map((seg) => seg.text).join('\n\n');
+export function narrationText(dm, cast = [], hero = null) {
+  return narrationSegments(dm, cast, hero).map((seg) => seg.text).join('\n\n');
 }
 
 const segmentKey = (campaignId, log, index, voiceId) =>
@@ -101,39 +121,82 @@ export async function ensureSegmentBlob(campaign, log, segment, index) {
   return asset?.blob || null;
 }
 
-let audio = null;    // the single live HTMLAudioElement for the active chain
+let audio = null;     // THE ONE THROAT: the single persistent element every take
+                      // speaks through. Created on first need and NEVER discarded —
+                      // the autoplay blessing attaches to the element and survives
+                      // src changes; discarding it would forfeit the blessing.
+let takeSession = -1; // which session stamped the element's current src. After a
+                      // stop the element still HOLDS the old take; only this stamp
+                      // (never the element's own flags) says whose line it carries.
 let activeId = null;
 let activeUrls = [];
-let paused = false;  // OUR pause intent — the source of truth, not element.paused
-                     // (an *ended* element also reports paused, which is why we
-                     // must not infer pause state from the element)
+let paused = false;   // OUR pause intent — the source of truth, not element.paused
+                      // (an *ended* element also reports paused, which is why we
+                      // must not infer pause state from the element)
 let advancing = false; // true while the next segment is being generated (the
                        // inter-segment gap) so the button still reads "playing"
-let session = 0;     // monotonic token; bumped on every stop/start so a slow
-                     // generation that resolves after a newer request is discarded
+let blocked = false;  // the browser refused an unprompted start; the reading is
+                      // staged, and the turn's button invites the blessing tap
+let primed = false;   // the throat has played inside a user gesture this session
+let session = 0;      // monotonic token; bumped on every stop/start so a slow
+                      // generation that resolves after a newer request is discarded
 const listeners = new Set();
+
+function throat() {
+  if (!audio) audio = new Audio();
+  return audio;
+}
+
+// A breath of true silence (16-bit PCM, 8 kHz, 16 empty frames) used only to
+// earn the autoplay blessing inside a gesture. Not narration, never audible.
+const SILENT_BREATH = 'data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YRAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+// Called synchronously inside the table's ordinary gestures (send, roll, the
+// forge's begin, the X-card) BEFORE their async work begins. Plays silence
+// through the throat so the element is blessed while the gesture's grace still
+// holds. A refusal costs nothing — the next gesture simply tries again.
+export function primeNarration() {
+  if (primed || typeof Audio === 'undefined') return;
+  const el = throat();
+  if (activeId) { primed = true; return; } // a reading is live: the throat is proven
+  try {
+    takeSession = -1; // the breath belongs to no reading
+    el.src = SILENT_BREATH;
+    const attempt = el.play();
+    if (attempt && typeof attempt.then === 'function') {
+      attempt.then(
+        () => { primed = true; try { el.pause(); } catch { /* stubs */ } },
+        () => { /* refused — the next gesture will offer another breath */ }
+      );
+    } else {
+      primed = true;
+    }
+  } catch { /* no throat to bless in this environment */ }
+}
 
 function isPlaying() {
   return Boolean(activeId) && !paused && (advancing || Boolean(audio && !audio.paused && !audio.ended));
 }
 
 function emit() {
-  const state = { id: activeId, playing: isPlaying() };
+  const state = { id: activeId, playing: isPlaying(), blocked: Boolean(activeId) && blocked };
   // The Director's voice gate follows the reading as a whole: active from the
   // first request until stop/pause, spanning inter-segment gaps, so a music
   // phrase can never squeeze in between the narrator and a character's line.
+  // A blocked reading is staged-paused, so it lawfully releases the stage.
   setVoiceActive(Boolean(activeId) && !paused);
   for (const fn of listeners) fn(state);
 }
 
 export function subscribeNarration(fn) {
-  fn({ id: activeId, playing: isPlaying() });
+  fn({ id: activeId, playing: isPlaying(), blocked: Boolean(activeId) && blocked });
   listeners.add(fn);
   return () => listeners.delete(fn);
 }
 
-// Retire an audio element completely: unwire it and stop it so it can never keep
-// playing as an orphan once we've moved past it.
+// Retire the current take: unwire the handlers and stop playback so nothing can
+// keep speaking as an orphan once we've moved past it. The ELEMENT is kept —
+// retiring a take must never forfeit the throat's autoplay blessing.
 function retire(element) {
   if (!element) return;
   element.onended = null; element.onpause = null; element.onplay = null;
@@ -142,20 +205,22 @@ function retire(element) {
 
 export function stopNarration() {
   session += 1; // invalidate any generation or segment advance still in flight
-  retire(audio);
+  retire(audio); // the throat stays; only its current take is silenced
   activeUrls.forEach((url) => URL.revokeObjectURL(url));
-  activeUrls = []; audio = null; activeId = null; paused = false; advancing = false;
+  activeUrls = []; activeId = null; paused = false; advancing = false; blocked = false;
   emit();
 }
 
 // Play one segment, then chain to the next on 'ended'. Event-driven (never
 // awaits playback to finish) so the returned promise resolves as soon as the
 // segment starts — a newer play/stop supersedes this chain via the session
-// token, and a superseded chain never constructs an Audio element. Only ONE
-// element is ever live: before starting a new segment we retire the previous
-// one, and if the player paused during the gap we stage the segment without
-// playing it, so two voices can never overlap. A segment of mock provenance is
-// skipped entirely — better a silent beat than a placeholder tone.
+// token, and a superseded chain never takes the throat. Only ONE take is ever
+// live: before starting a new segment we retire the previous one, and if the
+// player paused during the gap we stage the segment without playing it, so two
+// voices can never overlap. A segment of mock provenance is skipped entirely —
+// better a silent beat than a placeholder tone. If the browser refuses an
+// unprompted start, the take is staged as paused+blocked and the turn's button
+// invites the tap that plays it (and blesses the throat thereafter).
 async function playSegment(campaign, log, segments, index, mine) {
   if (mine !== session) return;
   if (index >= segments.length) { if (mine === session) stopNarration(); return; }
@@ -165,24 +230,32 @@ async function playSegment(campaign, log, segments, index, mine) {
   if (mine !== session) return;                       // superseded while generating → drop
   if (!asset?.blob || asset.provider === 'mock') { await playSegment(campaign, log, segments, index + 1, mine); return; }
   const url = URL.createObjectURL(asset.blob); activeUrls.push(url);
-  const element = new Audio(url);
-  if (audio && audio !== element) retire(audio);      // never leave a prior segment live
-  audio = element;
+  const element = throat();
+  retire(element);                                    // unwire the previous take; keep the blessing
+  element.src = url; takeSession = mine;              // the same blessed throat takes the next line
   element.onpause = emit; element.onplay = emit;
   element.onended = () => { if (mine === session) playSegment(campaign, log, segments, index + 1, mine); };
   advancing = false;
   if (mine !== session) { retire(element); return; }
   if (paused) { emit(); return; }                     // player paused in the gap: stage, don't play
-  try { await element.play(); } catch { /* a browser may block autoplay until a tap */ }
+  try {
+    await element.play();
+    blocked = false;
+  } catch (error) {
+    // The blessing hadn't been earned (or a strict browser withdrew it). Stage
+    // the reading instead of failing silently: paused+blocked makes the turn's
+    // button a visible invitation rather than a dead control.
+    if (mine === session && !paused && error?.name !== 'AbortError') { paused = true; blocked = true; }
+  }
   emit();
 }
 
 export async function playNarration(campaign, log, _options = {}) {
   stopNarration();
   const mine = session; // this call owns the narrator only while it stays current
-  const segments = narrationSegments(log.dm, campaign.codex?.cast || []);
+  const segments = narrationSegments(log.dm, campaign.codex?.cast || [], campaign.hero || null);
   if (!segments.length) return;
-  activeId = log.id; paused = false;
+  activeId = log.id; paused = false; blocked = false;
   emit(); // claim the stage immediately: the Director silences music before the first word
   await playSegment(campaign, log, segments, 0, mine);
 }
@@ -192,14 +265,19 @@ export async function playNarration(campaign, log, _options = {}) {
 // the current element has already ended (and so reports paused), and reading the
 // element would wrongly resume a finished segment while the next one is loading —
 // producing two voices. Instead we mark intent; a segment generated during a
-// pause is staged (created but not played) and only starts on resume.
+// pause is staged (created but not played) and only starts on resume. A tap on
+// a blocked reading lands here too: it clears the block and, being a gesture,
+// is allowed to start the staged take — blessing the throat as it does.
 export function toggleNarration(campaign, log) {
   if (activeId === log.id && (audio || advancing)) {
     if (paused) {
-      paused = false;
-      if (audio && audio.paused && !audio.ended) audio.play().catch(() => {});
+      paused = false; blocked = false;
+      // Resume only OUR OWN take: after a stop the throat may still hold a
+      // previous reading's src — the session stamp on the take, never the
+      // element's own flags, says whether this src is ours to play.
+      if (audio && takeSession === session && audio.paused && !audio.ended) audio.play().catch(() => {});
     } else {
-      paused = true;
+      paused = true; blocked = false;
       if (audio && !audio.ended) audio.pause();
     }
     emit();

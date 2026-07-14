@@ -2,11 +2,15 @@
 //
 // Opt-in doctrine (same law as the media providers): if the build carries no
 // publishable key, the door was never built — PatronShell returns its
-// children untouched, PatronDoor renders nothing, and signed-out play is
+// children untouched, PatronDoor renders nothing, and keyless play is
 // byte-for-byte the keyless game. The headless eval pins the key to '' and
-// so always walks the doorless house. With a key, the shell adds wouter
-// routing for /sign-in and /sign-up (Clerk needs real paths for its OAuth
-// callbacks) and the title footer offers a quiet line at the door.
+// so always walks the doorless house.
+//
+// With a key, the owner's directive (July 2026) holds: THE DOOR IS LOCKED.
+// Nobody plays unnamed — the shell adds wouter routing for /sign-in and
+// /sign-up (Clerk needs real paths for its OAuth callbacks), and every other
+// path renders the game only for a signed-in patron; the signed-out see the
+// locked title and the house's offer: six turns free, then a seat.
 import { useEffect, useMemo } from 'react';
 import { vaultSessionChanged } from '../lib/vault.js';
 import { ClerkProvider, SignIn, SignUp, useClerk, useUser } from '@clerk/react';
@@ -107,7 +111,7 @@ const doorWords = {
   signUp: {
     start: {
       title: 'Take up the quill',
-      subtitle: 'A name at the door — your chronicles stay yours, on your device.',
+      subtitle: 'Six turns on the house — your chronicles stay yours, on your device.',
     },
   },
 };
@@ -118,7 +122,7 @@ function SignInPage() {
       <div>
         {/* path must be the full browser path — Clerk reads window.location directly */}
         <SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} />
-        <p className="door-return"><Link href="/" className="text-button">← Return to the title page</Link></p>
+        <p className="door-return"><Link href="/" className="text-button">← Return to the door</Link></p>
       </div>
     </div>
   );
@@ -129,7 +133,7 @@ function SignUpPage() {
     <div className="door-page">
       <div>
         <SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} />
-        <p className="door-return"><Link href="/" className="text-button">← Return to the title page</Link></p>
+        <p className="door-return"><Link href="/" className="text-button">← Return to the door</Link></p>
       </div>
     </div>
   );
@@ -142,6 +146,45 @@ function VaultWatch() {
   const { user, isLoaded } = useUser();
   useEffect(() => { if (isLoaded) vaultSessionChanged(user?.id || null); }, [isLoaded, user?.id]);
   return null;
+}
+
+// THE LOCKED TITLE — what a nameless visitor sees where the game would be.
+// The same candlelit face as the true title, honest about the deal: a name
+// first; six turns on the house; then $5 by the week or $129.99 by the year.
+function LockedTitle() {
+  const art = `${import.meta.env.BASE_URL}keyart/gate.jpg`;
+  return (
+    <main className="title-page cinematic">
+      <div className="title-bg" style={{ backgroundImage: `url("${art}")` }} aria-hidden />
+      <div className="title-veil" aria-hidden />
+      <section className="title-hero">
+        <div className="candle" aria-hidden="true"><span className="halo" /><span className="flame" /><span className="stem" /></div>
+        <span className="eyebrow">Cinematic Edition</span>
+        <h1>MyDungeon<span>.Quest</span></h1>
+        <p>A tale that is actually yours — once the book knows your name.</p>
+        <Link href="/sign-in" className="primary-button big">Give your name at the door</Link>
+        <p className="muted door-offer">
+          Six turns on the house — painted plates, spoken voices, the works.<br />
+          Then $5 a week, or $129.99 for a year without measure.
+        </p>
+        <p className="door-return">
+          <Link href="/sign-up" className="text-button">New to the house? Take up the quill</Link>
+          {' · '}
+          <a href="/welcome.html" className="text-button">Read the full board</a>
+        </p>
+      </section>
+    </main>
+  );
+}
+
+// The lock itself: children (the whole game) render only for a named
+// patron. While Clerk is still reading the session, a dark stage — never a
+// flash of a game that is about to be taken away.
+function DoorGate({ children }) {
+  const { user, isLoaded } = useUser();
+  if (!isLoaded) return <main className="title-page cinematic" aria-busy="true" />;
+  if (!user) return <LockedTitle />;
+  return children;
 }
 
 function DoorFrame({ children }) {
@@ -165,9 +208,9 @@ function DoorFrame({ children }) {
             (/sign-in/sso-callback, /sign-in/factor-one). */}
         <Route path="/sign-in/*?" component={SignInPage} />
         <Route path="/sign-up/*?" component={SignUpPage} />
-        {/* Everything else is the game, exactly as it was. The title page
-            stays a public landing — no redirect to sign-in, ever. */}
-        <Route>{children}</Route>
+        {/* Everything else is the game — behind the lock. The nameless see
+            the locked title and the offer, never a playable table. */}
+        <Route><DoorGate>{children}</DoorGate></Route>
       </Switch>
     </ClerkProvider>
   );

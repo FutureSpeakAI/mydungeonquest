@@ -1,18 +1,25 @@
 ---
-name: MyDungeon door (auth) is opt-in
-description: Auth follows the media-provider doctrine — no keys, no door; guests are first-class; server-owned tables self-bootstrap.
+name: MyDungeon door (Clerk) — locked when keyed, absent when keyless
+description: Auth doctrine — mandatory sign-in when keys exist, keyless forks doorless forever, eval/env handling, Clerk quirks
 ---
 
-# The Door is opt-in, and the ledger binds itself
+## Doctrine (owner directive, July 2026): THE DOOR IS LOCKED
+- **Server**: `namedOnly()` (patrons.js) mounts on every pouring room — `/api/dm, /api/retell, /api/paint, /api/speak, /api/music, /api/sfx, /api/quest-audio, /api/bind-pdf` — via one `app.use([paths], namedOnly())` in index.js, answering **401 `{door:true}` BEFORE the innkeeper** reads any ledger. `/api/toll`, `/api/whoami`, `/api/health`, the Stripe courier, and static halls stay nameless-readable.
+- **Client**: `DoorGate` inside DoorFrame's catch-all route — signed-out visitors see `LockedTitle` (candlelit title + offer: six turns free, $5/wk, $129.99/yr) and never a playable table; `/sign-in` + `/sign-up` routes sit OUTSIDE the gate.
+- **Keyless forks stay doorless forever**: namedOnly is a pass-through, PatronShell returns children untouched — a fork or eval is byte-for-byte the free table. Media doctrine and door doctrine are the same law.
 
-**Rules:**
-- Auth exists only when its keys exist. Keyless builds must render signed-out play unchanged (no provider, no router, no new code paths); the keyless server marks everyone a guest.
-- Identity failures fail OPEN to guest — lawful only while no privileged endpoints exist. Billing/quota work must add separate fail-closed authorization, never loosen the doorkeeper.
-- Any server-owned table must self-bootstrap idempotently at first use. Never assume a hand-created schema survives a fresh environment.
+## Identity vs money — never mix the refusals
+- Door refusals: **401 `{door:true, error}`**. Toll refusals: **402 `{closed:true, ...}`**. A nameless knock must never produce a 402.
 
-**Why:** Guest custody is product law — the device keeps the tales, the ledger keeps only names. A hand-provisioned table plus fail-open identity meant a fresh environment would silently degrade every patron to guest while looking healthy (a completion review caught exactly this).
+## Eval & env handling
+- `evals/tollhouse.test.mjs` §0 tests the lock by setting `CLERK_SECRET_KEY`/`CLERK_PUBLISHABLE_KEY` inside try/finally, then striking them — the rest of the bench must stay keyless.
+- The jsx loader pins `VITE_CLERK_PUBLISHABLE_KEY=''` so component evals always walk the doorless house.
+- Clerk CAPTCHA blocks agent-driven browser sign-up — E2E of the signed-in table needs the owner's real session; curl-test the 401s instead.
 
-**How to apply:**
-- Gate on key existence, never on NODE_ENV (prod-only gating breaks the FAPI proxy pattern; key-gating mirrors the media providers).
-- Evals: scrub Clerk env keys *before* importing server modules (the workspace env carries real keys; the keyless gate command only unsets AI keys), pin the client key to `''` in the harness defines, and judge open-door logic through injection seams (stub auth/query), never live Clerk or Postgres — keyless forks must stay green.
-- Clerk's bot-protection CAPTCHA blocks automated-browser sign-up even on dev instances; browser e2e testers will report `unable`. Verify inscription headlessly instead: backend `createUser` + the inscription function directly, then clean up.
+## Clerk quirks (unchanged)
+- `publishableKeyFromHost(window.location.hostname, envKey)` resolves per-hostname; guard behind doorBuilt (headless eval has no window).
+- `proxyUrl` passed unconditionally (empty in dev, auto-set in prod) — never gated on NODE_ENV.
+- Clerk needs real paths for OAuth callbacks → wouter `/sign-in/*?` optional-wildcard routes.
+
+**Why:** nobody plays unnamed — the six-turn lifetime taste needs a name for its count to bind to; keyless pass-through keeps evals and forks honest without a second code path.
+**How to apply:** adding any new pouring route → add its path to the namedOnly `app.use` list in server/index.js (and nothing else).

@@ -148,6 +148,25 @@ export function doorkeeper() {
   return door;
 }
 
+// THE LOCKED DOOR — owner's directive (July 2026): with the door standing,
+// the house asks every name BEFORE any turn or pour. No name, no table.
+// On a doorless build (a keyless fork, the eval harness) this is a pure
+// pass-through: the free table of a fork is byte-for-byte untouched. It
+// answers 401, never 402 — this is identity, not money — and it sits
+// before the innkeeper, so a nameless knock never reads the ledger at all.
+export function namedOnly() {
+  return (req, res, next) => {
+    if (doorOpen() && !req.patron) {
+      return res.status(401).json({
+        door: true,
+        error:
+          'The house asks your name at the door before the tale begins — six turns on the house once the book knows you.',
+      });
+    }
+    next();
+  };
+}
+
 // GET /api/whoami — the door's honest answer, for the client and for curl.
 export function whoami(req, res) {
   res.json({

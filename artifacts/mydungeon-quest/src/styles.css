@@ -135,3 +135,21 @@
 .plate-lightbox img{max-width:96vw;max-height:92vh;width:auto;object-fit:contain;border-radius:6px;box-shadow:0 30px 90px rgba(0,0,0,.7)}
 .plate-lightbox .lightbox-close{position:absolute;top:max(1rem,env(safe-area-inset-top));right:1rem;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);display:grid;place-items:center;color:var(--vellum)}
 @keyframes lightbox-in{from{opacity:0}}
+
+/* The Cast page: every soul a card. The dead dim to memorial under a small
+   wax mark — their voice is retired (the dead do not speak), though sealed
+   replays keep the voice they always had. */
+.soul-card{position:relative}
+.soul-card .status-badge{display:inline-block;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;padding:.14rem .55rem;border-radius:999px;border:1px solid rgba(212,162,78,.35);color:var(--gold);margin:.15rem 0 .3rem}
+.soul-card .status-badge.dead{border-color:rgba(157,68,58,.55);color:#c97b6d;background:rgba(157,68,58,.12)}
+.soul-card .status-badge.missing{border-color:rgba(122,132,152,.45);color:#9aa7bd;background:rgba(122,132,152,.1)}
+.soul-card.memorial .soul-face,.soul-card.memorial .procedural-portrait{filter:grayscale(.85) sepia(.25) brightness(.72)}
+.soul-card.memorial h4{color:rgba(233,223,200,.72)}
+.soul-card.memorial:before{content:"";position:absolute;top:.55rem;right:.55rem;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#b0685a,#7c352c 72%);box-shadow:0 1px 4px rgba(0,0,0,.5);opacity:.92;z-index:1}
+.bond-thread{display:flex;gap:.28rem;margin:.3rem 0 .1rem}
+.bond-thread i{width:22px;height:4px;border-radius:2px;background:rgba(233,223,200,.14)}
+.bond-thread i.lit{background:linear-gradient(90deg,var(--gold),#e9dfc8)}
+.bond-why{display:block;font-style:italic;color:rgba(233,223,200,.6);margin:.1rem 0 .2rem}
+.known-facts{margin:.35rem 0 .2rem;padding-left:1rem;display:grid;gap:.2rem}
+.known-facts li{font-size:.78rem;color:rgba(233,223,200,.78);line-height:1.35}
+.soul-card .trail{display:block;margin-top:.25rem}

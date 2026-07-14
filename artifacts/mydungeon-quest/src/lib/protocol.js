@@ -11,12 +11,37 @@ function noUnknown(object, allowed, path, errors) {
   for (const key of Object.keys(object)) if (!allowed.has(key)) errors.push(`${path}.${key} is not allowed`);
 }
 
-export function validateDmTurn(payload, entropyPool = []) {
+// context — the codex snapshot the turn is judged against, threaded by every
+// caller (client turn path, server repair-retry path, evals). Taken BEFORE
+// this turn's story updates apply, so a soul may speak its dying words in the
+// very turn that kills it — and never again after.
+//   context.cast: [{ name, status }] — the sealed cast at the turn's start.
+export function validateDmTurn(payload, entropyPool = [], context = {}) {
   const errors = [];
   assert(payload && typeof payload === 'object' && !Array.isArray(payload), 'payload must be an object', errors);
   if (!payload || typeof payload !== 'object') return { ok: false, errors };
   noUnknown(payload, ALLOWED_KEYS, 'dm_turn', errors);
   for (const key of ALLOWED_KEYS) assert(Object.hasOwn(payload, key), `${key} is required`, errors);
+
+  // THE DEAD DO NOT SPEAK — the one law amendment of the Experience Cut.
+  // Dialogue attributed to a cast member whose sealed status is 'dead' makes
+  // the whole turn invalid. Matching is canonical (trimmed, case-insensitive)
+  // and alias-aware: a bare first name reaches its soul, so the dead
+  // "Mara Vey" cannot slip back onstage as "Mara". When a name could mean
+  // both a living and a dead soul, the living one is presumed to speak —
+  // the law blocks only the unambiguous dead.
+  const canon = (value) => String(value ?? '').trim().toLowerCase();
+  const firstName = (value) => canon(value).split(/\s+/)[0] || '';
+  const souls = (context.cast || [])
+    .map((soul) => ({ name: canon(soul?.name), first: firstName(soul?.name), dead: canon(soul?.status) === 'dead' }))
+    .filter((soul) => soul.name);
+  const speaksFromTheGrave = (speaker) => {
+    if (typeof speaker !== 'string') return false;
+    const name = canon(speaker);
+    if (!name) return false;
+    const matches = souls.filter((soul) => soul.name === name || soul.first === name);
+    return matches.length > 0 && matches.every((soul) => soul.dead);
+  };
 
   assert(Array.isArray(payload.narration_blocks) && payload.narration_blocks.length >= 1 && payload.narration_blocks.length <= 8, 'narration_blocks must contain 1-8 blocks', errors);
   let words = 0;
@@ -24,6 +49,7 @@ export function validateDmTurn(payload, entropyPool = []) {
     noUnknown(block, new Set(['text','speaker']), `narration_blocks[${index}]`, errors);
     assert(cleanText(block.text, 1200), `narration_blocks[${index}].text invalid`, errors);
     assert(block.speaker === null || cleanText(block.speaker, 80), `narration_blocks[${index}].speaker invalid`, errors);
+    assert(!speaksFromTheGrave(block.speaker), `narration_blocks[${index}]: the dead do not speak — ${block.speaker} is dead and cannot be given dialogue`, errors);
     words += String(block.text || '').trim().split(/\s+/).filter(Boolean).length;
   }
   assert(words >= 20 && words <= 180, `narration total must be 20-180 words (received ${words})`, errors);
@@ -86,6 +112,7 @@ export function validateDmTurn(payload, entropyPool = []) {
 
   if (payload.dialogue_cue !== null) {
     assert(cleanText(payload.dialogue_cue?.speaker, 80), 'dialogue_cue.speaker invalid', errors);
+    assert(!speaksFromTheGrave(payload.dialogue_cue?.speaker), `dialogue_cue: the dead do not speak — ${payload.dialogue_cue?.speaker} is dead and cannot be given dialogue`, errors);
     assert(cleanText(payload.dialogue_cue?.line, 180) && payload.dialogue_cue.line.trim().split(/\s+/).length <= 18, 'dialogue line must be <=18 words', errors);
   }
   if (payload.image_cue !== null) {

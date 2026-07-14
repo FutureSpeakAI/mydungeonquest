@@ -24,13 +24,13 @@ for (const [persona, line] of personas) {
     const entropy = makeEntropy(() => .42);
     const story = storyBlock(codex);
     const dm = mockDmTurn({ campaign: { ...campaign, codex }, hero, story, player: line, entropy, resolution: pendingResolution, turn });
-    const validation = validateDmTurn(dm, entropy);
+    const validation = validateDmTurn(dm, entropy, { cast: codex.cast });
     assert.equal(validation.ok, true, `${persona} turn ${turn}: ${validation.errors.join('; ')}`);
     metrics.valid += 1; metrics.turns += 1;
     assert.equal(new Set(dm.suggestions.map((s) => s.toLowerCase())).size, 3);
     metrics.suggestionSets.add(dm.suggestions.join('|'));
     if (dm.cinematic) metrics.cinematics += 1;
-    codex = applyStoryUpdates(codex, dm.story);
+    codex = applyStoryUpdates(codex, dm.story, { turn });
     hero = applyStateUpdates(hero, dm.state_updates);
     pendingResolution = dm.roll_request ? heroRoll(hero, dm.roll_request, () => .73) : null;
     if (pendingResolution) metrics.rolls += 1;

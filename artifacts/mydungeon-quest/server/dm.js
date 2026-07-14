@@ -71,7 +71,7 @@ const imageCueSchema = {
 const dialogueCueSchema = {
   anyOf: [
     { type: 'null' },
-    { type: 'object', additionalProperties: false, required: ['speaker','line'], properties: { speaker: { type: 'string', maxLength: 80 }, line: { type: 'string', maxLength: 180 } } }
+    { type: 'object', additionalProperties: false, required: ['speaker','line'], properties: { speaker: { type: 'string', maxLength: 80, description: 'Exact living cast name. THE DEAD DO NOT SPEAK — a dead soul may have spoken final words only in the very turn it died, never after.' }, line: { type: 'string', maxLength: 180 } } }
   ]
 };
 const timeAdvanceSchema = {
@@ -85,7 +85,7 @@ const toolSchema = {
   type: 'object', additionalProperties: false,
   required: ['narration_blocks','suggestions','roll_request','state_updates','combat','cinematic','story','image_cue','dialogue_cue','time_advance','entropy_use'],
   properties: {
-    narration_blocks: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'object', additionalProperties: false, required: ['text','speaker'], properties: { text: { type: 'string', maxLength: 1200 }, speaker: { anyOf: [{ type: 'string', maxLength: 80 }, { type: 'null' }] } } } },
+    narration_blocks: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'object', additionalProperties: false, required: ['text','speaker'], properties: { text: { type: 'string', maxLength: 1200 }, speaker: { anyOf: [{ type: 'string', maxLength: 80 }, { type: 'null' }], description: 'Exact cast name for a dialogue block; null for description. THE DEAD DO NOT SPEAK — never attribute dialogue to a cast member whose status is dead.' } } } },
     suggestions: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: 60, description: 'At most 6 words.' } },
     roll_request: rollRequestSchema, state_updates: { anyOf: [{ type: 'null' }, { type: 'object' }] },
     combat: combatSchema, cinematic: cinematicSchema,
@@ -266,17 +266,18 @@ async function mockWithNarration(input, onNarration) {
   return turn;
 }
 
-export async function getDmTurn(input, { onNarration = null } = {}) {
+export async function getDmTurn(input, { onNarration = null, onRetract = null } = {}) {
   const useMock = !process.env.ANTHROPIC_API_KEY || process.env.DM_PROVIDER === 'mock';
 
   if (useMock) {
     try {
       const turn = await mockWithNarration(input, onNarration);
-      const validation = validateDmTurn(turn, input.entropy);
+      const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [] });
       if (!validation.ok) throw new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
       return { turn, provider: 'mock' };
     } catch (error) {
       console.error(error);
+      if (onNarration) onRetract?.();
       return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', error: error.message };
     }
   }
@@ -287,12 +288,16 @@ export async function getDmTurn(input, { onNarration = null } = {}) {
   // Network/API errors get a plain retry.
   let lastError;
   let repair = null;
+  let streamed = false;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const turn = attempt === 0 && onNarration
-        ? await anthropicTurnStream(input, onNarration).catch(() => anthropicTurn(input))
+      const streamingNarration = attempt === 0 && onNarration
+        ? (text) => { streamed = true; onNarration(text); }
+        : null;
+      const turn = streamingNarration
+        ? await anthropicTurnStream(input, streamingNarration).catch(() => anthropicTurn(input))
         : await anthropicTurn(input, repair);
-      const validation = validateDmTurn(turn, input.entropy);
+      const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [] });
       if (validation.ok) return { turn, provider: 'anthropic', repaired: attempt > 0 };
       lastError = new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
       repair = { turn, errors: validation.errors };
@@ -300,6 +305,10 @@ export async function getDmTurn(input, { onNarration = null } = {}) {
       lastError = error;
       repair = null;
     }
+    // The stage goes dark before the repair: if unlawful (or interrupted)
+    // prose already streamed to the player, retract it so the weaving text
+    // never leaves outlaw words standing while the turn is remade.
+    if (streamed) { onRetract?.(); streamed = false; }
   }
 
   // Anthropic exhausted — try OpenAI (ChatGPT) before generic narration.
@@ -308,7 +317,7 @@ export async function getDmTurn(input, { onNarration = null } = {}) {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         const turn = await openaiTurn(input, repairO);
-        const validation = validateDmTurn(turn, input.entropy);
+        const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [] });
         if (validation.ok) return { turn, provider: 'openai', repaired: attempt > 0, fellBackFrom: 'anthropic' };
         lastError = new Error(`Invalid DM turn (openai): ${validation.errors.join('; ')}`);
         repairO = { turn, errors: validation.errors };

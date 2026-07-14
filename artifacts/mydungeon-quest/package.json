@@ -8,7 +8,7 @@
     "dev": "node scripts/dev.mjs",
     "build": "vite build",
     "start": "node server/index.js",
-    "eval": "node evals/run.mjs && node evals/mediaFallback.test.mjs && node evals/narratorConcurrency.test.mjs && node evals/audioDirector.test.mjs",
+    "eval": "node evals/run.mjs && node evals/castLaw.test.mjs && node evals/mediaFallback.test.mjs && node evals/narratorConcurrency.test.mjs && node evals/audioDirector.test.mjs",
     "check": "npm run build && npm run eval"
   },
   "engines": {

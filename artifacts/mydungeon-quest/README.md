@@ -79,6 +79,7 @@ The Codex can bind the current chronicle into self-contained illuminated HTML. S
 - Canon is written once and prompt assembly is deterministic.
 - Generated media upgrades the procedural floor; it never blocks play.
 - The audio floor is silence (THE SOUND LAW): one voice at a time, music and SFX only as punctuation through the Audio Director, nothing under a voice, and mock-provenance audio refused at delivery.
+- The dead do not speak: dialogue attributed to a cast member dead in the pre-turn snapshot invalidates the `dm_turn` (dying words in the killing turn stay lawful), and resurrection retcons are refused by the reducer. Voices are cast once by card at first introduction and persisted; pre-law souls keep their hash voice.
 - The journal is append-only.
 - There are no accounts or telemetry.
 

@@ -1,6 +1,6 @@
 import { db } from '../db.js';
 import { sha256 } from '../canonical.js';
-import { narratorVoiceId, castVoiceId, dialogueLeadIn } from './casting.js';
+import { narratorVoiceId, resolveVoiceId, dialogueLeadIn } from './casting.js';
 import { setVoiceActive } from './audioDirector.js';
 
 // ------------------------------------------------------------
@@ -38,7 +38,7 @@ export function narrationSegments(dm, cast = []) {
     const soul = cast.find((entry) => String(entry.name).toLowerCase() === String(block.speaker).toLowerCase());
     const leadIn = dialogueLeadIn(block.speaker, blocks[i - 1]);
     if (leadIn) raw.push({ voiceId: narratorVoiceId(), speaker: null, text: leadIn });
-    raw.push({ voiceId: castVoiceId(soul, block.speaker), speaker: block.speaker, text: block.text });
+    raw.push({ voiceId: resolveVoiceId(soul, block.speaker), speaker: block.speaker, text: block.text });
   });
   const merged = [];
   for (const seg of raw) {

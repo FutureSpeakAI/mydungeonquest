@@ -89,6 +89,7 @@ The model never rolls a player's die, never edits state directly, and never reso
 Exactly one `dm_turn` tool call, all eleven fields present every time, every value inside the law:
 
 - **Narration:** 1–8 blocks, 20–180 words total (the craft asks for 60–140), each block only `text` + `speaker`. Dialogue speaks in a registered cast voice or not at all.
+- **The cast:** status is an enum — `active`, `dead`, `missing` — and **the dead do not speak**: dialogue attributed to a soul who was already dead when the turn began invalidates the whole turn. A soul may speak its dying words in the very turn that kills it; afterward the validator holds the line, and there are no resurrection retcons.
 - **Suggestions:** exactly 3, distinct, ≤ 6 words each — and one should be unexpected.
 - **Rolls:** kinds `check/save/attack/damage/death_save`, dice `d4…d100`, DC an honest integer 5–30 or null, advantage from the fixed enum; attacks and damage must name their `action_id`.
 - **Combat:** ops `start/update/end`; zones are range bands `engaged/near/far`; enemy HP/AC inside sane bounds.
@@ -107,9 +108,9 @@ Each law is written in three places, deliberately redundant:
 
 1. **The tool schema** (`server/dm.js`) teaches the model every enum and shape the client will accept — a model cannot guess `boss_reveal` or `d100` from vibes.
 2. **The system prompt** (`src/lib/systemPrompt.js`) states what a schema cannot express: word budgets, entropy order, DC honesty, beat pacing, tone covenants.
-3. **The validator** (`src/lib/protocol.js`) enforces all of it, client-side, after the fact. It is the only layer that *matters*; the other two exist so the model rarely meets it.
+3. **The validator** (`src/lib/protocol.js`) enforces all of it, client-side, after the fact — including against the codex itself: the pre-turn cast snapshot travels with every validation (`validateDmTurn(payload, entropy, { cast })`), so the dead cannot be given dialogue. It is the only layer that *matters*; the other two exist so the model rarely meets it.
 
-**Amending a law** means changing all three in lockstep — schema, prompt, validator — then re-verifying against live turns (the model is nondeterministic; one green run proves nothing). Fixing a live failure by loosening the validator is the one forbidden move.
+**Amending a law** means changing all three in lockstep — schema, prompt, validator — then re-verifying against live turns (the model is nondeterministic; one green run proves nothing). Fixing a live failure by loosening the validator is the one forbidden move. The first amendment is live: **the dead do not speak** — schema note, prompt clause, validator check, all landed together, with the cast snapshot threaded through both the client turn path and the server repair loops.
 
 ## The Sound Law
 
@@ -131,6 +132,7 @@ pnpm --filter @workspace/mydungeon-quest run check   # build + full eval suite
 The suite runs headless in Node — no browser, no keys, no network:
 
 - `evals/run.mjs` — the bench: DM protocol validity, streaming parity, reducers, canon integrity, PG-13 scrubber, Foundry budget caps, seal/tamper invariants (a forged chronicle must turn the audit red).
+- `evals/castLaw.test.mjs` — the cast law: the dead do not speak (including the dying-words exception), casting reads the card (timbre/age/villain scoring, deterministic tiebreak), the migration recasts nobody (legacy pool order is locked by hardcoded voice-id arrays), and the card canon holds (status enum, memorial facts, resurrection refusal, fact dedup caps, bond arcs).
 - `evals/mediaFallback.test.mjs` — the legacy-media contract: film-era logs render their painted posters as still plates (never a `<video>`), overlays ignore retired media rows, and the retired `cinema` tier is canonicalized to `illuminated` across export, import, and persistence round-trips.
 - `evals/narratorConcurrency.test.mjs` — the narrator never overlaps voice tracks no matter how fast turns arrive, constructs no music bed, and refuses mock-provenance segments (a keyless reading is silence, not sine tones).
 - `evals/audioDirector.test.mjs` — the Sound Law: one live sound, instant voice preemption, punctuation windows (late accents are dropped, never played), provenance refusal at the door.

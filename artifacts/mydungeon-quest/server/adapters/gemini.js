@@ -1,5 +1,7 @@
-// Google Gemini adapter — image via gemini-2.5-flash-image ("nano banana",
-// excellent at holding a face/place across references).
+// Google Gemini adapter — image via gemini-3.1-flash-image ("Nano Banana 2",
+// excellent at holding a face/place across references). Owner directive
+// (July 2026): Nano Banana 2 on its fastest settings — 1K output, flash
+// model, never the Pro line. PAINT_MODEL_GEMINI overrides for evals only.
 // Reads GEMINI_API_KEY, falling back to GOOGLE_API_KEY so either secret works.
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -25,15 +27,23 @@ export function geminiAdapter(key) {
     capabilities: { configured: Boolean(key), supportsReferences: true, maxReferenceImages: 3, supportsSeed: false, includesAudio: true, asynchronous: true },
 
     async paint({ prompt, kind = 'scene', size = '1536x1024', references = [] }) {
-      const model = process.env.PAINT_MODEL_GEMINI || 'gemini-2.5-flash-image';
-      const parts = [{ text: `${prompt}\n\nAspect ratio ${aspectFor(kind, size)}.` }];
+      const model = process.env.PAINT_MODEL_GEMINI || 'gemini-3.1-flash-image';
+      const parts = [{ text: prompt }];
       // Locked canon busts/plates ride along so faces and places converge.
       for (const ref of references.slice(0, 3)) {
         if (ref?.data) parts.push({ inlineData: { mimeType: ref.mime || 'image/png', data: ref.data } });
       }
       const response = await timedFetch(`${BASE}/models/${model}:generateContent?key=${key}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseModalities: ['IMAGE'] } })
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: {
+            responseModalities: ['IMAGE'],
+            // Fastest fire: 1K plates, aspect declared structurally (the 3.x
+            // image models take it in imageConfig, not prose).
+            imageConfig: { aspectRatio: aspectFor(kind, size), imageSize: '1K' }
+          }
+        })
       }, 120000);
       if (!response.ok) throw new Error(`Gemini ${response.status}: ${(await response.text()).slice(0, 300)}`);
       const json = await response.json();

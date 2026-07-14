@@ -116,6 +116,58 @@ export function resolveVoiceId(soul, name) {
   return soul?.voiceId || castVoiceId(soul, name);
 }
 
+// ------------------------------------------------------------
+// THE HERO'S CASTING — the player's own soul obeys the same law
+// as every NPC: cast once, by the card, deterministically. The
+// forge asks no gender question, so the card the casting session
+// reads is assembled from everything the player actually wrote —
+// ancestry and class as the role, bearing and background as the
+// canon. The legacy name-hash read NONE of that (only the name),
+// which is how a hero could draw a voice from the wrong side of
+// the room.
+// ------------------------------------------------------------
+export function heroVoiceCard(hero) {
+  return {
+    name: hero?.name || 'the hero',
+    role: `${hero?.ancestry || ''} ${hero?.className || hero?.class || ''}`.trim(),
+    visual: `${hero?.bearing || ''} ${hero?.background || ''}`.trim().slice(0, 600),
+    voice: '',
+    goal: '',
+  };
+}
+
+// Cast the hero by their forge card. Deterministic in the written card, so
+// the same hero casts the same voice in every session, replay, and export.
+export function castHeroVoice(hero) {
+  return castVoiceByCard(heroVoiceCard(hero), hero?.name);
+}
+
+// Playback resolution for the hero, mirroring resolveVoiceId: a persisted
+// voice is kept forever; an uncast hero (campaigns from before this law,
+// read-only restored spines) resolves to the card-cast answer in memory —
+// identical every time, so nothing needs a write to speak truly.
+export function resolveHeroVoiceId(hero) {
+  return hero?.voiceId || castHeroVoice(hero);
+}
+
+// Does a spoken name belong to the hero? The full name always does. A bare
+// first name reaches the hero ONLY when no cast soul could claim it too —
+// the same restraint the canon uses for aliases: ambiguity touches nobody,
+// a voice is never guessed. Shared by the live narrator and the podcast so
+// the table and the episode always agree on who is speaking.
+export function speakerIsHero(speaker, hero, cast = []) {
+  if (!hero?.name) return false;
+  const key = String(speaker || '').trim().toLowerCase();
+  if (!key) return false;
+  const name = String(hero.name).trim().toLowerCase();
+  if (key === name) return true;
+  if (key !== name.split(/\s+/)[0]) return false;
+  return !cast.some((entry) => {
+    const other = String(entry?.name || '').trim().toLowerCase();
+    return other === key || other.split(/\s+/)[0] === key;
+  });
+}
+
 export function narratorVoiceId() { return NARRATOR_VOICE; }
 
 // A short storyteller bridge that names the speaker and frames the coming line,

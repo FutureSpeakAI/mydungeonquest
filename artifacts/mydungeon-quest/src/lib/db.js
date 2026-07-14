@@ -22,11 +22,30 @@ export async function listCampaigns() {
 // from the authoritative db row inside the same rw lock the seal transaction
 // takes, so the two can never interleave.
 const CHAIN_FIELDS = ['headHash', 'turnCount', 'signatureStatus'];
+
+// THE PYRE REGISTRY — the burn law, sibling to the vault's fork law: once a
+// spine is burned, every late writer still holding the old name (an in-flight
+// paint landing, a debounced save) writes to ash, never back to the shelf.
+// In-memory on purpose: it guards this sitting's stragglers; a fresh page
+// has no stragglers to guard against.
+const burnedSpines = new Set();
+export const spineBurned = (id) => burnedSpines.has(id);
+// A deliberate restore (drawn from the vault by the player's own hand) is
+// the one voice that may recall a name from the ashes.
+export const unburnSpine = (id) => { burnedSpines.delete(id); };
+// The match is struck BEFORE the vault is asked to let go: from that moment
+// no freshly-queued sync may push the spine back, while syncs already in the
+// lane finish ahead of the vault's own burning. Refusal unstrikes it.
+export const markPyre = (id) => { burnedSpines.add(id); };
+
 export async function saveCampaign(campaign) {
   // A forked spine redirects late writers: a stale in-memory campaign can
   // never quietly recreate a spine the vault's fork law deleted.
   let id = campaign.id;
   try { const { redirectSpine } = await import('./vault.js'); id = redirectSpine(id); } catch { /* the vault is optional; the shelf is not */ }
+  // A burned spine takes no ink — the write is dropped, not errored, so a
+  // straggling media job settles quietly instead of resurrecting the book.
+  if (burnedSpines.has(id)) return { ...campaign, id };
   const value = { ...campaign, id, updatedAt: Date.now() };
   await db.transaction('rw', db.campaigns, async () => {
     const existing = await db.campaigns.get(id);
@@ -48,6 +67,13 @@ export async function deleteCampaign(id) {
     await db.memories.where('campaignId').equals(id).delete();
     await db.keys.delete(id);
   });
+}
+
+// BURN — the local rite: register the name in the pyre first (so no
+// straggler writes during or after the wipe), then take every shelf at once.
+export async function burnCampaign(id) {
+  burnedSpines.add(id);
+  await deleteCampaign(id);
 }
 
 export async function campaignJournal(campaignId) {

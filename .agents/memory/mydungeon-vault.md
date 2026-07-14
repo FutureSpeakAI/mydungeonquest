@@ -15,3 +15,8 @@ description: Cross-device chronicle sync invariants — custody, chain ingest, f
 **Hard-won:** an Express raw-body parser mounted on a `:param` path also captures sibling literal routes (the param matches the literal segment) and eats their JSON bodies; name sibling routes outside the param space. Client caches of identity/liveness must be invalidated on auth transitions — a guest-at-load session must awaken sync on sign-in without a reload.
 
 **How to apply:** any future sync/share/co-op feature reuses the vault's dependency-injection seams for keyless evals and must keep fork-over-merge and fail-closed custody.
+
+## The pyre law (delete)
+Deleting a campaign is vault-first and tombstoned: mark the id in an in-memory "pyre registry" BEFORE asking the vault to let go, run the server DELETE **inside the campaign's per-id sync lane** (`serialized()`), and only wipe locally after the vault agrees (or reports dormant). Refusal lifts the mark and keeps the tale whole.
+**Why:** two resurrection races proved ordering matters — (1) a debounced/queued sync that captured state pre-delete can re-push the spine after the DELETE unless it either settles first in the same lane or hits an execution-time registry check; (2) in-flight media jobs land rows via `saveCampaign`/foundry after the wipe unless those choke points drop burned ids.
+**How to apply:** any new writer that persists campaign-shaped data must check `spineBurned(id)` at write time, not enqueue time. Deliberate restores call `unburnSpine` only AFTER the restore succeeds. The registry is session-scoped on purpose (a fresh page has no stragglers). Server-side, vault_media reference rows survive deletes (content-addressed, shared across spines).

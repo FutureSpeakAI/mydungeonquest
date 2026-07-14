@@ -341,3 +341,34 @@
 .vault-spine:hover{border-color:var(--gold)}
 .vault-spine b{font-family:Cinzel,Georgia,serif;font-size:.82rem}
 .vault-spine small{color:var(--vellum-dim);font-size:.68rem}
+
+/* THE PYRE — burning a tale off the shelf. The control sleeps until the
+   spine is dwelt on; coarse pointers (no hover to wake it) keep it faintly
+   lit so touch players are never locked out. */
+.spine-slot { position: relative; display: inline-flex; }
+.spine-slot .spine-burn {
+  position: absolute; top: -8px; right: -8px; z-index: 2;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center; padding: 0;
+  background: rgba(13, 11, 20, 0.92); color: #c9b48a;
+  border: 1px solid rgba(201, 180, 138, 0.35);
+  opacity: 0; transform: scale(0.9);
+  transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+.spine-slot:hover .spine-burn, .spine-slot:focus-within .spine-burn { opacity: 1; transform: scale(1); }
+.spine-slot .spine-burn:hover, .spine-slot .spine-burn:focus-visible { color: #e8935a; border-color: rgba(232, 147, 90, 0.6); }
+.spine-slot .spine-burn svg { width: 13px; height: 13px; }
+@media (pointer: coarse) { .spine-slot .spine-burn { opacity: 0.55; transform: scale(1); } }
+
+.vault-spine-slot { position: relative; display: inline-flex; }
+.vault-spine-slot .spine-burn { top: -6px; right: -6px; }
+
+/* The pyre's asking — a ritual in ember, not gold. */
+.ritual.pyre-ask .ritual-flame { color: #e8935a; filter: drop-shadow(0 0 14px rgba(184, 84, 31, 0.55)); }
+.ritual.pyre-ask h2 { color: #e8c56a; }
+.ritual.pyre-ask .burn-word { color: #e8935a; }
+.ritual.pyre-ask .danger-button {
+  background: linear-gradient(180deg, #6d3420, #4a2416); color: #f0d9b8;
+  border: 1px solid rgba(232, 147, 90, 0.45);
+}
+.ritual.pyre-ask .danger-button:hover { background: linear-gradient(180deg, #7d3c24, #542a19); }

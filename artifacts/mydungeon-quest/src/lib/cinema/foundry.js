@@ -107,6 +107,11 @@ export class Foundry {
       provider: response.headers.get('X-Media-Provider') || 'unknown', model: response.headers.get('X-Media-Model') || 'unknown',
       blob, createdAt: Date.now()
     };
+    // The pyre law (same choke as saveCampaign's guard): a burned spine takes
+    // no ink — a straggling parcel lands in ash, never back on the shelf. The
+    // caller still gets its row; there is simply nothing left to keep it for.
+    const { spineBurned } = await import('../db.js');
+    if (spineBurned(this.campaignId)) return row;
     await db.media.put(row);
     await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size, referenceAssetHashes });
     return row;

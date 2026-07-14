@@ -224,6 +224,9 @@ export default function App() {
           });
         }
       }).catch(() => {
+        // A paint rejection must clear the shimmer, or the turn's plate is stuck
+        // "painting…" forever with no image ever arriving.
+        if (job.logId && job.kind === 'paint') clearPainting(job.logId);
         // A genuine video rejection (timeout after ~6min of polling, network
         // error, or spend cap after enqueue). The degraded animatic fallback
         // resolves with an asset above, so this only fires on true failures.
@@ -591,9 +594,12 @@ export function LogEntry({ log, campaign, rendering, painting }) {
   // the painted scene arrives.
   const mood = cue?.mood || log.dm.narration_blocks?.[0]?.text?.slice(0, 90) || 'the scene';
   const art = proceduralArtDataUrl(`${campaign.id}:${log.id}`, mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
-  const showScene = Boolean(log.imageUrl || cue || painting);
   const cinematicTitle = log.dm.cinematic?.title || 'Cinematic';
   const hasFilm = log.videoUrl || log.videoPosterUrl;
+  // The scene plate renders for every non-film turn (painted, painting, or the
+  // procedural stand-in). Film turns are owned by the film figure below — which
+  // itself falls back to the painted keyframe — so we never show two stills.
+  const showScene = !hasFilm && Boolean(log.imageUrl || cue || painting);
   // A real video/mp4 clip can fail to decode (unsupported codec, corrupt data).
   // When it does, fall back to the painted keyframe still — the video poster,
   // the scene still, or the procedural plate — so cinema-tier players never see

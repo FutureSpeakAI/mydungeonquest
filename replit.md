@@ -9,7 +9,7 @@ An AI-narrated solo tabletop RPG: a Dungeon Master model runs a persistent, loca
 - `pnpm --filter @workspace/mydungeon-quest run eval` — headless bench: validates DM protocol, reducers, canon integrity, PG-13 scrubber, budget caps, seal/tamper invariants. Keep this green.
 - `pnpm --filter @workspace/api-server run dev` — run the (separate, unrelated) API server template artifact
 - Required secrets: `ANTHROPIC_API_KEY` (real AI Dungeon Master; falls back to a deterministic mock without it), `OPENAI_API_KEY` (real illustration art via the Paint provider), `ELEVENLABS_API_KEY` (voice/music/SFX)
-- Provider selection env vars (shared, non-secret): `PAINT_PROVIDER=openai`, `SPEAK_PROVIDER=elevenlabs`, `MUSIC_PROVIDER=elevenlabs`, `SFX_PROVIDER=elevenlabs`, `DM_MODEL`/`DM_MODEL_GENESIS`/`DM_MODEL_UTILITY` (Anthropic model ids)
+- Provider selection env vars (shared, non-secret): `PAINT_PROVIDER=openai`, `SPEAK_PROVIDER=elevenlabs`, `MUSIC_PROVIDER=elevenlabs`, `SFX_PROVIDER=elevenlabs`, `DM_MODEL`/`DM_MODEL_GENESIS` (Anthropic model ids)
 
 ## Stack
 
@@ -22,7 +22,7 @@ An AI-narrated solo tabletop RPG: a Dungeon Master model runs a persistent, loca
 
 - `artifacts/mydungeon-quest/` — the whole game (imported wholesale from an external build, not scaffolded from a template)
   - `src/` — React app; `server/` — Express API + adapters; `scripts/dev.mjs` — dev process orchestration; `evals/` — headless bench suite
-  - `GAME_NOTES.md`, `BUILD_STATUS.md`, `CHANGELOG.md`, `NOTICE.md`, `README.md` — the game's own original docs, preserved as-is
+  - `GAME_NOTES.md`, `BUILD_STATUS.md`, `CHANGELOG.md`, `NOTICE.md`, `README.md` — the game's own original docs, preserved (lightly corrected after the July 2026 film retirement); the repo-level `README.md` at the workspace root is the canonical public documentation
 - `artifacts/api-server/`, `artifacts/mockup-sandbox/` — unrelated template artifacts, not part of the game
 
 ## Architecture decisions

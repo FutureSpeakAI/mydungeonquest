@@ -42,13 +42,29 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
   </Frame>;
 }
 
+const STATUS_WORD = { active: 'Walks the tale', dead: 'Fallen', missing: 'Lost to the road' };
+
 export function Codex({ campaign, onClose, onReplay }) {
   const c = campaign.codex; const revealed = c.beatIndex >= c.spine.revealIdx;
   const gallery = useGallery(campaign);
   return <Frame title="The Codex" icon={<ScrollText/>} onClose={onClose} wide>
     <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p></div><div className="blight">Blight <b>{c.blight}/5</b></div></div>
     <h3>The evil design</h3><p className={revealed ? '' : 'gated'}>{revealed ? c.arc?.evil_plot : 'The page refuses to hold the whole shape. Revelation must be earned.'}</p>
-    <h3>Souls</h3><div className="codex-grid gallery">{c.cast.map((soul)=><article key={soul.id}>{gallery[soul.name] ? <img className="soul-face" src={gallery[soul.name]} alt={soul.name}/> : <div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div>}<span className="role-tag">{soul.role}</span><h4>{soul.name}</h4><p>{soul.visual}</p><small>Bond {soul.bond}/4 · {soul.status}</small></article>)}</div>
+    <h3>The cast — what the world remembers</h3><div className="codex-grid gallery">{c.cast.map((soul)=>{
+      const dead = soul.status === 'dead';
+      const lastWhy = (soul.bond_arc || []).slice(-1)[0]?.why;
+      return <article key={soul.id} className={`soul-card${dead ? ' memorial' : ''}`}>
+        {gallery[soul.name] ? <img className="soul-face" src={gallery[soul.name]} alt={soul.name}/> : <div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div>}
+        <span className="role-tag">{soul.role}</span>
+        <h4>{soul.name}</h4>
+        <span className={`status-badge ${soul.status || 'active'}`}>{STATUS_WORD[soul.status] || soul.status || 'Walks the tale'}</span>
+        <p>{soul.visual}</p>
+        <div className="bond-thread" title={`Bond ${soul.bond}/4`} aria-label={`Bond ${soul.bond} of 4`}>{Array.from({length:4},(_,i)=><i key={i} className={i<soul.bond?'lit':''}/>)}</div>
+        {lastWhy && <small className="bond-why">“{lastWhy}”</small>}
+        {(soul.known_facts || []).length > 0 && <ul className="known-facts">{soul.known_facts.map((fact,i)=><li key={i}>{fact}</li>)}</ul>}
+        <small className="trail">{soul.last_seen ? `Last seen — ${soul.last_seen}` : 'The trail is quiet.'}{Number.isInteger(soul.introduced_turn) ? (soul.introduced_turn === 0 ? ' · Present from the first page' : ` · Entered the tale at turn ${soul.introduced_turn}`) : ''}</small>
+      </article>;
+    })}</div>
     <h3>Regions</h3><div className="region-gallery">{c.regions.map((region)=><article key={region.id}>{gallery[region.name] && <img className="region-plate" src={gallery[region.name]} alt={region.name}/>}<div className="region-copy"><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></div></article>)}</div>
     <h3>Cinematic archive</h3><div className="replay-list">{campaign.logs.filter((l)=>l.dm.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm)}><Film/> {log.dm.cinematic.title}</button>)}</div>
     <h3>Memoir</h3>{c.memoir.length ? c.memoir.map((m,i)=><p key={i}>{m}</p>) : <p className="muted">The Chronicler has not yet needed to compress the road behind you.</p>}

@@ -268,6 +268,7 @@ export default function App() {
               try {
                 const data = JSON.parse(line.slice(5));
                 if (eventName === 'narration' && typeof data.text === 'string') setWeaving(data.text);
+                else if (eventName === 'retract') setWeaving('✦ The Dungeon Master reconsiders the telling…');
                 else if (eventName === 'turn') body = data;
               } catch { /* keep reading */ }
             }
@@ -278,9 +279,12 @@ export default function App() {
       }
       if (!body?.turn) throw new Error('The stream ended before the turn arrived.');
       const dm = body.turn;
-      const validation = validateDmTurn(dm, entropy);
+      // The cast snapshot is taken BEFORE this turn's updates apply, so a
+      // soul may speak its dying words in the very turn that kills it — and
+      // the dead of earlier turns cannot be given dialogue at all.
+      const validation = validateDmTurn(dm, entropy, { cast: base.codex.cast });
       if (!validation.ok) throw new Error(validation.errors.join('; '));
-      let codex = applyStoryUpdates(base.codex, dm.story);
+      let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0 });
       if (dm.state_updates?.chronicle_add) codex.chronicle = [...codex.chronicle, String(dm.state_updates.chronicle_add).slice(0, 260)];
       const heroBeforeLevel = base.hero.level;
       const hero = applyStateUpdates(base.hero, dm.state_updates);

@@ -45,6 +45,14 @@ under both rapid-switch races and a pause landing inside the gap.
 - **No bed, ever.** The old per-turn stinger-bed pattern is deleted; the eval
   asserts zero bed elements even when legacy music rows exist in db.media.
 
+# Casting resolution (the Casting Law, July 2026)
+Playback voice = `resolveVoiceId(soul, name)`: the persisted `voiceId` first
+(cast by reading the card once, at first introduction, in the story reducer),
+falling back to the legacy name-hash `castVoiceId` ONLY for pre-law cards that
+carry no voiceId. Never recast an existing card and never reorder the legacy
+pools — sealed replays and cross-session identity depend on both. Death retires
+a voice from new lines (the dead do not speak) but replays keep it.
+
 # Character consistency lever
 Cross-scene character consistency is driven by the scene image cue's `subjects`:
 `scenePrompt` keys each subject's appearance-canon AND its sealed reference

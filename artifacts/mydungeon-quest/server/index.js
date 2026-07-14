@@ -97,7 +97,10 @@ app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), asyn
     // as the request body finishes in modern Node, which is not abort.
     res.on('close', () => { closed = true; });
     const result = await getDmTurn(req.body || {}, {
-      onNarration: (text) => { if (!closed) res.write(`event: narration\ndata: ${JSON.stringify({ text })}\n\n`); }
+      onNarration: (text) => { if (!closed) res.write(`event: narration\ndata: ${JSON.stringify({ text })}\n\n`); },
+      // The stage goes dark before a repair: outlaw prose already streamed
+      // is retracted so the player never reads an unlawful telling.
+      onRetract: () => { if (!closed) res.write('event: retract\ndata: {}\n\n'); }
     });
     if (!closed) { res.write(`event: turn\ndata: ${JSON.stringify(result)}\n\n`); res.end(); }
     return;

@@ -55,3 +55,18 @@ the validator. Network/API errors get a plain retry (no repair payload).
 system prompt, update the cLaws section of the root README, and spot-check a
 handful of live turns (the model is nondeterministic — one green run is not
 proof).
+
+## The law amendment (July 2026): the dead do not speak
+`validateDmTurn(payload, entropy, context)` takes an OPTIONAL third argument —
+`context.cast`, the PRE-turn codex cast snapshot (`[{name, status}]`). Dialogue
+(narration-block speaker or dialogue_cue) attributed to a name whose status is
+`dead` fails the whole turn; dying words stay lawful because the snapshot
+predates the turn's own `cast_update`.
+
+**The trap:** because the parameter is optional, a call site that forgets to
+thread the snapshot silently DISABLES the law — no error, nothing fails. Any
+new `validateDmTurn` call site must thread `{ cast }` (grep existing call
+sites for the pattern) or the dead may speak there. Matching is alias-aware —
+a bare first name reaches its soul — and when a name could mean both a living
+and a dead soul, the living one is presumed to speak (block only the
+unambiguous dead; never invalidate a lawful living speaker).

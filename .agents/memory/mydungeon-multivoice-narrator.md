@@ -34,6 +34,17 @@ must keep the session-token guard AND the gap rules above; run the full
 `narratorConcurrency.test.mjs`, which asserts "at most one voice, no orphan"
 under both rapid-switch races and a pause landing inside the gap.
 
+## Sound Law additions (the Quieting, July 2026)
+- **Segments carry provenance.** A segment asset is `{blob, provider}`; mock or
+  missing provenance is SKIPPED silently (chain advances to the next segment,
+  keyless reading = silence). Never "play the placeholder just this once."
+- **The narrator holds the Director's voice gate for the whole reading** —
+  including inter-segment gaps — via its state emit (active && !paused), so
+  punctuation music can never sneak into a gap mid-reading. Ending/stopping the
+  reading is what releases the gate.
+- **No bed, ever.** The old per-turn stinger-bed pattern is deleted; the eval
+  asserts zero bed elements even when legacy music rows exist in db.media.
+
 # Character consistency lever
 Cross-scene character consistency is driven by the scene image cue's `subjects`:
 `scenePrompt` keys each subject's appearance-canon AND its sealed reference

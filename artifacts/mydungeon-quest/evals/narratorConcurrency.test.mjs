@@ -1,13 +1,12 @@
 // ---- The narrator never talks over itself: concurrency-guard regression ----
 //
 // Each turn's voice is generated asynchronously (POST /api/speak), cached in
-// Dexie, then played with an optional ducked music bed. A monotonic session
-// token in narrator.js guards against two voice tracks starting at once when a
-// player rapidly switches uncached turns, or when auto-narrate races a manual
-// "Listen" tap. This test drives those exact races headlessly (no AI keys, no
-// browser) and asserts the invariant: only the LATEST requested turn ever
-// plays, and at any moment at most one voice stream (plus at most one bed) is
-// audible — even when a stale, slower generation resolves after a newer one.
+// Dexie, then played as a chain of segments. A monotonic session token in
+// narrator.js guards against two voice tracks starting at once when a player
+// rapidly switches uncached turns, or when auto-narrate races a manual
+// "Listen" tap. THE SOUND LAW additions are asserted here too: the narrator
+// plays no music bed of any kind, and a segment of mock provenance is never
+// played (the keyless floor for audio is silence, not placeholder tones).
 //
 // It exercises the real narrator.js: we only stub the browser edges it touches
 // (fetch, Audio, object URLs) and back Dexie with fake-indexeddb, so a future
@@ -19,10 +18,10 @@ import assert from 'node:assert/strict';
 const tick = (ms = 30) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // --- Stub: object URLs. Encode the blob's MIME (so a created Audio can be told
-//     apart as a voice track 'audio/mpeg' vs a music bed 'audio/beat') and a
-//     content tag (so a voice URL reveals WHICH turn it belongs to). Voice
-//     blobs are returned by our fake fetch with the same identity, so a Map
-//     keyed on blob identity carries the tag through to createObjectURL. ---
+//     apart as a voice track 'audio/mpeg' vs anything else) and a content tag
+//     (so a voice URL reveals WHICH turn it belongs to). Voice blobs are
+//     returned by our fake fetch with the same identity, so a Map keyed on
+//     blob identity carries the tag through to createObjectURL. ---
 let urlSeq = 0;
 const blobTags = new Map();
 globalThis.URL.createObjectURL = (blob) =>
@@ -30,8 +29,8 @@ globalThis.URL.createObjectURL = (blob) =>
 globalThis.URL.revokeObjectURL = () => {};
 
 // --- Stub: HTMLAudioElement. Every instance registers itself so the test can
-//     count how many voice/bed tracks are audible at once. play()/pause() flip
-//     `paused` exactly like the real element (and fire the wired handlers). ---
+//     count how many tracks are audible at once. play()/pause() flip `paused`
+//     exactly like the real element (and fire the wired handlers). ---
 const audios = [];
 class FakeAudio {
   constructor(src) {
@@ -52,15 +51,18 @@ class FakeAudio {
 globalThis.Audio = FakeAudio;
 
 // --- Stub: /api/speak. Each call parks on a deferred so the test controls the
-//     resolution ORDER, letting a stale generation land after a newer one. ---
+//     resolution ORDER, letting a stale generation land after a newer one. The
+//     provenance header is configurable so mock-refusal can be proven. ---
 let speakCalls = [];
+let providerHeader = 'elevenlabs';
 globalThis.fetch = (url, opts) => {
   const text = JSON.parse(opts.body).text;
   let release;
   const promise = new Promise((resolve) => { release = resolve; });
   const blob = new Blob([`voice:${text}`], { type: 'audio/mpeg' });
   blobTags.set(blob, text);
-  const response = { ok: true, headers: { get: () => 'mock' }, blob: async () => blob };
+  const header = providerHeader;
+  const response = { ok: true, headers: { get: () => header }, blob: async () => blob };
   speakCalls.push({ text, release: () => release(response) });
   return promise;
 };
@@ -93,6 +95,7 @@ async function reset() {
   audios.length = 0;
   speakCalls = [];
   urlSeq = 0;
+  providerHeader = 'elevenlabs';
   await db.media.clear();
 }
 
@@ -109,9 +112,9 @@ async function reset() {
   const unsub = subscribeNarration((s) => seen.push(s));
 
   // Three near-simultaneous taps. Do not await — this is the race.
-  const p1 = playNarration(campaign, turn(1), { withBed: false });
-  const p2 = playNarration(campaign, turn(2), { withBed: false });
-  const p3 = playNarration(campaign, turn(3), { withBed: false });
+  const p1 = playNarration(campaign, turn(1));
+  const p2 = playNarration(campaign, turn(2));
+  const p3 = playNarration(campaign, turn(3));
 
   await tick(); // let the (uncached) cache lookups settle and speak() register
   assert.equal(speakCalls.length, 3, 'each uncached turn should request its own narration');
@@ -149,7 +152,7 @@ async function reset() {
   await reset();
   const campaign = { id: 'camp-race' };
 
-  const auto = playNarration(campaign, turn(1), { withBed: false }); // auto-narrate
+  const auto = playNarration(campaign, turn(1)); // auto-narrate
   await tick();
   const manual = toggleNarration(campaign, turn(2)); // player taps Listen on turn 2
   await tick();
@@ -172,20 +175,22 @@ async function reset() {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Music beds obey the same guard: with a bed available for every turn, a
-//    rapid switch must leave at most one bed playing (the winner's), never a
-//    stack of ducked loops from abandoned turns.
+// 3. THE SOUND LAW: no music bed, ever. Even with per-turn music stingers
+//    seeded in the media table (as older chronicles have), a reading must
+//    construct NO bed element — the voice stands alone.
 // ---------------------------------------------------------------------------
 {
   await reset();
   const campaign = { id: 'camp-bed' };
-  // Seed a per-turn music stinger (matched by originTurnHash) for turns 1..3.
+  // Seed per-turn music stingers (matched by originTurnHash) for turns 1..3 —
+  // exactly what the retired bed feature used to pick up and loop.
   await db.media.bulkPut([1, 2, 3].map((n) => ({
     assetHash: `beat-${n}`, cacheKey: `k-${n}`, campaignId: campaign.id, kind: 'music',
-    originTurnHash: `hash-${n}`, createdAt: n, blob: new Blob([`beat${n}`], { type: 'audio/beat' })
+    originTurnHash: `hash-${n}`, createdAt: n, provider: 'elevenlabs',
+    blob: new Blob([`beat${n}`], { type: 'audio/beat' })
   })));
 
-  const p1 = playNarration(campaign, turn(1)); // withBed defaults true
+  const p1 = playNarration(campaign, turn(1));
   const p2 = playNarration(campaign, turn(2));
   const p3 = playNarration(campaign, turn(3));
   await tick();
@@ -194,15 +199,12 @@ async function reset() {
   releaseSpeak(lineOf(2));
   releaseSpeak(lineOf(1));
   await Promise.all([p1, p2, p3]);
-  await tick(60); // beds resolve on a second async hop after the voice starts
+  await tick(60);
 
-  assert.equal(audible('voice').length, 1, 'still exactly one voice with beds in play');
-  const beds = audible('bed');
-  assert.ok(beds.length <= 1, `at most one music bed may be audible, saw ${beds.length}`);
-  if (beds.length === 1) {
-    assert.ok(beds[0].src.includes('audio/beat'), 'the surviving track is the ducked music bed');
-  }
-  console.log('PASS — music beds honor the guard: at most one ducked loop survives a rapid switch.');
+  assert.equal(audible('voice').length, 1, 'still exactly one voice audible');
+  assert.equal(audios.filter((a) => a.kind === 'bed').length, 0,
+    'THE SOUND LAW: the narrator must never construct a music bed, even when stingers exist');
+  console.log('PASS — no music bed exists: the voice stands alone over silence.');
 }
 
 // ---------------------------------------------------------------------------
@@ -212,7 +214,7 @@ async function reset() {
 {
   await reset();
   const campaign = { id: 'camp-toggle' };
-  const first = toggleNarration(campaign, turn(1), { withBed: false });
+  const first = toggleNarration(campaign, turn(1));
   await tick();
   releaseSpeak(lineOf(1));
   await first;
@@ -248,7 +250,7 @@ async function reset() {
     ] },
   };
 
-  const play = playNarration(campaign, multiTurn, { withBed: false });
+  const play = playNarration(campaign, multiTurn);
   await tick();
   assert.equal(speakCalls.length, 1, 'a multi-segment turn generates one segment at a time');
   const seg0 = speakCalls[0].text;
@@ -285,5 +287,30 @@ async function reset() {
   console.log('PASS — multi-segment: a pause in the inter-segment gap never overlaps or orphans a voice.');
 }
 
+// ---------------------------------------------------------------------------
+// 6. THE SOUND LAW: provenance or silence. When /api/speak falls back to mock
+//    (keyless table), the narrator must play NOTHING — no element is built,
+//    and the reading ends reporting not-playing. Silence, not sine tones.
+// ---------------------------------------------------------------------------
+{
+  await reset();
+  providerHeader = 'mock';
+  const campaign = { id: 'camp-keyless' };
+  const seen = [];
+  const unsub = subscribeNarration((s) => seen.push(s));
+
+  const play = playNarration(campaign, turn(1));
+  await tick();
+  releaseSpeak(lineOf(1));
+  await play;
+  await tick();
+
+  assert.equal(audios.length, 0, 'mock provenance must never construct an Audio element');
+  const finalState = seen[seen.length - 1];
+  assert.equal(finalState.playing, false, 'a keyless reading ends reporting not-playing');
+  unsub();
+  console.log('PASS — keyless tables are silent: mock narration is refused, never played.');
+}
+
 await reset();
-console.log('PASS — the narrator never talks over itself (concurrency guard holds under every race).');
+console.log('PASS — the narrator never talks over itself, plays no bed, and refuses placeholders.');

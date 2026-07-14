@@ -13,8 +13,10 @@ export function elevenLabsAdapter(key) {
       const bytes = await post(`/v1/text-to-speech/${voiceId}`, { text, model_id: process.env.ELEVENLABS_VOICE_MODEL || 'eleven_multilingual_v2' }, key);
       return { bytes, mime: 'audio/mpeg', provider: 'elevenlabs', model: process.env.ELEVENLABS_VOICE_MODEL || 'eleven_multilingual_v2', seed: null, usage: null };
     },
-    async music({ prompt, durationSeconds = 20 }) {
-      const bytes = await post('/v1/music', { prompt, music_length_ms: Math.max(15000, Math.min(30000, durationSeconds * 1000)) }, key);
+    async music({ prompt, durationSeconds = 12 }) {
+      // THE SOUND LAW: music is a short phrase with an ending — a musical
+      // sentence at a punctuation moment, never a bed. Clamp 8–20 seconds.
+      const bytes = await post('/v1/music', { prompt, music_length_ms: Math.max(8000, Math.min(20000, durationSeconds * 1000)) }, key);
       return { bytes, mime: 'audio/mpeg', provider: 'elevenlabs', model: 'music', seed: null, usage: null };
     },
     async sfx({ prompt, durationSeconds = 4 }) {

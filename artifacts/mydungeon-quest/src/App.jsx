@@ -15,14 +15,14 @@ import { portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.
 import { KEYART_LABEL, actOf, heroBustJob, keyArtJob, nameSeed } from './lib/cinema/prologue.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
 import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
-import { setScoreState, startScore, stopScore } from './lib/cinema/score.js';
-import { speakBlocks, stopSpeaking } from './lib/cinema/voice.js';
+import { stopAllSound } from './lib/cinema/audioDirector.js';
+import { playUiSfx } from './lib/cinema/uiSfx.js';
 import { playNarration, stopNarration, subscribeNarration, toggleNarration } from './lib/cinema/narrator.js';
 import { downloadQuestAudio } from './lib/cinema/questaudio.js';
 import { buildStorybook } from './lib/storybook.js';
 import { slugify } from './lib/canonical.js';
 
-const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, score: true, voice: false, narrator: false, textScale: 1, mediaTier: 'illuminated' };
+const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
@@ -124,21 +124,25 @@ export default function App() {
   const settingsRef = useRef(DEFAULT_SETTINGS); settingsRef.current = settings;
   const [bookHtml, setBookHtml] = useState('');
   const logEndRef = useRef(null);
+  // When a cinematic card fires on a sealed turn, its narration waits here
+  // until the card closes — the music phrase and the voice never share the
+  // stage (THE SOUND LAW).
+  const pendingNarrationRef = useRef(null);
 
   const refreshShelf = useCallback(async () => setCampaigns(await listCampaigns()), []);
-  useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => { if (!row) return; const value = { ...DEFAULT_SETTINGS, ...row.value }; if (value.mediaTier === 'cinema') value.mediaTier = 'illuminated'; setSettings(value); }); }, [refreshShelf]);
+  useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => { if (!row) return; const { score: _score, voice: _voice, ...kept } = row.value || {}; const value = { ...DEFAULT_SETTINGS, ...kept }; if (value.mediaTier === 'cinema') value.mediaTier = 'illuminated'; setSettings(value); }); }, [refreshShelf]);
   useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, settings.reduceMotion]);
   // Follow the prose as it streams in: as each chunk of the weaving turn arrives,
   // keep the newest text in view (instant, so rapid updates don't fight a smooth
   // animation) — older narration rises off the top like a live podcast transcript.
   useEffect(() => { if (flow === 'table' && weaving != null) logEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }); }, [weaving, flow]);
   useEffect(() => { document.documentElement.style.setProperty('--text-scale', settings.textScale); }, [settings.textScale]);
+  // Silence everything — narrator, music, effects — when leaving the table or
+  // switching chronicles. The next screen begins in silence, as the Law demands.
   useEffect(() => {
-    if (flow === 'table' && settings.score && current) { startScore(current.title || 'chronicle'); return () => { stopScore(); stopSpeaking(); }; }
-    stopScore();
-  }, [flow, settings.score, current?.id]); // eslint-disable-line
-  // Silence the narrator when leaving the table or switching chronicles.
-  useEffect(() => { if (flow !== 'table') stopNarration(); return () => stopNarration(); }, [flow, current?.id]);
+    if (flow !== 'table') { stopNarration(); stopAllSound(); }
+    return () => { stopNarration(); stopAllSound(); };
+  }, [flow, current?.id]);
 
   const persistSettings = async (next) => {
     setSettings(next); await db.settings.put({ key: 'care', value: next });
@@ -192,11 +196,12 @@ export default function App() {
     }
     if (dm.cinematic) {
       const keys = beatKeys(campaign.id, campaign.codex.beatIndex);
-      // The beat's score and ambience underscore the narration at every media
-      // tier (they become the ducked bed of the audiobook).
-      jobs.push({ kind: 'music', prompt: `A 20 second cinematic stinger for ${dm.cinematic.type}; ${dm.cinematic.subtitle}`, priority: 4, cacheKey: keys.score });
-      jobs.push({ kind: 'sfx', prompt: `A restrained PG-13 ambience and impact for ${dm.cinematic.type}`, priority: 4 });
-      if (dm.dialogue_cue) jobs.push({ kind: 'speak', prompt: dm.dialogue_cue.line, options: { text: dm.dialogue_cue.line }, priority: 1 });
+      // THE SOUND LAW: one short phrase for the card — a musical sentence with
+      // an ending, played once by the Director while the card is up. Never a
+      // bed, never under a voice. No ambience wallpaper, no pre-spoken line:
+      // the narration itself reads the dialogue in the character's cast voice
+      // after the card closes.
+      jobs.push({ kind: 'music', prompt: `A short orchestral phrase for ${dm.cinematic.type} — "${dm.cinematic.subtitle}". One musical sentence, eight to twelve seconds, ending cleanly and resolving toward silence. Restrained, cinematic, PG-13. No vocals.`, priority: 4, cacheKey: keys.score, options: { durationSeconds: 10 } });
     }
     briefUpcomingBeat(campaign, foundry, campaign.codex.beatIndex);
     const clearPainting = (logId) => setPaintingImages((prev) => { if (!prev[logId]) return prev; const next = { ...prev }; delete next[logId]; return next; });
@@ -280,6 +285,9 @@ export default function App() {
       const heroBeforeLevel = base.hero.level;
       const hero = applyStateUpdates(base.hero, dm.state_updates);
       const combat = applyCombat(base.combat, dm.combat, hero);
+      // Combat opens: one drawn blade, one accent, through the Director — it
+      // yields (and is dropped) if the narrator already holds the stage.
+      if (combat?.active && !base.combat?.active) playUiSfx(base, 'sword');
       const log = { id: crypto.randomUUID(), player: visiblePlayer, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, beatIndex: codex.beatIndex };
       let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed };
       await saveCampaign(next);
@@ -290,19 +298,16 @@ export default function App() {
       await rememberScene(base.id, next.turnNumber, { player, narration: dm.narration_blocks[0]?.text || '', chronicle: dm.state_updates?.chronicle_add || '', recordHash: record.recordHash });
       await saveCampaign(next); setCurrent(next); await refreshShelf();
       setStatus('✦ The turn is sealed.');
-      const beatAct = next.codex.spine.beats[next.codex.beatIndex]?.act || 1;
-      const villain = next.codex.cast.find((soul) => soul.role === 'villain');
-      setScoreState({
-        act: beatAct, combat: Boolean(next.combat?.active),
-        hpFrac: hero.maxHp ? hero.hp / hero.maxHp : 1, blight: next.codex.blight,
-        villain: Boolean(villain && dm.narration_blocks.some((block) => block.text.includes(villain.name.split(' ')[0])))
-      });
-      // The narrator (AI podcast voice) supersedes the device voice when on, and
-      // auto-plays the freshly sealed turn like the next segment of an audiobook.
+      // THE SOUND LAW at the turn boundary: when a cinematic card fires, its
+      // music phrase owns the stage first — the narration is staged and begins
+      // only when the card closes. Otherwise the voice starts at once.
       const sealedLog = next.logs[next.logs.length - 1];
-      if (settingsRef.current.narrator) playNarration(next, sealedLog);
-      else if (settingsRef.current.voice && !dm.cinematic) speakBlocks(dm.narration_blocks, next.codex.cast);
-      if (dm.cinematic) setCinematic({ ...dm, campaign: next, turnRecordHash: record.recordHash, beatIndex: next.codex.beatIndex });
+      if (dm.cinematic) {
+        pendingNarrationRef.current = settingsRef.current.narrator ? { campaign: next, log: sealedLog } : null;
+        setCinematic({ ...dm, campaign: next, turnRecordHash: record.recordHash, beatIndex: next.codex.beatIndex });
+      } else if (settingsRef.current.narrator) {
+        playNarration(next, sealedLog);
+      }
       if (hero.level > heroBeforeLevel) setOverlay('level');
       queueMedia(next, record, dm, log.id);
       return next;
@@ -357,6 +362,7 @@ export default function App() {
     if (!current.pendingRoll || busy) return;
     const result = heroRoll(current.hero, current.pendingRoll);
     setDiceResult(result);
+    playUiSfx(current, 'die'); // one die on parchment — dropped if a voice holds the stage
     const resolutionRecord = await seal(current.id, 'resolution', result);
     const sealed = await db.campaigns.get(current.id);
     const logs = current.logs.map((log, index) => index === current.logs.length - 1 ? { ...log, resolution: result } : log);
@@ -388,6 +394,7 @@ export default function App() {
   };
 
   const openStorybook = async () => {
+    playUiSfx(current, 'page'); // the book opens: one page turn
     const journal = await campaignJournal(current.id);
     const mediaRows = await db.media.where('campaignId').equals(current.id).toArray();
     const media = await Promise.all(mediaRows.map(async (row) => ({ ...row, dataUrl: row.blob ? await blobToDataUrl(row.blob) : null })));
@@ -401,7 +408,8 @@ export default function App() {
   };
 
   // THE BOUND AUDIOBOOK — generate any missing narration, then stitch the whole
-  // quest (with its music bed ducked under the voice) into one downloadable file.
+  // quest into one downloadable reading. The voices stand alone (no music bed);
+  // a keyless table declines honestly rather than binding placeholder tones.
   const downloadAudio = async () => {
     if (audioBusy || !current) return;
     setAudioBusy(true);
@@ -488,7 +496,7 @@ export default function App() {
     {!current.readOnly && <Composer campaign={current} busy={busy} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
     <footer className="seal-status"><span>{status}</span></footer>
     {diceResult && <DiceOverlay result={diceResult} haptics={settings.haptics} onDone={() => setDiceResult(null)} />}
-    {cinematic && <Cinematic cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} score={settings.score} voiceOn={settings.voice} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} onClose={() => setCinematic(null)} />}
+    {cinematic && <Cinematic cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} onClose={() => { setCinematic(null); const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
     {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
     {overlay === 'codex' && <Codex campaign={current} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); setCinematic({ ...dm, campaign: current }); }} />}
     {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}

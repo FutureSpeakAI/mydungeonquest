@@ -29,7 +29,7 @@ function ledger() {
   if (!pool) pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   return pool;
 }
-const runQuery = (text, params) => ledger().query(text, params);
+export const runQuery = (text, params) => ledger().query(text, params);
 
 // The ledger's whole schema — names, never tales.
 const LEDGER_DDL = `CREATE TABLE IF NOT EXISTS users (

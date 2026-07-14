@@ -8,7 +8,7 @@
     "dev": "node scripts/dev.mjs",
     "build": "vite build",
     "start": "node server/index.js",
-    "eval": "node evals/run.mjs",
+    "eval": "node evals/run.mjs && node evals/mediaFallback.test.mjs",
     "check": "npm run build && npm run eval"
   },
   "engines": {
@@ -24,6 +24,9 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "catalog:",
+    "esbuild": "^0.27.3",
+    "fake-indexeddb": "^6.2.5",
+    "react-test-renderer": "19.1.0",
     "vite": "catalog:"
   }
 }

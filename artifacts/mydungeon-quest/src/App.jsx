@@ -584,7 +584,7 @@ function NarrationButton({ campaign, log }) {
   </button>;
 }
 
-function LogEntry({ log, campaign, rendering, painting }) {
+export function LogEntry({ log, campaign, rendering, painting }) {
   const cue = log.dm.image_cue;
   // Every turn shows a plate: the DM's cue mood when present, otherwise the
   // opening line of narration. The procedural plate stands in until (or unless)

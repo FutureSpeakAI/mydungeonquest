@@ -79,7 +79,10 @@ export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion,
     <img src={assets.stillUrl || procedural} alt="" className="cinematic-art" />
     <div className="cinematic-wash" style={{ '--c1': cinematic.palette[0], '--c2': cinematic.palette[1], '--c3': cinematic.palette[2] }} />
     <div className="particles">{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ '--i': i }} />)}</div>
-    <button className="cinematic-close" onClick={onClose} aria-label="Skip cinematic"><X /></button>
+    {/* The close tap must not ALSO bubble into the container's tap-to-skip:
+        onClose chains real state (DM card → act card → narration), and a
+        double fire would skip a chained card cold. */}
+    <button className="cinematic-close" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Skip cinematic"><X /></button>
     <div className="cinematic-title"><div className="gold-rule" /><p>{cinematic.type.replace('_', ' ')}</p><h2>{cinematic.title}</h2><h3>{cinematic.subtitle}</h3></div>
     {dialogue?.line && <div className="cinematic-subtitle"><Volume2 size={16}/><span><strong>{dialogue.speaker}</strong> — {dialogue.line}</span></div>}
   </div>;

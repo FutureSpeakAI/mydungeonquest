@@ -45,6 +45,7 @@ React PWA
         ├─ resolution
         ├─ media_attestation
         ├─ redaction
+        ├─ sealing
         └─ fork
 
 Express

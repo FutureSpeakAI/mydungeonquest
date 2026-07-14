@@ -8,10 +8,47 @@ const REGION_STATES = ['thriving', 'troubled', 'corrupted', 'ruined', 'healed'];
 export const CAST_STATUS = ['active', 'dead', 'missing'];
 const MAX_FACTS = 10;
 const MAX_BOND_ARC = 12;
+// An honored early ending breathes for this many quiet turns before the seal.
+export const SEALING_DENOUEMENT_TURNS = 3;
+
+// The acts as the player reads them (directive §3.5): every spine beat
+// already carries its act number; these are the acts' spoken names.
+export const ACT_NAMES = {
+  1: 'the world as it was',
+  2: 'the world unravelling',
+  3: 'the world remade'
+};
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, Number(n) || 0));
 const clean = (value, max = 500) => String(value || '').trim().slice(0, max);
 const canonName = (value) => String(value ?? '').trim().toLowerCase();
+
+export function romanNumeral(n) {
+  const value = Math.max(1, Math.trunc(Number(n) || 1));
+  const table = [[50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+  let rest = value, out = '';
+  for (const [size, glyph] of table) while (rest >= size) { out += glyph; rest -= size; }
+  return out;
+}
+
+// Chapter I…N is the beat index made visible; one beat, one chapter.
+export function chapterInfo(codex) {
+  const beats = codex.spine.beats;
+  const beat = beats[codex.beatIndex] || beats[beats.length - 1];
+  return {
+    numeral: romanNumeral(codex.beatIndex + 1),
+    countNumeral: romanNumeral(beats.length),
+    count: beats.length,
+    title: beat.title,
+    goal: beat.goal,
+    act: beat.act || 1
+  };
+}
+
+export function actInfo(codex) {
+  const act = codex.spine.beats[codex.beatIndex]?.act || 1;
+  return { act, numeral: romanNumeral(act), name: ACT_NAMES[act] || ACT_NAMES[1] };
+}
 
 // Resolve a DM-sent name to a cast card: exact canonical match first, then a
 // unique bare-first-name alias ("Mara" reaches "Mara Vey" when she is the only
@@ -52,13 +89,28 @@ export function initCodex(spineId, seed = {}) {
   };
 }
 
+// SEAL THE TALE — the honored early ending (directive §3.6). The player may
+// choose the seal at any time; the DM is then steered into quiet denouement
+// turns through the [STORY] directives, and the tale completes once those
+// turns have breathed. A pure reducer so the proving ground can walk it.
+export function requestSeal(codex, turn) {
+  if (codex.completed || codex.sealing) return codex;
+  const next = structuredClone(codex);
+  const requested = Number.isInteger(turn) ? turn : 0;
+  next.sealing = { requested_turn: requested, final_turn: requested + SEALING_DENOUEMENT_TURNS - 1 };
+  next.notes.push('The player has chosen to seal the tale — the denouement begins.');
+  return next;
+}
+
 // meta.turn — the turn number being applied. Stamped onto new cast cards
 // (introduced_turn) and bond-arc entries so the storybook can narrate
 // relationships truthfully ("by turn 9, she trusted you"). Optional: sealed
-// replays and old call sites simply record null.
+// replays and old call sites simply record null. NOTE: this reducer must run
+// even when the DM sends story:null — the sealing countdown ticks on every
+// turn, not only on turns that carry updates.
 export function applyStoryUpdates(codex, updates, meta = {}) {
-  if (!updates) return codex;
   const next = structuredClone(codex);
+  updates = updates || {};
   if (updates.arc && !next.arc) {
     next.arc = {
       title: clean(updates.arc.title, 100),
@@ -145,8 +197,21 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
   }
 
   if (updates.beat_advance && !next.completed) {
-    next.beatIndex = Math.min(next.beatIndex + 1, next.spine.beats.length - 1);
-    if (next.beatIndex === next.spine.beats.length - 1) next.completed = true;
+    // The final beat must PLAY, not merely arrive: advancing while already on
+    // the last beat is what closes the tale. (Before the Experience Cut,
+    // arrival alone completed it — and the epilogue never got its turns.)
+    // Once a seal is requested, the denouement clock below is the SOLE
+    // authority on completion: a beat_advance may still walk the spine, but
+    // closing the final beat yields to the countdown — the promised quiet
+    // turns are never cut short by an eager beat.
+    if (next.beatIndex >= next.spine.beats.length - 1) { if (!next.sealing) next.completed = true; }
+    else next.beatIndex += 1;
+  }
+
+  // The honored early ending: once the player has asked for the seal, the
+  // tale completes when the denouement turns have breathed.
+  if (next.sealing && !next.completed && Number.isInteger(meta.turn) && meta.turn >= next.sealing.final_turn) {
+    next.completed = true;
   }
   return next;
 }
@@ -159,6 +224,7 @@ export function storyBlock(codex) {
     .flatMap((deadline) => deadline.roles)
     .filter((role) => !roles.has(role));
   const nearEnd = codex.beatIndex >= codex.spine.beats.length - 3;
+  const sealing = Boolean(codex.sealing) && !codex.completed;
   return {
     beat: { index: codex.beatIndex, ...beat },
     evil_design: codex.beatIndex >= codex.spine.revealIdx ? codex.arc?.evil_plot || '' : '[GATED UNTIL REVELATION]',
@@ -167,6 +233,8 @@ export function storyBlock(codex) {
     memoir: codex.memoir,
     wounds: codex.notes.slice(-8),
     directives: [
+      ...(codex.completed ? ['The tale is sealed. Write nothing new; if asked, speak only a closing line.'] : []),
+      ...(sealing ? ['SEAL THE TALE — the player has chosen to end with honor. These are denouement turns: quiet and combat-free; no new cast, no new threads; resolve what stands, let farewells be spoken, and bring the road home. If a cinematic is due, let it be the ending the tale has earned (victory, death, or bittersweet).'] : []),
       ...overdue.map((role) => `Introduce the overdue ${role} role naturally before advancing this beat.`),
       ...(nearEnd ? ['Reckon with neglected bonds, regions, promises, and consequences before the ending.'] : [])
     ]

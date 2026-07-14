@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Download, Film, Heart, ScrollText, Shield, Sparkles, X } from 'lucide-react';
 import { CONDITIONS } from '../lib/rules.js';
 import { db } from '../lib/db.js';
+import { ACT_NAMES, romanNumeral } from '../lib/story.js';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -44,11 +45,28 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
 
 const STATUS_WORD = { active: 'Walks the tale', dead: 'Fallen', missing: 'Lost to the road' };
 
-export function Codex({ campaign, onClose, onReplay }) {
+export function Codex({ campaign, onClose, onReplay, onSealTale }) {
   const c = campaign.codex; const revealed = c.beatIndex >= c.spine.revealIdx;
   const gallery = useGallery(campaign);
+  const acts = [...new Set(c.spine.beats.map((beat) => beat.act || 1))];
   return <Frame title="The Codex" icon={<ScrollText/>} onClose={onClose} wide>
     <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p></div><div className="blight">Blight <b>{c.blight}/5</b></div></div>
+    {/* The shape of the tale: the acts and the chapters already walked. The
+        pages ahead keep their titles to themselves — no spoilers. */}
+    <h3>The shape of the tale</h3>
+    <div className="tale-arc">{acts.map((act) => <div className="act-row" key={act}>
+      <b>Act {romanNumeral(act)} — {ACT_NAMES[act] || 'the road beyond'}</b>
+      <ol>{c.spine.beats.map((beat, i) => (beat.act || 1) === act
+        ? <li key={i} className={i < c.beatIndex ? 'walked' : i === c.beatIndex ? 'here' : ''}>{i <= c.beatIndex ? beat.title : '· · ·'}</li>
+        : null)}</ol>
+    </div>)}</div>
+    {campaign.completed
+      ? <p className="muted seal-tale-row">✦ The tale is told{campaign.sealedAt ? ', and the wax has taken the sigil' : ''}.</p>
+      : c.sealing
+        ? <p className="muted seal-tale-row">✦ The denouement — the road turns home.</p>
+        : onSealTale
+          ? <div className="seal-tale-row"><button className="secondary-button" onClick={onSealTale}>Seal the Tale</button><p className="muted">End with honor: a few closing turns, then the wax.</p></div>
+          : null}
     <h3>The evil design</h3><p className={revealed ? '' : 'gated'}>{revealed ? c.arc?.evil_plot : 'The page refuses to hold the whole shape. Revelation must be earned.'}</p>
     <h3>The cast — what the world remembers</h3><div className="codex-grid gallery">{c.cast.map((soul)=>{
       const dead = soul.status === 'dead';

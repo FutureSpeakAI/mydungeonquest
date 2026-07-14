@@ -16,6 +16,9 @@ const viteEnv = {
   'import.meta.env.BASE_URL': "'/'",
   'import.meta.env.PROD': 'false',
   'import.meta.env.DEV': 'true',
+  // The harness is a keyless build by law: no publishable key, no door.
+  'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY': "''",
+  'import.meta.env.VITE_CLERK_PROXY_URL': "''",
 };
 
 export async function load(url, context, nextLoad) {

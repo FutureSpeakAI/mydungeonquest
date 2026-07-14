@@ -12,3 +12,4 @@
 - [Strict media doors](strict-media-doors.md) — client strings that become HTML/CSS, ffmpeg graphs, or file names pass a whitelist regex at the boundary (data:image…, ref law); two same-class holes proved it.
 - [MyDungeon redaction law](mydungeon-redaction-law.md) — journal strikes outrank snapshot flags; retellings fall WHOLE if any cited turn is struck; citeless pages are never used.
 - [CSS animation-fill overrides](css-animation-fill-conflict.md) — fill forwards/both beats property+transition opacity; set animation:none while a class must own the value.
+- [MyDungeon door is opt-in](mydungeon-door.md) — auth mirrors the media doctrine: no Clerk keys → no door, guests pass forever; evals scrub keys + pin '' in the jsx loader; Clerk CAPTCHA blocks browser e2e sign-up.

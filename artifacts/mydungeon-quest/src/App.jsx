@@ -24,6 +24,7 @@ import { playNarration, stopNarration, subscribeNarration, toggleNarration } fro
 import { downloadQuestAudio } from './lib/cinema/questaudio.js';
 import { buildStorybook } from './lib/storybook.js';
 import { slugify } from './lib/canonical.js';
+import { PatronDoor } from './patron/door.jsx';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
 
@@ -742,7 +743,7 @@ function TitleScreen({ campaigns, onNew, onOpen, onRestore, reduceMotion, mediaT
         <p className="shelf-plaque">{plaque || (campaigns.length ? 'Draw a spine from the shelf.' : 'The shelf waits for its first book.')}</p>
       </div>
     </section>}
-    <footer className="title-footer">Yours alone · Plays offline · Every turn sealed</footer>
+    <footer className="title-footer"><span>Yours alone · Plays offline · Every turn sealed</span><PatronDoor/></footer>
   </main>;
 }
 

@@ -1,6 +1,11 @@
 import { canonicalize, sha256, bytesToBase64 } from './canonical.js';
 import { db } from './db.js';
 
+// The 'cinema' media tier was retired with film generation (July 2026). Legacy
+// rows and chronicle files may still carry it; every data boundary funnels
+// through this so neither IndexedDB nor an exported file keeps the old tier.
+export const canonicalTier = (tier) => (tier === 'cinema' ? 'illuminated' : tier);
+
 async function signerFor(campaignId) {
   const existing = await db.keys.get(campaignId);
   if (existing) return existing;
@@ -53,7 +58,9 @@ export async function exportChronicle(campaignId) {
       exportedAt: Date.now(), headHash: campaign.headHash || null, publicKeyJwk: key?.publicJwk || null,
       signatureStatus: campaign.signatureStatus || 'hash-only', forkOf: campaign.forkOf || null
     },
-    campaign: { ...campaign, screen: 'table' },
+    // The journal is what the seal covers; campaign fields are presentation
+    // state, so exports always canonicalize the retired tier.
+    campaign: { ...campaign, mediaTier: canonicalTier(campaign.mediaTier), screen: 'table' },
     journal,
     media: await Promise.all(mediaRows.map(async (row) => ({
       ...row, blob: row.blob ? await blobToDataUrl(row.blob) : null
@@ -66,6 +73,7 @@ export async function importChronicle(data) {
   const id = crypto.randomUUID();
   const imported = {
     ...data.campaign, id, title: `${data.campaign.title} — restored`, readOnly: true,
+    mediaTier: canonicalTier(data.campaign.mediaTier),
     forkOf: { campaignId: data.header.campaignId, headHash: data.header.headHash },
     headHash: data.header.headHash, turnCount: data.journal.length, signatureStatus: data.header.signatureStatus,
     createdAt: Date.now(), updatedAt: Date.now()
@@ -85,6 +93,7 @@ export async function forkChronicle(campaign) {
   const id = crypto.randomUUID();
   const fork = {
     ...structuredClone(campaign), id, title: `${campaign.title} — continuation`, readOnly: false,
+    mediaTier: canonicalTier(campaign.mediaTier),
     forkOf: { campaignId: campaign.id, headHash: campaign.headHash }, headHash: null, turnCount: 0,
     createdAt: Date.now(), updatedAt: Date.now(), signatureStatus: 'pending'
   };

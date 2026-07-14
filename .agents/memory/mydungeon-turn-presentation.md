@@ -5,8 +5,9 @@ description: User-approved reading order for story turns, and the cinematic-back
 
 # Turn reading order (user-approved decision)
 A sealed turn renders: narration TEXT first → the Listen control immediately
-under it → the painted scene plate BELOW → film/rendering figures → roll stamp.
-Plates are tap-to-expand (full-screen lightbox with focus management).
+under it → the painted scene plate BELOW → roll stamp. Plates are tap-to-expand
+(full-screen lightbox with focus management). Films are retired; a legacy turn's
+`videoPosterUrl` renders as the ordinary still plate (see media-providers memo).
 
 **Why:** the user explicitly directed "text first, then the image (below) and
 narrate buttons asap afterward." Paint arrives seconds after text; with the

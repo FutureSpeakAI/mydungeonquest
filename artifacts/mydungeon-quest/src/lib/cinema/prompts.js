@@ -48,9 +48,6 @@ export function keyArtPrompt(campaign, variant = 'establishing') {
   return scrubPrompt(`${bible}. Epic 16:9 key art establishing this world — a single iconic vista with cinematic depth and dramatic light, no figures in the foreground. The world: ${campaign.covenant || ''}. Home region: ${campaign.homeRegion || 'the frontier'}. Tone: ${campaign.tone || 'mythic'}. No text, no frame, no title.${darkening}`, campaign);
 }
 
-export function cinematicPrompt(campaign, cinematic, cue = {}) {
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. A 6-10 second 16:9 cinematic for ${cinematic.type}: “${cinematic.title}.” ${cinematic.subtitle}. Mood: ${cue.mood || cinematic.type}. Slow purposeful camera movement, one readable action, strong silhouette, no cuts faster than two seconds.`, campaign);
-}
 
 export async function generationSpec(kind, prompt, options = {}) {
   const value = { kind, scrubbedPrompt: prompt, promptVersion: 1, canonVersion: 1, provider: options.provider || 'auto', model: options.model || 'auto', seed: options.seed ?? null, dimensions: options.dimensions || null, duration: options.duration || null, referenceAssetHashes: options.referenceAssetHashes || [], providerParameters: options.providerParameters || {} };

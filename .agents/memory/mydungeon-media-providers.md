@@ -1,7 +1,22 @@
 ---
 name: MyDungeon.Quest media + DM provider chains
-description: How media/DM providers are selected, which secret each uses, and the mock floor
+description: How media/DM providers are selected, which secret each uses, the mock floor, and the film/video retirement decision
 ---
+
+# Films/video are RETIRED from the product (July 2026, user-directed)
+
+**Rule:** there is no video generation, no `/api/video` route, no `video` media
+kind, no `cinema` tier, and no `<video>` element anywhere. Cinematics are
+painted-still title cards. Do NOT reintroduce any of it.
+**Why:** user said "let's take the videos out completely" after film generation
+proved slow/unreliable relative to its value.
+**Legacy compat contract (locked by evals/mediaFallback.test.mjs):**
+- Sealed logs are immutable — old logs may carry `videoUrl`/`videoPosterUrl`/
+  `videoFailed`. LogEntry renders the poster as a normal still plate and must
+  never mount a `<video>`.
+- Old `kind: 'video'` media rows in IndexedDB are ignored, never deleted.
+- Legacy `mediaTier: 'cinema'` (settings or campaign) is coerced to
+  `'illuminated'` on load/open/import; Foundry no longer special-cases it.
 
 # Provider selection is auto-chained with a mock floor
 
@@ -10,7 +25,6 @@ try-until-success chain per media kind, filtered to whichever provider keys are
 present, always ending in `mockAdapter`. `server/index.js#runChain()` walks it
 and returns the first success; each fall-through is logged. Preference order:
 - paint: gemini → openai → mock
-- video: gemini → openai → replicate → mock
 - speak: elevenlabs → openai → mock
 - music / sfx: elevenlabs → mock
 DM (`server/dm.js`): Anthropic primary (auto when `ANTHROPIC_API_KEY` set),
@@ -19,7 +33,7 @@ then an OpenAI chat/tool-call fallback held to the SAME `toolSchema` +
 
 **Secrets each provider reads:** gemini → `GEMINI_API_KEY` || `GOOGLE_API_KEY`;
 openai → `OPENAI_API_KEY`; elevenlabs → `ELEVENLABS_API_KEY`; anthropic →
-`ANTHROPIC_API_KEY`. Per-kind override env `PAINT_PROVIDER` /`VIDEO_PROVIDER`/
+`ANTHROPIC_API_KEY`. Per-kind override env `PAINT_PROVIDER` / `SPEAK_PROVIDER` /
 etc. FORCES a single provider (chain becomes `[forced, mock]`, dropping the rest
 of the fallbacks) — so leave them UNSET to keep the full chain; set to `mock` to
 force placeholders. `DM_FALLBACK=off` disables the OpenAI DM fallback.
@@ -34,13 +48,6 @@ placeholders, a real provider is throwing and it fell to mock — check the
 workflow log for `[kind] provider <name> failed: ...`.
 
 Gotchas seen live (all verified working once fixed):
-- **Veo model names drift and are key-specific.** `veo-3.0-fast-generate-001`
-  404s (`not found ... or not supported for predictLongRunning`). Query
-  `GET v1beta/models?key=...` and pick a name whose `supportedGenerationMethods`
-  includes `predictLongRunning` — currently `veo-3.1-fast-generate-preview`
-  (also generate/lite -preview). Never assume a Veo model ID; list first.
-- **Sora (OpenAI video) only accepts seconds ∈ {4,8,12}** — any other value
-  400s (`invalid_value` on `seconds`); the adapter snaps to the nearest.
 - **The CodeExecution sandbox's secret copy can differ from the workflow's.**
   A `requestSecrets`/sandbox read of `GEMINI_API_KEY` returned an *invalid* value
   while the same-named secret in the running workflow env was valid and worked.
@@ -51,8 +58,8 @@ Gotchas seen live (all verified working once fixed):
   But confirm against the running workflow first — they can also be transient.
 
 ## Tier semantics & the narrator (podcast playback)
-- Media tiers: parchment = procedural only; **illuminated = painted stills + the whole audio layer (narration voice, beat score, SFX)**; cinema adds cinematic video. Only `video` is cinema-gated in `Foundry.allowed()`.
-- The interactive-podcast narrator reads each turn via `/api/speak` **directly, bypassing the Foundry tier gate** — hearing the story aloud is a comfort setting available at any tier. Do NOT re-gate narration behind cinema.
-- **Why:** users on the default illuminated tier expected painted scenes + audio; gating audio at cinema made the app look/sound dead. A single scene paint is now requested every turn (fallback image_cue synthesized from narration when the DM returns null).
+- Media tiers: parchment = procedural only; **illuminated = painted stills + the whole audio layer (narration voice, beat score, SFX)**. These are the only two tiers now (see film retirement above).
+- The interactive-podcast narrator reads each turn via `/api/speak` **directly, bypassing the Foundry tier gate** — hearing the story aloud is a comfort setting available at any tier. Do NOT re-gate narration.
+- **Why:** users on the default illuminated tier expected painted scenes + audio; gating audio made the app look/sound dead. A single scene paint is requested every turn (fallback image_cue synthesized from narration when the DM returns null).
 - Single-audio playback controllers that generate audio async MUST guard after every `await` with a monotonic session token (bumped on stop/start) or fast successive/auto-play calls overlap into multiple simultaneous voice tracks.
 - `/api/quest-audio` (ffmpeg concat + ducked bed) needs its large `express.json` limit mounted on the route BEFORE the global 25mb parser, else long quests are rejected 413.

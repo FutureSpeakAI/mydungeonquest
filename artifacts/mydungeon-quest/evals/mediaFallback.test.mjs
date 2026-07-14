@@ -1,12 +1,18 @@
-// ---- Degraded-media assertions: paid video players always keep a keyframe ----
+// ---- Media presentation assertions (films retired) ----
 //
-// Cinema-tier players pay for a filmed cinematic. When the generated <video>
-// cannot decode (unsupported codec, corrupt data, truncated download), the UI
-// MUST swap the film for the painted keyframe still rather than showing a blank
-// black box. These render-level tests fire the real onError handlers on both
-// the inline story-log figure (LogEntry) and the fullscreen Cinematic overlay
-// and assert the fallback still appears. They run headless — no AI keys, no
-// browser — via react-test-renderer and fake-indexeddb.
+// Cinematic FILM generation was removed from the product: turns and chapter
+// cards are painted stills only. But chronicles sealed before the retirement
+// are immutable — their logs may still carry film-era fields (videoUrl,
+// videoPosterUrl) and their media stores may hold 'video' rows. These
+// render-level tests lock the compatibility contract:
+//   1. A legacy film turn renders its painted keyframe poster as a normal
+//      still plate — and NEVER mounts a <video> element.
+//   2. The fullscreen Cinematic overlay ignores legacy 'video' rows and backs
+//      the card with painted art.
+//   3. A chapter card that fires before this turn's paint lands borrows the
+//      campaign's latest painted scene (the flat gradient stays a last resort).
+// They run headless — no AI keys, no browser — via react-test-renderer and
+// fake-indexeddb.
 
 import 'fake-indexeddb/auto';
 import assert from 'node:assert/strict';
@@ -23,11 +29,10 @@ const h = React.createElement;
 // Opt into React's act() testing environment so effect flushing is reliable.
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-// react-test-renderer never touches the DOM, but both components mint object
+// react-test-renderer never touches the DOM, but the components mint object
 // URLs for their blobs. Stub the browser API and key the URL on the blob's MIME
 // type — that survives the structured-clone round-trip through IndexedDB, so a
-// blob read back from the store maps to the same URL, letting a test tell the
-// film URL from the still URL after a swap.
+// blob read back from the store maps to the same URL.
 globalThis.URL.createObjectURL = (blob) => `blob:test/${blob?.type || 'unknown'}`;
 globalThis.URL.revokeObjectURL = () => {};
 
@@ -56,55 +61,46 @@ const textOf = (node) => {
 };
 
 // ---------------------------------------------------------------------------
-// 1. Inline story-log figure (LogEntry): a playable <video> that errors falls
-//    back to the painted keyframe still, and the figcaption stops claiming a
-//    "cinematic film".
+// 1. Legacy film turn in the story log: the sealed log still carries videoUrl
+//    and the painted keyframe poster. The renderer must show the poster as a
+//    normal still plate and must not mount a <video>.
 // ---------------------------------------------------------------------------
 {
   const log = {
-    id: 'log-inline',
+    id: 'log-legacy-film',
     player: null,
     ts: Date.now(),
     dm: {
       narration_blocks: [{ text: 'The choir rises from the black water.', speaker: null }],
       cinematic
     },
-    imageUrl: 'data:image/png;base64,SCENE_STILL', // the painted keyframe still
-    videoUrl: 'blob:test/film.mp4',                // the filmed cinematic
+    imageUrl: null,                                     // film turns had no scene plate
+    videoUrl: 'blob:test/video/mp4',                    // legacy filmed cinematic
+    videoPosterUrl: 'data:image/png;base64,POSTER',     // its painted keyframe
     videoDegraded: false
   };
-  const campaign = { id: 'camp-inline' };
+  const campaign = { id: 'camp-legacy' };
 
   let root;
-  await act(async () => { root = TestRenderer.create(h(LogEntry, { log, campaign, rendering: false })); });
+  await act(async () => { root = TestRenderer.create(h(LogEntry, { log, campaign, painting: false })); });
 
-  let tree = root.toJSON();
-  const videos = collect(tree, 'video');
-  assert.equal(videos.length, 1, 'inline: a playable film should render first for a cinema-tier turn');
-  const figBefore = collect(tree, 'figcaption');
-  assert.ok(figBefore.some((f) => textOf(f).includes('cinematic film')), 'inline: figcaption should read "cinematic film" before failure');
-  assert.equal(collect(tree, 'img').length, 0, 'inline: no still image while the film is playing');
-
-  // The codec dies — fire the real onError the component wired onto the <video>.
-  await act(async () => { videos[0].props.onError(); });
-
-  tree = root.toJSON();
-  assert.equal(collect(tree, 'video').length, 0, 'inline: the failed film must be removed');
+  const tree = root.toJSON();
+  assert.equal(collect(tree, 'video').length, 0, 'legacy: a <video> must never mount now that films are retired');
   const imgs = collect(tree, 'img');
-  assert.equal(imgs.length, 1, 'inline: the keyframe still must render after failure');
-  assert.equal(imgs[0].props.src, log.imageUrl, 'inline: the keyframe still must be the painted scene, not a blank box');
-  const figAfter = collect(tree, 'figcaption');
-  assert.ok(figAfter.some((f) => textOf(f).includes('keyframe')), 'inline: figcaption must read "keyframe" after failure');
-  assert.ok(!figAfter.some((f) => textOf(f).includes('cinematic film')), 'inline: figcaption must stop claiming a "cinematic film"');
+  assert.equal(imgs.length, 1, 'legacy: the keyframe poster must render as the still plate');
+  assert.equal(imgs[0].props.src, log.videoPosterUrl, 'legacy: the plate must be the sealed painted poster, not a blank or procedural stand-in');
+  const figs = collect(tree, 'figcaption');
+  assert.ok(figs.some((f) => textOf(f).includes('illuminated')), 'legacy: the poster is painted art — caption it like any still');
+  assert.ok(!figs.some((f) => textOf(f).includes('cinematic film')), 'legacy: the caption must not claim a film');
 
   await act(async () => { root.unmount(); });
-  console.log('PASS — inline story-log film degrades to the painted keyframe (figcaption: "keyframe").');
+  console.log('PASS — a legacy film turn renders its painted poster as a still plate (no <video>).');
 }
 
 // ---------------------------------------------------------------------------
-// 2. Fullscreen Cinematic overlay: a film that errors falls back to the still.
-//    The overlay resolves its assets from IndexedDB, so we seed a film blob and
-//    a still blob for the turn, let the effect run, then fail the <video>.
+// 2. Fullscreen Cinematic overlay with legacy media rows: a leftover 'video'
+//    row for this turn must be ignored; the overlay backs the card with the
+//    turn's painted still.
 // ---------------------------------------------------------------------------
 {
   const campaign = { id: 'camp-overlay', codex: { beatIndex: 0, cast: [] } };
@@ -114,12 +110,11 @@ const textOf = (node) => {
 
   await db.media.clear();
   await db.media.bulkPut([
+    // Legacy row from the film era — must be ignored entirely.
     { assetHash: 'film-1', cacheKey: 'no-match-film', campaignId: campaign.id, kind: 'video', originTurnHash: turnRecordHash, createdAt: 2, blob: filmBlob },
     { assetHash: 'still-1', cacheKey: 'no-match-still', campaignId: campaign.id, kind: 'paint', originTurnHash: turnRecordHash, createdAt: 1, blob: stillBlob }
   ]);
-  const filmUrl = URL.createObjectURL(filmBlob);
   const stillUrl = URL.createObjectURL(stillBlob);
-  assert.notEqual(filmUrl, stillUrl, 'sanity: film and still must resolve to distinct object URLs');
 
   let root;
   await act(async () => {
@@ -132,24 +127,15 @@ const textOf = (node) => {
   // Let the async asset resolution (IndexedDB read + setState) settle.
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 60)); });
 
-  let tree = root.toJSON();
-  const videos = collect(tree, 'video');
-  assert.equal(videos.length, 1, 'overlay: the resolved film should play first');
-  assert.equal(videos[0].props.src, filmUrl, 'overlay: the playing film must be the generated clip');
-  assert.equal(collect(tree, 'img').length, 0, 'overlay: no still while the film plays');
-
-  // The clip fails to decode — fire the overlay's own onError fallback.
-  await act(async () => { videos[0].props.onError(); });
-
-  tree = root.toJSON();
-  assert.equal(collect(tree, 'video').length, 0, 'overlay: the failed film must be removed');
+  const tree = root.toJSON();
+  assert.equal(collect(tree, 'video').length, 0, 'overlay: legacy video rows must not produce a <video>');
   const imgs = collect(tree, 'img');
-  assert.equal(imgs.length, 1, 'overlay: the still must render after the film fails');
-  assert.equal(imgs[0].props.src, stillUrl, 'overlay: the fallback must show the painted still, not a blank box');
+  assert.equal(imgs.length, 1, 'overlay: the card must render exactly one still backdrop');
+  assert.equal(imgs[0].props.src, stillUrl, 'overlay: the backdrop must be the painted still, not the legacy film or the gradient');
 
   await act(async () => { root.unmount(); });
   await db.media.clear();
-  console.log('PASS — fullscreen Cinematic overlay degrades from film to the painted still on error.');
+  console.log('PASS — the Cinematic overlay ignores legacy video rows and shows the painted still.');
 }
 
 // ---------------------------------------------------------------------------
@@ -182,7 +168,7 @@ const textOf = (node) => {
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 60)); });
 
   const tree = root.toJSON();
-  assert.equal(collect(tree, 'video').length, 0, 'early card: no film exists for this beat');
+  assert.equal(collect(tree, 'video').length, 0, 'early card: no film exists anywhere anymore');
   const imgs = collect(tree, 'img');
   assert.equal(imgs.length, 1, 'early card: the overlay must render a still backdrop');
   assert.equal(imgs[0].props.src, earlierUrl, "early card: the backdrop must be the campaign's latest painted scene");
@@ -193,4 +179,36 @@ const textOf = (node) => {
   console.log('PASS — an early chapter card borrows the latest painted scene (no flat gradient).');
 }
 
-console.log('PASS — degraded-media keyframe guarantee holds for both the inline log and the overlay.');
+// ---------------------------------------------------------------------------
+// 4. Legacy 'cinema' tier canonicalization at the data boundaries: a campaign
+//    stored with the retired tier must export, import, and re-export as
+//    'illuminated' — including the PERSISTED row, so IndexedDB cannot keep
+//    re-leaking the old tier into exports forever.
+// ---------------------------------------------------------------------------
+{
+  const { exportChronicle, importChronicle, canonicalTier } = await import('../src/lib/seal.js');
+  assert.equal(canonicalTier('cinema'), 'illuminated', 'canonicalTier: cinema is retired');
+  assert.equal(canonicalTier('parchment'), 'parchment', 'canonicalTier: live tiers pass through');
+  assert.equal(canonicalTier('illuminated'), 'illuminated', 'canonicalTier: live tiers pass through');
+
+  const legacyId = 'camp-legacy-cinema';
+  await db.campaigns.put({ id: legacyId, title: 'The Old Cinema Save', mediaTier: 'cinema', spend: { images: 3, videos: 2, music: 1 }, turnCount: 0, headHash: null, createdAt: 1, updatedAt: 1 });
+
+  const exported = await exportChronicle(legacyId);
+  assert.equal(exported.campaign.mediaTier, 'illuminated', 'export: a legacy cinema row must serialize as illuminated');
+
+  // Simulate restoring a chronicle file written by the OLD app (tier still cinema).
+  const oldFile = { ...exported, campaign: { ...exported.campaign, mediaTier: 'cinema' } };
+  const restored = await importChronicle(oldFile);
+  assert.equal(restored.mediaTier, 'illuminated', 'import: the returned campaign must be coerced');
+  const row = await db.campaigns.get(restored.id);
+  assert.equal(row.mediaTier, 'illuminated', 'import: the persisted row must be coerced — no cinema left in IndexedDB');
+  const reExported = await exportChronicle(restored.id);
+  assert.equal(reExported.campaign.mediaTier, 'illuminated', 'round-trip: a re-export stays canonical');
+
+  await db.campaigns.delete(legacyId);
+  await db.campaigns.delete(restored.id);
+  console.log('PASS — legacy cinema tier canonicalizes to illuminated across export/import/persistence.');
+}
+
+console.log('PASS — films are fully retired; legacy chronicles still show their painted art.');

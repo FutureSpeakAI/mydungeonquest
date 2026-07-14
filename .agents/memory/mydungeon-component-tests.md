@@ -26,6 +26,13 @@ The MyDungeon.Quest eval harness (`evals/run.mjs`, `npm run eval`) is plain
   to its URL.
 - Keep running the harness with AI keys unset (see mydungeon-quest-eval.md) or
   run.mjs's `provider === 'mock'` assertion fails before your tests run.
+- **Audio/playback tests** (e.g. narrator concurrency): stub global `Audio`
+  (register instances so you can count how many play at once), global `fetch`
+  (park each call on a deferred so you control resolution ORDER and can land a
+  stale generation after a newer one), and `URL.createObjectURL`. The object URL
+  does NOT encode blob content, so to tell WHICH turn an Audio is playing, tag
+  blobs by identity (Map) and fold the tag into the fake URL; classify
+  voice-vs-bed by MIME (survives IndexedDB round-trip), matched turn by tag.
 
 **Why:** these five gotchas each cost a failed run to discover; a future agent
 adding component/UI tests here will hit the same wall without them.

@@ -28,14 +28,42 @@ function useGallery(campaign) {
   return gallery;
 }
 
+// THE ORIGINAL FACE — the hero's first bust, found by the stable hash key on
+// the campaign (never by display-name label, which a rename would orphan).
+// Elder tales without the key fall back to the OLDEST bust under the hero's
+// label — the anchor law's own choice — never the latest take.
+export function useHeroBust(campaign) {
+  const [face, setFace] = useState(null);
+  useEffect(() => {
+    let url = null, alive = true;
+    (async () => {
+      let row = campaign.heroBustHash ? await db.media.get(campaign.heroBustHash) : null;
+      if (!row?.blob) {
+        const rows = await db.media.where('campaignId').equals(campaign.id).toArray();
+        row = rows
+          .filter((r) => r.kind === 'paint' && r.variant === 'bust' && r.blob && String(r.label || '').includes(campaign.hero?.name || ''))
+          .sort((a, b) => a.createdAt - b.createdAt)[0] || null;
+      }
+      // No lawful face for THIS tale/name: clear any prior portrait — a live
+      // update must fall to the sigil, never keep a stale ghost on the sheet.
+      if (!row?.blob) { if (alive) setFace(null); return; }
+      url = URL.createObjectURL(row.blob);
+      if (alive) setFace(url); else { URL.revokeObjectURL(url); url = null; }
+    })();
+    return () => { alive = false; if (url) URL.revokeObjectURL(url); };
+  }, [campaign.id, campaign.heroBustHash, campaign.hero?.name]);
+  return face;
+}
+
 function Frame({ title, icon, onClose, children, wide = false }) {
   return <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><section className={`modal ${wide ? 'wide' : ''}`}><header><span>{icon}<h2>{title}</h2></span><button onClick={onClose} aria-label="Close"><X/></button></header>{children}</section></div>;
 }
 
 export function CharacterSheet({ campaign, onClose, onExport }) {
   const h = campaign.hero;
+  const face = useHeroBust(campaign);
   return <Frame title="Character Sheet" icon={<Shield/>} onClose={onClose}>
-    <div className="sheet-hero"><span>{h.sigil}</span><div><h3>{h.name}</h3><p>Level {h.level} {h.ancestry} {h.className}</p></div></div>
+    <div className="sheet-hero">{face ? <img className="hero-face" src={face} alt={h.name}/> : <span>{h.sigil}</span>}<div><h3>{h.name}</h3><p>Level {h.level} {h.ancestry} {h.className}</p></div></div>
     <div className="stat-ribbon"><span><b>{h.hp}/{h.maxHp}</b> HP</span><span><b>{h.ac}</b> AC</span><span><b>{h.gold}</b> gold</span><span><b>{h.xp}</b> XP</span></div>
     <div className="ability-grid compact">{Object.entries(h.abilities).map(([a,v]) => <div key={a}><b>{a}</b><span>{v}</span><small>{Math.floor((v-10)/2) >= 0 ? '+' : ''}{Math.floor((v-10)/2)}</small></div>)}</div>
     <h3>Spell slots</h3><div className="slot-row">{Object.entries(h.spellSlots).length ? Object.entries(h.spellSlots).map(([lvl,slot]) => <span key={lvl}>L{lvl} {Array.from({length:slot.max},(_,i)=><i className={i<slot.current?'full':''} key={i}/>)}</span>) : <em>No prepared slots</em>}</div>

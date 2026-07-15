@@ -390,3 +390,6 @@
   border: 1px solid rgba(232, 147, 90, 0.45);
 }
 .ritual.pyre-ask .danger-button:hover { background: linear-gradient(180deg, #7d3c24, #542a19); }
+
+/* THE ORIGINAL FACE on the character sheet — the forge bust, found by its stable key */
+.sheet-hero img.hero-face{width:3.4rem;height:3.4rem;border-radius:50%;object-fit:cover;border:2px solid #9f7438;flex:0 0 auto}

@@ -15,7 +15,7 @@ import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from '.
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
 import { portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
-import { markRevealed } from './lib/reveals.js';
+import { markRevealed, listReveals } from './lib/reveals.js';
 import { KEYART_LABEL, actOf, heroBustJob, keyArtJob, nameSeed } from './lib/cinema/prologue.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
 import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
@@ -583,12 +583,18 @@ export default function App() {
       campaignId: campaign.id, tier: campaign.mediaTier, spend: campaign.spend,
       onAttestation: async (payload) => seal(campaign.id, 'media_attestation', payload)
     });
-    const [keyArt] = await Promise.all([
+    const [keyArt, heroBust] = await Promise.all([
       foundry.enqueue({ ...keyArtJob(campaign, actOf(campaign)), originTurnHash: null }).catch(() => null),
       foundry.enqueue({ ...heroBustJob(campaign), originTurnHash: null }).catch(() => null)
     ]);
-    if (keyArt) {
-      const next = { ...campaign, keyArtHash: keyArt.assetHash, spend: foundry.spend };
+    // THE STABLE FACE KEY — the hero's first bust is remembered by hash on
+    // the campaign itself (exactly like the key art), so the original
+    // portrait is found by identity ever after. A display-name label would
+    // orphan it the day the hero is renamed.
+    if (keyArt || heroBust) {
+      const next = { ...campaign, spend: foundry.spend };
+      if (keyArt) next.keyArtHash = keyArt.assetHash;
+      if (heroBust) next.heroBustHash = heroBust.assetHash;
       setCurrent(next); await saveCampaign(next); return next;
     }
     return campaign;
@@ -604,7 +610,7 @@ export default function App() {
       id, title: worldDraft.title, covenant: worldDraft.covenant, tone: worldDraft.tone,
       lines: worldDraft.lines, veils: worldDraft.veils, styleBible: worldDraft.styleBible, homeRegion: worldDraft.homeRegion,
       spineId: worldDraft.spineId, hero, codex, logs: [], combat: null, pendingRoll: null,
-      turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null,
+      turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null, heroBustHash: null,
       mediaTier: settings.mediaTier, spend: { images: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };
     await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
@@ -660,7 +666,11 @@ export default function App() {
     const journal = await campaignJournal(campaign.id);
     const mediaRows = await db.media.where('campaignId').equals(campaign.id).toArray();
     const media = await Promise.all(mediaRows.map(async (row) => ({ ...row, dataUrl: row.blob ? await blobToDataUrl(row.blob) : null })));
-    const html = buildStorybook({ campaign, journal, media, pageSize: size }); setBookHtml(html); setOverlay('storybook');
+    // The seen ledger rides along: the book retells the adventure as it was
+    // actually SEEN at this table — only dealt art, seated with its own
+    // chapters. (An elder tale with no ledger still binds, the old way.)
+    const reveals = await listReveals(campaign.id);
+    const html = buildStorybook({ campaign, journal, media, reveals, pageSize: size }); setBookHtml(html); setOverlay('storybook');
   };
 
   const bindPdf = async () => {

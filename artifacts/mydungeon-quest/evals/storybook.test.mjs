@@ -150,3 +150,120 @@ assert.ok(struck.includes('No Chronicler spoke for this chapter'), 'the emptied 
 assert.ok(struck.includes('Brother Loam enters the tale'), 'entrances keep their window even when the words are struck');
 
 console.log('PASS — the book always exists: illuminated when the Chronicler spoke, raw and honest when it did not, plates through the strict door only, journal law over snapshot flags, carrying its own proof for the notary.');
+
+// ---------------------------------------------------------------------------
+// 11. PLAYED ORDER — chapters are contiguous stretches in the order the table
+//     lived them; beat bookkeeping that jumps backward never reshuffles them.
+// ---------------------------------------------------------------------------
+{
+  const camp = {
+    id: 'camp-order', title: 'The Doubling Back', hero: { name: 'Wren', sigil: '✧' },
+    codex: { spine: { beats: [{ title: 'Alpha Landing', act: 1 }, { title: 'Beta Bridge', act: 1 }] }, cast: [], regions: [], memoir: [] },
+    chroniclePages: [],
+    logs: [
+      { id: 'o-0', beatIndex: 1, redacted: false, player: 'First lived moment.', dm: { narration_blocks: [{ text: 'ORDER-FIRST-PROSE', speaker: null }] }, resolution: null },
+      { id: 'o-1', beatIndex: 0, redacted: false, player: 'Second lived moment.', dm: { narration_blocks: [{ text: 'ORDER-SECOND-PROSE', speaker: null }] }, resolution: null },
+      { id: 'o-2', beatIndex: 1, redacted: false, player: 'Third lived moment.', dm: { narration_blocks: [{ text: 'ORDER-THIRD-PROSE', speaker: null }] }, resolution: null }
+    ]
+  };
+  const html = buildStorybook({ campaign: camp, journal: [], media: [], reveals: [] });
+  const at = (needle) => { const i = html.indexOf(needle); assert.ok(i >= 0, `${needle} must bind`); return i; };
+  assert.ok(at('ORDER-FIRST-PROSE') < at('ORDER-SECOND-PROSE'), 'the first-lived turn reads first, whatever its beat number');
+  assert.ok(at('ORDER-SECOND-PROSE') < at('ORDER-THIRD-PROSE'), 'the reading order is the played order, turn by turn');
+  assert.ok(at('Beta Bridge') < at('Alpha Landing'), 'the opening chapter is the beat played FIRST, not the lowest beat index');
+  assert.ok(html.split('Beta Bridge').length - 1 >= 2, 'a beat revisited later is its own stretch — never merged backward into the first');
+  console.log('PASS storybook: chapters follow the played order, stretch by stretch');
+}
+
+// ---------------------------------------------------------------------------
+// 12. THE SEEN LAW — only art the player actually saw binds; plates seat with
+//     their own stretch; a plate first shown on a struck turn follows it out.
+// ---------------------------------------------------------------------------
+{
+  const pxSeen = 'data:image/png;base64,iVBORw0KGgoAAAA=';
+  const pxLost = 'data:image/png;base64,iVBORw0KGgoBBBB=';
+  const pxStruck = 'data:image/png;base64,iVBORw0KGgoCCCC=';
+  const pxCard = 'data:image/png;base64,iVBORw0KGgoDDDD=';
+  const camp = {
+    id: 'camp-seen', title: 'The Seen Tale', hero: { name: 'Wren', sigil: '✧' },
+    codex: { spine: { beats: [{ title: 'One', act: 1 }, { title: 'Two', act: 2 }] }, cast: [], regions: [], memoir: [] },
+    chroniclePages: [],
+    logs: [
+      { id: 's-0', beatIndex: 0, redacted: false, player: 'p0', dm: { narration_blocks: [{ text: 'n0', speaker: null }] }, resolution: null },
+      { id: 's-1', beatIndex: 0, redacted: false, player: 'p1', dm: { narration_blocks: [{ text: 'n1', speaker: null }] }, resolution: null },
+      { id: 's-2', beatIndex: 1, redacted: true, player: 'p2', dm: { narration_blocks: [{ text: 'n2', speaker: null }] }, resolution: null },
+      { id: 's-3', beatIndex: 1, redacted: false, player: 'p3', dm: { narration_blocks: [{ text: 'n3', speaker: null }] }, resolution: null }
+    ]
+  };
+  const rows = [
+    { assetHash: 'seen-1', campaignId: 'camp-seen', kind: 'paint', label: 'scene one', createdAt: 1, dataUrl: pxSeen },
+    { assetHash: 'never-shown', campaignId: 'camp-seen', kind: 'paint', label: 'lost take', createdAt: 2, dataUrl: pxLost },
+    { assetHash: 'struck-plate', campaignId: 'camp-seen', kind: 'paint', label: 'struck scene', createdAt: 3, dataUrl: pxStruck },
+    { assetHash: 'card-art', campaignId: 'camp-seen', kind: 'paint', label: 'beat cover', createdAt: 4, dataUrl: pxCard }
+  ];
+  const reveals = [
+    { campaignId: 'camp-seen', kind: 'card', assetHash: 'card-art', ts: 50, context: { beatIndex: 1 } },
+    { campaignId: 'camp-seen', kind: 'plate', assetHash: 'seen-1', ts: 100, context: { logId: 's-1' } },
+    { campaignId: 'camp-seen', kind: 'plate', assetHash: 'struck-plate', ts: 200, context: { logId: 's-2' } }
+  ];
+  const html = buildStorybook({ campaign: camp, journal: [], media: rows, reveals });
+  assert.ok(html.includes(pxSeen), 'a plate the player saw binds');
+  assert.ok(!html.includes(pxLost), 'a take the player NEVER saw stays out of the whole book');
+  assert.ok(!html.includes(pxStruck), 'a plate first shown on a struck turn follows its turn out of the book');
+  assert.equal(html.split(pxSeen).length - 1, 2, 'the seen plate seats with its OWN stretch and the reel — no other chapter borrows it');
+  assert.equal(html.split(pxCard).length - 1, 2, 'a cover dealt on a card seats with its own beat’s stretch, and rides the reel once');
+  console.log('PASS storybook: the book binds only what was actually seen, seated where it was seen');
+}
+
+// ---------------------------------------------------------------------------
+// 13. THE SHELF DOOR — art tagged for another adventure never binds, even if
+//     a reveal mark vouches for it; the tale’s own art still does.
+// ---------------------------------------------------------------------------
+{
+  const pxForeign = 'data:image/png;base64,iVBORw0KGgoFFFF=';
+  const pxMine = 'data:image/png;base64,iVBORw0KGgoGGGG=';
+  const camp = {
+    id: 'camp-mine', title: 'My Own Tale', hero: { name: 'Wren', sigil: '✧' },
+    codex: { spine: { beats: [{ title: 'Home', act: 1 }] }, cast: [], regions: [], memoir: [] },
+    chroniclePages: [],
+    logs: [{ id: 'm-0', beatIndex: 0, redacted: false, player: 'p0', dm: { narration_blocks: [{ text: 'n0', speaker: null }] }, resolution: null }]
+  };
+  const rows = [
+    { assetHash: 'foreign-1', campaignId: 'someone-elses-tale', kind: 'paint', label: 'foreign scene', createdAt: 1, dataUrl: pxForeign },
+    { assetHash: 'mine-1', campaignId: 'camp-mine', kind: 'paint', label: 'home scene', createdAt: 2, dataUrl: pxMine }
+  ];
+  const reveals = [
+    { campaignId: 'camp-mine', kind: 'plate', assetHash: 'foreign-1', ts: 10, context: { logId: 'm-0' } },
+    { campaignId: 'camp-mine', kind: 'plate', assetHash: 'mine-1', ts: 20, context: { logId: 'm-0' } }
+  ];
+  const html = buildStorybook({ campaign: camp, journal: [], media: rows, reveals });
+  assert.ok(!html.includes(pxForeign), 'another adventure’s art is refused at the shelf door, reveal mark or no');
+  assert.ok(html.includes(pxMine), 'the tale’s own seen art still binds');
+  console.log('PASS storybook: the shelf door refuses art from other adventures');
+}
+
+// ---------------------------------------------------------------------------
+// 14. THE ORIGINAL FACE — the hero leads the dramatis personae in the FIRST
+//     forge bust, keyed by stable hash: a rename cannot orphan it, and a
+//     newer retake under the old label never replaces it.
+// ---------------------------------------------------------------------------
+{
+  const pxOriginal = 'data:image/png;base64,iVBORw0KGgoHHHH=';
+  const pxRetake = 'data:image/png;base64,iVBORw0KGgoJJJJ=';
+  const camp = {
+    id: 'camp-face', title: 'The Renamed Hero', heroBustHash: 'face-original',
+    hero: { name: 'Sorrel the Renamed', sigil: '✦' },
+    codex: { spine: { beats: [{ title: 'Naming Day', act: 1 }] }, cast: [], regions: [], memoir: [] },
+    chroniclePages: [],
+    logs: [{ id: 'f-0', beatIndex: 0, redacted: false, player: 'p0', dm: { narration_blocks: [{ text: 'n0', speaker: null }] }, resolution: null }]
+  };
+  const rows = [
+    { assetHash: 'face-original', campaignId: 'camp-face', kind: 'paint', variant: 'bust', label: 'Aria Vale portrait', createdAt: 1, dataUrl: pxOriginal },
+    { assetHash: 'face-retake', campaignId: 'camp-face', kind: 'paint', variant: 'bust', label: 'Aria Vale portrait', createdAt: 99, dataUrl: pxRetake }
+  ];
+  const html = buildStorybook({ campaign: camp, journal: [], media: rows, reveals: [] });
+  assert.ok(html.includes('Sorrel the Renamed'), 'the hero leads the dramatis personae under the CURRENT name');
+  assert.equal(html.split(pxOriginal).length - 1, 1, 'the ORIGINAL bust binds exactly once — the hero plate — found by key, not by label');
+  assert.ok(!html.includes(pxRetake), 'a newer retake never replaces the original, and busts never ride the reel');
+  console.log('PASS storybook: the hero wears the original face, rename or no');
+}

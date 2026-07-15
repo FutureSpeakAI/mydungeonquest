@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.1 — Story Beats Land in Order (2026-07-15)
+Presentation law over the sealed record: nothing in this cut writes a log or
+a journal entry, and no tick is touched. TIME PASSES VISIBLY — sealed ticks
+now render as a quiet divider (the phrase read from the neighboring turn's
+own time_advance, up to two whispers QUOTING the tick's sealed ops) instead
+of the empty turn rows they silently were; the book and the Chronicler still
+never hear them. RETURNS RE-ORIENT — reopening a tale stages "the tale so
+far" from sealed material only: the latest lawful chronicle page when one
+exists, the mast alone (act · chapter · goal) when none does, honest silence
+for fresh or finished tales; struck pages and struck anchors are never
+shown; once per sitting, in memory only. CHOICES ARRIVE ON THE BEAT —
+suggestion chips fade in staggered after a short reading beat, instantly
+under reduced motion, never gating voice or typing. PAGES SIT WHERE
+CHAPTERS CLOSE — the feed's seat order is now a pure, gated function:
+closing turn → chronicle page → time-passes divider → next chapter; a page
+whose anchor was struck falls back to its chapter's true boundary, and a
+quiet "the Chronicler is writing…" row holds the page's exact seat while
+the court deliberates — held only when a real retelling is possible, so a
+keyless table never sees it, by construction. One gate joins the
+constitution (sequencing); the count stands at 58 and may only grow.
+
 ## 0.5.0 — The Living World Cut (2026-07-15)
 The world gains a memory with a shape. THE TENOR LAW ends voice misgendering
 forever: every soul carries an explicit voice_card (gender / age / timbre),

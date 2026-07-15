@@ -1,5 +1,22 @@
 # Build status
 
+## 0.5.1 — Story Beats Land in Order (2026-07-15, Task #50 as amended)
+- Time-passes divider: sealed ticks render via `src/components/Sequence.jsx`
+  (TickDivider) — phrase from the neighbor turn's time_advance, ≤2 whispers
+  quoting the tick's own ops at render time. Amendment held: zero writes,
+  zero tick mutation; ticks no longer render as empty turn rows.
+- Re-entry recap: `recapFor` in `src/lib/sequencing.js` — latest lawful page,
+  mast-only fallback (amendment 4), honest null when fresh/finished; struck
+  pages and struck anchors never shown; once per sitting via in-memory set.
+- Chips on the beat: SuggestionRow with staggered animationDelay; reduced
+  motion renders instantly; input and voice never gated.
+- Page anchoring: `orderFeed` (pure, gated) codifies the boundary stack
+  turn → page → tick (amendment 3); orphan pages recover at their beat's
+  last entry; pending "Chronicler is writing…" rows take the page's own
+  seat and exist only when toll.live (doorless/keyless builds hold none,
+  by construction — the toll never fetches on a doorless build).
+- Gate: `evals/sequencing.test.mjs` (58th). Full keyless check green.
+
 ## 0.5.0 — The Living World Cut (2026-07-15)
 - Tenor Law shipped: explicit voice_card on cast_add (DM rule 16), hero
   presentation / pronouns / mark at the forge, station-lexicon priors, the

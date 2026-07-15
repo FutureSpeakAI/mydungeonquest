@@ -58,8 +58,19 @@ export const PLANS = Object.freeze({
     ceiling: 'voiced',
     quotas: { dm: null, retell: null, paint: null, speak: null, music: null, sfx: null, podcast: null, pdf: null },
   },
+  // The owner's gift: a seat written into the ledger by hand, never sold and
+  // never touched by the mint. Unmetered like the paid seats — burst caps and
+  // the watchtower's ceilings still stand watch. `comp: true` is the law the
+  // reconciler reads: Stripe neither grants nor revokes this chair, and no
+  // price may bear its mark.
+  house: {
+    label: 'Friend of the house',
+    ceiling: 'voiced',
+    comp: true,
+    quotas: { dm: null, retell: null, paint: null, speak: null, music: null, sfx: null, podcast: null, pdf: null },
+  },
 });
-export const PLAN_RANK = { guest: 0, free: 1, weekly: 2, yearly: 3 };
+export const PLAN_RANK = { guest: 0, free: 1, weekly: 2, yearly: 3, house: 4 };
 export const KINDS = ['dm', 'retell', 'paint', 'speak', 'music', 'sfx', 'podcast', 'pdf'];
 
 // Kinds whose work is done by a paid artisan: billed only when the artisan
@@ -308,6 +319,13 @@ export async function reconcileEntitlement({ userId, customerId }, deps = {}) {
   );
   const row = rows[0];
   if (!row) return null; // a customer we never seated — nothing to flip
+  // An owner-gift is outside the mint's reach: Stripe neither granted the
+  // chair nor may take it back. The line stands as written; the mint is not
+  // even consulted.
+  if (PLANS[row.plan]?.comp) {
+    bustGrant(row.id);
+    return row.plan;
+  }
   let plan = 'free';
   if (row.stripe_customer_id) {
     const stripe = deps.stripe ? await deps.stripe() : await getUncachableStripeClient();
@@ -316,7 +334,8 @@ export async function reconcileEntitlement({ userId, customerId }, deps = {}) {
       if (!ENTITLED.has(sub.status)) continue;
       for (const item of sub.items?.data || []) {
         const p = item.price?.metadata?.mdq_plan;
-        if (p && PLANS[p] && (PLAN_RANK[p] || 0) > (PLAN_RANK[plan] || 0)) plan = p;
+        // A comp mark chalked on a price is a lie — gifts are not for sale.
+        if (p && PLANS[p] && !PLANS[p].comp && (PLAN_RANK[p] || 0) > (PLAN_RANK[plan] || 0)) plan = p;
       }
     }
   }
@@ -335,7 +354,10 @@ export async function reconcileEntitlement({ userId, customerId }, deps = {}) {
 // (metadata.mdq_plan) for a seat above the taste are listed — a foreign
 // product in the same account is not our menu, and a retired mark is not
 // our board.
-const forSale = (plan) => Boolean(PLANS[plan]) && (PLAN_RANK[plan] || 0) > PLAN_RANK.free;
+// A gift seat is never on the board: a comp mark is not for sale even if a
+// price in the account claims otherwise.
+const forSale = (plan) =>
+  Boolean(PLANS[plan]) && !PLANS[plan].comp && (PLAN_RANK[plan] || 0) > PLAN_RANK.free;
 let board = { at: 0, prices: [] };
 async function catalog(deps = {}) {
   if (board.prices.length && Date.now() - board.at < 600000) return board.prices;
@@ -447,7 +469,16 @@ export function tollRoutes(deps = {}) {
       }
       const query = deps.query || runQuery;
       await ensureToll(query);
+      // The point of sale reads FRESH truth, never the grant candle: a seat
+      // flipped moments ago (an owner-gift written by hand, a webhook still
+      // on the road) must be seen before any customer is minted or sold to.
+      bustGrant(req.patron.id);
       const current = await planRow(req.patron.id, deps);
+      // A friend of the house already holds the owner's gift — the house
+      // sells nothing to a seated friend, and mints no customer for one.
+      if (PLANS[current.plan]?.comp) {
+        return res.json({ note: 'The house already pours without measure at your table — there is nothing to buy.' });
+      }
       const stripe = deps.stripe ? await deps.stripe() : await getUncachableStripeClient();
       let customerId = current.stripe_customer_id;
       if (!customerId) {

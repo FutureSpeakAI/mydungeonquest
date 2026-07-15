@@ -44,7 +44,7 @@ delete process.env.DATABASE_URL;
 const { __resetDoorForEval, namedOnly } = await import('../server/patrons.js');
 const {
   PLANS, PLAN_RANK, grantFor, innkeeper, debit, reconcileEntitlement,
-  buildToll, tollWebhook, __resetTollForEval,
+  buildToll, tollWebhook, tollRoutes, __resetTollForEval,
 } = await import('../server/toll.js');
 const { mintConfigured, mintLive } = await import('../server/mint.js');
 
@@ -433,4 +433,78 @@ assert.equal(noticeKeyless.toJSON(), null, 'keyless: the receipt window never li
 await act(async () => { noticeKeyless.unmount(); });
 receipt.dismissTollNotice();
 
-console.log('toll-house eval — the gateway is lawful: the door is locked (keyed) and absent (keyless), the taste is six turns counted for life with honest nulls for dates, paid seats pour unmeasured, stand-ins are never billed, the refusal receipt reaches the window (and stays dark keyless), seats flip both ways and retired marks raise nothing, the courier honors the seal, and a keyless fork never learns money exists.');
+// ---- 8. the friend of the house (the owner's gift) ----
+{
+  fresh();
+  assert.equal(PLANS.house?.comp, true, 'the gift seat bears the comp mark');
+  assert.ok(Object.values(PLANS.house.quotas).every((q) => q === null), 'a friend of the house pours without measure');
+  assert.ok(PLAN_RANK.house > PLAN_RANK.yearly, 'no sold seat outranks the owner’s gift');
+  // The mint neither grants nor revokes a gift: reconciliation leaves the
+  // chair exactly as the owner wrote it — Stripe is not even consulted.
+  let asked = 0;
+  const stripe = { subscriptions: { list: async () => { asked += 1; return { data: [] }; } } };
+  const users = new Map([['cus_f', { id: 'u-f', plan: 'house', stripe_customer_id: 'cus_f' }]]);
+  const q = bench({
+    'FROM users WHERE stripe_customer_id': (params) => ({ rows: users.has(params[0]) ? [{ ...users.get(params[0]) }] : [] }),
+    'UPDATE users SET plan': (params) => { users.get('cus_f').plan = params[0]; return { rows: [] }; },
+  });
+  assert.equal(
+    await reconcileEntitlement({ customerId: 'cus_f' }, { query: q, stripe: async () => stripe, gate }),
+    'house',
+    'the gift stands though Stripe lists nothing',
+  );
+  assert.equal(users.get('cus_f').plan, 'house', 'the ledger line is untouched');
+  assert.equal(asked, 0, 'the mint is not consulted about a gift');
+  // And the reverse: a comp mark chalked on a Stripe price raises no seat —
+  // gifts are not for sale, so the mark is a lie and the menu is the law.
+  const users2 = new Map([['cus_2', { id: 'u-2', plan: 'free', stripe_customer_id: 'cus_2' }]]);
+  const q2 = bench({
+    'FROM users WHERE stripe_customer_id': (params) => ({ rows: users2.has(params[0]) ? [{ ...users2.get(params[0]) }] : [] }),
+    'UPDATE users SET plan': (params) => { users2.get('cus_2').plan = params[0]; return { rows: [] }; },
+  });
+  const lyingStripe = {
+    subscriptions: {
+      list: async () => ({ data: [{ status: 'active', items: { data: [{ price: { metadata: { mdq_plan: 'house' } } }] } }] }),
+    },
+  };
+  assert.equal(
+    await reconcileEntitlement({ customerId: 'cus_2' }, { query: q2, stripe: async () => lyingStripe, gate }),
+    'free',
+    'a comp mark on a price raises no seat',
+  );
+  assert.equal(users2.get('cus_2').plan, 'free', 'the taste stands — the lie bought nothing');
+}
+
+// ---- 9. the point of sale reads fresh truth ----
+{
+  fresh();
+  // Prime the grant candle with an OLD standing (free), then flip the line
+  // to the owner's gift behind the candle's back. The checkout counter must
+  // read the book itself — never sell on a stale flame, never mint a
+  // customer for a friend of the house.
+  const row = { id: 'u-g', plan: 'free', stripe_customer_id: null };
+  const q = bench({
+    'SELECT plan, stripe_customer_id FROM users WHERE id': () => ({
+      rows: [{ plan: row.plan, stripe_customer_id: row.stripe_customer_id }],
+    }),
+  });
+  let minted = 0;
+  const stripe = {
+    customers: { create: async () => { minted += 1; return { id: 'cus_fresh' }; } },
+    checkout: { sessions: { create: async () => ({ url: 'https://never.example' }) } },
+    billingPortal: { sessions: { create: async () => ({ url: 'https://never.example' }) } },
+  };
+  const deps = { query: q, stripe: async () => stripe, gate };
+  const reqFor = () => ({ patron: { id: 'u-g', display_name: 'S' }, body: { plan: 'weekly' }, headers: {}, protocol: 'https' });
+  await grantFor(reqFor(), deps); // the candle now holds 'free'
+  row.plan = 'house'; // the owner's hand writes the gift
+  const layer = tollRoutes(deps).stack.find((l) => l.route?.path === '/toll/checkout');
+  const res = resSpy();
+  await layer.route.stack[0].handle(reqFor(), res);
+  assert.equal(res.code, 200, 'the counter answers, never errors');
+  assert.match(res.body?.note || '', /nothing to buy/i, 'the gift is met with a note');
+  assert.equal(res.body?.url, undefined, 'no room to redirect to');
+  assert.equal(minted, 0, 'no customer minted for a friend of the house');
+}
+
+console.log('toll-house eval — the gateway is lawful: the door is locked (keyed) and absent (keyless), the taste is six turns counted for life with honest nulls for dates, paid seats pour unmeasured, stand-ins are never billed, the refusal receipt reaches the window (and stays dark keyless), seats flip both ways and retired marks raise nothing, the owner’s gift stands outside the mint’s reach, the courier honors the seal, and a keyless fork never learns money exists.');

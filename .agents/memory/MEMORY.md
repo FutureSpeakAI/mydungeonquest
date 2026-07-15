@@ -15,7 +15,7 @@
 - [MyDungeon door is locked when keyed](mydungeon-door.md) — namedOnly 401s pouring rooms pre-innkeeper; signed-out get LockedTitle; keyless forks stay doorless.
 - [MyDungeon Vault laws](mydungeon-vault.md) — sync stores & chain-verifies, never signs; fail-closed; fork-on-divergence, never merge; restored spines continue hash-only; deletes are lane-joined pyre tombstones.
 - [MyDungeon Watchtower laws](mydungeon-watchtower.md) — spend ceilings skip providers (degrade to mock, never error); durable rate limits fall back to memory; front gate/legal pages stay static HTML in public/.
-- [Toll-House laws & connector](toll-house-laws.md) — 6-turn lifetime taste; $5/wk & $129.99/yr unmetered; renewsAt honest-null; retired marks raise nothing; never sell a seated patron a second chair.
+- [Toll-House laws & connector](toll-house-laws.md) — lifetime taste; $5/wk & $129.99/yr unmetered; honest-null renewsAt; retired marks raise nothing; comp `house` seat is owner-written and mint-proof.
 - [MyDungeon seen ledger & fresh cards](mydungeon-seen-ledger.md) — reveals are device-local (never sealed/synced/exported); card ladder skips seen art (replays exempt); scene paints are turn-salted; chained overlays need keyed remounts.
 - [MyDungeon storybook retelling](mydungeon-storybook-retelling.md) — played-order runs; seen-only art seated with its stretch; pages must prove cites; hero face by stable key, oldest-bust fallback.
 - [Fable 5 cut drops](fable5-cut-drops.md) — full-tree zips: diff & lift only deltas, keep our lockfile, never import their .agents; absences are intentions (SW retirement needs a destructor, not deletion).

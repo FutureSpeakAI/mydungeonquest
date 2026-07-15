@@ -22,9 +22,10 @@ const SEAT_WORDS = {
   free: 'The taste',
   weekly: 'Patron by the week',
   yearly: 'Patron by the year',
+  house: 'Friend of the house',
 };
 
-const SEAT_RANK = { guest: -1, free: 0, weekly: 1, yearly: 2 };
+const SEAT_RANK = { guest: -1, free: 0, weekly: 1, yearly: 2, house: 3 };
 
 const KIND_WORDS = {
   dm: 'turns at the table',
@@ -126,16 +127,20 @@ export function useToll() {
   return toll;
 }
 
-// The standing line under the seat name. Three honest voices: the taste
-// (lifetime tallies, no page-turn — it never resets), a paid seat (no
-// measure; billing lives in Stripe's portal, so no invented dates), and
-// the guest at a standing page (signed out — the door does the asking).
+// The standing line under the seat name. Four honest voices: the taste
+// (lifetime tallies, no page-turn — it never resets), the owner's gift (no
+// measure, no bill, nothing to manage), a paid seat (no measure; billing
+// lives in Stripe's portal, so no invented dates), and the guest at a
+// standing page (signed out — the door does the asking).
 function standingWords(toll) {
   if (toll.plan === 'guest') {
     return ' — the house asks your name at the door. Six turns on the house once the book knows you.';
   }
   if (toll.lifetime) {
     return ' — six turns on the house, poured once and never reset. A seat at the table pours without measure.';
+  }
+  if (toll.plan === 'house') {
+    return ' — the house pours without measure at this table, by the owner’s own hand. Nothing to buy, nothing to renew.';
   }
   return ' — the seat pours without measure. Receipts, changes, and leaving live in the ledger below.';
 }

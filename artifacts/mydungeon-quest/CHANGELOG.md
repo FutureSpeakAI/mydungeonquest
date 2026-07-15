@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.0 — The Living World Cut (2026-07-15)
+The world gains a memory with a shape. THE TENOR LAW ends voice misgendering
+forever: every soul carries an explicit voice_card (gender / age / timbre),
+the hero states a presentation at the forge, casting reads stated identity
+before any lexicon and never coin-flips across registers — the playtest
+mother now speaks in her own voice, sealed by gate. THE CARD LAW gives every
+soul, hero included, one Character Card: derived state, produced by a pure
+reducer replaying the validated log — locked identity, lawful state, cited
+chronicle, kin / enemy / ally / met ties. THE CHRONICLEGRAPH rebuilds [STORY]
+as a budgeted, scene-first context pack (GraphRAG's query shape without its
+extraction pipeline — no Python, no embeddings, no indexing spend). THE
+LIVING WIKI turns the Codex into soul pages: story-worded voices, first and
+last sealed words, tie-chips as backlinks, an appearances timeline with
+replays; the book's dramatis personae now quotes each soul's first and last
+words. THE LIVING WORLD ticks offscreen when story time passes or an act
+turns: budgeted, ops-only, deterministic, sealed as its own record — visible
+to the wiki, silent to the book. THE TWO-SPEED FORGE opens three doors on
+each side — Spin the World / the Oracle / Deep Forge, and Cast the Bones /
+the Oracle / Forge by Hand — with a die beside every deep field and a voice
+audition whose blessing rides the hero forever. Six new gates; the PASS
+count only grows.
+
 ## 0.4.0 — The Brand Cut (2026-07-15)
 The storefront learns to sell the fantasy: a reel of epic frames behind foil
 type, the Icosahedron Rose as the mark, a House Style for all marketing art

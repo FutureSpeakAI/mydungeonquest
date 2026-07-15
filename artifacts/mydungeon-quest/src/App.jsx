@@ -12,6 +12,8 @@ import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestS
 import { makeEntropy, validateDmTurn } from './lib/protocol.js';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
+import { buildContextPack } from './lib/graph.js';
+import { tickUpdates, tickLogEntry } from './lib/livingWorld.js';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
 import { portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
@@ -407,11 +409,14 @@ export default function App() {
     try {
       const entropy = makeEntropy();
       const memory = await recallScenes(base.id, player, base.turnNumber || 0);
-      const story = storyBlock(base.codex);
+      // THE CHRONICLEGRAPH: [STORY] is a budgeted, scene-first pack — souls
+      // present, their ties, the villain, the standing world — not a flat dump.
+      let story;
+      try { story = buildContextPack(base); } catch { story = storyBlock(base.codex); }
       // The DM keeps its own memory now: prior turns ride along as a
       // real conversation, so prose has continuity — and the stable
       // prefix caches on the server side.
-      const history = base.logs.filter((entry) => !entry.redacted).slice(-15).flatMap((entry) => [
+      const history = base.logs.filter((entry) => !entry.redacted && entry.kind !== 'tick').slice(-15).flatMap((entry) => [
         { role: 'user', content: entry.sent || entry.player || 'Continue.' },
         { role: 'assistant', content: (entry.dm?.narration_blocks || []).map((block) => block.text).join('\n\n') }
       ]).filter((message) => message.content);
@@ -493,6 +498,28 @@ export default function App() {
       next = { ...next, headHash: sealed.headHash, turnCount: sealed.turnCount, signatureStatus: sealed.signatureStatus };
       next.logs[next.logs.length - 1].recordHash = record.recordHash;
       await rememberScene(base.id, next.turnNumber, { player, narration: dm.narration_blocks[0]?.text || '', chronicle: dm.state_updates?.chronicle_add || '', recordHash: record.recordHash });
+      // THE LIVING WORLD — when story time passed or an act turned, the
+      // world moves offscreen: bounded, budgeted, ops-only, sealed like any
+      // other record. The wiki and the graph inherit it; the book and the
+      // DM's conversation history do not repeat it.
+      const actNow = next.codex.spine.beats[next.codex.beatIndex]?.act || 1;
+      const actBefore = base.codex.spine.beats[base.codex.beatIndex]?.act || 1;
+      if (!next.completed && (dm.time_advance || actNow !== actBefore)) {
+        try {
+          const updates = tickUpdates(next.codex, next.turnNumber - 1);
+          if (updates) {
+            const tickLog = tickLogEntry(updates, next.turnNumber - 1, next.codex.beatIndex);
+            const ticked = applyStoryUpdates(next.codex, updates, { turn: next.turnNumber - 1 });
+            next = { ...next, codex: ticked, logs: [...next.logs, tickLog] };
+            await saveCampaign(next);
+            const tickRecord = await seal(base.id, 'tick', { story: updates, storyAfter: ticked });
+            const afterTick = await db.campaigns.get(base.id);
+            next = { ...next, headHash: afterTick.headHash, turnCount: afterTick.turnCount, signatureStatus: afterTick.signatureStatus };
+            next.logs[next.logs.length - 1].recordHash = tickRecord.recordHash;
+            await saveCampaign(next);
+          }
+        } catch (error) { console.error('The living world held still:', error); }
+      }
       await saveCampaign(next); setCurrent(next); await refreshShelf();
       setStatus('✦ The turn is sealed.');
       // THE ACT TURNS — when this turn crossed an act boundary, a full-bleed
@@ -603,8 +630,16 @@ export default function App() {
   const beginCampaign = async (heroInput) => {
     primeNarration(); // the Begin tap blesses the throat before Chapter I speaks
     const id = crypto.randomUUID();
-    const hero = { ...createHero(heroInput), bearing: (heroInput.bearing || '').slice(0, 200) };
-    hero.voiceId = castHeroVoice(hero); // the casting session reads the finished forge card
+    const hero = {
+      ...createHero(heroInput), bearing: (heroInput.bearing || '').slice(0, 200),
+      // THE TENOR LAW: stated identity travels with the hero forever.
+      presentation: ['feminine', 'masculine', 'neutral'].includes(heroInput.presentation) ? heroInput.presentation : null,
+      pronouns: (heroInput.pronouns || '').slice(0, 30) || null,
+      mark: (heroInput.mark || '').slice(0, 80) || null
+    };
+    // A voice blessed at the audition is kept; otherwise the casting session
+    // reads the finished forge card — presentation included.
+    hero.voiceId = heroInput.voiceId || castHeroVoice(hero);
     const codex = initCodex(worldDraft.spineId);
     const campaign = {
       id, title: worldDraft.title, covenant: worldDraft.covenant, tone: worldDraft.tone,

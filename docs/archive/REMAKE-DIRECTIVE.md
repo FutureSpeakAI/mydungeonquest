@@ -1,3 +1,5 @@
+> **SUPERSEDED** — kept for history. Current law: EXPERIENCE-DIRECTIVE.md and EXPERIENCE-DIRECTIVE-III.md at the repo root.
+
 # REMAKE DIRECTIVE — MyDungeon.Quest: THE VISUAL CUT
 
 You are working with the existing codebase in `artifacts/mydungeon-quest`. Do not rebuild from scratch. The architecture underneath (protocol validator, sealed journal with redaction, media attestations, Foundry cache, reducers) is sound — **keep all of it**. This directive remakes the experience on top of it around one principle:

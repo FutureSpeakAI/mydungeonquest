@@ -5,6 +5,9 @@ import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
 import Ceremony from './components/Ceremony.jsx';
 import ChroniclePage from './components/ChroniclePage.jsx';
+import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components/Sequence.jsx';
+import { orderFeed, recapFor } from './lib/sequencing.js';
+import { useToll } from './patron/toll.jsx';
 import { CharacterSheet, Codex, Settings, Storybook } from './components/Overlays.jsx';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from './lib/chronicler.js';
 import { applyStateUpdates, createHero, heroRoll, rollInitiative } from './lib/rules.js';
@@ -34,6 +37,9 @@ import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
 import { rememberRefusedPour, reportTollRefusal, setPourContext, tollRefusal } from './patron/tollNotice.js';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
+// Task #50 — the re-entry recap shows once per SITTING: in memory only,
+// never sealed, never synced, gone when the tab closes.
+const RECAP_SEEN = new Set();
 
 // One act, one light: the interstitial cards wear their own three-hex wash —
 // steady gold for the world as it was, bruised iron as it unravels, ember and
@@ -286,6 +292,19 @@ export default function App() {
       setPourOffer(intent);
     }).catch(() => {});
   }, []); // eslint-disable-line
+  // Task #50 — sequencing state: the toll tells us a real Chronicler is
+  // possible (keyless tables never hold a pending seat); the recap stages
+  // once per sitting from sealed material only.
+  const toll = useToll();
+  const [pendingRetells, setPendingRetells] = useState(() => new Set());
+  const [recap, setRecap] = useState(null);
+  useEffect(() => {
+    if (flow !== 'table' || !current?.id) return;
+    if (RECAP_SEEN.has(current.id)) return;
+    RECAP_SEEN.add(current.id);
+    const moment = recapFor(current);
+    if (moment) setRecap({ ...moment, campaignId: current.id });
+  }, [flow, current?.id]);
   useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, settings.reduceMotion]);
   // Follow the prose as it streams in: as each chunk of the weaving turn arrives,
   // keep the newest text in view (instant, so rapid updates don't fight a smooth
@@ -574,9 +593,20 @@ export default function App() {
     // chapter-close paths in this session cannot both seal a page; across
     // sessions the persisted chroniclePages guard above holds.
     if (!claimChapterClose(campaign.id, closedBeatIndex)) return;
+    // THE PENDING SEAT (Task #50, amended after review) — the seat key is
+    // chalked BEFORE the try so the finally can always erase the exact seat
+    // it added; a key known only inside the try is out of scope at release
+    // time, and a seat that cannot be released is a quill stuck writing.
+    let seatKey = null;
     try {
       const request = buildChronicleRequest(campaign, closedBeatIndex);
       if (!request) return;
+      // Held only when a real retelling is possible; a keyless table never
+      // shows a writing row for a page that can never arrive. Released the
+      // moment the court decides, page or no.
+      seatKey = JSON.stringify({ beatIndex: closedBeatIndex, afterLogId: request.afterLogId });
+      const holdSeat = Boolean(toll?.live);
+      if (holdSeat) setPendingRetells((prev) => new Set(prev).add(seatKey));
       const response = await fetch('/api/retell', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request.body) });
       if (response.status === 402) {
         await tollRefusal(response); // the chronicle chore shows its receipt too
@@ -597,6 +627,8 @@ export default function App() {
       });
     } catch (error) {
       console.warn('[chronicler] the page was not written:', error.message);
+    } finally {
+      if (seatKey) setPendingRetells((prev) => { if (!prev.size) return prev; const next = new Set(prev); next.delete(seatKey); return next; });
     }
   }
 
@@ -855,23 +887,30 @@ export default function App() {
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
       <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Act {act.numeral} · Chapter {chapter.numeral} of {chapter.countNumeral}</span><h1>{chapter.title}</h1><p>{chapter.goal}</p></div>
+      {recap && recap.campaignId === current.id && <RecapCard recap={recap} onDismiss={() => setRecap(null)} />}
       {(() => {
         // THE FOLIO COUNT — plates are numbered the way a folio numbers its
         // engravings: only turns that actually show a plate advance the
         // numeral, so "Plate IV" is the fourth picture in the book, not the
         // fourth turn. (Mirrors LogEntry's own showScene test exactly.)
         let plateNo = 0;
-        return current.logs.map((log) => {
-          const showsPlate = !log.redacted && Boolean(log.imageUrl || log.videoPosterUrl || log.dm?.image_cue || paintingImages[log.id]);
+        // Task #50 — the seat order: turns and ticks in sealed sequence, each
+        // chapter's page anchored at its boundary (arrival time irrelevant,
+        // orphans recovered), pending rows holding only seats that a page can
+        // still take. Pure and gated in lib/sequencing.js; nothing is written.
+        const seats = orderFeed(current.logs, current.chroniclePages || [], [...pendingRetells].map((key) => JSON.parse(key)));
+        return seats.map((seat, index) => {
+          if (seat.kind === 'page') return <ChroniclePage key={`page-${seat.page.recordHash || seat.page.beatIndex}`} page={seat.page} />;
+          if (seat.kind === 'page-pending') return <PendingPage key={`pending-${seat.beatIndex}`} reduceMotion={settings.reduceMotion} />;
+          if (seat.kind === 'tick') {
+            const prev = seats.slice(0, index).reverse().find((s) => s.kind === 'turn')?.log;
+            return <TickDivider key={seat.log.id} log={seat.log} prevLog={prev} />;
+          }
+          const log = seat.log;
+          if (log.redacted) return <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div>;
+          const showsPlate = Boolean(log.imageUrl || log.videoPosterUrl || log.dm?.image_cue || paintingImages[log.id]);
           const plateNumeral = showsPlate ? romanNumeral(++plateNo) : null;
-          const entry = log.redacted
-            ? <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div>
-            : <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} plateNumeral={plateNumeral} />;
-          // The Chronicler's sealed pages hang in the feed exactly where their
-          // chapters closed — "the tale so far", as written, never re-derived.
-          const pages = (current.chroniclePages || []).filter((page) => page.afterLogId === log.id)
-            .map((page) => <ChroniclePage key={`page-${page.recordHash || page.beatIndex}`} page={page} />);
-          return pages.length ? [entry, ...pages] : entry;
+          return <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} plateNumeral={plateNumeral} />;
         });
       })()}
       {busy && (weaving
@@ -881,7 +920,7 @@ export default function App() {
     </main>
     {!current.readOnly && current.codex.sealing && !current.completed && <div className="near-end denouement"><span>✦ The denouement — the road turns home.</span></div>}
     {!current.readOnly && nearEnd && <div className="near-end"><span>✦ The final chapters draw near.</span><button onClick={() => setOverlay('seal-ask')}>Seal the Tale</button></div>}
-    {!current.readOnly && !current.completed && <Composer campaign={current} busy={busy} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
+    {!current.readOnly && !current.completed && <Composer campaign={current} busy={busy} reduceMotion={settings.reduceMotion} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
     {!current.readOnly && current.completed && <section className="tale-told"><span>✦ Your tale is told.</span><button onClick={() => setOverlay('sealing')}>{current.sealedAt ? 'Open the keepsakes' : 'Seal the chronicle'}</button></section>}
     <footer className="seal-status"><span>{status}</span>{VAULT_MARKS[vaultMarks.get(current.id)?.state] && <span className="vault-mark" title={VAULT_MARKS[vaultMarks.get(current.id).state].word}>{VAULT_MARKS[vaultMarks.get(current.id).state].glyph} {VAULT_MARKS[vaultMarks.get(current.id).state].word}</span>}</footer>
     {diceResult && <DiceOverlay result={diceResult} haptics={settings.haptics} onDone={() => setDiceResult(null)} />}
@@ -1129,12 +1168,12 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null }) {
   </article>;
 }
 
-function Composer({ campaign, busy, onSubmit, onSuggestion, onRoll, onXCard }) {
+function Composer({ campaign, busy, reduceMotion, onSubmit, onSuggestion, onRoll, onXCard }) {
   const [text,setText]=useState(''); const pending=campaign.pendingRoll;
   const send=()=>{if(text.trim()){onSubmit(text);setText('');}};
   const latest=[...campaign.logs].reverse().find((l)=>!l.redacted);
   return <section className="composer-wrap">
-    {latest?.dm?.suggestions && !pending && <div className="suggestions">{latest.dm.suggestions.map((s)=><button key={s} disabled={busy} onClick={()=>onSuggestion(s)}>{s}</button>)}</div>}
+    {latest?.dm?.suggestions && !pending && <SuggestionRow key={latest.id} suggestions={latest.dm.suggestions} disabled={busy} onPick={onSuggestion} reduceMotion={reduceMotion} />}
     {pending ? <button className="roll-button" onClick={onRoll} disabled={busy}><Dices/><span><small>{pending.kind} · DC {pending.dc ?? 'hidden'}</small>{pending.label}</span><b>Roll {pending.die}</b></button> : <div className="composer"><button className="x-card" onClick={onXCard} disabled={busy} title="Remove the last scene from active canon"><MessageCircleWarning/></button><textarea value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}} placeholder="What do you do?" rows="1" disabled={busy}/><button onClick={send} disabled={busy||!text.trim()}><Feather/></button></div>}
   </section>;
 }

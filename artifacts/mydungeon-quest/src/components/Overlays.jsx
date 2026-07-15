@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Download, Film, Heart, ScrollText, Shield, Sparkles, X } from 'lucide-react';
 import { CONDITIONS } from '../lib/rules.js';
 import { db } from '../lib/db.js';
 import { ACT_NAMES, romanNumeral } from '../lib/story.js';
+import { cardsForCampaign } from '../lib/cards.js';
+import { voiceLineOf, wordsLine, tieLine } from '../lib/wikiText.js';
 import { doorBuilt } from '../patron/door.jsx';
 import { TollSection, useToll } from '../patron/toll.jsx';
 
@@ -78,6 +80,11 @@ const STATUS_WORD = { active: 'Walks the tale', dead: 'Fallen', missing: 'Lost t
 export function Codex({ campaign, onClose, onReplay, onSealTale }) {
   const c = campaign.codex; const revealed = c.beatIndex >= c.spine.revealIdx;
   const gallery = useGallery(campaign);
+  // THE LIVING WIKI: cards are derived lawfully from the log; each soul is a
+  // page, each tie a backlink, each chronicle line a citation into the tale.
+  const wiki = useMemo(() => { try { return cardsForCampaign(campaign).cards; } catch { return {}; } }, [campaign]);
+  const [openSoul, setOpenSoul] = useState(null);
+  const openCard = openSoul ? wiki[openSoul.toLowerCase()] : null;
   const acts = [...new Set(c.spine.beats.map((beat) => beat.act || 1))];
   return <Frame title="The Codex" icon={<ScrollText/>} onClose={onClose} wide>
     <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p></div><div className="blight">Blight <b>{c.blight}/5</b></div></div>
@@ -98,10 +105,30 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
           ? <div className="seal-tale-row"><button className="secondary-button" onClick={onSealTale}>Seal the Tale</button><p className="muted">End with honor: a few closing turns, then the wax.</p></div>
           : null}
     <h3>The evil design</h3><p className={revealed ? '' : 'gated'}>{revealed ? c.arc?.evil_plot : 'The page refuses to hold the whole shape. Revelation must be earned.'}</p>
-    <h3>The cast — what the world remembers</h3><div className="codex-grid gallery">{c.cast.map((soul)=>{
+    <h3>The cast — what the world remembers</h3>
+    {openCard && <article className="soul-page">
+      <button className="text-button" onClick={() => setOpenSoul(null)}>← All souls</button>
+      <div className="soul-page-head">
+        {gallery[openCard.name] ? <img className="soul-face large" src={gallery[openCard.name]} alt={openCard.name}/> : <div className="procedural-portrait large">{openCard.name.split(' ').map((x)=>x[0]).join('')}</div>}
+        <div><h4>{openCard.name}</h4><span className="role-tag">{openCard.identity.role}</span>
+          <span className={`status-badge ${openCard.state.status}`}>{STATUS_WORD[openCard.state.status] || openCard.state.status}</span>
+          {voiceLineOf(openCard.identity) && <p className="muted">{voiceLineOf(openCard.identity)}.</p>}
+        </div>
+      </div>
+      <p>{openCard.identity.canon.visual}</p>
+      {wordsLine(openCard) && <p className="voice-italic">{wordsLine(openCard)}</p>}
+      {openCard.ties.length > 0 && <div className="tie-chips">{openCard.ties.map((tie, i) =>
+        <button key={i} className="tie-chip" onClick={() => wiki[tie.to.toLowerCase()] && setOpenSoul(tie.to)}>{tieLine(tie)}</button>)}</div>}
+      <h4 className="eyebrow">Appearances</h4>
+      <ol className="soul-timeline">{openCard.chronicle.map((line, i) => {
+        const scene = campaign.logs.find((log) => log.turn === line.turn && log.dm?.cinematic && !log.redacted);
+        return <li key={i}><b>Turn {line.turn}</b> — {line.gloss}{scene && <button className="text-button" onClick={() => onReplay(scene.dm)}>replay</button>}</li>;
+      })}</ol>
+    </article>}
+    {!openCard && <div className="codex-grid gallery">{c.cast.map((soul)=>{
       const dead = soul.status === 'dead';
       const lastWhy = (soul.bond_arc || []).slice(-1)[0]?.why;
-      return <article key={soul.id} className={`soul-card${dead ? ' memorial' : ''}`}>
+      return <article key={soul.id} className={`soul-card${dead ? ' memorial' : ''}`} onClick={() => setOpenSoul(soul.name)} role="button" tabIndex={0}>
         {gallery[soul.name] ? <img className="soul-face" src={gallery[soul.name]} alt={soul.name}/> : <div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div>}
         <span className="role-tag">{soul.role}</span>
         <h4>{soul.name}</h4>
@@ -112,7 +139,7 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
         {(soul.known_facts || []).length > 0 && <ul className="known-facts">{soul.known_facts.map((fact,i)=><li key={i}>{fact}</li>)}</ul>}
         <small className="trail">{soul.last_seen ? `Last seen — ${soul.last_seen}` : 'The trail is quiet.'}{Number.isInteger(soul.introduced_turn) ? (soul.introduced_turn === 0 ? ' · Present from the first page' : ` · Entered the tale at turn ${soul.introduced_turn}`) : ''}</small>
       </article>;
-    })}</div>
+    })}</div>}
     <h3>Regions</h3><div className="region-gallery">{c.regions.map((region)=><article key={region.id}>{gallery[region.name] && <img className="region-plate" src={gallery[region.name]} alt={region.name}/>}<div className="region-copy"><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></div></article>)}</div>
     <h3>Cinematic archive</h3><div className="replay-list">{campaign.logs.filter((l)=>l.dm.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm)}><Film/> {log.dm.cinematic.title}</button>)}</div>
     <h3>Memoir</h3>{c.memoir.length ? c.memoir.map((m,i)=><p key={i}>{m}</p>) : <p className="muted">The Chronicler has not yet needed to compress the road behind you.</p>}

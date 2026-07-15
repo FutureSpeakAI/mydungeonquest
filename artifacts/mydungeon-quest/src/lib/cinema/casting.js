@@ -56,12 +56,37 @@ const ENSEMBLE = [
 const MASC = ENSEMBLE.filter((v) => v.register === 'masc').map((v) => v.id);
 const FEM = ENSEMBLE.filter((v) => v.register === 'fem').map((v) => v.id);
 
-// Read a soul's canon (voice line, appearance, name) to guess register. Returns
-// true (feminine), false (masculine), or null (unknown → whole ensemble).
+// THE TENOR LAW — register resolution, in strict order of authority:
+//   1. An EXPLICIT card field (card.gender, written by the DM at cast_add or
+//      chosen by the player at the forge) outranks every inference, always.
+//   2. The soul's OWN STATION — a lexicon over role and name only. "Her
+//      mother" is feminine because SHE is the mother; prose about other
+//      people ("lost her son to the king's war") can never misgender her.
+//   3. Legacy prose sweep — kept ONLY so pre-law souls with wordless cards
+//      resolve exactly as they always did. New souls never reach it: the
+//      DM is required to write voice_card on every cast_add.
+// Returns true (feminine), false (masculine), null (open room).
 function register(soul, name) {
+  const stated = String(soul?.gender || '').toLowerCase();
+  if (stated === 'feminine') return true;
+  if (stated === 'masculine') return false;
+  if (stated === 'neutral') return null;
+  const station = `${soul?.role || ''} ${soul?.name || name || ''}`.toLowerCase();
+  if (/\b(mother|grandmother|granddam|queen|princess|duchess|countess|baroness|lady|dame|sister|daughter|widow|matron|priestess|abbess|maiden|crone|empress|wife|aunt|niece)\b/.test(station)) return true;
+  if (/\b(father|grandfather|king|prince|duke|count|baron|lord|brother|son|widower|patriarch|abbot|monk|friar|emperor|husband|uncle|nephew)\b/.test(station)) return false;
   const text = `${soul?.voice || ''} ${soul?.visual || ''} ${soul?.role || ''} ${name || ''}`.toLowerCase();
   if (/\b(she|her|hers|woman|women|girl|lady|queen|mother|daughter|sister|priestess|matron|maiden|witch|crone|soprano|mezzo|alto)\b/.test(text)) return true;
   if (/\b(he|his|him|man|men|boy|lord|king|father|son|brother|priest|knight|baron|duke|baritone|bass|tenor|gravel|gruff)\b/.test(text)) return false;
+  return null;
+}
+
+// Explicit age band from the card, when the DM wrote one. child|young → the
+// young bin; adult → mature; elder → old. Null falls back to prose reading.
+function explicitAge(soul) {
+  const band = String(soul?.age_band || '').toLowerCase();
+  if (band === 'child' || band === 'young') return 'young';
+  if (band === 'adult') return 'mature';
+  if (band === 'elder') return 'old';
   return null;
 }
 
@@ -90,10 +115,10 @@ export function castVoiceId(soul, name) {
 // same voice. Called once at first introduction; the result is persisted on
 // the cast card and never recomputed.
 export function castVoiceByCard(soul, name) {
-  const text = `${soul?.voice || ''} ${soul?.visual || ''} ${soul?.role || ''}`.toLowerCase();
+  const text = `${soul?.timbre || ''} ${soul?.voice || ''} ${soul?.visual || ''} ${soul?.role || ''}`.toLowerCase();
   const fem = register(soul, name);
   const room = ENSEMBLE.filter((v) => (fem === true ? v.register === 'fem' : fem === false ? v.register === 'masc' : true));
-  const age = ageOf(text);
+  const age = explicitAge(soul) || ageOf(text);
   const villainous = /\b(villain|regent|tyrant|usurper|dread|overlord|warlock|necromancer)\b/.test(`${soul?.role || ''} ${soul?.goal || ''}`.toLowerCase());
   const scored = room.map((voice) => {
     let score = 0;
@@ -127,12 +152,17 @@ export function resolveVoiceId(soul, name) {
 // the room.
 // ------------------------------------------------------------
 export function heroVoiceCard(hero) {
+  const stated = String(hero?.presentation || '').toLowerCase();
   return {
     name: hero?.name || 'the hero',
     role: `${hero?.ancestry || ''} ${hero?.className || hero?.class || ''}`.trim(),
-    visual: `${hero?.bearing || ''} ${hero?.background || ''}`.trim().slice(0, 600),
+    visual: `${hero?.bearing || ''} ${hero?.background || ''}${hero?.mark ? ` Distinguishing mark: ${hero.mark}.` : ''}`.trim().slice(0, 600),
     voice: '',
     goal: '',
+    // THE TENOR LAW: the player's stated presentation travels with the card,
+    // so a scarred knight who is a woman is cast as one — always.
+    gender: ['feminine', 'masculine', 'neutral'].includes(stated) ? stated : null,
+    timbre: hero?.voiceTimbre || ''
   };
 }
 
@@ -169,6 +199,32 @@ export function speakerIsHero(speaker, hero, cast = []) {
 }
 
 export function narratorVoiceId() { return NARRATOR_VOICE; }
+
+// Register per voice id — exported so gates (and the forge audition) can
+// verify which side of the room a chosen voice truly stands on.
+export const VOICE_REGISTER = Object.fromEntries(ENSEMBLE.map((v) => [v.id, v.register]));
+
+// THE AUDITION — three candidate voices for the hero, drawn from the bins the
+// stated presentation opens: feminine or masculine yields that register's
+// three most distinct voices; neutral offers one of each plus a name-hash
+// third. Deterministic in (presentation, name) so re-opening the forge
+// auditions the same three.
+export function auditionCandidates(presentation, name = '') {
+  const stated = String(presentation || 'neutral').toLowerCase();
+  const fem = ENSEMBLE.filter((v) => v.register === 'fem');
+  const masc = ENSEMBLE.filter((v) => v.register === 'masc');
+  let pool;
+  if (stated === 'feminine') pool = fem;
+  else if (stated === 'masculine') pool = masc;
+  else pool = [fem[hash(name) % fem.length], masc[hash(`${name}:m`) % masc.length], (hash(`${name}:x`) % 2 ? fem : masc)[hash(`${name}:3`) % 6]];
+  const seen = new Set();
+  const picks = [];
+  for (let i = 0; picks.length < 3 && i < pool.length * 3; i += 1) {
+    const voice = pool[(hash(`${name}:${i}`) + i) % pool.length];
+    if (!seen.has(voice.id)) { seen.add(voice.id); picks.push(voice); }
+  }
+  return picks.map((v) => ({ id: v.id, label: v.label, line: `${v.timbre[0]} and ${v.timbre[1]}` }));
+}
 
 // A short storyteller bridge that names the speaker and frames the coming line,
 // so the narrator hands off to the character rather than reading their dialogue.

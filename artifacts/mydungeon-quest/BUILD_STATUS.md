@@ -1,5 +1,32 @@
 # Build status
 
+## 0.5.0 — The Living World Cut (2026-07-15)
+- Tenor Law shipped: explicit voice_card on cast_add (DM rule 16), hero
+  presentation / pronouns / mark at the forge, station-lexicon priors, the
+  prose coin-flip retired for new souls, legacy voices grandfathered.
+  Gate: evals/tenor.test.mjs (encodes the mother-misgendered playtest).
+- Character Cards shipped: src/lib/cards.js pure reducer over the log —
+  locked identity, lawful state, cited chronicle, typed ties, first/last
+  words, the hero carded. Gate: evals/cards.test.mjs.
+- ChronicleGraph shipped: src/lib/graph.js builds the [STORY] context pack
+  (scene-first, one-hop ties, villain always, budgeted, storyBlock contract
+  preserved + additive `scene` note); wired in App with storyBlock fallback.
+  Gate: evals/graph.test.mjs.
+- Living Wiki shipped: Codex soul pages (voice in story words, tie-chip
+  backlinks, appearances timeline with cinematic replays); dramatis personae
+  quotes first/last sealed words. Gates: evals/wiki.test.mjs + storybook.
+- Living World shipped: src/lib/livingWorld.js — on time_advance or an act
+  turn, up to four goal-bearing souls advance one bounded step, ops-only
+  (fact_add + last_seen), engine-authored and DETERMINISTIC (keyless, zero
+  token spend), sealed as type 'tick', skipped by DM history and the book.
+  Gate: evals/livingWorld.test.mjs.
+- Two-speed forge shipped: three doors each for world and hero, per-field
+  dice (src/lib/forgeRolls.js, pure), voice audition via /api/speak with the
+  blessing honored by beginCampaign. Gate: evals/forge.test.mjs.
+- Directive IV remaining: the model-flavored tick glosses (the shipped ticks
+  are lawful deterministic strides) and Phase 6's graph-fed community
+  summaries for the Chronicler's [MEMORY]; dramatis word-quoting landed.
+
 ## Delivered vertical slice
 - Playable title → world forge → hero forge → adventure table flow.
 - Deterministic keyless Dungeon Master and media mocks.
@@ -132,11 +159,4 @@ layer (App.jsx, components, cinema/prompts, storybook, styles, prologue).
 - Brand tokens in `styles.css` (`--ember`, `.foil`, display scale, `.voice-italic`);
   BRAND.md at the repo root; superseded directives archived to `docs/archive/`;
   EXPERIENCE-DIRECTIVE-III (The Audience Cut) added as the next program.
-- Integration notes (landed by this house, diverging from the cut where law
-  required): the retired service worker is *served as a self-destructor*
-  rather than deleted — a missing file leaves already-installed workers
-  pinned to stale caches; and `brand-shoot` walks the Watchtower's toll gate
-  (per-frame `spendAllowed` check, a mark on the tally per frame, stands down
-  at the ceiling) and refuses to write a manifest for a short reel unless
-  `ALLOW_PARTIAL_REEL=1` — the landing keeps its keyart fallback instead.
 

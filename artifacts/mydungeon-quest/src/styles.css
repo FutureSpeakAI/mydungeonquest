@@ -401,3 +401,34 @@
 .display-numeral{font-family:'Cinzel Decorative',Cinzel,serif;font-weight:700}
 .voice-italic{font-family:Cormorant,'Crimson Pro',serif;font-style:italic;font-weight:500}
 .danger{color:var(--ember)}
+
+/* ---- The Living Wiki: soul pages in the Codex ---- */
+.soul-page{border:1px solid rgba(212,162,78,.28);border-radius:14px;padding:1rem 1.1rem;background:linear-gradient(150deg,rgba(233,223,200,.05),rgba(0,0,0,.25))}
+.soul-page-head{display:flex;gap:1rem;align-items:flex-start;margin:.5rem 0}
+.soul-face.large{width:104px;height:104px;object-fit:cover;border-radius:12px;border:1px solid rgba(212,162,78,.4)}
+.tie-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0}
+.tie-chip{border:1px solid rgba(212,162,78,.4);border-radius:999px;padding:.25rem .7rem;background:transparent;color:var(--vellum);font-size:.85rem;cursor:pointer}
+.tie-chip:hover{border-color:var(--gold)}
+.soul-timeline{margin:.4rem 0 0 1.1rem;display:grid;gap:.3rem;font-size:.92rem}
+.soul-timeline .text-button{margin-left:.5rem;font-size:.8rem}
+.soul-card{cursor:pointer}
+.plate .words{font-style:italic;font-size:.82rem;color:#6a5a3f;margin-top:.3rem}
+
+/* ---- The two-speed forge: doors, spins, dice, the audition ---- */
+.door-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
+.door-tab{border:1px solid rgba(212,162,78,.28);border-radius:12px;background:rgba(0,0,0,.22);color:var(--vellum);padding:.6rem .7rem;text-align:left;cursor:pointer;display:grid;gap:.15rem}
+.door-tab b{font-size:.95rem}.door-tab span{font-size:.74rem;opacity:.75;line-height:1.25}
+.door-tab.selected{border-color:var(--gold);background:linear-gradient(150deg,rgba(212,162,78,.16),rgba(0,0,0,.28))}
+.spin-card{border:1px solid rgba(212,162,78,.3);border-radius:12px;padding:.9rem 1rem;margin:.4rem 0;background:linear-gradient(160deg,rgba(233,223,200,.05),rgba(0,0,0,.24))}
+.spin-card h3{margin:.1rem 0 .35rem}
+.spin-meta{display:flex;flex-wrap:wrap;gap:.4rem .9rem;font-size:.82rem;opacity:.85}
+.label-line{display:inline-flex;align-items:center;gap:.4rem}
+.dice-button{border:1px solid rgba(212,162,78,.4);border-radius:8px;background:transparent;color:var(--gold);width:26px;height:26px;display:inline-grid;place-items:center;cursor:pointer;padding:0}
+.dice-button svg{width:15px;height:15px}
+.dice-button:hover{border-color:var(--gold);background:rgba(212,162,78,.12)}
+.audition-row{margin:.9rem 0 .4rem;display:grid;gap:.45rem}
+.audition-choices{display:grid;gap:.4rem}
+.audition-chip{border:1px solid rgba(212,162,78,.35);border-radius:10px;background:rgba(0,0,0,.2);color:var(--vellum);padding:.5rem .7rem;text-align:left;cursor:pointer;font-size:.86rem}
+.audition-chip.selected{border-color:var(--gold);background:linear-gradient(150deg,rgba(212,162,78,.18),rgba(0,0,0,.26))}
+.audition-chip:disabled{opacity:.55;cursor:wait}
+@media (max-width:640px){.door-row{grid-template-columns:1fr}}

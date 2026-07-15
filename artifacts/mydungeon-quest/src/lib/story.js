@@ -139,6 +139,15 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
       known_facts: [], bond_arc: [],
       introduced_turn: Number.isInteger(meta.turn) ? meta.turn : null
     };
+    // THE TENOR LAW: the DM's explicit voice_card (gender / age / timbre)
+    // rides onto the cast card before the casting session, so the voice is
+    // chosen by stated identity — never inferred from prose.
+    const stated = soul.voice_card || {};
+    const gender = String(stated.gender || '').toLowerCase();
+    if (['feminine', 'masculine', 'neutral'].includes(gender)) card.gender = gender;
+    const band = String(stated.age || '').toLowerCase();
+    if (['child', 'young', 'adult', 'elder'].includes(band)) card.age_band = band;
+    if (stated.timbre) card.timbre = clean(String(stated.timbre), 24);
     // THE CASTING SESSION happens here, once, at first introduction: the
     // voice is chosen by reading the card and persisted forever. Souls from
     // before this law have no voiceId and keep their legacy hash voice.
@@ -178,6 +187,17 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
       ].slice(-MAX_BOND_ARC);
     }
     if (patch.fact_add) soul.known_facts = pushFact(soul.known_facts, patch.fact_add);
+    // voice_card on an update may FILL missing identity fields (for the wiki
+    // and the record) but can never flip a stated one, and the cast voiceId
+    // is already sealed — the Cast Law holds.
+    if (patch.voice_card) {
+      const late = patch.voice_card;
+      const lateGender = String(late.gender || '').toLowerCase();
+      if (!soul.gender && ['feminine', 'masculine', 'neutral'].includes(lateGender)) soul.gender = lateGender;
+      const lateBand = String(late.age || '').toLowerCase();
+      if (!soul.age_band && ['child', 'young', 'adult', 'elder'].includes(lateBand)) soul.age_band = lateBand;
+      if (!soul.timbre && late.timbre) soul.timbre = clean(String(late.timbre), 24);
+    }
     if (patch.last_seen) soul.last_seen = clean(patch.last_seen, 160);
   }
 

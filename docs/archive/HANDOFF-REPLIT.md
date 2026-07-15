@@ -1,3 +1,5 @@
+> **SUPERSEDED** — kept for history. Current law: EXPERIENCE-DIRECTIVE.md and EXPERIENCE-DIRECTIVE-III.md at the repo root.
+
 # HANDOFF — MyDungeon.Quest v0.2 "The Engine Cut"
 
 The engine has been remade. Your job is **the visuals only**: execute the remaining

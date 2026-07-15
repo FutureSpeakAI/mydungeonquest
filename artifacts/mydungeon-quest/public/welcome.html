@@ -2,121 +2,148 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MyDungeon.Quest — A tale that is actually yours</title>
-<meta name="description" content="An AI-narrated solo tabletop RPG. Dice, combat, cinematics, painted plates and spoken tellings — every chronicle sealed on your own device. Six turns on the house, then $5 a week or $129.99 a year, unlimited.">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MyDungeon.Quest — Speak a world. Live its epic.</title>
+<meta name="description" content="One sentence from you, and a Dungeon Master ignites it — narrating, painting, and voicing your story with real dice. Keep it forever as an illustrated storybook and a voiced audiobook.">
 <link rel="canonical" href="https://mydungeon.quest/welcome.html">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="MyDungeon.Quest">
-<meta property="og:title" content="MyDungeon.Quest — A tale that is actually yours">
-<meta property="og:description" content="An AI-narrated solo tabletop RPG. Dice, combat, painted plates and spoken tellings — every chronicle sealed on your own device. Six turns on the house, then $5 a week or $129.99 a year, unlimited.">
-<meta property="og:url" content="https://mydungeon.quest/welcome.html">
+<meta property="og:title" content="MyDungeon.Quest — Speak a world. Live its epic.">
+<meta property="og:description" content="An AI Dungeon Master narrates, paints, and voices your story — real dice, real fates. Finish, and keep the legend: storybook and audiobook, yours forever.">
 <meta property="og:image" content="https://mydungeon.quest/social-card.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="MyDungeon.Quest — Any World. Any Hero. Real Dice. Key art of a torchlit gate to a dark fantasy world.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="MyDungeon.Quest — A tale that is actually yours">
-<meta name="twitter:description" content="An AI-narrated solo tabletop RPG. Dice, combat, painted plates and spoken tellings — every chronicle sealed on your own device. Six turns on the house, then $5 a week or $129.99 a year, unlimited.">
 <meta name="twitter:image" content="https://mydungeon.quest/social-card.jpg">
+<meta name="theme-color" content="#0d0b14">
 <link rel="icon" href="/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;800;900&family=Cinzel+Decorative:wght@700&family=Cormorant:ital,wght@1,500&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-:root{--gold:#d4a24e;--vellum:#e9dfc8;--dim:#bfb39b;--ink:#0d0b14;--card:#171221}
-*{box-sizing:border-box;margin:0}
-body{font-family:"Crimson Pro",Georgia,serif;color:var(--vellum);background:radial-gradient(circle at 50% -15%,#4a314d 0,transparent 34%),radial-gradient(circle at 15% 45%,#22363a 0,transparent 28%),linear-gradient(180deg,#110d18,#09080d 72%);min-height:100vh}
-h1,h2,h3,.btn{font-family:Cinzel,Georgia,serif;letter-spacing:.02em}
-main{max-width:1060px;margin:auto;padding:5rem 1.2rem 3rem;text-align:center}
-.sigil{font-size:3rem;color:var(--gold);filter:drop-shadow(0 0 22px rgba(212,162,78,.45))}
-h1{font-size:clamp(2.6rem,8vw,5rem);line-height:.95;margin:.4rem 0 1rem}
-h1 span{color:var(--gold)}
-.tag{font-size:clamp(1.05rem,2.2vw,1.4rem);color:var(--dim);max-width:44rem;margin:0 auto 2.2rem}
-.cta{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem}
-.btn{display:inline-block;padding:.85rem 1.7rem;border-radius:12px;text-decoration:none;font-weight:700}
-.btn.gold{background:linear-gradient(135deg,#e1b45f,#9d7031);color:#160f08}
-.btn.quiet{border:1px solid rgba(212,162,78,.4);color:var(--vellum)}
-.whisper{color:#71687c;font-size:.85rem;margin-bottom:3.5rem}
-.pitch{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-bottom:4rem;text-align:left}
-.pitch article{border:1px solid rgba(212,162,78,.18);border-radius:17px;padding:1.1rem;background:linear-gradient(145deg,rgba(233,223,200,.045),rgba(0,0,0,.18))}
-.pitch h3{color:var(--gold);font-size:1rem;margin-bottom:.4rem}
-.pitch p{color:var(--dim);font-size:.95rem}
-h2{font-size:clamp(1.6rem,4vw,2.4rem);margin-bottom:.4rem}
-.boards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem;margin:2rem 0 1rem;text-align:left}
-.seat{position:relative;border:1px solid rgba(212,162,78,.24);border-radius:17px;padding:1.3rem 1.15rem;background:linear-gradient(145deg,#251d2a,#121018);display:flex;flex-direction:column}
-.seat.best{border-color:var(--gold);box-shadow:0 0 40px rgba(212,162,78,.12)}
-.seat .ribbon{position:absolute;top:-.7rem;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#e1b45f,#9d7031);color:#160f08;font-size:.68rem;font-family:Cinzel,Georgia,serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:.25rem .7rem;white-space:nowrap}
-.seat h3{font-size:1.15rem}
-.price{color:var(--gold);font-size:1.6rem;font-family:Cinzel,Georgia,serif;margin:.3rem 0 .8rem}
-.price small{color:var(--dim);font-size:.8rem;font-family:"Crimson Pro",Georgia,serif}
-.seat ul{list-style:none;padding:0;color:var(--dim);font-size:.92rem;flex:1}
-.seat li{padding:.22rem 0 .22rem 1.1rem;position:relative}
-.seat li:before{content:"✦";position:absolute;left:0;color:var(--gold);font-size:.7rem;top:.42rem}
-.seat .btn{margin-top:1rem;text-align:center;font-size:.9rem}
-.plain{color:var(--dim);max-width:46rem;margin:0 auto 2rem;font-size:.95rem}
-footer{border-top:1px solid rgba(233,223,200,.08);margin-top:3rem;padding-top:1.4rem;color:#71687c;font-size:.8rem}
-footer a{color:#a99a76;text-decoration:none}
-footer a:hover{color:var(--gold)}
+:root{--ink:#0d0b14;--vellum:#e9dfc8;--gold:#d4a24e;--foil-hi:#f3d489;--foil-lo:#8a5f24;--ember:#c8502e;--dim:#a99f8c}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:"Crimson Pro",Georgia,serif;color:var(--vellum);background:var(--ink);min-height:100vh;overflow-x:hidden}
+.foil{background:linear-gradient(168deg,var(--foil-hi) 8%,var(--gold) 46%,var(--foil-lo) 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* ---- the reel ---- */
+.reel{position:fixed;inset:0;z-index:0;background:var(--ink)}
+.reel img{position:absolute;inset:-6%;width:112%;height:112%;object-fit:cover;opacity:0;transition:opacity 1.8s ease;animation:kb 19s ease-in-out infinite alternate;filter:saturate(.92) contrast(1.04)}
+.reel img:nth-child(2){animation-direction:alternate-reverse}
+.reel img.on{opacity:1}
+@keyframes kb{from{transform:scale(1.02) translate(-.8%, .5%)}to{transform:scale(1.11) translate(1%, -1%)}}
+.veil{position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(13,11,20,.88) 0,rgba(13,11,20,.25) 26%,rgba(13,11,20,.15) 55%,rgba(13,11,20,.92) 100%)}
+.embers{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5}
+.embers i{position:absolute;bottom:-12vh;left:0;width:100%;height:112vh;display:block;
+background-image:radial-gradient(2px 2px at 12% 80%,#f3d489,transparent 60%),radial-gradient(1.6px 1.6px at 34% 65%,#d4a24e,transparent 60%),radial-gradient(2.4px 2.4px at 58% 88%,#c8502e,transparent 60%),radial-gradient(1.4px 1.4px at 76% 55%,#f3d489,transparent 60%),radial-gradient(2px 2px at 90% 72%,#d4a24e,transparent 60%);
+background-size:100% 100%;animation:rise 16s linear infinite}
+.embers i:nth-child(2){animation-duration:23s;animation-delay:-9s;opacity:.7;transform:scale(1.4)}
+@keyframes rise{from{transform:translateY(0)}to{transform:translateY(-105vh)}}
+/* ---- hero ---- */
+main{position:relative;z-index:2}
+.hero{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8vh 1.4rem 12vh}
+.hero .mark{width:min(118px,26vw);height:auto;filter:drop-shadow(0 4px 24px rgba(212,162,78,.35));margin-bottom:1.1rem}
+.lockup{font-family:Cinzel,serif;font-weight:700;letter-spacing:.34em;font-size:clamp(.72rem,2.4vw,1rem);color:var(--gold);text-transform:uppercase}
+.lockup b{color:var(--foil-hi);font-weight:700}
+h1{font-family:Cinzel,serif;font-weight:900;text-transform:uppercase;letter-spacing:.035em;font-size:clamp(2.35rem,8.6vw,6.2rem);line-height:1.02;margin:1rem 0 1.1rem;text-shadow:0 2px 30px rgba(0,0,0,.55)}
+.sub{max-width:38rem;font-size:clamp(1.05rem,2.6vw,1.3rem);line-height:1.55;color:var(--vellum)}
+.sub b{color:var(--foil-hi);font-weight:600}
+.cta{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;margin-top:1.8rem}
+.btn{font-family:Cinzel,serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;border-radius:999px;padding:.95rem 1.7rem;font-size:.92rem;transition:transform .18s ease,box-shadow .18s ease}
+.btn:active{transform:scale(.97)}
+.btn.gold{background:linear-gradient(135deg,var(--foil-hi),var(--foil-lo));color:#160f08;box-shadow:0 6px 30px rgba(212,162,78,.35)}
+.btn.gold:hover{box-shadow:0 8px 40px rgba(212,162,78,.55)}
+.btn.quiet{color:var(--vellum);border:1px solid rgba(212,162,78,.5)}
+.whisper{margin-top:1rem;font-family:Cormorant,serif;font-style:italic;font-size:1.05rem;color:var(--dim)}
+/* ---- proof scenes ---- */
+.scene{position:relative;min-height:88svh;display:flex;align-items:flex-end;justify-content:flex-start;isolation:isolate;overflow:hidden}
+.scene img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;filter:saturate(.95)}
+.scene::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(13,11,20,.72) 0,rgba(13,11,20,.06) 40%,rgba(13,11,20,.86) 100%)}
+.scene .plate{padding:0 1.4rem 11vh;max-width:44rem}
+.scene h2{font-family:Cinzel,serif;font-weight:800;text-transform:uppercase;letter-spacing:.05em;font-size:clamp(1.7rem,5.6vw,3.4rem);line-height:1.06}
+.scene p{margin-top:.6rem;font-size:clamp(1rem,2.4vw,1.2rem);color:var(--vellum);max-width:34rem}
+.scene .voice-line{font-family:Cormorant,serif;font-style:italic;color:var(--foil-hi)}
+.scene:nth-child(even) .plate{margin-left:auto;text-align:right}
+.scene:nth-child(even) p{margin-left:auto}
+/* ---- seats ---- */
+.seats{position:relative;padding:12vh 1.4rem 8vh;background:linear-gradient(180deg,transparent,rgba(13,11,20,.94) 18%,#0d0b14 40%)}
+.seats h2{text-align:center;font-family:Cinzel,serif;font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:clamp(1.4rem,4.4vw,2.1rem);margin-bottom:2rem}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem;max-width:60rem;margin:0 auto}
+.seat{position:relative;border:1px solid rgba(212,162,78,.28);border-radius:16px;padding:1.5rem 1.15rem 1.25rem;background:linear-gradient(150deg,rgba(233,223,200,.05),rgba(0,0,0,.28));display:flex;flex-direction:column;text-align:center}
+.seat .ribbon{position:absolute;top:-.72rem;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--foil-hi),var(--foil-lo));color:#160f08;font-size:.66rem;font-family:Cinzel,serif;font-weight:700;letter-spacing:.09em;text-transform:uppercase;border-radius:999px;padding:.26rem .75rem;white-space:nowrap}
+.seat h3{font-family:Cinzel,serif;font-weight:700;letter-spacing:.05em;font-size:1.02rem}
+.price{color:var(--gold);font-size:1.7rem;font-family:Cinzel,serif;margin:.35rem 0 .55rem}
+.price small{color:var(--dim);font-size:.78rem;font-family:"Crimson Pro",serif}
+.seat p{color:var(--dim);font-size:.95rem;line-height:1.5;flex:1;margin-bottom:1rem}
+footer{position:relative;z-index:2;text-align:center;padding:2.2rem 1rem 3rem;color:var(--dim);font-size:.9rem;background:#0d0b14}
+footer a{color:var(--gold);text-decoration:none}
+@media (prefers-reduced-motion: reduce){.reel img{animation:none;transition:none}.reel img:first-child{opacity:1}.embers{display:none}html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
+<div class="reel" id="reel"><img alt="" decoding="async"><img alt="" decoding="async"></div>
+<div class="embers" aria-hidden="true"><i></i><i></i></div>
+<div class="veil" aria-hidden="true"></div>
 <main>
-  <div class="sigil">⚔</div>
-  <h1>MyDungeon<span>.</span>Quest</h1>
-  <p class="tag">A Dungeon Master who never sleeps, a chronicle that never leaves your hands. Dice, combat, cinematics, painted plates and spoken tellings — every turn sealed, every tale actually yours.</p>
-  <div class="cta">
-    <a class="btn gold" href="/sign-in">Give your name at the door — six turns on the house</a>
-    <a class="btn quiet" href="/sign-up">New here? Take up the quill</a>
-  </div>
-  <p class="whisper">No install. A name at the door, and the fire is lit — your chronicles live on your own device.</p>
-
-  <section class="pitch">
-    <article><h3>A living table</h3><p>An AI Dungeon Master runs a persistent campaign for one — real dice, real consequences, acts and endings that hold.</p></article>
-    <article><h3>Yours alone</h3><p>Every chronicle is kept on your device, hash-chained and verifiable at the Notary's Desk. The house keeps names, never tales.</p></article>
-    <article><h3>Painted &amp; chronicled</h3><p>Painted plates for your scenes, a chronicled retelling of every closed chapter, and a storybook you can bind to PDF.</p></article>
-    <article><h3>Spoken &amp; bound</h3><p>A cast that speaks in its own voices, music and stings as punctuation, and a produced podcast episode forged from your sealed record.</p></article>
+  <section class="hero">
+    <img class="mark" src="/brand/mark.svg" alt="MyDungeon.Quest">
+    <div class="lockup">MyDungeon<b> ✦ </b>Quest</div>
+    <h1><span class="foil">Speak a world.</span><br>Live its epic.</h1>
+    <p class="sub">One sentence from you, and a Dungeon Master ignites it — <b>narrating, painting, and voicing</b> your story chapter by chapter, with <b>real dice</b> deciding your fate. Finish, and keep it forever: an <b>illustrated storybook</b> and a <b>voiced audiobook</b> of your adventure.</p>
+    <div class="cta">
+      <a class="btn gold" href="/sign-up">Begin your legend — first chapter free</a>
+      <a class="btn quiet" href="/sign-in">Returning? Give your name</a>
+    </div>
+    <p class="whisper">No downloads. No dungeon master to schedule. Just you and the fire.</p>
   </section>
 
-  <h2>The seats of the house</h2>
-  <p class="plain">Every seat begins the same way: six turns on the house, with every pour flowing — plates, voices, music, one forged episode, one bound book. The taste never resets; when it is poured, the tale waits for a seat.</p>
-  <div class="boards">
-    <div class="seat">
-      <h3>The Taste</h3>
-      <div class="price">Free <small>with a name at the door</small></div>
-      <ul>
-        <li>Six turns at the table, told in full</li>
-        <li>Painted plates and spoken voices included</li>
-        <li>One forged episode, one bound book</li>
-        <li>Cloud vault: your spines follow you across devices</li>
-      </ul>
-      <a class="btn quiet" href="/sign-up">Take up the quill</a>
-    </div>
-    <div class="seat">
-      <h3>Patron by the Week</h3>
-      <div class="price">$5 <small>/ week · renews weekly</small></div>
-      <ul>
-        <li>Unlimited turns, plates, voices, and music</li>
-        <li>Episodes forged and books bound without measure</li>
-        <li>Leave any week from the ledger — no questions</li>
-      </ul>
-      <a class="btn gold" href="/sign-in">Take the weekly seat</a>
-    </div>
-    <div class="seat best">
-      <span class="ribbon">Best value — half the weekly road</span>
-      <h3>Patron by the Year</h3>
-      <div class="price">$129.99 <small>/ year · one charge, renews yearly</small></div>
-      <ul>
-        <li>A full year, everything without measure</li>
-        <li>One charge a year — no weekly meter running</li>
-        <li>Cancel any time; the year you paid for stays yours</li>
-      </ul>
-      <a class="btn gold" href="/sign-in">Take the yearly seat</a>
-    </div>
-  </div>
-  <p class="plain">Seats are taken in Settings once you've given your name — checkout and receipts are handled by Stripe; no card ever crosses this table. Cancel any time from the same ledger. Fair-use burst limits and daily service ceilings keep the house standing for everyone.</p>
+  <section class="scene"><img src="/keyart/gate.jpg" alt="" loading="lazy">
+    <div class="plate"><h2>Any world you can say</h2>
+    <p class="voice-line">“A drowned kingdom clings to cliffs above a sea that whispers names.”</p>
+    <p>Write one line — or one page. Your words become the law of the land.</p></div>
+  </section>
+  <section class="scene"><img src="/keyart/mountain.jpg" alt="" loading="lazy">
+    <div class="plate"><h2>Real dice. Real fates.</h2>
+    <p>A gold button. A tumbling d20. Triumphs earned, deaths that count, and no take-backs.</p></div>
+  </section>
+  <section class="scene"><img src="/keyart/drowned.jpg" alt="" loading="lazy">
+    <div class="plate"><h2>Faces that never drift</h2>
+    <p>Every soul you meet is painted once and remembered forever — in the tale, in the book, in your dreams.</p></div>
+  </section>
+  <section class="scene"><img src="/keyart/frontier.jpg" alt="" loading="lazy">
+    <div class="plate"><h2>Keep the legend</h2>
+    <p>When the tale ends, it doesn't: an illustrated storybook and a fully voiced audiobook — every word, every face, every roll — yours to share.</p></div>
+  </section>
 
-  <footer>
-    Yours alone · Plays offline · Every turn sealed<br>
-    <a href="/">Enter the house</a> · <a href="/terms.html">House rules (Terms of Service)</a> · <a href="/privacy.html">Privacy of the table</a> · <a href="/verify.html">The Notary's Desk</a>
-  </footer>
+  <section class="seats">
+    <h2>Take a seat at the table</h2>
+    <div class="row">
+      <div class="seat"><span class="ribbon">On the house</span><h3>The Taste</h3><div class="price">Free</div><p>Your first chapter — six full turns with plates, voices, all of it. No card at the door.</p><a class="btn quiet" href="/sign-up">Take up the quill</a></div>
+      <div class="seat"><h3>The Weekly Seat</h3><div class="price">$5<small> / week</small></div><p>The full table, week by week — for the tale you can't put down.</p><a class="btn gold" href="/sign-in">Take the weekly seat</a></div>
+      <div class="seat"><span class="ribbon">Best value</span><h3>The Yearly Seat</h3><div class="price">$129.99<small> / year</small></div><p>A year of legends — every world you can speak, every keepsake bound.</p><a class="btn gold" href="/sign-in">Take the yearly seat</a></div>
+    </div>
+  </section>
 </main>
+<footer>
+  <a href="/">Enter the house</a> · <a href="/terms.html">House rules (Terms of Service)</a> · <a href="/privacy.html">Privacy of the table</a>
+</footer>
+<script>
+(function(){
+  var fallback=['/keyart/gate.jpg','/keyart/mountain.jpg','/keyart/drowned.jpg','/keyart/frontier.jpg'];
+  var layers=document.querySelectorAll('#reel img');
+  function run(list){
+    if(!list.length) return;
+    list.forEach(function(src){ var i=new Image(); i.src=src; });
+    var idx=0,front=0;
+    layers[0].src=list[0]; layers[0].classList.add('on');
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches||list.length<2) return;
+    setInterval(function(){
+      idx=(idx+1)%list.length; front=1-front;
+      layers[front].src=list[idx];
+      layers[front].classList.add('on'); layers[1-front].classList.remove('on');
+    },8500);
+  }
+  fetch('/reel/manifest.json').then(function(r){return r.ok?r.json():null}).then(function(m){
+    run((m&&m.images&&m.images.length)?m.images:fallback);
+  }).catch(function(){run(fallback)});
+})();
+</script>
 </body>
 </html>

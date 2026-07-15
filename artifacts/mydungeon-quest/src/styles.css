@@ -393,3 +393,11 @@
 
 /* THE ORIGINAL FACE on the character sheet — the forge bust, found by its stable key */
 .sheet-hero img.hero-face{width:3.4rem;height:3.4rem;border-radius:50%;object-fit:cover;border:2px solid #9f7438;flex:0 0 auto}
+
+/* ---- The Brand Cut: tokens and treatments ---- */
+:root{--ember:#c8502e;--foil-hi:#f3d489;--foil-lo:#8a5f24}
+.foil{background:linear-gradient(168deg,var(--foil-hi) 8%,var(--gold) 46%,var(--foil-lo) 92%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 1px 0 rgba(0,0,0,.35)}
+.display-1{font-family:Cinzel,serif;font-weight:800;letter-spacing:.04em;font-size:clamp(2.4rem,9vw,6.5rem);line-height:1.04;text-transform:uppercase}
+.display-numeral{font-family:'Cinzel Decorative',Cinzel,serif;font-weight:700}
+.voice-italic{font-family:Cormorant,'Crimson Pro',serif;font-style:italic;font-weight:500}
+.danger{color:var(--ember)}

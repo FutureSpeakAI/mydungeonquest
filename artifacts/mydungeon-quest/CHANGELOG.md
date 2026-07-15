@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — The Brand Cut (2026-07-15)
+The storefront learns to sell the fantasy: a reel of epic frames behind foil
+type, the Icosahedron Rose as the mark, a House Style for all marketing art
+with a one-command brand shoot, seats set quietly at the end. The Quiet Record
+begins — no service worker, a human colophon, the notary unlisted. Directive
+III (The Audience Cut) charts the next program: open door, app shell, the
+Sitting and the Warden, the tenor law, the finished book, the Audiobook, and
+the share layer.
+
 ## 0.2.1 — The Anchor Law (2026-07-13)
 Faces and places converge on their canon: first bust / first plate become
 permanent reference anchors carried into every later render across image and

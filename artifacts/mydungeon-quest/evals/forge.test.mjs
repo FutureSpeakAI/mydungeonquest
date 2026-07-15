@@ -1,8 +1,8 @@
 // THE FORGE GATE — every door yields a complete lawful form; the dice are
 // deterministic per seed; the Oracle keeps the player's answers.
 import assert from 'node:assert/strict';
-import { rollWorld, rollHero, oracleWorld, oracleHero, rollTitle, rollAbilities, CLASSES } from '../src/lib/forgeRolls.js';
-import { SPINES } from '../src/lib/spines.js';
+import { rollWorld, rollHero, oracleWorld, oracleHero, rollTitle, rollAbilities, CLASSES } from 'fatescript/forgeRolls';
+import { SPINES } from 'fatescript/spines';
 
 const worldA = rollWorld(7), worldA2 = rollWorld(7), worldB = rollWorld(8);
 assert.deepEqual(worldA, worldA2, 'the same seed spins the same world');

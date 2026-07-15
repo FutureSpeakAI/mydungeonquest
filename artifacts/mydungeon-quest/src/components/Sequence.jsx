@@ -1,6 +1,6 @@
 import { Feather } from 'lucide-react';
 import ChroniclePage from './ChroniclePage.jsx';
-import { tickPhrase, tickWhispers } from '../lib/sequencing.js';
+import { tickPhrase, tickWhispers } from 'fatescript/sequencing';
 
 // ------------------------------------------------------------
 // SEQUENCE ROWS — Task #50: story beats land in order.

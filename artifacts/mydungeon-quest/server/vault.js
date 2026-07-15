@@ -25,7 +25,7 @@
  *   reference to it.
  */
 import express from 'express';
-import { canonicalize, sha256 } from '../src/lib/canonical.js';
+import { canonicalize, sha256 } from 'fatescript/canonical';
 import { doorOpen, runQuery } from './patrons.js';
 
 export const vaultOpen = () => doorOpen() && Boolean(process.env.DATABASE_URL);

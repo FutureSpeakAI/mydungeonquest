@@ -1,7 +1,7 @@
 // THE CARD GATE — cards are derived state: deterministic on replay, identity
 // immutable after introduction, every chronicle line citing a real turn.
 import assert from 'node:assert/strict';
-import { buildCards } from '../src/lib/cards.js';
+import { buildCards } from 'fatescript/cards';
 
 const hero = { name: 'Sera Vale', ancestry: 'Human', className: 'Knight', bearing: 'dented plate', presentation: 'feminine', mark: 'a white scar' };
 const entries = [

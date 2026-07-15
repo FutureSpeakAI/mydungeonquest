@@ -2,8 +2,8 @@
 // prose about other people. Encodes the playtest that exposed the flaw: a
 // hero's mother spoke in a man's voice because her card mentioned her son.
 import assert from 'node:assert/strict';
-import { castVoiceByCard, castVoiceId, resolveVoiceId, castHeroVoice, VOICE_REGISTER, auditionCandidates } from '../src/lib/cinema/casting.js';
-import { applyStoryUpdates, initCodex } from '../src/lib/story.js';
+import { castVoiceByCard, castVoiceId, resolveVoiceId, castHeroVoice, VOICE_REGISTER, auditionCandidates } from 'fatescript/cinema/casting';
+import { applyStoryUpdates, initCodex } from 'fatescript/story';
 
 const reg = (id) => VOICE_REGISTER[id];
 

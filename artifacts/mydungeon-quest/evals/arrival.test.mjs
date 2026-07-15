@@ -154,8 +154,8 @@ const rootClass = (root) => String(root.toJSON()?.props?.className || '');
   globalThis.sessionStorage = { getItem: () => '1', setItem() {} }; // arrived already this sitting — the shelf must not re-stage
   // Seed with the app's OWN factories — a codex the chapter mast can read and
   // a hero the ribbon can wear; only the seal fields are set by hand.
-  const { initCodex } = await import('../src/lib/story.js');
-  const { createHero } = await import('../src/lib/rules.js');
+  const { initCodex } = await import('fatescript/story');
+  const { createHero } = await import('fatescript/rules');
   const hero = { ...createHero({ name: 'Maren', className: 'Warden', caster: 'none', hitDie: 10, abilities: { STR: 14, DEX: 12, CON: 13, INT: 10, WIS: 15, CHA: 8 }, skills: ['Perception'] }), sigil: '✦' };
   await db.campaigns.put({
     id: 'sealed-tale', title: 'The Drowned Vigil', hero,

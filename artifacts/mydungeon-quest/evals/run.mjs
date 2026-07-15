@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { mockDmTurn } from '../src/lib/mockDm.js';
-import { makeEntropy, validateDmTurn } from '../src/lib/protocol.js';
-import { applyStoryUpdates, initCodex, storyBlock } from '../src/lib/story.js';
-import { applyStateUpdates, createHero, heroRoll } from '../src/lib/rules.js';
+import { mockDmTurn } from 'fatescript/mockDm';
+import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
+import { applyStoryUpdates, initCodex, storyBlock } from 'fatescript/story';
+import { applyStateUpdates, createHero, heroRoll } from 'fatescript/rules';
 import { generationSpec, portraitPrompt, scrubPrompt } from '../src/lib/cinema/prompts.js';
 import { Foundry } from '../src/lib/cinema/foundry.js';
 import { mockAdapter } from '../server/adapters/mock.js';
-import { canonicalize, sha256 } from '../src/lib/canonical.js';
+import { canonicalize, sha256 } from 'fatescript/canonical';
 
 const personas = [
   ['Loyalist','I protect Mara and follow the road.'],['Chaos Gremlin','I knock politely on the impossible sky.'],

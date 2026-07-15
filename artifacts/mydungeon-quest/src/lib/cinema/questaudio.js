@@ -1,6 +1,6 @@
 import { db, campaignJournal } from '../db.js';
-import { bytesToBase64, sha256 } from '../canonical.js';
-import { narratorVoiceId, resolveVoiceId, resolveHeroVoiceId, speakerIsHero } from './casting.js';
+import { bytesToBase64, sha256 } from 'fatescript/canonical';
+import { narratorVoiceId, resolveVoiceId, resolveHeroVoiceId, speakerIsHero } from 'fatescript/cinema/casting';
 import { buildPodcastScript, validatePodcastScript, buildMixPlan } from '../podcast.js';
 import { tollRefusal } from '../../patron/tollNotice.js';
 

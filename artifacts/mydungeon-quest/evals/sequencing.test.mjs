@@ -14,9 +14,9 @@ const React = require('react');
 const h = React.createElement;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-const { orderFeed, recapFor, renderKindOf, tickPhrase, tickWhispers } = await import('../src/lib/sequencing.js');
-const { initCodex } = await import('../src/lib/story.js');
-const { buildChronicleRequest } = await import('../src/lib/chronicler.js');
+const { orderFeed, recapFor, renderKindOf, tickPhrase, tickWhispers } = await import('fatescript/sequencing');
+const { initCodex } = await import('fatescript/story');
+const { buildChronicleRequest } = await import('fatescript/chronicler');
 const { TickDivider, SuggestionRow } = await import('../src/components/Sequence.jsx');
 
 const turn = (id, beat, opts = {}) => ({ id, beatIndex: beat, redacted: Boolean(opts.redacted), player: opts.player || null, kind: undefined,

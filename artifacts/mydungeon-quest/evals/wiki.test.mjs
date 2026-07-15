@@ -1,7 +1,7 @@
 // THE WIKI GATE — cards speak story, cite the record, and link both ways.
 import assert from 'node:assert/strict';
-import { voiceLineOf, wordsLine, tieLine } from '../src/lib/wikiText.js';
-import { buildCards } from '../src/lib/cards.js';
+import { voiceLineOf, wordsLine, tieLine } from 'fatescript/wikiText';
+import { buildCards } from 'fatescript/cards';
 
 assert.equal(voiceLineOf({ gender: 'feminine', age_band: 'elder', timbre: 'warm' }), "A warm elder woman's voice");
 assert.equal(voiceLineOf({ gender: 'masculine', timbre: 'gravel' }), "A gravel man's voice");

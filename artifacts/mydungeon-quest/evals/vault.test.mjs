@@ -26,7 +26,7 @@ import express from 'express';
 delete process.env.CLERK_SECRET_KEY;
 delete process.env.CLERK_PUBLISHABLE_KEY;
 
-const { canonicalize, sha256 } = await import('../src/lib/canonical.js');
+const { canonicalize, sha256 } = await import('fatescript/canonical');
 const { vaultOpen, vaultRoutes, judgeChain, __resetVaultForEval } = await import('../server/vault.js');
 
 assert.equal(vaultOpen(), false, 'scrubbed keys must read as a dormant vault');

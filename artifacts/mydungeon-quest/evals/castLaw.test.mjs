@@ -17,9 +17,9 @@
 // Pure node, no DOM, no keys — safe on the proving ground.
 // ------------------------------------------------------------
 import assert from 'node:assert/strict';
-import { safeFallbackTurn, validateDmTurn } from '../src/lib/protocol.js';
-import { applyStoryUpdates, initCodex, CAST_STATUS } from '../src/lib/story.js';
-import { castVoiceId, castVoiceByCard, resolveVoiceId } from '../src/lib/cinema/casting.js';
+import { safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
+import { applyStoryUpdates, initCodex, CAST_STATUS } from 'fatescript/story';
+import { castVoiceId, castVoiceByCard, resolveVoiceId } from 'fatescript/cinema/casting';
 
 // ---- 1. The dead do not speak --------------------------------
 {
@@ -165,7 +165,7 @@ import { castVoiceId, castVoiceByCard, resolveVoiceId } from '../src/lib/cinema/
 
 // ---- 5. The hero's casting law: the forge card is read --------
 {
-  const { castHeroVoice, resolveHeroVoiceId, heroVoiceCard } = await import('../src/lib/cinema/casting.js');
+  const { castHeroVoice, resolveHeroVoiceId, heroVoiceCard } = await import('fatescript/cinema/casting');
   const FEM_IDS = ['EXAVITQu4vr4xnSDxMaL', 'AZnzlk1XvdvUeBnXmlld', 'XB0fDUnXU5powFXDhCwa', 'Xb7hH8MSUJpSbSDYk0k2', 'XrExE9yKIg1WjnnlVkGX', 'MF3mGyEYCl7XYWbV9V6O'];
   const MASC_IDS = ['onwK4e9ZLuTAKqWW03F9', 'pNInz6obpgDQGcFmaJgB', 'VR6AewLTigWG4xSOukaG', 'N2lVS1w4EtoT3dr4eOWO', 'pqHfZKP75CvOlQylNhV4', 'TxGEqnHWrfWFTfGW9XjX'];
 
@@ -201,7 +201,7 @@ import { castVoiceId, castVoiceByCard, resolveVoiceId } from '../src/lib/cinema/
 
 // ---- 6. The hero answers to their first name — unless it's taken ----
 {
-  const { speakerIsHero } = await import('../src/lib/cinema/casting.js');
+  const { speakerIsHero } = await import('fatescript/cinema/casting');
   const hero = { name: 'Ash Vale', bearing: 'A quiet woman with storm-grey eyes' };
   assert.equal(speakerIsHero('Ash Vale', hero, []), true, 'the full name is always the hero');
   assert.equal(speakerIsHero('  ash vale ', hero, []), true, 'case and stray whitespace must not matter');

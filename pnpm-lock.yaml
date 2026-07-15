@@ -568,6 +568,9 @@ importers:
       express:
         specifier: ^5.1.0
         version: 5.2.1
+      fatescript:
+        specifier: workspace:*
+        version: link:../../packages/engine
       http-proxy-middleware:
         specifier: ^4.2.0
         version: 4.2.0
@@ -648,6 +651,8 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+
+  packages/engine: {}
 
   scripts:
     devDependencies:

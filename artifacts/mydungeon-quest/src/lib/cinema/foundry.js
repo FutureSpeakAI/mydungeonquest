@@ -1,6 +1,6 @@
 import { db } from '../db.js';
 import { generationSpec } from './prompts.js';
-import { sha256 } from '../canonical.js';
+import { sha256 } from 'fatescript/canonical';
 import { tollRefusal } from '../../patron/tollNotice.js';
 
 // ------------------------------------------------------------

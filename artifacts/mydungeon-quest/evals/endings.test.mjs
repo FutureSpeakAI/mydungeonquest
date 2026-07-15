@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import {
   applyStoryUpdates, initCodex, requestSeal, storyBlock,
   chapterInfo, actInfo, romanNumeral, ACT_NAMES, SEALING_DENOUEMENT_TURNS
-} from '../src/lib/story.js';
+} from 'fatescript/story';
 
 // ---- 1. Chapters and acts speak in numerals ------------------
 {

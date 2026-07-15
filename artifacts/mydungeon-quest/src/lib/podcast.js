@@ -1,4 +1,4 @@
-import { romanNumeral } from './story.js';
+import { romanNumeral } from 'fatescript/story';
 
 // ------------------------------------------------------------
 // THE PODCAST FORGE, script side (the Experience Cut, Phase 5).

@@ -1,4 +1,4 @@
-import { canonicalize, sha256 } from '../canonical.js';
+import { canonicalize, sha256 } from 'fatescript/canonical';
 
 const DENY = [
   /\bgore\b/gi, /\bgory\b/gi, /\bdisembowel(?:ed|ment)?\b/gi, /\bdecapitat(?:e|ed|ion)\b/gi,

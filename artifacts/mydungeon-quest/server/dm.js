@@ -1,8 +1,8 @@
 import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
-import { mockDmTurn } from '../src/lib/mockDm.js';
-import { safeFallbackTurn, validateDmTurn } from '../src/lib/protocol.js';
+import { mockDmTurn } from 'fatescript/mockDm';
+import { safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
 
-// Mirrors the constraints enforced by src/lib/protocol.js#validateDmTurn.
+// Mirrors the constraints enforced by fatescript/protocol#validateDmTurn.
 // The tool schema is what the model actually sees, so any enum/shape the
 // validator checks for must be declared here or the model has no way to
 // know the exact values the client will accept.

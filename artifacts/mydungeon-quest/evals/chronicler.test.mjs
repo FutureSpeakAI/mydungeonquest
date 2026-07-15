@@ -13,7 +13,7 @@
 // Pure node, no DOM, no keys — safe on the proving ground.
 // ------------------------------------------------------------
 import assert from 'node:assert/strict';
-import { validateChroniclePassage, rawChroniclePassage, buildChronicleRequest, CHRONICLE_LIMITS } from '../src/lib/chronicler.js';
+import { validateChroniclePassage, rawChroniclePassage, buildChronicleRequest, CHRONICLE_LIMITS } from 'fatescript/chronicler';
 import { chronicleToolSchema } from '../server/retell.js';
 
 // ---- The sealed evidence fixture -----------------------------
@@ -246,7 +246,7 @@ const lawful = {
 // The claim is synchronous (taken before any await), so two racing
 // chapter-close paths in one session cannot both seal a page.
 {
-  const { claimChapterClose } = await import('../src/lib/chronicler.js');
+  const { claimChapterClose } = await import('fatescript/chronicler');
   assert.equal(claimChapterClose('camp-x', 3), true, 'first claim wins');
   assert.equal(claimChapterClose('camp-x', 3), false, 'second claim is refused — no duplicate pages');
   assert.equal(claimChapterClose('camp-x', 4), true, 'other beats are unaffected');

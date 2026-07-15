@@ -1,6 +1,6 @@
 import { db } from '../db.js';
-import { sha256 } from '../canonical.js';
-import { narratorVoiceId, resolveVoiceId, resolveHeroVoiceId, speakerIsHero, dialogueLeadIn } from './casting.js';
+import { sha256 } from 'fatescript/canonical';
+import { narratorVoiceId, resolveVoiceId, resolveHeroVoiceId, speakerIsHero, dialogueLeadIn } from 'fatescript/cinema/casting';
 import { setVoiceActive } from './audioDirector.js';
 import { tollRefusal } from '../../patron/tollNotice.js';
 

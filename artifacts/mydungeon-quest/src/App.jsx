@@ -6,17 +6,17 @@ import Cinematic from './components/Cinematic.jsx';
 import Ceremony from './components/Ceremony.jsx';
 import ChroniclePage from './components/ChroniclePage.jsx';
 import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components/Sequence.jsx';
-import { orderFeed, recapFor } from './lib/sequencing.js';
+import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
 import { CharacterSheet, Codex, Settings, Storybook } from './components/Overlays.jsx';
-import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from './lib/chronicler.js';
-import { applyStateUpdates, createHero, heroRoll, rollInitiative } from './lib/rules.js';
-import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from './lib/story.js';
-import { makeEntropy, validateDmTurn } from './lib/protocol.js';
+import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
+import { applyStateUpdates, createHero, heroRoll, rollInitiative } from 'fatescript/rules';
+import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
+import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
-import { buildContextPack } from './lib/graph.js';
-import { tickUpdates, tickLogEntry } from './lib/livingWorld.js';
+import { buildContextPack } from 'fatescript/graph';
+import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
 import { portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
@@ -27,10 +27,10 @@ import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
 import { stopAllSound } from './lib/cinema/audioDirector.js';
 import { playUiSfx } from './lib/cinema/uiSfx.js';
 import { playNarration, primeNarration, stopNarration, subscribeNarration, toggleNarration } from './lib/cinema/narrator.js';
-import { castHeroVoice } from './lib/cinema/casting.js';
+import { castHeroVoice } from 'fatescript/cinema/casting';
 import { downloadQuestAudio } from './lib/cinema/questaudio.js';
 import { buildStorybook } from './lib/storybook.js';
-import { slugify } from './lib/canonical.js';
+import { slugify } from 'fatescript/canonical';
 import { PatronDoor } from './patron/door.jsx';
 import { burnFromVault, nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
 import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
@@ -897,7 +897,7 @@ export default function App() {
         // Task #50 — the seat order: turns and ticks in sealed sequence, each
         // chapter's page anchored at its boundary (arrival time irrelevant,
         // orphans recovered), pending rows holding only seats that a page can
-        // still take. Pure and gated in lib/sequencing.js; nothing is written.
+        // still take. Pure and gated in the engine (fatescript/sequencing); nothing is written.
         const seats = orderFeed(current.logs, current.chroniclePages || [], [...pendingRetells].map((key) => JSON.parse(key)));
         return seats.map((seat, index) => {
           if (seat.kind === 'page') return <ChroniclePage key={`page-${seat.page.recordHash || seat.page.beatIndex}`} page={seat.page} />;

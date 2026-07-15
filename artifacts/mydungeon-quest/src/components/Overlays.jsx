@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Download, Film, Heart, ScrollText, Shield, Sparkles, X } from 'lucide-react';
-import { CONDITIONS } from '../lib/rules.js';
+import { CONDITIONS } from 'fatescript/rules';
 import { db } from '../lib/db.js';
-import { ACT_NAMES, romanNumeral } from '../lib/story.js';
-import { cardsForCampaign } from '../lib/cards.js';
-import { voiceLineOf, wordsLine, tieLine } from '../lib/wikiText.js';
+import { ACT_NAMES, romanNumeral } from 'fatescript/story';
+import { cardsForCampaign } from 'fatescript/cards';
+import { voiceLineOf, wordsLine, tieLine } from 'fatescript/wikiText';
 import { doorBuilt } from '../patron/door.jsx';
 import { TollSection, useToll } from '../patron/toll.jsx';
 

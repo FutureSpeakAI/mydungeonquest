@@ -1,4 +1,4 @@
-import { buildChroniclerPrompt, validateChroniclePassage, CHRONICLE_LIMITS } from '../src/lib/chronicler.js';
+import { buildChroniclerPrompt, validateChroniclePassage, CHRONICLE_LIMITS } from 'fatescript/chronicler';
 
 // ------------------------------------------------------------
 // /api/retell — the Chronicler's harness, built like the DM's

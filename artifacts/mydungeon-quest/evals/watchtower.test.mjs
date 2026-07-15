@@ -134,8 +134,8 @@ const run = (mw, rq) => new Promise((resolve) => {
 // struck from the plan individually and is never called.
 {
   const { dmPlan, getDmTurn } = await import('../server/dm.js');
-  const { makeEntropy } = await import('../src/lib/protocol.js');
-  const { createHero } = await import('../src/lib/rules.js');
+  const { makeEntropy } = await import('fatescript/protocol');
+  const { createHero } = await import('fatescript/rules');
   delete process.env.DM_PROVIDER;
   delete process.env.DM_FALLBACK;
 

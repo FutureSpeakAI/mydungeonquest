@@ -1,0 +1,20 @@
+{
+  "name": "fatescript",
+  "version": "1.2.0-dev",
+  "description": "The FateScript engine — the deterministic law layer for AI-governed, player-driven narratives. Give the model all of the talent and none of the authority.",
+  "license": "MIT",
+  "type": "module",
+  "private": false,
+  "scripts": {
+    "eval": "node evals/saga.test.mjs && node evals/hearth.test.mjs && node evals/annals.test.mjs && node evals/ravens.test.mjs && node evals/sky.test.mjs && node evals/direction.test.mjs && node evals/shareCard.test.mjs",
+    "check": "npm run eval"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*.js"
+  },
+  "files": ["src", "README.md", "LICENSE"],
+  "keywords": ["fatescript", "ai", "game-engine", "narrative", "rpg", "deterministic"],
+  "repository": { "type": "git", "url": "https://github.com/FutureSpeakAI/mydungeonquest", "directory": "packages/engine" },
+  "engines": { "node": ">=20" }
+}

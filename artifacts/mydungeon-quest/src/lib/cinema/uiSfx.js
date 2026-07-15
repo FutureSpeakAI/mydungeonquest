@@ -1,5 +1,5 @@
 import { db } from '../db.js';
-import { sha256 } from '../canonical.js';
+import { sha256 } from 'fatescript/canonical';
 import { playSfx } from './audioDirector.js';
 import { tollRefusal } from '../../patron/tollNotice.js';
 

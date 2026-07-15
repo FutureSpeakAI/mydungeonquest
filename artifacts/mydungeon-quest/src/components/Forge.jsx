@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Dices, ShieldCheck } from 'lucide-react';
-import { SPINES } from '../lib/spines.js';
+import { SPINES } from 'fatescript/spines';
 import { portraitPrompt, keyArtPrompt } from '../lib/cinema/prompts.js';
 import { heroSoul, nameSeed } from '../lib/cinema/prologue.js';
-import { auditionCandidates } from '../lib/cinema/casting.js';
-import { rollWorld, rollHero, oracleWorld, oracleHero, rollTitle, rollCovenant, rollTone, rollRegion, rollName, rollMark, ORACLE_WORLD, ORACLE_HERO } from '../lib/forgeRolls.js';
+import { auditionCandidates } from 'fatescript/cinema/casting';
+import { rollWorld, rollHero, oracleWorld, oracleHero, rollTitle, rollCovenant, rollTone, rollRegion, rollName, rollMark, ORACLE_WORLD, ORACLE_HERO } from 'fatescript/forgeRolls';
 
 const seedWorlds = [
   'A drowned empire where memories are legal tender.',

@@ -23,6 +23,7 @@
     "@google-cloud/storage": "^7.21.0",
     "dexie": "^4.0.11",
     "express": "^5.1.0",
+    "fatescript": "workspace:*",
     "http-proxy-middleware": "^4.2.0",
     "lucide-react": "catalog:",
     "pg": "^8.22.0",

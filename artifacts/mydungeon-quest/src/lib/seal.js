@@ -1,4 +1,4 @@
-import { canonicalize, sha256, bytesToBase64 } from './canonical.js';
+import { canonicalize, sha256, bytesToBase64 } from 'fatescript/canonical';
 import { db } from './db.js';
 
 // The 'cinema' media tier was retired with film generation (July 2026). Legacy

@@ -1,8 +1,8 @@
 # MyDungeon.Quest
 
-**A cinematic solo RPG that plays offline and keeps the only true copy on your device.**
+**A cinematic solo RPG built for the long road — one world, many tales, played for months and years.**
 
-One player. One AI Dungeon Master. A persistent fantasy campaign with real dice, real combat, painted illustrations, a voiced narrator — and a cryptographically sealed record of every turn. Everything lives in your browser: no accounts, no telemetry, no server-side saves.
+One player. One AI Dungeon Master. A persistent fantasy saga with real dice, real combat, painted illustrations, a voiced narrator — and a hash-linked, append-only record of every turn that keeps the story straight across chapters, devices, and years. Keyless and offline, the whole game still plays on a deterministic floor; signed in, the sealed record also syncs to the house vault, and the Saga Cut now underway teaches any signed-in device to resume the same tale mid-sentence (see [`docs/ROADMAP.md`](docs/ROADMAP.md)).
 
 The model narrates. The client rules. That inversion is the entire architecture, and this document explains it.
 
@@ -22,8 +22,10 @@ In development, two processes run: Vite owns the public port and proxies `/api` 
 To verify a working tree, run the proving ground **keyless** (it asserts the mock floor on purpose):
 
 ```bash
+pnpm run check   # from the root: engine gates, then the game suite
+
 env -u ANTHROPIC_API_KEY -u OPENAI_API_KEY -u ELEVENLABS_API_KEY -u GEMINI_API_KEY -u GOOGLE_API_KEY \
-  pnpm --filter @workspace/mydungeon-quest run check
+  pnpm --filter @workspace/mydungeon-quest run check   # the game suite alone
 ```
 
 ## The harness: how a turn works
@@ -62,15 +64,16 @@ validateDmTurn — client-owned law, stricter than any schema
                            game never advances on an invalid turn)
 ```
 
-Key pieces, and where they live in `artifacts/mydungeon-quest/`:
+Key pieces, and where they live. The law layer is the **fatescript engine** at `packages/engine/` (imported as `fatescript/*`); remaining paths are relative to `artifacts/mydungeon-quest/`:
 
 | Piece | Where | What it does |
 |---|---|---|
-| Rules authority & reducers | `src/lib/rules.js`, `src/lib/story.js`, `src/App.jsx` | All dice, initiative, HP, XP, canon. Model output arrives as deltas; the client may refuse them. |
-| The law | `src/lib/protocol.js` → `validateDmTurn` | Client-side validator; the final word on every turn. |
+| The engine | `packages/engine/` (`fatescript`) | Protocol, rules, story reducers, cards, graph, Living World, Chronicler validator — plus the Saga groundwork. Zero dependencies, MIT, its own gates. |
+| Rules authority & reducers | `fatescript/rules`, `fatescript/story`, `src/App.jsx` | All dice, initiative, HP, XP, canon. Model output arrives as deltas; the client may refuse them. |
+| The law | `fatescript/protocol` → `validateDmTurn` | Client-side validator; the final word on every turn. |
 | The contract | `src/lib/systemPrompt.js` | The DM's charge: a numbered MANDATORY CONTRACT plus THE CRAFT (prose discipline) — states everything a JSON schema cannot. |
 | The schema | `server/dm.js` | Anthropic tool schema kept in lockstep with the validator's enums, plus the repair-retry loop and SSE streaming. |
-| Entropy | `src/lib/protocol.js` → `makeEntropy` | Eight pre-rolled dice per turn for NPC/world randomness; the model must consume them in order and declare every use. No hidden rolls. |
+| Entropy | `fatescript/protocol` → `makeEntropy` | Eight pre-rolled dice per turn for NPC/world randomness; the model must consume them in order and declare every use. No hidden rolls. |
 | The Foundry | `src/lib/cinema/` | Two media lanes (paint / audio) with beat lookahead: while beat N plays, beat N+1's still and music phrase are already briefed under stable cache keys. |
 | The Audio Director | `src/lib/cinema/audioDirector.js` | The single throat for every non-narration sound; enforces the Sound Law (below). |
 | The seal | `src/lib/seal.js`, `public/verify.html` | Append-only, hash-linked, signed journal. Export a `.chronicle.json` and the offline verifier recomputes every hash, link, and signature. |
@@ -108,7 +111,7 @@ Each law is written in three places, deliberately redundant:
 
 1. **The tool schema** (`server/dm.js`) teaches the model every enum and shape the client will accept — a model cannot guess `boss_reveal` or `d100` from vibes.
 2. **The system prompt** (`src/lib/systemPrompt.js`) states what a schema cannot express: word budgets, entropy order, DC honesty, beat pacing, tone covenants.
-3. **The validator** (`src/lib/protocol.js`) enforces all of it, client-side, after the fact — including against the codex itself: the pre-turn cast snapshot travels with every validation (`validateDmTurn(payload, entropy, { cast })`), so the dead cannot be given dialogue. It is the only layer that *matters*; the other two exist so the model rarely meets it.
+3. **The validator** (`packages/engine/src/protocol.js`, imported as `fatescript/protocol`) enforces all of it, client-side, after the fact — including against the codex itself: the pre-turn cast snapshot travels with every validation (`validateDmTurn(payload, entropy, { cast })`), so the dead cannot be given dialogue. It is the only layer that *matters*; the other two exist so the model rarely meets it.
 
 **Amending a law** means changing all three in lockstep — schema, prompt, validator — then re-verifying against live turns (the model is nondeterministic; one green run proves nothing). Fixing a live failure by loosening the validator is the one forbidden move. The first amendment is live: **the dead do not speak** — schema note, prompt clause, validator check, all landed together, with the cast snapshot threaded through both the client turn path and the server repair loops.
 
@@ -125,7 +128,7 @@ The Director enforces provenance, precedence (voice > effects > music), the one-
 
 ## The Chronicler's three laws
 
-When a chapter closes, a second, smaller harness (`/api/retell`, one forced `chronicle_passage` tool call in `server/retell.js`) retells it as the "tale so far" page — and retelling is exactly the kind of work a model will embellish, so the Chronicler lives under laws of its own, enforced by one shared validator (`src/lib/chronicler.js`) in every court: the server's repair loop, the client that re-judges every wire response, and the proving ground.
+When a chapter closes, a second, smaller harness (`/api/retell`, one forced `chronicle_passage` tool call in `server/retell.js`) retells it as the "tale so far" page — and retelling is exactly the kind of work a model will embellish, so the Chronicler lives under laws of its own, enforced by one shared validator (`fatescript/chronicler`) in every court: the server's repair loop, the client that re-judges every wire response, and the proving ground.
 
 1. **It may not invent.** Every passage cites the sealed turn range it retells; every name it uses must resolve in the codex. An uncited retelling is an invention with good manners.
 2. **It may not contradict.** Dice ride in the margins (`dice_moments`) with exact sealed totals — *"Here the die showed nineteen."* The dead are not quoted after the turn that killed them; dying words in the killing turn are honored, as at the table.
@@ -177,18 +180,23 @@ Media has two player-facing tiers: **Parchment** (procedural art, and silence) a
 This is a pnpm workspace; the game is one self-contained artifact within it.
 
 ```
+packages/engine/             ← fatescript: the law layer (protocol, rules,
+                               story, cards, graph, Living World, Chronicler,
+                               Saga groundwork) — zero deps, MIT, its own gates
 artifacts/mydungeon-quest/   ← the game (start here)
-  src/                         React 19 client — rules authority, reducers,
+  src/                         React 19 client — reducers wired to the engine,
                                Foundry, seal, narrator, all UI
   server/                      Express 5 — DM proxy, media routes, adapters
-  evals/                       the keyless proving ground
+  evals/                       the keyless proving ground (58 gates)
   GAME_NOTES.md, CHANGELOG.md, NOTICE.md, README.md
 artifacts/api-server/        unrelated workspace API template (not the game)
 artifacts/mockup-sandbox/    design-preview tooling (not the game)
+docs/                        the library: CLAWS, HOUSE, GLOSSARY, ROADMAP,
+                               directives/ (I–V), archive/
 lib/, scripts/               shared workspace libraries and maintenance
 ```
 
-Historical design documents are preserved at the root: `REMAKE-DIRECTIVE.md` (the visual-cut directive) and `HANDOFF-REPLIT.md` (the engine-cut handoff). They are the paper trail, not the current spec — notably, the film/video pipeline they describe was retired in July 2026 in favor of painted stills; old chronicles keep their film-era keyframes as ordinary illustrations, and sealed history is never rewritten.
+The paper trail lives in [`docs/directives/`](docs/directives/) — every cut's directive, the Remake through the Saga Cut (V), preserved as written — with earlier handoffs in `docs/archive/`. They are the road walked, not the current spec; notably, the film/video pipeline they describe was retired in July 2026 in favor of painted stills, and sealed history is never rewritten. The standing law table is [`docs/CLAWS.md`](docs/CLAWS.md); the road ahead is [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Credits
 

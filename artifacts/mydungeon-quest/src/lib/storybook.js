@@ -1,5 +1,5 @@
 import { BOOK_FONT_CSS } from './bookFonts.js';
-import { ACT_NAMES, romanNumeral } from './story.js';
+import { ACT_NAMES, romanNumeral } from 'fatescript/story';
 
 // ------------------------------------------------------------
 // THE STORYBOOK, second binding (the Experience Cut, Phase 4).
@@ -37,8 +37,8 @@ const ACT_TINTS = { 1: '#9f7438', 2: '#7d3b2e', 3: '#5b4a72' };
 const dateWord = (ms) => (Number.isFinite(ms) && ms > 0 ? new Date(ms).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : null);
 
 // The cards: first/last sealed words per soul, derived lawfully from the log.
-import { cardsForCampaign } from './cards.js';
-import { wordsLine } from './wikiText.js';
+import { cardsForCampaign } from 'fatescript/cards';
+import { wordsLine } from 'fatescript/wikiText';
 
 // One line per soul for the dramatis personae — the fates.
 function fateLine(soul) {

@@ -1,8 +1,8 @@
 // THE GRAPH GATE — the [STORY] pack is scene-first, tie-aware, budgeted,
 // deterministic, and keeps storyBlock's contract (directives verbatim).
 import assert from 'node:assert/strict';
-import { initCodex, applyStoryUpdates, storyBlock } from '../src/lib/story.js';
-import { buildContextPack } from '../src/lib/graph.js';
+import { initCodex, applyStoryUpdates, storyBlock } from 'fatescript/story';
+import { buildContextPack } from 'fatescript/graph';
 
 const hero = { name: 'Sera Vale', ancestry: 'Human', className: 'Knight', presentation: 'feminine' };
 let codex = initCodex('classic-epic');

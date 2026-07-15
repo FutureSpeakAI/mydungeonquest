@@ -1,9 +1,9 @@
 // THE LIVING WORLD GATE — ticks are ops-only, bounded, budgeted, lawful,
 // deterministic, and visible to the cards while silent to the book.
 import assert from 'node:assert/strict';
-import { tickUpdates, tickLogEntry, pickTickTargets, TICK_BUDGET } from '../src/lib/livingWorld.js';
-import { initCodex, applyStoryUpdates } from '../src/lib/story.js';
-import { buildCards } from '../src/lib/cards.js';
+import { tickUpdates, tickLogEntry, pickTickTargets, TICK_BUDGET } from 'fatescript/livingWorld';
+import { initCodex, applyStoryUpdates } from 'fatescript/story';
+import { buildCards } from 'fatescript/cards';
 
 let codex = initCodex('classic-epic');
 const add = (name, role, goal, bond = 0) => ({ name, role, visual: 'painted', voice: '', goal, secret: '' });

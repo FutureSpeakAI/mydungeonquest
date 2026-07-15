@@ -11,7 +11,12 @@ export default defineConfig({
     port,
     strictPort: true,
     allowedHosts: true,
-    proxy: { '/api': `http://127.0.0.1:${internalApiPort}` }
+    proxy: {
+      '/api': `http://127.0.0.1:${internalApiPort}`,
+      // The store dowry rides the server even in dev, so the preview answers
+      // the same way production does.
+      '/.well-known': `http://127.0.0.1:${internalApiPort}`
+    }
   },
   build: {
     outDir: 'dist',

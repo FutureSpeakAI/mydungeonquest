@@ -19,3 +19,5 @@
 - [MyDungeon seen ledger & fresh cards](mydungeon-seen-ledger.md) — reveals are device-local (never sealed/synced/exported); card ladder skips seen art (replays exempt); scene paints are turn-salted; chained overlays need keyed remounts.
 - [MyDungeon storybook retelling](mydungeon-storybook-retelling.md) — played-order runs; seen-only art seated with its stretch; pages must prove cites; hero face by stable key, oldest-bust fallback.
 - [Fable 5 cut drops](fable5-cut-drops.md) — full-tree zips: diff & lift only deltas, keep our lockfile, never import their .agents; absences are intentions (SW retirement needs a destructor, not deletion).
+- [Metro vs sibling Vite crawl race](metro-vite-crawl-race.md) — a sibling Vite re-optimizing .vite/deps mid-crawl kills Metro's watcher (ENOENT); let Vite settle, then restart expo.
+- [Expo shell around the web house](expo-webview-shell.md) — WebView shell laws: door law fails OUTWARD by hostname (backslash trick!); no web arm (iframe preview); never a spinner.

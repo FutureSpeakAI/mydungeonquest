@@ -14,6 +14,7 @@ import { initMint, mintConfigured } from './mint.js';
 import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
 import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport, testHerald, ownersBell } from './watchtower.js';
+import { assetlinksFor } from './dowry.js';
 
 // THE WATCHTOWER's tripwires: a crash is never silent.
 installAlarms();
@@ -371,6 +372,16 @@ app.post('/api/bind-pdf', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 3
     console.error(error);
     res.status(503).json({ error: 'PDF binding requires the Playwright Chromium browser. Run: npx playwright install chromium' });
   } finally { await browser?.close(); }
+});
+
+// THE STORE DOWRY (Directive III, Phase 7 groundwork): the Digital Asset
+// Links statement that lets a trusted Android wrap own this domain. It is
+// env-chalked — with no signing fingerprint set, the door answers an honest
+// empty list, which verifies nothing and breaks nothing. Several
+// fingerprints may ride comma-separated (Play's app-signing key beside an
+// upload key).
+app.get('/.well-known/assetlinks.json', (_req, res) => {
+  res.json(assetlinksFor(process.env));
 });
 
 const dist = join(root, 'dist');

@@ -1,21 +1,14 @@
-const CACHE = 'mydungeon-cinematic-v1';
-const CORE = ['/', '/manifest.webmanifest', '/icon.svg', '/verify.html'];
-self.addEventListener('install', (event) => event.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE))));
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
-self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  if (request.method !== 'GET') return;
-  if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).then((response) => {
-      const clone = response.clone();
-      caches.open(CACHE).then((c) => c.put(request, clone));
-      return response;
-    }).catch(() => caches.match(request).then((r) => r || caches.match('/'))));
-    return;
-  }
-  event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-    const clone = response.clone();
-    caches.open(CACHE).then((c) => c.put(request, clone));
-    return response;
-  })));
+// THE QUIET RECORD — the service worker is retired. This destructor is served
+// so every OLD installation stands down on its next update check: caches
+// cleared, registration removed, open pages steered back to the network.
+// (Deleting the file outright would leave installed workers serving stale
+// caches indefinitely — a failed update check keeps the old registration.)
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    for (const key of await caches.keys()) await caches.delete(key);
+    await self.registration.unregister();
+    const pages = await self.clients.matchAll({ type: 'window' });
+    for (const page of pages) page.navigate(page.url).catch(() => {});
+  })());
 });

@@ -116,3 +116,27 @@ layer (App.jsx, components, cinema/prompts, storybook, styles, prologue).
 - Verified live end-to-end: Gemini paint (PNG) + Veo video (mp4), ElevenLabs
   voice + music (mp3), Anthropic DM. Keyless `npm run check` stays green (no
   keys → all mock; eval asserts DM provider === 'mock').
+
+## The Brand Cut (2026-07-15)
+- New landing (`public/welcome.html`): full-bleed rotating reel with Ken Burns
+  and ember layer (keyart fallback, `public/reel/manifest.json` when shot),
+  foil display type (Cinzel 900 + Cinzel Decorative + Cormorant Italic),
+  selling copy, guided CTAs, quiet seats, reduced-motion honored.
+- The mark: the Icosahedron Rose (`public/brand/mark.svg`) + simplified
+  `public/icon.svg` favicon/app icon.
+- `HOUSE_STYLE` exported as a brand asset; `npm run brand-shoot` generates the
+  20-frame reel through the live paint adapter (refuses on mock).
+- The Quiet Record begins: service worker retired (web app, not installable),
+  the storybook colophon speaks human, the notary's desk is unlisted (file and
+  its eval stand; no player-facing road leads there).
+- Brand tokens in `styles.css` (`--ember`, `.foil`, display scale, `.voice-italic`);
+  BRAND.md at the repo root; superseded directives archived to `docs/archive/`;
+  EXPERIENCE-DIRECTIVE-III (The Audience Cut) added as the next program.
+- Integration notes (landed by this house, diverging from the cut where law
+  required): the retired service worker is *served as a self-destructor*
+  rather than deleted — a missing file leaves already-installed workers
+  pinned to stale caches; and `brand-shoot` walks the Watchtower's toll gate
+  (per-frame `spendAllowed` check, a mark on the tally per frame, stands down
+  at the ceiling) and refuses to write a manifest for a short reel unless
+  `ALLOW_PARTIAL_REEL=1` — the landing keeps its keyart fallback instead.
+

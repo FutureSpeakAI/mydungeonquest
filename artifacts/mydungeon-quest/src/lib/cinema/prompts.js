@@ -23,6 +23,11 @@ export function scrubPrompt(text, campaign = {}) {
 // with explicit negatives to steer away from glossy CGI, cartoon, and anime.
 const ART_DIRECTION = 'Rendered as a painterly high-fantasy illustration in the tradition of Alan Lee and John Howe: naturalistic oil-and-watercolour concept art, muted earthen and candlelit palette, atmospheric depth with soft diffused light, fine painterly brushwork and film-preproduction realism, cinematic composition. Not cartoonish, not anime, not glossy 3D render, not video-game screenshot. Family-safe PG-13 with restrained peril and no exploitative detail. No text, watermarks, logos, or borders.';
 
+// THE HOUSE STYLE — the brand's own art direction, used for marketing
+// art (the reel, key art, social cards) and as the final fallback when a
+// tale carries no style bible of its own.
+export const HOUSE_STYLE = 'Painterly epic fantasy in deep ink and candle-gold: chiaroscuro light, ember-rimmed silhouettes, weathered heroes against monumental scale, visible brushwork, no text, no borders';
+
 export function portraitPrompt(campaign, soul, variant = 'bust') {
   return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. Appearance canon: ${soul.visual}. Expression and posture reveal this goal: ${soul.goal}. No text, no frame.`, campaign);
 }

@@ -309,7 +309,7 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
   ${strip}
   <section class="leaf chapter"><h2>The Memoir</h2>${(campaign.codex?.memoir || []).map((line) => `<p>${esc(line)}</p>`).join('') || '<p>No memoir was written.</p>'}</section>
   <section class="leaf seal-page"><div class="wax large">${esc(campaign.hero?.sigil || '✦')}</div><h2>Sealed, and true</h2>
-    <p class="verify-statement">Every turn of this tale is hash-chained on the device that lived it — nothing here was rewritten after the wax took. The proof rides inside this very file; present it to the notary at <strong>/verify.html</strong> and the chain will speak for itself.</p>
+    <p class="verify-statement">Made at the table of MyDungeon.Quest — every word and every plate from one told tale, kept exactly as it was lived, from the first step to the last.</p>
     <dl><dt>Begun</dt><dd>${esc(begun || '—')}</dd><dt>${campaign.sealedAt ? 'Sealed' : 'Last written'}</dt><dd>${esc((campaign.sealedAt ? dateWord(campaign.sealedAt) : dateWord(campaign.updatedAt)) || '—')}</dd><dt>Records</dt><dd>${journal.length}</dd><dt>Head hash</dt><dd>${esc(campaign.headHash || 'unsealed')}</dd><dt>Signature</dt><dd>${esc(campaign.signatureStatus || 'hash-only')}</dd></dl>
     <p><button class="proof-button" id="save-proof">Save the proof (.chronicle.json)</button></p>
     <p class="small">Built locally by MyDungeon.Quest — Cinematic Edition. This work includes material compatible with the Systems Reference Document 5.1, licensed under Creative Commons Attribution 4.0 International.</p>

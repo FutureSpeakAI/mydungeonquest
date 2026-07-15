@@ -18,3 +18,4 @@
 - [Toll-House laws & connector](toll-house-laws.md) — 6-turn lifetime taste; $5/wk & $129.99/yr unmetered; renewsAt honest-null; retired marks raise nothing; never sell a seated patron a second chair.
 - [MyDungeon seen ledger & fresh cards](mydungeon-seen-ledger.md) — reveals are device-local (never sealed/synced/exported); card ladder skips seen art (replays exempt); scene paints are turn-salted; chained overlays need keyed remounts.
 - [MyDungeon storybook retelling](mydungeon-storybook-retelling.md) — played-order runs; seen-only art seated with its stretch; pages must prove cites; hero face by stable key, oldest-bust fallback.
+- [Fable 5 cut drops](fable5-cut-drops.md) — full-tree zips: diff & lift only deltas, keep our lockfile, never import their .agents; absences are intentions (SW retirement needs a destructor, not deletion).

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="MyDungeon.Quest — the Icosahedron Rose">
+  <!-- THE ICOSAHEDRON ROSE — a d20 face-on, drawn as a cathedral rose
+       window: die, window, and seal in one mark. Gold engraving on ink. -->
+  <defs>
+    <linearGradient id="foil" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#f3d489"/><stop offset=".5" stop-color="#d4a24e"/><stop offset="1" stop-color="#8a5f24"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="49" fill="#0d0b14"/>
+  <circle cx="50" cy="50" r="46.2" fill="none" stroke="url(#foil)" stroke-width="1.4"/>
+  <circle cx="50" cy="50" r="42.6" fill="none" stroke="url(#foil)" stroke-width=".55" opacity=".8"/>
+  <!-- twenty beads for twenty faces -->
+  <g fill="url(#foil)">
+    <circle cx="50" cy="5.6" r=".95"/><circle cx="63.7" cy="7.8" r=".95"/><circle cx="76.1" cy="14.1" r=".95"/><circle cx="85.9" cy="23.9" r=".95"/><circle cx="92.2" cy="36.3" r=".95"/>
+    <circle cx="94.4" cy="50" r=".95"/><circle cx="92.2" cy="63.7" r=".95"/><circle cx="85.9" cy="76.1" r=".95"/><circle cx="76.1" cy="85.9" r=".95"/><circle cx="63.7" cy="92.2" r=".95"/>
+    <circle cx="50" cy="94.4" r=".95"/><circle cx="36.3" cy="92.2" r=".95"/><circle cx="23.9" cy="85.9" r=".95"/><circle cx="14.1" cy="76.1" r=".95"/><circle cx="7.8" cy="63.7" r=".95"/>
+    <circle cx="5.6" cy="50" r=".95"/><circle cx="7.8" cy="36.3" r=".95"/><circle cx="14.1" cy="23.9" r=".95"/><circle cx="23.9" cy="14.1" r=".95"/><circle cx="36.3" cy="7.8" r=".95"/>
+  </g>
+  <!-- stained-glass facets -->
+  <polygon points="23.15,34.5 76.85,34.5 50,81" fill="url(#foil)" opacity=".07"/>
+  <polygon points="50,36 37.9,57 62.1,57" fill="url(#foil)" opacity=".14"/>
+  <polygon points="50,19 23.15,34.5 50,36" fill="url(#foil)" opacity=".05"/>
+  <polygon points="50,19 76.85,34.5 50,36" fill="url(#foil)" opacity=".09"/>
+  <!-- the die: hexagon silhouette -->
+  <polygon points="50,19 23.15,34.5 23.15,65.5 50,81 76.85,65.5 76.85,34.5" fill="none" stroke="url(#foil)" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- the great face -->
+  <polygon points="23.15,34.5 76.85,34.5 50,81" fill="none" stroke="url(#foil)" stroke-width="1.1" stroke-linejoin="round"/>
+  <!-- the crown face -->
+  <polygon points="50,36 37.9,57 62.1,57" fill="none" stroke="url(#foil)" stroke-width="1" stroke-linejoin="round"/>
+  <!-- tracery spokes -->
+  <g stroke="url(#foil)" stroke-width=".8" opacity=".9">
+    <line x1="50" y1="19" x2="50" y2="36"/><line x1="23.15" y1="65.5" x2="37.9" y2="57"/><line x1="76.85" y1="65.5" x2="62.1" y2="57"/>
+    <line x1="23.15" y1="34.5" x2="37.9" y2="57"/><line x1="76.85" y1="34.5" x2="62.1" y2="57"/><line x1="50" y1="81" x2="50" y2="57"/>
+  </g>
+  <!-- the pip: a four-point star at heart -->
+  <path d="M50 43.2 L52.6 49.4 L58.8 51 L52.6 52.6 L50 58.8 L47.4 52.6 L41.2 51 L47.4 49.4 Z" fill="url(#foil)"/>
+</svg>

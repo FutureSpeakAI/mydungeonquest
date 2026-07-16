@@ -10,6 +10,7 @@ import { TollSection, useToll } from '../patron/toll.jsx';
 import { clockWords } from '../lib/clockAtTable.js';
 import { resolveSheetFace } from '../lib/sheetFace.js';
 import { chapterCard, downloadCard } from '../lib/shareCard.js';
+import { heroPurse } from '../lib/ledger.js';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -80,13 +81,19 @@ function Frame({ title, icon, onClose, children, wide = false }) {
 
 export function CharacterSheet({ campaign, onClose, onExport }) {
   const h = campaign.hero;
+  // THE PURSE — coin and pack are projections of the sealed record,
+  // folded through the one ledger; refusals are receipts, shown, and a
+  // count that drifted from the sheet's old memory says so out loud.
+  const purse = useMemo(() => heroPurse(campaign), [campaign]);
   return <Frame title="Character Sheet" icon={<Shield/>} onClose={onClose}>
     <div className="sheet-hero"><AnchorBust campaign={campaign}/><div><h3>{h.name}</h3><p>Level {h.level} {h.ancestry} {h.className}</p></div></div>
-    <div className="stat-ribbon"><span><b>{h.hp}/{h.maxHp}</b> HP</span><span><b>{h.ac}</b> AC</span><span><b>{h.gold}</b> gold</span><span><b>{h.xp}</b> XP</span></div>
+    <div className="stat-ribbon"><span><b>{h.hp}/{h.maxHp}</b> HP</span><span><b>{h.ac}</b> AC</span><span><b>{purse.coin}</b> gold</span><span><b>{h.xp}</b> XP</span></div>
+    {!purse.agrees && <p className="muted">The ledger counts {purse.coin}; the sheet remembered {h.gold}. The record rules.</p>}
     <div className="ability-grid compact">{Object.entries(h.abilities).map(([a,v]) => <div key={a}><b>{a}</b><span>{v}</span><small>{Math.floor((v-10)/2) >= 0 ? '+' : ''}{Math.floor((v-10)/2)}</small></div>)}</div>
     <h3>Spell slots</h3><div className="slot-row">{Object.entries(h.spellSlots).length ? Object.entries(h.spellSlots).map(([lvl,slot]) => <span key={lvl}>L{lvl} {Array.from({length:slot.max},(_,i)=><i className={i<slot.current?'full':''} key={i}/>)}</span>) : <em>No prepared slots</em>}</div>
     <h3>Conditions</h3>{h.conditions.length ? h.conditions.map((c)=><div className="condition" key={c}><b>{c}</b><span>{CONDITIONS[c]}</span></div>) : <p className="muted">No conditions.</p>}
-    <h3>Inventory</h3><ul>{h.inventory.map((item)=><li key={item}>{item}</li>)}</ul>
+    <h3>Inventory</h3><ul>{purse.pack.map(({ item, qty }) => <li key={item}>{qty > 1 ? `${qty}\u00d7 ${item}` : item}</li>)}</ul>
+    {purse.refusals.length > 0 && <><h3>The till\u2019s receipts</h3>{purse.refusals.map((r, i) => <p className="muted" key={i}>Refused at t.{r.turn} \u2014 {r.reason}.</p>)}</>}
     <button className="secondary-button" onClick={onExport}><Download/> Export sealed chronicle</button>
   </Frame>;
 }

@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 50 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 51 present · 5 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -202,11 +202,9 @@ A chapter’s public face: secrets struck, quotes verbatim, plates through the s
 
 Time derived from the record, never stored: time_advance and sealed spans fold to day and hour; watches name the light; the age ladder walks souls forward (child 8y → young 14y → adult 25y → elder) and the dead are outside time.
 
-### The Ledger — coin & goods conserved — PENDING (wiring 0/1)
+### The Ledger — coin & goods conserved — PRESENT
 
 Double-entry trades, atomic and cause-bearing; wallets and inventories are projections, byte-identical on replay; the world gives nothing without a cause; refusals are receipts. Progression, loot, and shops all stand on this.
-
-*Awaiting: 'buildLedger' under artifacts/mydungeon-quest/src.*
 
 ### The Market — witnessed prices — PENDING (wiring 0/1)
 

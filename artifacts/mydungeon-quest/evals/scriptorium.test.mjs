@@ -73,7 +73,21 @@ const CAMPAIGN = {
   assert.equal(roomForTurn({ id: 'x' }), null);
 }
 
-// 4. THE WIRING — the room convenes at the pack seam and rides the
+// 4. THE REDACTION LAW AT THE SEAM — a struck row marks no soul
+//    active: the room plans from the unstruck record only. The same
+//    row unstruck moves the plan, so the fixture has teeth.
+{
+  const castAdd = { dm: { story: { cast_add: [{ name: 'Mira', role: 'ally', goal: 'find her brother', visual: 'grey-cloaked' }] }, narration_blocks: [] }, redacted: false };
+  const speaks = { turn: 9, dm: { narration_blocks: [{ speaker: 'Mira', text: 'I am here.' }] }, redacted: true };
+  const base = { ...CAMPAIGN, logs: [castAdd] };
+  const struck = { ...CAMPAIGN, logs: [castAdd, speaks] };
+  const unstruck = { ...CAMPAIGN, logs: [castAdd, { ...speaks, redacted: false }] };
+  assert.equal(JSON.stringify(roomForTurn(struck)), JSON.stringify(roomForTurn(base)), 'a struck row steers nothing');
+  assert.ok(roomForTurn(struck).scratchpad.character.includes('Mira'), 'the starved soul stands unmoved by struck speech');
+  assert.ok(roomForTurn(unstruck).scratchpad.character.includes('Tam'), 'the same row unstruck moves the plan — the fixture has teeth');
+}
+
+// 5. THE WIRING — the room convenes at the pack seam and rides the
 //    directives additively; the codex shows the patron the plan; the
 //    engine's room is the only room.
 {
@@ -86,4 +100,4 @@ const CAMPAIGN = {
   assert.ok(lib.includes('fatescript/scriptorium') && lib.includes('mockRoom') && lib.includes('assertRoomSilent'), 'the engine\u2019s room, the engine\u2019s court');
 }
 
-console.log('PASS \u2014 the scriptorium gate (game): the keyless mock room convenes over the record with four scribes planning one domain each in scratchpad and directives never prose, the court refuses a speaking plan whole \u2014 prose machinery by key at any depth, smuggled paragraphs by length, non-strings outright \u2014 a sealed tale convenes nothing, and only a silent plan\u2019s directives ride the pack additively while the codex shows the patron the room\u2019s standing plan.');
+console.log('PASS \u2014 the scriptorium gate (game): the keyless mock room convenes over the record with four scribes planning one domain each in scratchpad and directives never prose, the court refuses a speaking plan whole \u2014 prose machinery by key at any depth, smuggled paragraphs by length, non-strings outright \u2014 a sealed tale convenes nothing, a struck row marks no soul active and steers no directive at this seam, and only a silent plan\u2019s directives ride the pack additively while the codex shows the patron the room\u2019s standing plan.');

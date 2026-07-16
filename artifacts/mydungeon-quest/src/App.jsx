@@ -494,14 +494,18 @@ export default function App() {
       // silence, and only a silent plan's directives ride the pack —
       // additively, like the clock and the sky. A plan that tries to
       // speak is discarded whole; One Door is fed, never amended.
-      const room = roomForTurn(base);
+      // A rider that stumbles never takes the turn down: the tale walks
+      // on without its counsel, and the door still speaks.
+      let room = null;
+      try { room = roomForTurn(base); } catch { room = null; }
       if (room) story = { ...story, directives: [...(story.directives || []), ...room.directives] };
       // THE HUMAN HAND — the tell court: the sealed record is measured
       // (free, deterministic; struck rows stay struck), and when a tell
       // family runs hot its counter-directive rides the pack — capped
       // at three, hottest first. The court measures; it never rewrites.
       // The pressure lands on this coming turn, where pressure belongs.
-      const hand = tellCourt(base);
+      let hand = { directives: [] };
+      try { hand = tellCourt(base); } catch { hand = { directives: [] }; }
       if (hand.directives.length) story = { ...story, directives: [...(story.directives || []), ...hand.directives] };
       // The DM keeps its own memory now: prior turns ride along as a
       // real conversation, so prose has continuity — and the stable

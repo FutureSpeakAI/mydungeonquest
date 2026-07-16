@@ -24,7 +24,12 @@ export const courtRoom = assertRoomSilent;
 export function roomForTurn(campaign) {
   if (!campaign?.codex || campaign.completed) return null;
   let cards = {};
-  try { cards = cardsForCampaign(campaign).cards; } catch { cards = {}; }
+  // THE REDACTION LAW at this seam: the cards the room plans from are
+  // derived from the UNSTRUCK record only. A struck row feeds no
+  // scribe, marks no soul active, and steers no directive — the
+  // engine's cards fold reads whatever it is handed, so the hand
+  // must be clean.
+  try { cards = cardsForCampaign({ ...campaign, logs: (campaign.logs || []).filter((entry) => !entry?.redacted) }).cards; } catch { cards = {}; }
   const plan = mockRoom({ codex: campaign.codex, cards });
   const court = assertRoomSilent(plan);
   if (!court.ok) return null;

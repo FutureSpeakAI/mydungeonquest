@@ -507,4 +507,15 @@ receipt.dismissTollNotice();
   assert.equal(minted, 0, 'no customer minted for a friend of the house');
 }
 
-console.log('toll-house eval — the gateway is lawful: the door is locked (keyed) and absent (keyless), the taste is six turns counted for life with honest nulls for dates, paid seats pour unmeasured, stand-ins are never billed, the refusal receipt reaches the window (and stays dark keyless), seats flip both ways and retired marks raise nothing, the owner’s gift stands outside the mint’s reach, the courier honors the seal, and a keyless fork never learns money exists.');
+// --- The owner's gift is written at the door, from the environment ---
+{
+  const { houseSeatMatch } = await import('../server/patrons.js');
+  assert.equal(houseSeatMatch('stephen@example.com', { clerkUserId: 'user_x', email: 'Stephen@Example.COM' }), true, 'an email on the list seats its patron, case blind');
+  assert.equal(houseSeatMatch('user_abc, other@x.y', { clerkUserId: 'user_abc', email: null }), true, 'a door name on the list seats its patron without an email');
+  assert.equal(houseSeatMatch('a@b.c  user_q', { clerkUserId: 'user_z', email: 'z@z.z' }), false, 'a stranger is never gifted');
+  assert.equal(houseSeatMatch('', { clerkUserId: 'user_z', email: 'z@z.z' }), false, 'an empty list gifts no one');
+  assert.equal(houseSeatMatch(undefined, { clerkUserId: 'user_z', email: 'z@z.z' }), false, 'an absent list gifts no one');
+  assert.equal(houseSeatMatch('z@z.z', {}), false, 'a nameless knock is never gifted');
+}
+
+console.log('toll-house eval — the gateway is lawful: the door is locked (keyed) and absent (keyless), the taste is six turns counted for life with honest nulls for dates, paid seats pour unmeasured, stand-ins are never billed, the refusal receipt reaches the window (and stays dark keyless), seats flip both ways and retired marks raise nothing, the owner’s gift stands outside the mint’s reach — and can be written at the door from the environment, lifting only a free chair — the courier honors the seal, and a keyless fork never learns money exists.');

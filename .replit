@@ -28,6 +28,7 @@ SPEAK_PROVIDER = "elevenlabs"
 DM_MODEL = "claude-sonnet-5"
 DM_MODEL_GENESIS = "claude-sonnet-5"
 DM_MODEL_UTILITY = "claude-haiku-4-5-20251001"
+HOUSE_SEATS = "stephencwebster@gmail.com"
 
 [nix]
 channel = "stable-25_05"

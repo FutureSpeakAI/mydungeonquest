@@ -28,3 +28,10 @@ description: MyDungeon.Quest billing doctrine — the menu, honest-nulls law, re
 
 ## The refused-pour resume (July 2026)
 A 402 refusal is remembered as an intent in sessionStorage (module state dies at the Stripe redirect): kind + campaignId/logId via an ambient pour context in tollNotice. `settleTollReturn` now returns `{ word, retry }` — retry only on `?toll=paid`; kept/seen clear the intent. Paint auto-retries (idempotent); other kinds get a one-shot "Pour it now" banner. lastStanding=null on any mark clears the advisory "spent" patch.
+
+## The owner's gift is written at the door (July 2026)
+- `HOUSE_SEATS` (shared env) names friends of the house — emails or Clerk ids, comma/whitespace split, case-blind. The door (`inscribe`) checks it at every knock and lifts the patron to `house`.
+- The free-only law lives in the UPDATE's WHERE (`AND plan = 'free'`): a gift never overwrites a paid chair and never re-writes itself. Race-proof by construction.
+- patrons.js must NEVER import toll.js (toll imports patrons — circular). No bustGrant needed: inscription always precedes the first pour of a process, so no stale grant exists.
+- Eval bench back-compat: `deps.fetchName` (name-only) still honored via shim; new stubs use `deps.fetchPatron` → `{ displayName, email }`.
+- Agent lane truth: the production DB is READ-ONLY to the agent — owner seats reach prod only via env+code riding a publish, or the user's own pane edit.

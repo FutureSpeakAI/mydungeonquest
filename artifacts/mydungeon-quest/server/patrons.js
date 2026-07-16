@@ -58,8 +58,9 @@ export function ensureLedger(query = runQuery) {
 
 // The display name is garnish — fetched best-effort from Clerk and raced
 // against a short candle so a slow Clerk API can never stall a patron's
-// first request; a timeout simply inscribes them nameless.
-async function fetchNameFromClerk(clerkUserId) {
+// first request; a timeout simply inscribes them nameless. The email rides
+// the same candle: it is read only to recognize a friend of the house.
+async function fetchFromClerk(clerkUserId) {
   const user = await Promise.race([
     clerkClient.users.getUser(clerkUserId),
     new Promise((_, reject) => {
@@ -70,21 +71,40 @@ async function fetchNameFromClerk(clerkUserId) {
       t.unref?.();
     }),
   ]);
-  return (
-    [user.firstName, user.lastName].filter(Boolean).join(' ') ||
-    user.username || null
-  );
+  return {
+    displayName:
+      [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+      user.username || null,
+    email:
+      user.primaryEmailAddress?.emailAddress ||
+      user.emailAddresses?.[0]?.emailAddress || null,
+  };
+}
+
+// THE OWNER'S GIFT, WRITTEN AT THE DOOR. `HOUSE_SEATS` in the environment
+// names friends of the house — emails or door names (Clerk ids), comma or
+// whitespace separated, case blind. A pure decision so the bench can judge
+// it; the free-only law (a gift never overwrites a PAID chair, and never
+// re-writes itself) lives in the UPDATE's own WHERE, race-proof.
+export function houseSeatMatch(list, { clerkUserId, email } = {}) {
+  const names = String(list || '')
+    .split(/[\s,]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!names.length) return false;
+  const mine = [clerkUserId, email].filter(Boolean).map((s) => String(s).toLowerCase());
+  return mine.some((name) => names.includes(name));
 }
 
 // One patron, one line. `deps` exists for the eval bench, which judges this
 // path with stubs — live callers take the defaults.
 export async function inscribe(clerkUserId, deps = {}) {
   const query = deps.query || runQuery;
-  const fetchName = deps.fetchName || fetchNameFromClerk;
+  const fetchPatron = deps.fetchPatron
+    || (deps.fetchName ? async (id) => ({ displayName: await deps.fetchName(id), email: null }) : fetchFromClerk);
   await ensureLedger(query); // bind the book before anyone signs it
   let displayName = null;
+  let email = null;
   try {
-    displayName = await fetchName(clerkUserId);
+    ({ displayName, email } = await fetchPatron(clerkUserId));
   } catch { /* nameless is still known */ }
   const { rows } = await query(
     `INSERT INTO users (clerk_user_id, display_name) VALUES ($1, $2)
@@ -94,7 +114,17 @@ export async function inscribe(clerkUserId, deps = {}) {
      RETURNING id, clerk_user_id, display_name, created_at`,
     [clerkUserId, displayName]
   );
-  return rows[0];
+  const row = rows[0];
+  try {
+    if (houseSeatMatch(process.env.HOUSE_SEATS, { clerkUserId, email })) {
+      const lifted = await query(
+        `UPDATE users SET plan = 'house', updated_at = now() WHERE id = $1 AND plan = 'free' RETURNING id`,
+        [row.id]
+      );
+      if (lifted.rows[0]) console.log(`[door] the owner's gift — ${displayName || clerkUserId} is seated a friend of the house.`);
+    }
+  } catch { /* the toll has not stood the plan column yet — the gift waits for the next knock */ }
+  return row;
 }
 
 // The visitors' book: clerk subject → Promise<ledger row>. One inscription

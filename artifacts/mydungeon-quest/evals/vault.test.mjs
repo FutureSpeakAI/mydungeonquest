@@ -268,7 +268,10 @@ const chain = await makeChain(4);
   unsubscribe();
 
   assert.equal(await db.campaigns.get('old-spine'), undefined, 'the old name is gone from the shelf');
-  assert.deepEqual(heard, { from: 'old-spine', to: newId }, 'the table is told the moment the spine forks');
+  // Lockstep with the Hearth Law: the fork notice now carries the deed
+  // return. In this vaultless harness the court can prove no unaccepted
+  // tail, so it honestly names none — the empty array IS the assertion.
+  assert.deepEqual(heard, { from: 'old-spine', to: newId, unsentDeeds: [] }, 'the table is told the moment the spine forks, and the deed court answers even when it has nothing to hand back');
   assert.equal(redirectSpine('old-spine'), newId, 'late writers holding the old name are redirected');
 
   const forkedJournal = await db.journal.where('campaignId').equals(newId).sortBy('i');

@@ -267,6 +267,24 @@ export function onSpineForked(listener) { forkListeners.add(listener); return ()
 // new name — and is vaulted as itself. The vault's telling stays restorable.
 export async function forkDivergedSpine(campaignId) {
   const newId = crypto.randomUUID();
+  // THE DEED RETURN (Hearth Law) — before anything moves, name the turns
+  // the hearth provably never accepted: rows past the vault's own count.
+  // Their words ride the fork notice home as UNSENT DEEDS — never lost.
+  // The arithmetic self-limits: an equal-count or behind fork names no
+  // deed (nothing is provably unaccepted client-side); only the classic
+  // stale-head race hands words back. All async work stays OUTSIDE the
+  // transaction below — the premature-commit law.
+  let unsentDeeds = [];
+  try {
+    const { unsentDeedOf, hearthRow } = await import('./hearth.js');
+    const head = await fetch(`/api/vault/campaign/${encodeURIComponent(campaignId)}`);
+    const server = head.ok ? await head.json() : null;
+    const kept = Number.isInteger(server?.turnCount) ? server.turnCount : null;
+    if (kept != null) {
+      const tail = (await campaignJournal(campaignId)).slice(kept);
+      unsentDeeds = tail.map((row) => unsentDeedOf({ row: hearthRow(row) })).filter(Boolean);
+    }
+  } catch { /* the deed court refuses no fork — the return is a mercy, never a toll */ }
   await db.transaction('rw', db.campaigns, db.journal, db.media, db.memories, db.keys, async () => {
     const campaign = await db.campaigns.get(campaignId);
     if (!campaign) return;
@@ -288,7 +306,7 @@ export async function forkDivergedSpine(campaignId) {
   forkedTo.set(campaignId, newId);
   mark(campaignId, 'diverged-forked', newId);
   mark(newId, 'diverged-forked', campaignId);
-  for (const listener of forkListeners) { try { listener({ from: campaignId, to: newId }); } catch { /* a deaf listener is its own problem */ } }
+  for (const listener of forkListeners) { try { listener({ from: campaignId, to: newId, unsentDeeds }); } catch { /* a deaf listener is its own problem */ } }
   await syncCampaign(newId);
   return newId;
 }

@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 44 present · 12 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 45 present · 11 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -172,11 +172,9 @@ The whole suite — engine gates, game gates, the salon — runs keyless in CI o
 
 A sealed tale hands a legacy packet to the next volume: exact voices, locked canon, the dead arriving dead, interludes bridging the years. Module and gate stand; opening Volume II at the table is a Directive V phase.
 
-### The Hearth — many chairs, one fire — PENDING (wiring 0/1)
+### The Hearth — many chairs, one fire — PRESENT
 
 Multi-device sync where the record is home: rows land once by hash, stale heads and broken chains are refused, and a losing fork hands back its deed unsent instead of losing anything.
-
-*Awaiting: 'fatescript/hearth' under artifacts/mydungeon-quest/src.*
 
 ### The annals — long memory — PENDING (wiring 0/1)
 

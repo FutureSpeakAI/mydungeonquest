@@ -2,9 +2,9 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 40 present · 16 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 41 present · 15 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
-**THE TRIAGE (wire first):** The face on the sheet · Bearing, Signature & the paint roster · The Warden — machine vision keeps the face.
+**THE TRIAGE (wire first):** Bearing, Signature & the paint roster · The Warden — machine vision keeps the face.
 
 ## I. The Table — the core loop
 
@@ -120,11 +120,9 @@ Every generated asset’s hash is recorded, and every anchored render records it
 
 Mock DM, procedural plates, honest silence and tones — clearly labeled, never billed, never mistaken for real. Every gate in the house passes with zero keys.
 
-### The face on the sheet — PENDING (wiring 0/1)
+### The face on the sheet — PRESENT
 
 The character sheet shows the hero’s own face: the blessed anchor (post-Sitting), else the first attested anchor, else the procedural bust on parchment — rendered as an AnchorBust at the head of the sheet, sourced from the media store by asset hash, never re-rendered for the occasion. A sheet without its face is a form, not a leaf. From the July 15 playtest.
-
-*Awaiting: 'AnchorBust' in artifacts/mydungeon-quest/src/components/Overlays.jsx.*
 
 ## IV. Keepsakes & public faces
 

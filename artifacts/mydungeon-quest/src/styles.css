@@ -393,6 +393,10 @@
 
 /* THE ORIGINAL FACE on the character sheet — the forge bust, found by its stable key */
 .sheet-hero img.hero-face{width:3.4rem;height:3.4rem;border-radius:50%;object-fit:cover;border:2px solid #9f7438;flex:0 0 auto}
+/* THE FACE ON THE SHEET (Directive VI, Phase 12): no lawful face falls to
+   the parchment mark — the sigil in a woodcut frame, a bust-shaped leaf,
+   never a bare form. */
+.sheet-hero .hero-face.parchment-bust{display:inline-flex;align-items:center;justify-content:center;width:3.4rem;height:3.4rem;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e9dfc8,#c9b184);color:#5a4632;font-size:1.5rem;border:2px solid #9f7438;box-shadow:inset 0 0 8px rgba(90,70,50,.4);flex:0 0 auto}
 
 /* ---- The Brand Cut: tokens and treatments ---- */
 :root{--ember:#c8502e;--foil-hi:#f3d489;--foil-lo:#8a5f24}

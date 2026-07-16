@@ -8,6 +8,7 @@ import { voiceLineOf, wordsLine, tieLine } from 'fatescript/wikiText';
 import { doorBuilt } from '../patron/door.jsx';
 import { TollSection, useToll } from '../patron/toll.jsx';
 import { clockWords } from '../lib/clockAtTable.js';
+import { resolveSheetFace } from '../lib/sheetFace.js';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -31,31 +32,45 @@ function useGallery(campaign) {
   return gallery;
 }
 
-// THE ORIGINAL FACE — the hero's first bust, found by the stable hash key on
-// the campaign (never by display-name label, which a rename would orphan).
-// Elder tales without the key fall back to the OLDEST bust under the hero's
-// label — the anchor law's own choice — never the latest take.
+// THE FACE ON THE SHEET — Directive VI, Phase 12. The ladder is the
+// resolver's law (src/lib/sheetFace.js): the blessed anchor (post-Sitting)
+// outranks all; else the stable hash key minted at the forge (a rename
+// never orphans it); else the elder-tale walk to the OLDEST bust under the
+// hero's own label — never the latest take, never a borrowed portrait.
+// Sourced from the media store by asset hash, never re-rendered.
 export function useHeroBust(campaign) {
   const [face, setFace] = useState(null);
   useEffect(() => {
     let url = null, alive = true;
     (async () => {
-      let row = campaign.heroBustHash ? await db.media.get(campaign.heroBustHash) : null;
-      if (!row?.blob) {
-        const rows = await db.media.where('campaignId').equals(campaign.id).toArray();
-        row = rows
-          .filter((r) => r.kind === 'paint' && r.variant === 'bust' && r.blob && String(r.label || '').includes(campaign.hero?.name || ''))
-          .sort((a, b) => a.createdAt - b.createdAt)[0] || null;
-      }
+      const rows = await db.media.where('campaignId').equals(campaign.id).toArray();
+      const { row } = resolveSheetFace({
+        heroName: campaign.hero?.name,
+        blessedHash: campaign.blessedAnchors?.hero || null,
+        anchorHash: campaign.heroBustHash || null,
+        rows,
+      });
       // No lawful face for THIS tale/name: clear any prior portrait — a live
-      // update must fall to the sigil, never keep a stale ghost on the sheet.
+      // update must fall to the parchment mark, never keep a stale ghost.
       if (!row?.blob) { if (alive) setFace(null); return; }
       url = URL.createObjectURL(row.blob);
       if (alive) setFace(url); else { URL.revokeObjectURL(url); url = null; }
     })();
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
-  }, [campaign.id, campaign.heroBustHash, campaign.hero?.name]);
+  }, [campaign.id, campaign.heroBustHash, campaign.hero?.name, campaign.blessedAnchors?.hero]);
   return face;
+}
+
+// THE ANCHOR BUST — the sheet's face as a leaf. The resolved anchor rides
+// as an image when one stands; the parchment floor is the hero's sigil in
+// the woodcut frame — a bust-shaped mark, never a bare form. A sheet
+// without its face is a form, not a leaf.
+export function AnchorBust({ campaign }) {
+  const h = campaign.hero;
+  const face = useHeroBust(campaign);
+  return face
+    ? <img className="hero-face" src={face} alt={h.name}/>
+    : <span className="hero-face parchment-bust" role="img" aria-label={`${h.name} — the parchment mark`}>{h.sigil}</span>;
 }
 
 function Frame({ title, icon, onClose, children, wide = false }) {
@@ -64,9 +79,8 @@ function Frame({ title, icon, onClose, children, wide = false }) {
 
 export function CharacterSheet({ campaign, onClose, onExport }) {
   const h = campaign.hero;
-  const face = useHeroBust(campaign);
   return <Frame title="Character Sheet" icon={<Shield/>} onClose={onClose}>
-    <div className="sheet-hero">{face ? <img className="hero-face" src={face} alt={h.name}/> : <span>{h.sigil}</span>}<div><h3>{h.name}</h3><p>Level {h.level} {h.ancestry} {h.className}</p></div></div>
+    <div className="sheet-hero"><AnchorBust campaign={campaign}/><div><h3>{h.name}</h3><p>Level {h.level} {h.ancestry} {h.className}</p></div></div>
     <div className="stat-ribbon"><span><b>{h.hp}/{h.maxHp}</b> HP</span><span><b>{h.ac}</b> AC</span><span><b>{h.gold}</b> gold</span><span><b>{h.xp}</b> XP</span></div>
     <div className="ability-grid compact">{Object.entries(h.abilities).map(([a,v]) => <div key={a}><b>{a}</b><span>{v}</span><small>{Math.floor((v-10)/2) >= 0 ? '+' : ''}{Math.floor((v-10)/2)}</small></div>)}</div>
     <h3>Spell slots</h3><div className="slot-row">{Object.entries(h.spellSlots).length ? Object.entries(h.spellSlots).map(([lvl,slot]) => <span key={lvl}>L{lvl} {Array.from({length:slot.max},(_,i)=><i className={i<slot.current?'full':''} key={i}/>)}</span>) : <em>No prepared slots</em>}</div>

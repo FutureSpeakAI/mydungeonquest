@@ -854,16 +854,27 @@ export default function App() {
   // volume: the world door is skipped, legacy souls arrive with their
   // exact voices, the dead arrive dead, and the stated span is bridged
   // as sealed record before the first word is spoken at the new table.
+  // The ref is a synchronous latch: three span buttons, one road. State
+  // is too slow to bar a double tap in the same tick — the ref refuses
+  // the second press before React ever re-renders, so a double tap can
+  // never forge two volumes.
+  const openingVolumeRef = useRef(false);
   const openNext = async (years) => {
     if (!current?.sealedAt || current.readOnly || busy) return;
-    playUiSfx(current, 'seal');
-    const { campaign: nextVolume, span } = await openNextVolume(current, { years, seal });
-    setOverlay(null);
-    setCurrent(nextVolume); setFlow('table');
-    setStatus(`✦ ${span} ${nextVolume.saga.worldTitle} turns a new page.`);
-    await refreshShelf();
-    const started = await prologueRender(nextVolume);
-    await playTurn(started, 'Begin the chronicle.', null, null);
+    if (openingVolumeRef.current) return;
+    openingVolumeRef.current = true;
+    try {
+      playUiSfx(current, 'seal');
+      const { campaign: nextVolume, span } = await openNextVolume(current, { years, seal });
+      setOverlay(null);
+      setCurrent(nextVolume); setFlow('table');
+      setStatus(`✦ ${span} ${nextVolume.saga.worldTitle} turns a new page.`);
+      await refreshShelf();
+      const started = await prologueRender(nextVolume);
+      await playTurn(started, 'Begin the chronicle.', null, null);
+    } finally {
+      openingVolumeRef.current = false;
+    }
   };
 
   // THE SEALING rises by itself exactly once per campaign per session, after

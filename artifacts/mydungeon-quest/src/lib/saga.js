@@ -56,7 +56,7 @@ export async function sealLegacy(campaign, { seal = sealRecord } = {}) {
 // with exact voices and locked canon, the dead arrive dead, and the
 // stated span is bridged as sealed client record before the first word.
 export async function openNextVolume(campaign, { years = 3, spineId = null, seal = sealRecord } = {}) {
-  if (!campaign?.completed && !campaign?.sealedAt) throw new Error('only a sealed tale hands on its legacy');
+  if (!campaign?.sealedAt) throw new Error('only a sealed tale hands on its legacy — the wax comes first');
   const journal = await campaignJournal(campaign.id).catch(() => []);
   const sealedPacket = [...journal].reverse().find((row) => row.type === 'legacy')?.payload || null;
   const packet = sealedPacket || legacyPacketOf(campaign);

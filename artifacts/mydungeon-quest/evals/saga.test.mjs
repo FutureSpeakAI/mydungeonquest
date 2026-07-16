@@ -134,6 +134,7 @@ const two = opened.campaign;
   const app = read('src/App.jsx');
   assert.ok(app.includes('sealLegacy('), 'the press writes the packet');
   assert.ok(app.includes('openNextVolume('), 'the table opens the next volume');
+  assert.ok(app.includes('openingVolumeRef'), 'the road bars a double tap — one press, one volume');
   assert.ok(read('src/components/Ceremony.jsx').includes('onNextVolume'), 'the ceremony offers the road on');
 }
 

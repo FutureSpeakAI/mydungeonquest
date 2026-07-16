@@ -22,3 +22,5 @@
 - [GitHub org push rights](github-org-push-rights.md) — PUSH_REJECTED on a provable fast-forward = agent token lacks org-repo write; probe publicly, then hand the push to the user's pane.
 - [Metro vs sibling Vite crawl race](metro-vite-crawl-race.md) — a sibling Vite re-optimizing .vite/deps mid-crawl kills Metro's watcher (ENOENT); let Vite settle, then restart expo.
 - [Expo shell around the web house](expo-webview-shell.md) — WebView shell laws: door law fails OUTWARD by hostname (backslash trick!); no web arm (iframe preview); never a spinner.
+- [JSX text ignores \u escapes](jsx-unicode-escapes.md) — \u2019 etc. render literally in JSX text nodes; paste real characters there; only JS string contexts unescape.
+- [Engine folds resolve queues backwards](engine-backward-queues.md) — tail-first queue drains make same-pass duplicates resolve later-card-first; gate outcomes (one winner + named refusal + determinism), never intra-pass order.

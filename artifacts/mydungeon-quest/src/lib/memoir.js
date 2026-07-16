@@ -54,6 +54,11 @@ export function composeActAnnal(campaign, actNumber) {
 // bench can prove the refusal path (a lying digest is never sealed).
 export async function chronicleActClose(campaign, actNumber, { seal, save, reload, compose = composeActAnnal } = {}) {
   if (!campaign || !seal || !save || !reload) throw new Error('the Chronicler needs a tale and three hands');
+  // Idempotent by law: a chronicled act is never chronicled twice, no
+  // matter how a retry re-enters the close. (A struck annal stays
+  // struck — redaction is not an invitation to rewrite.)
+  const already = (campaign.logs || []).some((log) => log.kind === 'annal' && log.actIndex === actNumber - 1);
+  if (already) return { campaign, annal: null, refused: null };
   const { text, verdict } = compose(campaign, actNumber);
   if (!verdict?.ok || !String(text || '').trim()) return { campaign, annal: null, refused: verdict?.errors || ['empty digest'] };
   const turn = campaign.turnNumber || campaign.logs?.length || 0;

@@ -142,4 +142,15 @@ let after = null;
   assert.ok(dm.includes('input.memory'), 'the [MEMORY] socket stands where it always stood');
 }
 
+// 7. THE SEAT IS IDEMPOTENT — closing the same act twice seals once,
+//    and a no-op is not a refusal.
+{
+  const countBefore = await db.journal.where('campaignId').equals('annal-tale').count();
+  const again = await chronicleActClose(after, 1, { seal, save, reload });
+  assert.equal(again.annal, null, 'a chronicled act is not chronicled twice');
+  assert.equal(again.refused, null, 'idempotence is not refusal');
+  assert.equal(await db.journal.where('campaignId').equals('annal-tale').count(), countBefore, 'nothing new sealed');
+  assert.equal(again.campaign.logs.filter((l) => l.kind === 'annal' && l.actIndex === 0).length, 1, 'one annal per act, ever');
+}
+
 console.log('PASS \u2014 the annals gate (game): the Chronicler digests a closed act from the record alone, the court refuses invention with honest silence, the annal seals by the tick pattern with its hash on the log row, and the ladder carries a turn-three secret to turn two hundred — newest in full, elders as headlines, budget held, redactions out.');

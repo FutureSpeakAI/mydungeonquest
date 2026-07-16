@@ -24,3 +24,4 @@
 - [Expo shell around the web house](expo-webview-shell.md) — WebView shell laws: door law fails OUTWARD by hostname (backslash trick!); no web arm (iframe preview); never a spinner.
 - [JSX text ignores \u escapes](jsx-unicode-escapes.md) — \u2019 etc. render literally in JSX text nodes; paste real characters there; only JS string contexts unescape.
 - [Engine folds resolve queues backwards](engine-backward-queues.md) — tail-first queue drains make same-pass duplicates resolve later-card-first; gate outcomes (one winner + named refusal + determinism), never intra-pass order.
+- [Proving-loop lessons](proving-loop.md) — poison words bake text; warden bar ≥ gate bar; feature notes must pin the face; the mark is soft law by design; serial files starve their tails.

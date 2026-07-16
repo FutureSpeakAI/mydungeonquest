@@ -1,4 +1,25 @@
 import { canonicalize, sha256 } from 'fatescript/canonical';
+import { bearingFor, bearingBlock, paintRoster } from 'fatescript/bearing';
+import { cardsForCampaign } from 'fatescript/cards';
+import { yearsSinceTurn } from '../clockAtTable.js';
+
+// THE BEARING AT THE EASEL — Directive VI: the card IS the prompt. Every
+// painted soul speaks through the bearing — locked visual canon verbatim,
+// the signature always visible, wounds from the record, age from the
+// clock, the dead never aging — so the books and the paintings agree by
+// construction. Cards are the wiki's own lawful derivation; a soul the
+// wiki cannot card yet falls back to its codex line, never to silence.
+// `carried` waits on the Ledger's projections (its own phase); an empty
+// hand presumes the signature is still worn.
+function cardsOf(campaign) {
+  try { return cardsForCampaign(campaign).cards; } catch { return {}; }
+}
+function bearingLineFrom(cards, campaign, name) {
+  const card = cards[String(name || '').toLowerCase()];
+  if (!card?.identity?.name) return null;
+  const yearsSince = yearsSinceTurn(campaign.logs || [], card.identity.introduced_turn || 0);
+  return bearingBlock(bearingFor(card, { yearsSince, carried: [] }));
+}
 
 const DENY = [
   /\bgore\b/gi, /\bgory\b/gi, /\bdisembowel(?:ed|ment)?\b/gi, /\bdecapitat(?:e|ed|ion)\b/gi,
@@ -29,7 +50,12 @@ const ART_DIRECTION = 'Rendered as a painterly high-fantasy illustration in the 
 export const HOUSE_STYLE = 'Painterly epic fantasy in deep ink and candle-gold: chiaroscuro light, ember-rimmed silhouettes, weathered heroes against monumental scale, visible brushwork, no text, no borders';
 
 export function portraitPrompt(campaign, soul, variant = 'bust') {
-  return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. Appearance canon: ${soul.visual}. Expression and posture reveal this goal: ${soul.goal}. No text, no frame.`, campaign);
+  // The card is the prompt: the bearing speaks when the wiki can card the
+  // soul; the codex line stands in when it cannot (the forge's first take,
+  // before any record exists). Either way the locked visual rides verbatim.
+  const bearing = bearingLineFrom(cardsOf(campaign), campaign, soul.name);
+  const identity = bearing || `Appearance canon: ${soul.visual}.`;
+  return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. ${identity} Expression and posture reveal this goal: ${soul.goal}. No text, no frame.`, campaign);
 }
 
 export function regionPrompt(campaign, region) {
@@ -63,11 +89,26 @@ export function sceneFraming(seed) {
 // the actual prose and a per-turn seed for the framing wheel. Same turn, same
 // brief — a reopen or a refused pour repaints nothing it already has.
 export function scenePrompt(campaign, cue, moment = null) {
-  const souls = (cue.subjects || []).map((name) => campaign.codex.cast.find((soul) => soul.name === name)).filter(Boolean);
+  // THE ROSTER — at most three painted subjects per plate: speaker, then
+  // villain, then bond, chosen the same way every time; everyone else is
+  // staged in prose (bearing law, Directive VI). The painted speak through
+  // their bearings — the card is the prompt.
+  const cards = cardsOf(campaign);
+  const { painted, staged } = paintRoster({ present: cue.subjects || [], speaker: moment?.speaker || null, cards });
+  const souls = painted.map(({ name }) => campaign.codex.cast.find((soul) => soul.name === name)).filter(Boolean);
   const region = campaign.codex.regions.find((entry) => entry.name === cue.region);
   const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 220)}".` : '';
   const framing = moment ? ` Composition: ${sceneFraming(moment.seed)}.` : '';
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}. ${souls.map((soul) => `${soul.name} appearance canon: ${soul.visual}.`).join(' ')} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${beat}${framing} Maintain exact faces, clothing motifs, and silhouette from reference images.`, campaign);
+  const soulLines = souls.map((soul) => bearingLineFrom(cards, campaign, soul.name) || `${soul.name} appearance canon: ${soul.visual}.`).join(' ');
+  const stagedLine = staged.length ? ` Present but unpainted, staged in the scene's prose: ${staged.join(', ')}.` : '';
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}. ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${beat}${framing} Maintain exact faces, clothing motifs, and silhouette from reference images.`, campaign);
+}
+
+// The roster, exported for the job bench: the same painted-first seating
+// the scene prompt uses, so reference anchors follow the roster — never a
+// soul the plate will not hold.
+export function sceneRoster(campaign, cue, moment = null) {
+  return paintRoster({ present: cue.subjects || [], speaker: moment?.speaker || null, cards: cardsOf(campaign) });
 }
 
 export function keyArtPrompt(campaign, variant = 'establishing') {

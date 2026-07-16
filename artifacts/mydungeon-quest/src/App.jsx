@@ -21,7 +21,7 @@ import { buildContextPack } from 'fatescript/graph';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
-import { portraitPrompt, regionPrompt, scenePrompt } from './lib/cinema/prompts.js';
+import { portraitPrompt, regionPrompt, scenePrompt, sceneRoster } from './lib/cinema/prompts.js';
 import { markRevealed, listReveals } from './lib/reveals.js';
 import { KEYART_LABEL, actOf, heroBustJob, keyArtJob, nameSeed } from './lib/cinema/prologue.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
@@ -368,9 +368,15 @@ export default function App() {
     // anchors stay wired in regardless.
     const sceneMoment = {
       prose: (dm.narration_blocks || []).map((block) => block?.text || '').join(' ').slice(0, 220),
-      seed: turnRecord.recordHash || String(logId || '')
+      seed: turnRecord.recordHash || String(logId || ''),
+      // The roster's first chair: the turn's first attributed voice. The
+      // easel seats speaker → villain → bond, deterministic (bearing law).
+      speaker: (dm.narration_blocks || []).find((block) => block?.speaker)?.speaker || null
     };
-    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', referenceLabels: [...(sceneCue.subjects || []), sceneCue.region].filter(Boolean).slice(0, 3) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
+    // Reference anchors follow the roster — the same painted-first seating
+    // the scene prompt uses, so no staged soul spends a reference slot a
+    // painted face needed (the drifting-face law).
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', referenceLabels: [...sceneRoster(campaign, sceneCue, sceneMoment).painted.map((seat) => seat.name), sceneCue.region].filter(Boolean).slice(0, 3) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
       if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name] }, priority: variant === 'bust' ? 2 : 6 });

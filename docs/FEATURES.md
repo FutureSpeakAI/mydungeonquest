@@ -2,9 +2,9 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 41 present · 15 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 42 present · 14 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
-**THE TRIAGE (wire first):** Bearing, Signature & the paint roster · The Warden — machine vision keeps the face.
+**THE TRIAGE (wire first):** The Warden — machine vision keeps the face.
 
 ## I. The Table — the core loop
 
@@ -236,11 +236,9 @@ Placement phrases (‘half a day north of Harrow Ford’) become deterministic c
 
 *Awaiting: 'buildAtlas' under artifacts/mydungeon-quest/src.*
 
-### Bearing, Signature & the paint roster — PENDING (wiring 0/1)
+### Bearing, Signature & the paint roster — PRESENT
 
 The card is the prompt: locked visual verbatim, one trackable signature item per soul (the ledger moves it, the paint follows), wounds from the record, age from the clock, the dead never aging — and at most three painted subjects per plate: speaker, then villain, then bond.
-
-*Awaiting: 'bearingBlock' under artifacts/mydungeon-quest/src.*
 
 ### The Sitting — a face is accepted, not assigned — PENDING (wiring 0/2)
 

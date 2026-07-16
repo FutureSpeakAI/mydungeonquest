@@ -36,6 +36,22 @@ export function packClock(logs = []) {
   return { day: clock.day, watch: watchOf(clock.hour), line: clockLine(clock) };
 }
 
+// Years the world has walked since a given turn was played — the
+// bearing's age rung. The record keeps no turn numbers on its rows: a
+// turn IS a dm-bearing row, so the prefix closes the moment the marked
+// turn's own row seals, and every span or advance after it ages the
+// soul. Derived twice from the one record, never stored.
+export function yearsSinceTurn(logs = [], turn = 0) {
+  const rows = Array.isArray(logs) ? logs : [];
+  const prefix = [];
+  let played = 0;
+  for (const row of rows) {
+    prefix.push(row);
+    if (row?.dm && played++ === turn) break;
+  }
+  return Math.max(0, worldClock(rows).years - worldClock(prefix).years);
+}
+
 // The interlude's sealed span row, seated for the feed: the engine
 // builds the row (kind 'span', silent dm envelope), the table anchors
 // it at the beat so the page law keeps holding. Returns the clock on

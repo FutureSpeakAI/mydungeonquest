@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 51 present · 5 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 52 present · 4 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -206,11 +206,9 @@ Time derived from the record, never stored: time_advance and sealed spans fold t
 
 Double-entry trades, atomic and cause-bearing; wallets and inventories are projections, byte-identical on replay; the world gives nothing without a cause; refusals are receipts. Progression, loot, and shops all stand on this.
 
-### The Market — witnessed prices — PENDING (wiring 0/1)
+### The Market — witnessed prices — PRESENT
 
 The first quote locks; an uncaused change is a price attack refused by name; caused change is cited history; drift is deterministic, one notch per tick, toward the pressure the region’s scars show.
-
-*Awaiting: 'buildMarket' under artifacts/mydungeon-quest/src.*
 
 ### The Living Atlas — geography with fog — PENDING (wiring 0/1)
 

@@ -11,6 +11,7 @@ import { clockWords } from '../lib/clockAtTable.js';
 import { resolveSheetFace } from '../lib/sheetFace.js';
 import { chapterCard, downloadCard } from '../lib/shareCard.js';
 import { heroPurse } from '../lib/ledger.js';
+import { regionSlate } from '../lib/market.js';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -85,6 +86,9 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
   // folded through the one ledger; refusals are receipts, shown, and a
   // count that drifted from the sheet's old memory says so out loud.
   const purse = useMemo(() => heroPurse(campaign), [campaign]);
+  // THE SLATE — the active region's staple prices, witnessed and drifted
+  // by the record alone; the market ribbon speaks the engine's own words.
+  const slate = useMemo(() => regionSlate(campaign), [campaign]);
   return <Frame title="Character Sheet" icon={<Shield/>} onClose={onClose}>
     <div className="sheet-hero"><AnchorBust campaign={campaign}/><div><h3>{h.name}</h3><p>Level {h.level} {h.ancestry} {h.className}</p></div></div>
     <div className="stat-ribbon"><span><b>{h.hp}/{h.maxHp}</b> HP</span><span><b>{h.ac}</b> AC</span><span><b>{purse.coin}</b> gold</span><span><b>{h.xp}</b> XP</span></div>
@@ -93,7 +97,8 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
     <h3>Spell slots</h3><div className="slot-row">{Object.entries(h.spellSlots).length ? Object.entries(h.spellSlots).map(([lvl,slot]) => <span key={lvl}>L{lvl} {Array.from({length:slot.max},(_,i)=><i className={i<slot.current?'full':''} key={i}/>)}</span>) : <em>No prepared slots</em>}</div>
     <h3>Conditions</h3>{h.conditions.length ? h.conditions.map((c)=><div className="condition" key={c}><b>{c}</b><span>{CONDITIONS[c]}</span></div>) : <p className="muted">No conditions.</p>}
     <h3>Inventory</h3><ul>{purse.pack.map(({ item, qty }) => <li key={item}>{qty > 1 ? `${qty}\u00d7 ${item}` : item}</li>)}</ul>
-    {purse.refusals.length > 0 && <><h3>The till\u2019s receipts</h3>{purse.refusals.map((r, i) => <p className="muted" key={i}>Refused at t.{r.turn} \u2014 {r.reason}.</p>)}</>}
+    {purse.refusals.length > 0 && <><h3>The till’s receipts</h3>{purse.refusals.map((r, i) => <p className="muted" key={i}>Refused at t.{r.turn} — {r.reason}.</p>)}</>}
+    {slate.lines.length > 0 && <><h3>The market slate — {slate.region}</h3>{slate.lines.map((line, i) => <p className="muted" key={i}>{line}</p>)}</>}
     <button className="secondary-button" onClick={onExport}><Download/> Export sealed chronicle</button>
   </Frame>;
 }

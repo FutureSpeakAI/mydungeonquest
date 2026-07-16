@@ -455,3 +455,34 @@
 .recap-mast{font-size:.86rem;color:var(--vellum-dim);margin:0}
 .recap-card .text-button{justify-self:end}
 .bell-pull-row{display:flex;gap:.6rem;align-items:stretch;margin-bottom:.6rem}.bell-pull-row input{flex:1}.bell-pull-row .secondary-button{flex:none}.bell-outcome{background:#0d0b14;border-radius:10px;padding:.7rem .8rem;margin-bottom:.6rem}.bell-outcome p{margin:0 0 .25rem}.bell-outcome p:last-child{margin:0}
+
+/* ---- Directive V: the hooked world ---- */
+.spark-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin:.2rem 0 1rem}
+.spark-card{display:grid;gap:.35rem;text-align:left;border:1px solid rgba(212,162,78,.3);border-radius:14px;background:linear-gradient(160deg,#1a1420,#131018);padding:.8rem .85rem;transition:border-color .2s}
+.spark-card:hover{border-color:var(--gold)}
+.spark-eyebrow{display:flex;gap:.35rem;align-items:center;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.spark-card b{font-family:Cinzel,serif;font-size:.9rem}
+.spark-card p{font-size:.76rem;color:var(--vellum-dim);line-height:1.45;margin:0}
+.spark-card small{font-size:.68rem;font-style:italic;color:#9d849a}
+@media (max-width:640px){.spark-row{grid-template-columns:1fr}}
+.day-chip{border:1px solid rgba(212,162,78,.4);border-radius:999px;padding:.2rem .6rem;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-left:.6rem}
+.thread-list{display:grid;gap:.5rem;margin:.4rem 0 1.1rem}
+.thread-row{display:flex;gap:.55rem;align-items:baseline;border:1px solid #322a3a;border-radius:12px;padding:.55rem .7rem;background:#151019}
+.thread-row.settled{opacity:.62}
+.thread-row.settled b{text-decoration:line-through}
+.thread-kind{flex:none;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(212,162,78,.35);border-radius:999px;padding:.14rem .5rem}
+.thread-row b{font-weight:600;font-size:.82rem}
+.thread-row small{color:var(--vellum-dim);font-size:.7rem}
+.thread-row .outcome{margin-left:auto;font-size:.66rem;font-style:italic;color:#9d849a}
+.place-page{border:1px solid rgba(212,162,78,.35);border-radius:16px;background:#141019;padding:1rem;margin:.6rem 0 1.2rem;display:grid;gap:.6rem}
+.place-page header{display:flex;align-items:center;gap:.6rem}
+.place-page header h4{margin:0;font-family:Cinzel,serif}
+.place-state{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;border:1px solid #51445b;border-radius:999px;padding:.16rem .55rem;color:var(--vellum-dim)}
+.place-page .cite{font-size:.7rem;color:#9d849a;font-style:italic}
+.sworn-chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.sworn-chips button{border:1px solid rgba(212,162,78,.3);border-radius:999px;background:#17131c;padding:.3rem .6rem;font-size:.7rem;color:var(--vellum-dim)}
+.sworn-chips button:hover{border-color:var(--gold);color:var(--vellum)}
+.region-gallery article.tappable{cursor:pointer}
+.region-gallery article.tappable:hover .region-copy b{color:var(--gold)}
+
+.codex-meta{display:flex;align-items:center;gap:.7rem}

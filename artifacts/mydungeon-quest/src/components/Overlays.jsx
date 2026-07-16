@@ -14,7 +14,9 @@ import { resolveSheetFace } from '../lib/sheetFace.js';
 import { chapterCard, downloadCard } from '../lib/shareCard.js';
 import { heroPurse } from '../lib/ledger.js';
 import { regionSlate } from '../lib/market.js';
-import { chartRibbon } from '../lib/atlas.js';
+import { chartRibbon, placesOf, soulsSwornTo } from '../lib/atlas.js';
+import { threadsOf } from 'fatescript/threads';
+import { calendarOf } from 'fatescript/calendar';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -119,6 +121,7 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
   // page, each tie a backlink, each chronicle line a citation into the tale.
   const wiki = useMemo(() => { try { return cardsForCampaign(campaign).cards; } catch { return {}; } }, [campaign]);
   const [openSoul, setOpenSoul] = useState(null);
+  const [openPlace, setOpenPlace] = useState(null);
   const openCard = openSoul ? wiki[openSoul.toLowerCase()] : null;
   const acts = [...new Set(c.spine.beats.map((beat) => beat.act || 1))];
   // THE SCRIPTORIUM made visible: the standing plan the room holds for
@@ -141,7 +144,7 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
     downloadCard(chapterCard(campaign, i, plate), i);
   };
   return <Frame title="The Codex" icon={<ScrollText/>} onClose={onClose} wide>
-    <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p><p className="muted codex-clock" role="note">{clockWords(campaign.logs)}</p></div><div className="blight">Blight <b>{c.blight}/5</b></div></div>
+    <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p><p className="muted codex-clock" role="note">{clockWords(campaign.logs)}</p></div><div className="codex-meta"><span className="day-chip">Day {calendarOf(campaign.logs || []).day}</span><div className="blight">Blight <b>{c.blight}/5</b></div></div></div>
     {/* The shape of the tale: the acts and the chapters already walked. The
         pages ahead keep their titles to themselves — no spoilers. */}
     <h3>The shape of the tale</h3>
@@ -198,7 +201,24 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
         <small className="trail">{soul.last_seen ? `Last seen — ${soul.last_seen}` : 'The trail is quiet.'}{Number.isInteger(soul.introduced_turn) ? (soul.introduced_turn === 0 ? ' · Present from the first page' : ` · Entered the tale at turn ${soul.introduced_turn}`) : ''}</small>
       </article>;
     })}</div>}
-    <h3>Regions</h3><div className="region-gallery">{c.regions.map((region)=><article key={region.id}>{gallery[region.name] && <img className="region-plate" src={gallery[region.name]} alt={region.name}/>}<div className="region-copy"><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></div></article>)}</div>
+    <h3>The Open Threads</h3>
+    {(() => { const ledger = threadsOf(campaign); return ledger.length === 0
+      ? <p className="muted">Nothing sworn yet — when a promise, debt, mystery, or goal enters the tale, it is registered here and the tale must answer it.</p>
+      : <div className="thread-list">{ledger.map((thread, i) =>
+          <div key={i} className={`thread-row${thread.status === 'open' ? '' : ' settled'}`}>
+            <span className="thread-kind">{thread.kind}</span>
+            <b>{thread.label}</b>
+            <small>{thread.holder ? `held by ${thread.holder} — ` : ''}sworn turn {thread.openedTurn}</small>
+            {thread.status !== 'open' && <span className="outcome">{thread.outcome}, turn {thread.closedTurn}</span>}
+          </div>)}</div>; })()}
+    <h3>Regions</h3><div className="region-gallery">{c.regions.map((region)=><article key={region.id} className="tappable" role="button" tabIndex={0} onClick={() => setOpenPlace(openPlace === region.name ? null : region.name)}>{gallery[region.name] && <img className="region-plate" src={gallery[region.name]} alt={region.name}/>}<div className="region-copy"><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></div></article>)}</div>
+    {openPlace && (() => { const place = placesOf(campaign).find((entry) => entry.name === openPlace); const sworn = soulsSwornTo(c.cast, openPlace); return place && <article className="place-page">
+      <header><h4>{place.name}</h4><span className="place-state">{place.state}</span><button className="text-button" style={{marginLeft:'auto'}} onClick={() => setOpenPlace(null)}>close</button></header>
+      {gallery[place.name] && <img className="region-plate" src={gallery[place.name]} alt={place.name}/>}
+      <p>{place.visual}</p>
+      {place.discoveredTurn !== null && <p className="cite">Entered the tale on turn {place.discoveredTurn}{place.gloss ? ` — “${place.gloss}”` : ''}.</p>}
+      {sworn.length > 0 && <div className="sworn-chips">{sworn.map((edge, i) => <button key={i} onClick={() => { setOpenPlace(null); setOpenSoul(edge.name); }}>{edge.name} — sworn of {edge.of}</button>)}</div>}
+    </article>; })()}
     <h3>Cinematic archive</h3><div className="replay-list">{campaign.logs.filter((l)=>l.dm.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm)}><Film/> {log.dm.cinematic.title}</button>)}</div>
     <h3>Memoir</h3>{c.memoir.length ? c.memoir.map((m,i)=><p key={i}>{m}</p>) : <p className="muted">The Chronicler has not yet needed to compress the road behind you.</p>}
   </Frame>;

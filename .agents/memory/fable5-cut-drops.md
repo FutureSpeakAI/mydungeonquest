@@ -17,3 +17,20 @@ description: How to integrate full-tree zip deliveries from the outside forge (F
 **Why:** the first drop (July 15, 2026) landed the same day a storybook task merged; blind extraction would have regressed the merge, and their deleted-SW intention would have stranded deployed players on stale caches.
 
 **How to apply:** on the next "cut is in" upload — unzip to /tmp, diff, read their BRAND/CHANGELOG/BUILD_STATUS first, lift deltas file-by-file, keep our lock, run the full keyless check, screenshot the touched surfaces.
+
+## Hooked-world graft addenda (July 2026)
+- When the donor trunk keeps engine modules in-game but ours are extracted
+  to the engine package, lift deltas into the engine's real seats and add
+  one-line compat shims at the donor's old in-game paths — their gates then
+  run verbatim against the shims. Never fork the module.
+- Donor JSX pasted verbatim can name component state our tree lacks (their
+  forge had a busy flag; ours has none) — scope-check every identifier in
+  lifted JSX against OUR component before trusting a green build elsewhere.
+- Directive numbering forks between trunks (their "Directive V" ≠ ours).
+  Land their doc at the path their gates expect; note the fork in the
+  report, never renumber either side.
+- Architect review of a graft will flag donor laws as bugs (permissive
+  validator arms, budget floors that accept overflow). Guardrails outrank
+  review on donor code: verify the companion layer holds, then REPORT as
+  anomaly instead of fixing.
+- Container has no python3 — write throwaway patchers/probes in node.

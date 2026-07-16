@@ -6,6 +6,42 @@ const ZONES = new Set(['engaged','near','far']);
 const cleanText = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max;
 
 function assert(condition, message, errors) { if (!condition) errors.push(message); }
+
+// THE THREAD LEDGER (Directive V) — additive checks for the two new story
+// operations only; every older story key keeps its existing (reducer-side)
+// guardianship untouched. Context may carry threads: [{label, status}].
+const THREAD_KINDS = new Set(['promise','debt','mystery','goal']);
+const THREAD_OUTCOMES = new Set(['kept','broken','resolved']);
+function validateThreads(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const known = context.threads || [];
+  const openLabels = new Set(known.filter((t) => t.status === 'open').map((t) => String(t.label).trim().toLowerCase()));
+  const adds = story.thread_add;
+  if (adds !== undefined && adds !== null) {
+    assert(Array.isArray(adds) && adds.length <= 2, 'thread_add must be an array of at most 2', errors);
+    const seen = new Set();
+    for (const add of Array.isArray(adds) ? adds : []) {
+      assert(cleanText(add?.label, 90) && String(add.label).trim().length >= 3, 'thread_add.label must be 3-90 chars', errors);
+      if (add?.kind !== undefined) assert(THREAD_KINDS.has(add.kind), 'thread_add.kind invalid', errors);
+      if (add?.holder !== undefined && add.holder !== null) assert(cleanText(add.holder, 60), 'thread_add.holder invalid', errors);
+      noUnknown(add, new Set(['label','kind','holder']), 'story.thread_add', errors);
+      const key = String(add?.label || '').trim().toLowerCase();
+      assert(!openLabels.has(key), `thread_add duplicates an open thread: ${add?.label}`, errors);
+      assert(!seen.has(key), 'thread_add repeats a label within the turn', errors);
+      seen.add(key);
+    }
+  }
+  const closes = story.thread_resolve;
+  if (closes !== undefined && closes !== null) {
+    assert(Array.isArray(closes) && closes.length <= 2, 'thread_resolve must be an array of at most 2', errors);
+    for (const close of Array.isArray(closes) ? closes : []) {
+      assert(cleanText(close?.label, 90), 'thread_resolve.label invalid', errors);
+      assert(THREAD_OUTCOMES.has(close?.outcome), 'thread_resolve.outcome must be kept | broken | resolved', errors);
+      noUnknown(close, new Set(['label','outcome']), 'story.thread_resolve', errors);
+      if (known.length) assert(openLabels.has(String(close?.label || '').trim().toLowerCase()), `thread_resolve targets no open thread: ${close?.label}`, errors);
+    }
+  }
+}
 function noUnknown(object, allowed, path, errors) {
   if (!object || typeof object !== 'object' || Array.isArray(object)) return;
   for (const key of Object.keys(object)) if (!allowed.has(key)) errors.push(`${path}.${key} is not allowed`);
@@ -18,6 +54,7 @@ function noUnknown(object, allowed, path, errors) {
 //   context.cast: [{ name, status }] — the sealed cast at the turn's start.
 export function validateDmTurn(payload, entropyPool = [], context = {}) {
   const errors = [];
+  if (payload && typeof payload === 'object') validateThreads(payload.story, context, errors);
   assert(payload && typeof payload === 'object' && !Array.isArray(payload), 'payload must be an object', errors);
   if (!payload || typeof payload !== 'object') return { ok: false, errors };
   noUnknown(payload, ALLOWED_KEYS, 'dm_turn', errors);

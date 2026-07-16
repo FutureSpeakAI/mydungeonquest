@@ -153,3 +153,53 @@ export function assertAftermathLawful(aftermath) {
   }
   return { ok: errors.length === 0, errors };
 }
+
+// ------------------------------------------------------------
+// THE ATLAS OF PLACES (Directive V) — places and stated allegiances,
+// replayed from the sealed record; lifted whole from the Hooked World
+// cut. Nothing here is inferred from prose.
+// ------------------------------------------------------------
+const canonAtlas = (name) => String(name || '').trim().toLowerCase();
+
+// Every region, with the turn and the words that carried it into the tale.
+export function placesOf(campaign) {
+  const logs = campaign?.logs || [];
+  const seen = new Map();
+  logs.forEach((log, index) => {
+    if (log.redacted) return;
+    const add = log?.dm?.story?.world?.region_add;
+    if (add?.name && !seen.has(canonAtlas(add.name))) {
+      seen.set(canonAtlas(add.name), { discoveredTurn: index, gloss: String(log.player || log.deed || '').slice(0, 90) });
+    }
+  });
+  return (campaign?.codex?.regions || []).map((region) => ({
+    name: region.name,
+    visual: region.visual,
+    state: region.state,
+    discoveredTurn: seen.get(canonAtlas(region.name))?.discoveredTurn ?? null,
+    gloss: seen.get(canonAtlas(region.name))?.gloss || ''
+  }));
+}
+
+// Stated allegiances only: the written station says "of the X" and we
+// record exactly that, with provenance, cited to the introducing turn.
+const ALLEGIANCE_RE = /\bof (the [A-Z][\w'’-]+(?: [A-Z][\w'’-]+)?|[A-Z][\w'’-]+(?: [A-Z][\w'’-]+)?)/;
+
+export function allegianceOf(soul) {
+  const station = `${soul?.role || ''} ${soul?.station || ''}`;
+  const match = station.match(ALLEGIANCE_RE);
+  return match ? { of: match[1], provenance: 'station' } : null;
+}
+
+export function allegiancesOf(cast = []) {
+  return cast.map((soul) => {
+    const allegiance = allegianceOf(soul);
+    return allegiance ? { name: soul.name, ...allegiance } : null;
+  }).filter(Boolean);
+}
+
+// Souls whose stated station names this place — the only lawful backlink.
+export function soulsSwornTo(cast = [], placeName) {
+  const target = canonAtlas(placeName);
+  return allegiancesOf(cast).filter((edge) => canonAtlas(edge.of).includes(target) || target.includes(canonAtlas(edge.of)));
+}

@@ -22,7 +22,7 @@ import { chronicleActClose, memoryLadder } from './lib/memoir.js';
 import { greetReturning } from './lib/ravens.js';
 import { fetchSeasons, skyNoteFor } from './lib/sky.js';
 import { RavenNotice } from './components/RavenNotice.jsx';
-import { buildContextPack } from 'fatescript/graph';
+import { buildBriefing } from 'fatescript/graph';
 import { roomForTurn } from './lib/scriptorium.js';
 import { tellCourt } from './lib/tells.js';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
@@ -480,7 +480,7 @@ export default function App() {
       // THE CHRONICLEGRAPH: [STORY] is a budgeted, scene-first pack — souls
       // present, their ties, the villain, the standing world — not a flat dump.
       let story;
-      try { story = buildContextPack(base); } catch { story = storyBlock(base.codex); }
+      try { story = buildBriefing(base); } catch { story = storyBlock(base.codex); }
       // THE CLOCK AT THE TABLE — Directive VI, Phase 1: the derived world
       // clock rides the [STORY] pack, so the DM reads the same hour the
       // codex head shows. One clock, two witnesses; derived, never stored.
@@ -565,7 +565,7 @@ export default function App() {
       // The cast snapshot is taken BEFORE this turn's updates apply, so a
       // soul may speak its dying words in the very turn that kills it — and
       // the dead of earlier turns cannot be given dialogue at all.
-      const validation = validateDmTurn(dm, entropy, { cast: base.codex.cast });
+      const validation = validateDmTurn(dm, entropy, { cast: base.codex.cast, threads: base.codex.threads || [] });
       // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
       // the door ran, run once more where the turn becomes record, on the
       // same pre-turn snapshot. A stranger who survived the road is refused

@@ -1,0 +1,23 @@
+TASK 51: THE HOOKED WORLD CUT (0.6.0)
+
+You are receiving a verified build. Your job is to install it, prove it, and report. You are not being asked to improve it.
+
+1. WHAT THIS IS
+The zip replaces the project root. The game lives at artifacts/mydungeon-quest. Version is 0.6.0. It adds six laws and seven test gates, growing the suite from 58 to 65. New files: src/lib/calendar.js, src/lib/atlas.js, src/lib/threads.js, src/lib/onboarding.js, src/components/Sparks.jsx, EXPERIENCE-DIRECTIVE-V.md, and seven files in evals/. Modified files: story.js, protocol.js, graph.js, systemPrompt.js, cinema/prompts.js, App.jsx, server/dm.js, Forge.jsx, Overlays.jsx, styles.css, package.json, CHANGELOG.md, BUILD_STATUS.md.
+
+2. INSTALL AND PROVE
+From artifacts/mydungeon-quest run: npm install, then npm run check. Expect a clean build and 65 lines that begin with PASS, exit code 0. Paste the last 15 lines of the check output in your report. If any gate fails, stop and report the exact failure. Do not patch code to make a gate pass.
+
+3. SMOKE TEST (npm run dev)
+Confirm each of these by eye:
+a. The World Forge opens on the Spin door with three spark cards above the spin card. Tapping a spark fills the title, covenant, tone, and home region.
+b. The Codex header shows a Day chip beside the Blight meter.
+c. The Codex has a section called The Open Threads. With no threads sworn it shows the empty-state copy. This is correct behavior on the mock DM.
+d. Region cards in the Codex are tappable and open a place page showing the plate, the canon, the state, and a citation line naming the turn it entered the tale.
+e. Nothing else in the play loop regressed: turns stream, dice roll, the feed renders.
+
+4. GUARDRAILS
+Do not modify anything in evals/. Do not renumber or reword the rules in systemPrompt.js. Do not refactor the reducers or the validator. Do not upgrade dependencies. Do not touch EXPERIENCE-DIRECTIVE-V.md. If something looks wrong to you, report it instead of changing it.
+
+5. REPORT
+Reply with: the check tail, a pass or fail line for each smoke item a through e, and any console warnings you saw. One paragraph, no code changes.

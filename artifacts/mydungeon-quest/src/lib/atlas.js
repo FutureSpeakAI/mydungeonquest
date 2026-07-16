@@ -74,3 +74,7 @@ export function chartRibbon(campaign) {
 }
 
 export { positionOf };
+
+// Directive V — the atlas of places and stated allegiances lives in the
+// engine; the chart re-speaks it for the codex pages and the gates.
+export { placesOf, allegianceOf, allegiancesOf, soulsSwornTo } from 'fatescript/atlas';

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0 — The Hooked World
+
+Directive V, four founder questions answered as law. **The Atlas**: the wiki now tracks places (citing the turn each entered the tale) and stated allegiances (a deterministic lexicon over the written station — never inference), alongside souls and threads. **The Thread Ledger**: promises, debts, mysteries, and sworn goals become additive protocol ops (`thread_add` / `thread_resolve`), validated at two layers, replayed pure with citations — the narrative economy, honestly scoped (no coin exists in the engine; a currency reducer is future rules work). **The Calendar**: story time as a pure fold over sealed advances; ticks and strikes move nothing. **The Briefing Law**: one deterministic object per turn — calendar line first, scene-first pack, open threads riding inside, stated allegiances trimmed first under a hard budget; same campaign, same bytes. **The Visual Bible**: every image prompt derives identity from the card — noun by stated presentation and age, mark verbatim, canon whole — across all three lawful soul shapes. **The Three Sparks**: three ready worlds lead the forge; spark, voice, begin — three taps to the table. Codex gains the Day chip, the Open Threads panel, and tappable place pages with sworn-soul chips. Gates 58 → 65; the capstone `hookedWorld` gate proves the six laws agree on one record.
+
+*Grafted into this line, where the engine keeps its own house under
+packages/engine and later directives already stand: the gates enroll at
+94 → 101 here; the cut’s own tally read 58 → 65 on its native trunk.*
+
 ## 0.5.1 — Story Beats Land in Order (2026-07-15)
 Presentation law over the sealed record: nothing in this cut writes a log or
 a journal entry, and no tick is touched. TIME PASSES VISIBLY — sealed ticks

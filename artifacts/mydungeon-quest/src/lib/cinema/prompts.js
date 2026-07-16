@@ -49,12 +49,35 @@ const ART_DIRECTION = 'Rendered as a painterly high-fantasy illustration in the 
 // tale carries no style bible of its own.
 export const HOUSE_STYLE = 'Painterly epic fantasy in deep ink and candle-gold: chiaroscuro light, ember-rimmed silhouettes, weathered heroes against monumental scale, visible brushwork, no text, no borders';
 
+// THE VISUAL BIBLE (Directive V) — the identity clause every image prompt
+// derives from the CARD: a noun chosen by stated presentation and age (the
+// Tenor Law's discipline, applied to paint), the mark verbatim, and the
+// written appearance canon. Deterministic: same card, same bytes.
+export const VISUAL_REGISTER = {
+  feminine: { adult: 'a woman', young: 'a young woman', elder: 'an elderly woman', child: 'a girl' },
+  masculine: { adult: 'a man', young: 'a young man', elder: 'an elderly man', child: 'a boy' },
+  neutral: { adult: 'a person', young: 'a young person', elder: 'an elderly person', child: 'a child' }
+};
+export function identityClause(soul = {}) {
+  // One clause for every lawful shape: a forge hero (presentation,
+  // explicitAge, mark), a raw DM payload (voice_card nested), and a sealed
+  // cast entry (the Tenor Law reducer flattens the card to gender and
+  // age_band). Stated identity only — absent all three, the plain noun.
+  const stated = soul.voice_card || {};
+  const register = VISUAL_REGISTER[soul.presentation || stated.gender || soul.gender] || VISUAL_REGISTER.neutral;
+  const noun = register[soul.explicitAge || stated.age || soul.age_band] || register.adult;
+  const mark = soul.mark ? `; marked by ${soul.mark}` : '';
+  const canonLine = soul.visual ? `; appearance canon: ${soul.visual}` : '';
+  return `${noun}${mark}${canonLine}`;
+}
+
 export function portraitPrompt(campaign, soul, variant = 'bust') {
   // The card is the prompt: the bearing speaks when the wiki can card the
   // soul; the codex line stands in when it cannot (the forge's first take,
   // before any record exists). Either way the locked visual rides verbatim.
   const bearing = bearingLineFrom(cardsOf(campaign), campaign, soul.name);
-  const identity = bearing || `Appearance canon: ${soul.visual}.`;
+  const clause = identityClause(soul);
+  const identity = bearing ? `${bearing} Painted as ${clause}.` : `Painted as ${clause}.`;
   return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. ${identity} Expression and posture reveal this goal: ${soul.goal}. No text, no frame.`, campaign);
 }
 
@@ -99,7 +122,11 @@ export function scenePrompt(campaign, cue, moment = null) {
   const region = campaign.codex.regions.find((entry) => entry.name === cue.region);
   const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 220)}".` : '';
   const framing = moment ? ` Composition: ${sceneFraming(moment.seed)}.` : '';
-  const soulLines = souls.map((soul) => bearingLineFrom(cards, campaign, soul.name) || `${soul.name} appearance canon: ${soul.visual}.`).join(' ');
+  const soulLines = souls.map((soul) => {
+    const bearing = bearingLineFrom(cards, campaign, soul.name);
+    const clause = `${soul.name} — ${identityClause(soul)}.`;
+    return bearing ? `${clause} ${bearing}` : clause;
+  }).join(' ');
   const stagedLine = staged.length ? ` Present but unpainted, staged in the scene's prose: ${staged.join(', ')}.` : '';
   return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}. ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${beat}${framing} Maintain exact faces, clothing motifs, and silhouette from reference images.`, campaign);
 }

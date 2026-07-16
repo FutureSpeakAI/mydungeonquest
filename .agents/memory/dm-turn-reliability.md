@@ -70,3 +70,12 @@ sites for the pattern) or the dead may speak there. Matching is alias-aware —
 a bare first name reaches its soul — and when a name could mean both a living
 and a dead soul, the living one is presumed to speak (block only the
 unambiguous dead; never invalidate a lawful living speaker).
+
+## Threads law (Hooked World cut)
+Thread ops ride systemPrompt rules 24–25 with validateThreads in the
+protocol court; lockstep now includes the pair of thread rules. The
+validator checks resolve targets only when given open-thread context —
+by donor design (legacy contexts pass none); the reducer is the layer
+that always refuses unknown resolves and duplicate opens. If either arm
+changes, re-prove both: validator-with-context refusal AND reducer
+refusal with empty context.

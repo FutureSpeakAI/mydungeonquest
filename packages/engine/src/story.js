@@ -85,6 +85,7 @@ export function initCodex(spineId, seed = {}) {
     chronicle: [],
     blight: 0,
     notes: [],
+    threads: [],
     completed: false
   };
 }
@@ -201,6 +202,31 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     if (patch.last_seen) soul.last_seen = clean(patch.last_seen, 160);
   }
 
+  // THE THREAD LEDGER (Directive V) — promises, debts, mysteries, and sworn
+  // goals as sealed operations. The reducer is the canon guard: at most two
+  // adds a turn, a duplicate open label is blocked with a note, and only an
+  // open thread may close, with an honest outcome.
+  const THREAD_KINDS = ['promise', 'debt', 'mystery', 'goal'];
+  const THREAD_OUTCOMES = ['kept', 'broken', 'resolved'];
+  next.threads = next.threads || [];
+  for (const add of (updates.thread_add || []).slice(0, 2)) {
+    const label = clean(add?.label, 90);
+    if (!label) continue;
+    if (next.threads.some((thread) => canonName(thread.label) === canonName(label) && thread.status === 'open')) {
+      next.notes.push(`Duplicate open thread blocked: ${label}.`);
+      continue;
+    }
+    next.threads.push({ label, kind: THREAD_KINDS.includes(add.kind) ? add.kind : 'promise', holder: add.holder ? clean(add.holder, 60) : null, status: 'open', outcome: null });
+  }
+  for (const close of (updates.thread_resolve || []).slice(0, 2)) {
+    const open = next.threads.find((thread) => canonName(thread.label) === canonName(clean(close?.label, 90)) && thread.status === 'open');
+    if (!open || !THREAD_OUTCOMES.includes(close?.outcome)) {
+      next.notes.push(`Unlawful thread resolve blocked: ${clean(close?.label, 90) || 'unnamed'}.`);
+      continue;
+    }
+    open.status = close.outcome; open.outcome = close.outcome;
+  }
+
   const world = updates.world;
   if (world) {
     next.blight = clamp(next.blight + (world.blight_delta || 0), 0, 5);
@@ -252,6 +278,9 @@ export function storyBlock(codex) {
     regions: codex.regions,
     memoir: codex.memoir,
     wounds: codex.notes.slice(-8),
+    open_threads: (codex.threads || []).filter((thread) => thread.status === 'open').slice(0, 6)
+      .map((thread) => `${thread.label} (${thread.kind}${thread.holder ? `, held by ${thread.holder}` : ''})`),
+    threads_state: (codex.threads || []).map(({ label, status }) => ({ label, status })),
     directives: [
       ...(codex.completed ? ['The tale is sealed. Write nothing new; if asked, speak only a closing line.'] : []),
       ...(sealing ? ['SEAL THE TALE — the player has chosen to end with honor. These are denouement turns: quiet and combat-free; no new cast, no new threads; resolve what stands, let farewells be spoken, and bring the road home. If a cinematic is due, let it be the ending the tale has earned (victory, death, or bittersweet).'] : []),

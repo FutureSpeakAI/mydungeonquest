@@ -11,6 +11,8 @@
 // ------------------------------------------------------------
 import { storyBlock } from './story.js';
 import { buildCards } from './cards.js';
+import { calendarLine } from './calendar.js';
+import { allegiancesOf } from './atlas.js';
 
 const canon = (name) => String(name || '').trim().toLowerCase();
 const SLIM = (soul) => ({ name: soul.name, role: soul.role, status: soul.status, bond: soul.bond, last_seen: soul.last_seen });
@@ -93,5 +95,20 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
     castOut = castOut.map((soul) => (inScene(soul) || soul.role === 'villain' ? soul : (soul.visual ? SLIM(soul) : soul))); out = pack();
   }
   if (size() > budget) { regionsOut = regionsOut.map((region, i) => (i === 0 ? region : { name: region.name, state: region.state })); out = pack(); }
+  return out;
+}
+
+// THE BRIEFING LAW (Directive V) — the one deterministic object the DM is
+// told each turn, in fixed order: the calendar line first, then the packed
+// scene-first story (threads ride inside the block), then stated
+// allegiances. Trimming order is fixed: allegiances drop first; the
+// calendar, the scene floor, the villain, and the open threads never do.
+export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {}) {
+  const pack = buildContextPack(campaign, { budget: Math.max(2000, budget - 500), recentTurns });
+  let allegiances = allegiancesOf(campaign.codex?.cast || []).slice(0, 6)
+    .map((edge) => `${edge.name} — sworn of ${edge.of} (stated)`);
+  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...pack, stated_allegiances: allegiances });
+  let out = brief();
+  while (JSON.stringify(out).length > budget && allegiances.length) { allegiances = allegiances.slice(0, -1); out = brief(); }
   return out;
 }

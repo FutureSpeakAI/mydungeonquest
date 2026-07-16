@@ -1,5 +1,28 @@
 # Build status
 
+## 0.6.0 — The Hooked World (2026-07-16, Task 51 grafted)
+- The studio's Directive V lifted delta-by-delta into this line's seats:
+  engine gains `calendar.js` and `threads.js` whole, atlas/graph/story/
+  protocol grown in place; game-side compat shims answer the cut's old
+  in-game paths so its seven gates run verbatim, unmodified.
+- Thread ledger: `thread_add`/`thread_resolve` as sealed ops, refused at
+  two layers (protocol court + reducer notes); the story block tells the
+  DM what the tale owes; systemPrompt gains rules 24–25 (their 17–18 —
+  new numbers only, no existing rule touched).
+- Briefing law: `buildBriefing` wraps the context pack — calendar line
+  first, open threads riding inside, stated allegiances trimmed first
+  under the byte budget.
+- Visual bible: `identityClause` + `VISUAL_REGISTER` restored; the clause
+  rides beside the bearing in portrait and scene prompts, so this line's
+  bearing law and the cut's clause law hold on one prompt.
+- Forge deals three sparks above the spin card (deterministic by
+  minute-seed); codex gains the Day chip, the Open Threads panel, and
+  tappable place pages with sworn-soul chips.
+- Gates 94 → 101; the capstone hookedWorld gate proves the six laws agree
+  on one record. One adaptation from the cut's verbatim UI: the spark
+  row's busy-coupling referenced a forge state this line never had — the
+  row stands always-armed instead.
+
 ## 0.5.1 — Story Beats Land in Order (2026-07-15, Task #50 as amended)
 - Time-passes divider: sealed ticks render via `src/components/Sequence.jsx`
   (TickDivider) — phrase from the neighbor turn's time_advance, ≤2 whispers

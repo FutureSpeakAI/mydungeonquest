@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Dices, ShieldCheck } from 'lucide-react';
+import { SparkRow } from './Sparks.jsx';
+import { sparks } from '../lib/onboarding.js';
 import { SPINES } from 'fatescript/spines';
 import { portraitPrompt, keyArtPrompt } from '../lib/cinema/prompts.js';
 import { heroSoul, nameSeed } from '../lib/cinema/prologue.js';
@@ -81,6 +83,9 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
   const [form, setForm] = useState({ title: 'The Unwritten Road', covenant: seedWorlds[2], spineId: 'classic-epic', tone: 'Mythic, warm, and dangerous', linesText: '', veilsText: '', homeRegion: 'Larkspur Vale', styleBible: 'Romantic dark-fantasy oil painting with illuminated-manuscript gold, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.' });
   const set = (key) => (event) => setForm((value) => ({ ...value, [key]: event.target.value }));
   const [door, setDoor] = useState('spin');
+  // THE THREE SPARKS (Directive V) — dealt once per minute-seed, so a
+  // returning player sees a fresh hand without the row shuffling mid-choice.
+  const [sparkDeal] = useState(() => sparks((Date.now() / 60000) | 0));
   const [keyArt, setKeyArt] = useState(null);
   const urlRef = useRef(null);
   const spin = () => setForm((value) => ({ ...value, ...rollWorld(randomSeed()) }));
@@ -117,6 +122,7 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
       ]}/>
 
       {door === 'spin' && <>
+        <SparkRow sparks={sparkDeal} onPick={(spark) => setForm((f) => ({ ...f, title: spark.title, covenant: spark.covenant, tone: spark.tone, homeRegion: spark.region }))}/>
         <article className="spin-card">
           <h3>{form.title}</h3>
           <p>{form.covenant}</p>

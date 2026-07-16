@@ -10,7 +10,7 @@ import { censusNote, unrecordedSouls } from 'fatescript/census';
 // either declares the stranger (cast_add, voice_card and all) or unclaims
 // the line. Exported for the bench; the door is the only live caller.
 export function judgeTurn(turn, input) {
-  const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [] });
+  const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [], threads: input.story?.threads_state || [] });
   const errors = validation.ok ? [] : [...validation.errors];
   const strangers = unrecordedSouls(turn, input.story?.cast || [], { hero: input.hero || null });
   if (strangers.length) errors.push(censusNote(strangers));

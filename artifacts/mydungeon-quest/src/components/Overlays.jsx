@@ -12,6 +12,7 @@ import { resolveSheetFace } from '../lib/sheetFace.js';
 import { chapterCard, downloadCard } from '../lib/shareCard.js';
 import { heroPurse } from '../lib/ledger.js';
 import { regionSlate } from '../lib/market.js';
+import { chartRibbon } from '../lib/atlas.js';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -89,6 +90,9 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
   // THE SLATE — the active region's staple prices, witnessed and drifted
   // by the record alone; the market ribbon speaks the engine's own words.
   const slate = useMemo(() => regionSlate(campaign), [campaign]);
+  // THE CHART — the witnessed world in days of travel; rumors are
+  // counted, never drawn, and the fog is honest by construction.
+  const chart = useMemo(() => chartRibbon(campaign), [campaign]);
   return <Frame title="Character Sheet" icon={<Shield/>} onClose={onClose}>
     <div className="sheet-hero"><AnchorBust campaign={campaign}/><div><h3>{h.name}</h3><p>Level {h.level} {h.ancestry} {h.className}</p></div></div>
     <div className="stat-ribbon"><span><b>{h.hp}/{h.maxHp}</b> HP</span><span><b>{h.ac}</b> AC</span><span><b>{purse.coin}</b> gold</span><span><b>{h.xp}</b> XP</span></div>
@@ -99,6 +103,7 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
     <h3>Inventory</h3><ul>{purse.pack.map(({ item, qty }) => <li key={item}>{qty > 1 ? `${qty}\u00d7 ${item}` : item}</li>)}</ul>
     {purse.refusals.length > 0 && <><h3>The till’s receipts</h3>{purse.refusals.map((r, i) => <p className="muted" key={i}>Refused at t.{r.turn} — {r.reason}.</p>)}</>}
     {slate.lines.length > 0 && <><h3>The market slate — {slate.region}</h3>{slate.lines.map((line, i) => <p className="muted" key={i}>{line}</p>)}</>}
+    {chart.origin && <><h3>The chart — from {chart.origin}</h3>{chart.lines.map((line, i) => <p className="muted" key={i}>{line}</p>)}{chart.fogged > 0 && <p className="muted">… and {chart.fogged} {chart.fogged === 1 ? 'place' : 'places'} spoken of in the codex, not yet witnessed at the table.</p>}</>}
     <button className="secondary-button" onClick={onExport}><Download/> Export sealed chronicle</button>
   </Frame>;
 }

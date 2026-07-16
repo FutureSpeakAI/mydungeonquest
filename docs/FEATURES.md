@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 52 present · 4 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 53 present · 3 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -210,11 +210,9 @@ Double-entry trades, atomic and cause-bearing; wallets and inventories are proje
 
 The first quote locks; an uncaused change is a price attack refused by name; caused change is cited history; drift is deterministic, one notch per tick, toward the pressure the region’s scars show.
 
-### The Living Atlas — geography with fog — PENDING (wiring 0/1)
+### The Living Atlas — geography with fog — PRESENT
 
 Placement phrases (‘half a day north of Harrow Ford’) become deterministic coordinates in days of travel; positions lock like faces; the chart shows only the witnessed; a world event’s zone is a geometry query; and the world may move souls — missing, marked, displaced — while only the table may end them.
-
-*Awaiting: 'buildAtlas' under artifacts/mydungeon-quest/src.*
 
 ### Bearing, Signature & the paint roster — PRESENT
 

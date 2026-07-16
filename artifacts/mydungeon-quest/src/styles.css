@@ -450,3 +450,4 @@
 .recap-card{border:1px solid rgba(212,162,78,.35);border-radius:14px;margin:.2rem 0 1.1rem;padding:.9rem 1rem;background:linear-gradient(160deg,rgba(233,223,200,.05),rgba(0,0,0,.3));display:grid;gap:.55rem}
 .recap-mast{font-size:.86rem;color:var(--vellum-dim);margin:0}
 .recap-card .text-button{justify-self:end}
+.bell-pull-row{display:flex;gap:.6rem;align-items:stretch;margin-bottom:.6rem}.bell-pull-row input{flex:1}.bell-pull-row .secondary-button{flex:none}.bell-outcome{background:#0d0b14;border-radius:10px;padding:.7rem .8rem;margin-bottom:.6rem}.bell-outcome p{margin:0 0 .25rem}.bell-outcome p:last-child{margin:0}

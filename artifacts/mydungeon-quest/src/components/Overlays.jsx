@@ -147,6 +147,62 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
   </Frame>;
 }
 
+// THE OWNER'S BELL-PULL, given a handle in the house itself. The room only
+// exists when ADMIN_TOKEN is chalked (a tokenless fork answers 404), so we
+// ask ONCE per page load — an unauthorized knock, refused before any ping
+// rides out — and render nothing at all where the room does not stand.
+// Keyless/unconfigured forks see Settings byte-for-byte as before.
+let bellRoomAsked = null;
+function bellRoomStands() {
+  if (!bellRoomAsked) {
+    bellRoomAsked = fetch('/api/herald/test', { method: 'POST' })
+      .then((r) => r.status !== 404)
+      .catch(() => false);
+  }
+  return bellRoomAsked;
+}
+
+const BELL_WORD = {
+  sent: 'Sent — the herald delivered the test ping.',
+  undelivered: 'Undelivered — the webhook was rung but did not answer. Check the chalked address.',
+  mute: 'Mute — no herald webhook is chalked on this house, so there was nothing to ring.',
+};
+
+function OwnersBell() {
+  const [stands, setStands] = useState(false);
+  const [token, setToken] = useState(() => { try { return localStorage.getItem('mdq.bellToken') || ''; } catch { return ''; } });
+  const [busy, setBusy] = useState(false);
+  const [rung, setRung] = useState(null); // { status, herald } | { refused } | { broke }
+  useEffect(() => { let alive = true; bellRoomStands().then((v) => { if (alive) setStands(v); }); return () => { alive = false; }; }, []);
+  if (!stands) return null;
+  const keepToken = (value) => { setToken(value); try { value ? localStorage.setItem('mdq.bellToken', value) : localStorage.removeItem('mdq.bellToken'); } catch { /* private mode keeps nothing */ } };
+  const ring = async () => {
+    setBusy(true); setRung(null);
+    try {
+      const response = await fetch('/api/herald/test', { method: 'POST', headers: { Authorization: `Bearer ${token.trim()}` } });
+      if (response.status === 401) setRung({ refused: true });
+      else if (!response.ok) setRung({ broke: `The bell answered ${response.status}.` });
+      else setRung(await response.json());
+    } catch { setRung({ broke: 'The bell could not be reached.' }); }
+    setBusy(false);
+  };
+  return <>
+    <h3>The owner's bell-pull</h3>
+    <p className="muted">Re-test the alert webhook without a restart. The admin token stays on this device only.</p>
+    <div className="bell-pull-row">
+      <input type="password" placeholder="Admin token" value={token} autoComplete="off" onChange={(e) => keepToken(e.target.value)} aria-label="Admin token"/>
+      <button className="secondary-button" disabled={busy || !token.trim()} onClick={ring}>{busy ? 'Ringing…' : 'Ring the test'}</button>
+    </div>
+    {rung?.refused && <p className="muted">The bell-pull answers only the owner's hand — that token was refused.</p>}
+    {rung?.broke && <p className="muted">{rung.broke}</p>}
+    {rung?.status && <div className="bell-outcome">
+      <p><b>{BELL_WORD[rung.status] || rung.status}</b></p>
+      <p className="muted">Herald: {rung.herald?.configured ? 'webhook chalked' : 'no webhook chalked'}
+        {rung.herald?.last ? ` · last ring ${rung.herald.last.status} at ${new Date(rung.herald.last.at).toLocaleString()}` : ' · no ring on record'}</p>
+    </div>}
+  </>;
+}
+
 export function Settings({ campaign, settings, onChange, onDownloadAudio, audioBusy, onClose }) {
   const toll = useToll();
   // Honest hints, spoken only when the gateway truly stands: a guest at a lit
@@ -171,6 +227,7 @@ export function Settings({ campaign, settings, onChange, onDownloadAudio, audioB
       <button className="secondary-button" disabled={audioBusy} onClick={onDownloadAudio}><Download/> {audioBusy ? 'Forging the episode…' : 'Forge the podcast'}</button>
       <p className="muted">One produced episode from the sealed record — the Chronicler retells, the cast re-speak their own lines, stings sound only between sections. The forge binds real voices only; a keyless table keeps the book.{forgeElsewhere ? ' The forge lights for the voiced seat — the toll-house below tells the way.' : ''}</p>
     </>}
+    <OwnersBell/>
     <div className="law-note"><Heart/><span>{doorBuilt
       ? 'Your chronicles stay on this device. A name at the door is only a key — the tale itself never leaves without you.'
       : 'No accounts. Nothing leaves this device without you.'}</span></div>

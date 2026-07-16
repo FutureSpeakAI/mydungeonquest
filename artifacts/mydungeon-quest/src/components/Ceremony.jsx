@@ -14,7 +14,7 @@ import { campaignJournal } from '../lib/db.js';
 // and asks.
 // ------------------------------------------------------------
 
-export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport, onPodcast, audioBusy, onClose }) {
+export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport, onPodcast, onNextVolume, audioBusy, onClose }) {
   const [stats, setStats] = useState(null);
   const [pressing, setPressing] = useState(false);
   const sealed = Boolean(campaign.sealedAt);
@@ -72,6 +72,16 @@ export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport,
           {onPodcast && <button className="secondary-button" disabled={audioBusy} onClick={onPodcast}><Mic size={16} /> {audioBusy ? 'Forging the episode…' : 'Forge the podcast'}</button>}
         </div>
         <p className="keepsake-note"><Mic size={13} /> The episode speaks only sealed words, in real voices only — a keyless table keeps the book.</p>
+      </div>}
+
+      {sealed && onNextVolume && <div className="keepsakes next-volume">
+        <h3>The road goes on.</h3>
+        <p className="keepsake-note">The world remembers this tale — every face, every voice, every grave. Open the next volume and name the span the road takes.</p>
+        <div className="keepsake-row">
+          <button className="secondary-button" onClick={() => onNextVolume(1)}>A winter passes</button>
+          <button className="secondary-button" onClick={() => onNextVolume(3)}>Three winters pass</button>
+          <button className="secondary-button" onClick={() => onNextVolume(9)}>Nine winters pass</button>
+        </div>
       </div>}
     </div>
   </div>;

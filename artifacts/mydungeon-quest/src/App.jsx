@@ -17,6 +17,7 @@ import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
+import { sealLegacy, openNextVolume } from './lib/saga.js';
 import { buildContextPack } from 'fatescript/graph';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
@@ -835,6 +836,10 @@ export default function App() {
     if (!current || current.sealedAt || current.readOnly) return;
     playUiSfx(current, 'seal');
     const journal = await campaignJournal(current.id);
+    // THE SAGA LAW: the wax writes the legacy packet first — the volume
+    // closes onto the record — and the 'sealing' block stays the final
+    // signature over the whole chronicle, packet included.
+    await sealLegacy(current, { seal });
     await seal(current.id, 'sealing', {
       turns: journal.filter((r) => r.type === 'turn').length,
       rolls: journal.filter((r) => r.type === 'resolution' && r.payload && r.payload.total != null).length,
@@ -843,6 +848,22 @@ export default function App() {
     const sealedRow = await db.campaigns.get(current.id);
     const next = { ...current, sealedAt: Date.now(), headHash: sealedRow.headHash, turnCount: sealedRow.turnCount, signatureStatus: sealedRow.signatureStatus };
     await saveCampaign(next); setCurrent(next); await refreshShelf();
+  };
+
+  // THE ROAD ON (Saga Law) — a sealed tale hands its packet to the next
+  // volume: the world door is skipped, legacy souls arrive with their
+  // exact voices, the dead arrive dead, and the stated span is bridged
+  // as sealed record before the first word is spoken at the new table.
+  const openNext = async (years) => {
+    if (!current?.sealedAt || current.readOnly || busy) return;
+    playUiSfx(current, 'seal');
+    const { campaign: nextVolume, span } = await openNextVolume(current, { years, seal });
+    setOverlay(null);
+    setCurrent(nextVolume); setFlow('table');
+    setStatus(`✦ ${span} ${nextVolume.saga.worldTitle} turns a new page.`);
+    await refreshShelf();
+    const started = await prologueRender(nextVolume);
+    await playTurn(started, 'Begin the chronicle.', null, null);
   };
 
   // THE SEALING rises by itself exactly once per campaign per session, after
@@ -983,7 +1004,7 @@ export default function App() {
     {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} />}
     {overlay === 'level' && <div className="ritual"><Sparkles/><span>Level {current.hero.level}</span><h2>The story has made you larger.</h2><button onClick={()=>setOverlay(null)}>Accept the new name fate gives you</button></div>}
     {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement — farewells, consequences, the road home. Then the wax presses, and the tale is bound.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal the Tale</button></div></div>}
-    {overlay === 'sealing' && <Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
+    {overlay === 'sealing' && <Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
     {current.hero.hp <= 0 && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} />}
   </div>;
 }

@@ -1,0 +1,144 @@
+﻿TASK 52: THE PROVING LOOP
+
+
+You will build a Playwright end-to-end suite for the game at artifacts/mydungeon-quest, then loop: run the suite, fix the GAME until every criterion passes, and prove it green three times in a row. The suite covers core features, machine-vision consistency of characters and environments, and a critique of presentation itself: sequence, captions, framing, and editorial order. You are fixing the game to meet the criteria. You are never adjusting the criteria to meet the game.
+
+
+SECTION 0: GROUND RULES
+1. You may modify game source code to fix real defects the suite exposes.
+2. You may write and edit test code, but every edit to a test after its first passing run must be logged in LOOP_LOG.md with a one-sentence justification. Weakening an assertion, raising a vision threshold, adding skip or fixme, or mocking the vision judge are forbidden moves and count as failure.
+3. You may not modify anything in evals/, any EXPERIENCE-DIRECTIVE file, or the rule text in systemPrompt.js. You may not touch the reducers or the validator except to fix a defect a test proves, and any such fix must keep all 65 gates green.
+4. New dependencies are limited to @playwright/test and sharp. Nothing else.
+5. Environment preconditions: ANTHROPIC_API_KEY must be present for the vision judge, and GEMINI_API_KEY or OPENAI_API_KEY must be present for live painting. If either is missing, stop immediately and report. Do not silently downgrade the vision suite.
+
+
+SECTION 1: SETUP
+1. Install @playwright/test and sharp. Install the chromium browser.
+2. Create playwright.config.ts with a webServer block that runs the project's existing dev command and waits for the app URL. Set retries to 0. Set trace to on-first-retry. Artifacts go to test-results/.
+3. Specs live in tests/e2e/. The vision harness lives in tests/e2e/lib/vision.ts. Fixtures live in tests/e2e/fixtures/.
+
+
+SECTION 2: THE SANCTIONED TEST HOOK
+Deterministic UI testing needs a seeded world. Add exactly one hook, gated behind the URL parameter proving=1, and inert without it:
+1. When proving=1, the spark deal uses the fixed seed 42 instead of the minute seed.
+2. When proving=1, the app exposes window.__mdqSeed(campaign), which writes a provided campaign fixture into the database and reloads state, so the Codex can be tested against known content.
+Build one canonical fixture in tests/e2e/fixtures/proving-campaign.json: a hero named Maren with the mark "a burn in the shape of a key" and feminine presentation; a villain with a full appearance canon; an NPC Edda carded feminine and elder; an NPC Corin Voss with the role "envoy of the Duchy"; the region Larkspur Vale added on turn 0; one open thread ("Corin owes Edda restitution", kind debt, holder Corin Voss) and one resolved thread (outcome kept, closed turn 1); two days of time_advance so the calendar reads Day 3; one struck (redacted) turn containing the sentence "THE STRUCK SENTENCE".
+
+
+SECTION 3: THE VISION JUDGE
+Create tests/e2e/lib/vision.ts:
+1. judge(images, question, schema) posts to https://api.anthropic.com/v1/messages with model claude-sonnet-4-6, temperature 0, max_tokens 400, the images as base64 blocks, and a system instruction to answer ONLY with JSON matching the given schema. Parse strictly. Retry once on malformed JSON, then fail.
+2. critique(images, question, schema) is an alias of judge used for presentation verdicts. It shares the same cache and evidence store.
+3. Cache every verdict on disk keyed by the sha256 of the image bytes plus the question id, under test-results/vision/cache/. A cache hit must not call the API.
+4. Save every image or image pair and its verdict JSON under test-results/vision/evidence/ named by criterion id.
+5. histogramDelta(a, b) uses sharp to compute 64-bin per-channel RGB histograms and returns the normalized L1 distance.
+
+
+SECTION 4: THE CRITERIA
+Every criterion below is a spec file assertion. All must pass. The table runs G1 through G18.
+
+
+G1 BOOT. The app serves. The title screen renders. The chronicle shelf renders. Zero console messages of type error during boot.
+
+
+G2 THREE SPARKS. On the World Forge Spin door, exactly three elements with class spark-card render. Each card has a non-empty bold title, a covenant paragraph ending in a period or exclamation mark, and an italic tone line. Clicking the second card sets the spin-card heading to that card's title and the meta line to its region. With the mock DM, the path from opening a new chronicle to the Chapter One heading takes three primary choices or fewer (spark, voice blessing, begin) and completes in under 25 seconds.
+
+
+G3 THE OTHER DOORS. The Deep Forge door shows editable fields for title, covenant, tone, home region, and style bible, each with a dice button, and rolling a die changes that field's value. The Oracle door asks its three questions and produces a filled spin-card.
+
+
+G4 HERO FORGE AND THE TENOR LAW. Controls exist for presentation, pronouns, and mark. Exactly three voice audition rows render, each with a play affordance. Blessing a voice persists: after a full page reload the same voice is still marked blessed. On the live paint tier, a real hero portrait image appears (an img element with a data or blob source, not the procedural initials div).
+
+
+G5 THE PLAY LOOP. The prologue streams (narration text length strictly increases across a two-second window). At least three suggestion buttons render. Typing a custom action and submitting produces a new feed entry. A roll request produces a visible die and a numeric result between 1 and 20, and the result is stamped into the feed as a deed row. The character sheet shows hp.
+
+
+G6 SEQUENCING AND THE LIVING WORLD. After story time advances, a tick divider renders with a non-empty phrase and the feed contains no empty rows. Whisper rows never exceed four per tick. The recap card appears at most once per sitting. With reduced motion enabled via emulateMedia, chip elements carry no animation classes.
+
+
+G7 THE X-CARD LAW. Using the seeded fixture, the struck turn's marker is visible in the feed, and the string "THE STRUCK SENTENCE" appears nowhere else in the DOM: not in the Codex, not in any recap, not in any retelling surface.
+
+
+G8 CODEX, THREADS, AND ATLAS. Using the seeded fixture: the Day chip reads Day 3. The Open Threads panel lists the open debt with its kind badge, its holder, and its sworn-turn citation. The resolved thread renders struck through with its outcome text. Region cards are tappable; the Larkspur Vale place page shows the plate or canon text, the state badge, and the citation line naming turn 0. The sworn chip reading Corin Voss jumps to his soul page. The soul page shows the voice line, the first recorded words with a turn citation, and tie chips that navigate in both directions.
+
+
+G9 MACHINE VISION: CHARACTER CONSISTENCY. On the live paint tier, drive a short session that paints the hero anchor, the villain portrait, and at least one scene plate containing the hero.
+a. Judge the hero anchor against the hero scene plate. Required verdict: same_character true, mark_visible true for "a burn in the shape of a key", presentation_matches true, confidence at least 0.75.
+b. Judge the villain's intro portrait against a later plate containing the villain. Required verdict: same_character true, confidence at least 0.75.
+c. The Edda regression. Judge Edda's portrait alone with the question "state the apparent presentation and age band of this figure". Required verdict: presentation feminine, age_band elder. This criterion exists because an earlier build painted and voiced a mother wrongly, and it must never happen again.
+
+
+G10 MACHINE VISION: ENVIRONMENTAL CONSISTENCY. Paint the same region twice (establishing plate and a later scene set there).
+a. Judge the pair. Required verdict: same_location true, with at least two shared motifs named.
+b. histogramDelta between two plates of the same region at the same state must be at most 0.35.
+c. Paint or seed the region at a damaged state and judge the pair thriving versus wounded with the question "which image shows visible damage, decay, or darkening relative to the other". The verdict must correctly identify the wounded plate.
+
+
+G11 MACHINE VISION: THE STYLE BIBLE. Judge any two plates from the same campaign. Required verdict: shared_style true, naming at least two descriptors that appear in the campaign's style bible. Judge every generated image individually. Required verdict: contains_text_or_watermark false, is_cartoon_or_3d false.
+
+
+G12 SEAL AND VERIFY. Complete the seal flow on the mock tier. The storybook opens and the dramatis personae quotes first words with turn citations. Export the record, open the verify desk, and assert the verified state renders. Then flip one byte of the exported record, load it again, and assert the desk rejects it.
+
+
+G13 THE REGRESSION FLOOR. npm run check exits 0 with 65 PASS lines. This runs at every loop iteration in which you changed any game source file.
+
+
+G14 FEED AND TIME PRESENTATION ORDER (deterministic DOM checks).
+a. Within any single turn group, the DOM order is: player line if present, then the roll visual if present, then the deed stamp, then narration blocks, then suggestions. Assert by element order, not by visual guesswork.
+b. Turn citations strictly increase down the feed. No duplicate turn stamps. No two adjacent tick dividers without a turn between them.
+c. The recap card, when present, is the first element of the session feed and never appears mid-feed.
+d. The pending page placeholder renders only at a chapter boundary, never between ordinary turns.
+e. Chapter headers ascend in correct roman numeral order.
+f. The Day chip never decreases within a session. Sample it before and after a time advance.
+g. Every speaker label in the feed belongs to a soul that exists in the Codex at that point in the seeded fixture. A voice speaking before its introduction card is a sequence defect.
+
+
+G15 COPY AND CAPTION MECHANICS (deterministic).
+a. Across the forge, the feed, the Codex, and the storybook, no rendered text node contains "undefined", "null", "NaN", "[object", or an unrendered template brace pair. The verify desk is exempt because it displays raw hashes and JSON.
+b. No caption or heading is clipped: for those elements, scrollWidth must not exceed clientWidth.
+c. Every img has naturalWidth greater than 0 and a non-empty alt that is not the word "image".
+d. No two consecutive narration paragraphs are byte-identical.
+e. Prompt leakage detector: no player-visible caption or narration contains the phrases "appearance canon", "style bible", "Rendered as", "No text", or "16:9". If prompt language reaches the page, the presentation has failed.
+
+
+G16 MACHINE VISION: CAPTION AND MOMENT COHERENCE.
+a. For every scene plate in the feed, judge the image against the narration paragraph it illustrates (the moment prose the prompt law binds it to). Required verdict: depicts_this_moment true, confidence at least 0.7, with one named visual element from the text.
+b. For every storybook plate, judge the image against the first 200 characters of that page's retelling. Required verdict: depicts_this_scene true.
+c. For every explicit caption under a plate, judge the pair with the question "does this caption plausibly describe this image". Required verdict: caption_plausible true. A caption naming a character absent from the image, a place that contradicts the image, or an action the image does not show is a fail.
+
+
+G17 MACHINE VISION: FRAMING AND COMPOSITION.
+a. Portraits (hero, villain, NPCs): subject_fully_in_frame true, meaning the head is not cropped at crown or chin and both eyes are visible; single_subject true; awkward_crop false.
+b. Scene plates: every subject named in the cue is visible, and no named subject is cut in half by the frame edge. Verdict fields: named_subjects_visible as a list, any_subject_cut_off false.
+c. Chapter covers and key art: has_foreground_figures false where the prompt law forbids them, principal_subject_cut_off false, contains_text_or_watermark false, and the delivered file's aspect ratio is within 2 percent of the requested ratio, checked deterministically with sharp metadata.
+
+
+G18 STORYBOOK EDITORIAL ORDER.
+a. Pages ascend with no gaps. No page renders a heading with an empty body.
+b. Every plate renders inside the chapter whose sealed record attested it. A plate attested in chapter two appearing inside chapter one is a binding defect.
+c. Dramatis personae quotes wear quotation marks and a turn citation, and each cited turn exists in the record.
+d. Vision on the cover: the hero is present and whole, no baked-in text, and the image reads as a cover rather than a mid-action crop. Verdict: reads_as_cover true.
+
+
+SECTION 5: THE SABOTAGE CHECK
+A consistency test that cannot fail is not a test. Before trusting any green vision run, prove teeth once and save the evidence:
+1. Judge the hero anchor against the VILLAIN portrait and assert same_character false.
+2. Compute histogramDelta between a thriving plate and a heavily blighted plate and assert it EXCEEDS 0.35.
+3. Judge an image that contains rendered text and assert contains_text_or_watermark true (generate this control image by screenshotting any text-bearing page of the app).
+4. Caption teeth: pair the Larkspur Vale establishing plate with the deliberately false caption "Corin Voss duels atop a burning bell tower at midnight" and assert caption_plausible false.
+5. Crop teeth: with sharp, crop a copy of the hero portrait to remove the top 40 percent of the image, then assert subject_fully_in_frame false on the mutilated copy.
+6. Order teeth: run the G14 order checker against a deliberately shuffled synthetic feed fixture (deed before roll, tick divider inside a turn group) and assert the checker fails it.
+If any tooth fails to bite, the matching real criterion is invalid: fix the test, log it in LOOP_LOG.md, and rerun that tooth before continuing.
+
+
+SECTION 6: THE LOOP
+1. Run the full suite. Collect failures.
+2. Classify each failure as a game defect, a test defect, or an environment issue. Fix game defects in game code. Fix test defects only when the test misreads a criterion above, and log every such edit.
+3. Rerun. Repeat.
+4. Vision verdicts are cached, so reruns are cheap; paint once per fixture and reuse plates across iterations.
+5. When everything passes, run the entire suite two more times back to back. Three consecutive fully green runs are required before you may declare victory.
+6. Hard ceiling: 25 iterations. If you reach it, stop and report the top blockers with evidence instead of thrashing.
+
+
+SECTION 7: THE REPORT
+Reply with: the iteration count; proof of three consecutive green runs (exit codes and pass counts); a criterion-by-criterion PASS table for G1 through G18; all six sabotage results; LOOP_LOG.md contents; a listing of test-results/vision/evidence/; a count of judge calls with the cache hit rate; the final npm run check tail; and every assertion that passed within ten percent of its threshold or any vision verdict with confidence under 0.8, flagged yellow. One report, no victory laps.

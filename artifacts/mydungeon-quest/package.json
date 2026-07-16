@@ -27,16 +27,17 @@
     "http-proxy-middleware": "^4.2.0",
     "lucide-react": "catalog:",
     "pg": "^8.22.0",
-    "playwright": "^1.52.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "wouter": "catalog:"
   },
   "devDependencies": {
+    "@playwright/test": "1.55.0",
     "@vitejs/plugin-react": "catalog:",
     "esbuild": "^0.27.3",
     "fake-indexeddb": "^6.2.5",
     "react-test-renderer": "19.1.0",
+    "sharp": "^0.35.3",
     "vite": "catalog:"
   }
 }

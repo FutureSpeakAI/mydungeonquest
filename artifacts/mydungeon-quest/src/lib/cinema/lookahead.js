@@ -18,10 +18,12 @@ function beatPrompt(campaign, beat) {
   const villain = (campaign.codex?.cast || []).find((soul) => soul.role === 'villain');
   const region = (campaign.codex?.regions || [])[0];
   return scrubPrompt(
-    `${style}. A 16:9 painted keyframe of the story beat "${beat.title}": ${beat.goal} ` +
+    // The beat's TITLE stays off the brief — a quoted title is a title-card
+    // invitation (the plague's oldest habit); the goal carries the picture.
+    `${style}. A 16:9 painted keyframe of this story beat: ${beat.goal} ` +
     `${villain ? `The villain's presence may be felt: ${villain.visual}. ` : ''}` +
     `${region ? `Setting canon: ${region.name} — ${region.visual}, currently ${region.state}. ` : ''}` +
-    `Blight ${campaign.codex?.blight || 0}/5 shown through weather and light. One readable action, strong silhouette.`,
+    `Blight ${campaign.codex?.blight || 0}/5 shown through weather and light. One clear action, strong silhouette.`,
     campaign
   );
 }

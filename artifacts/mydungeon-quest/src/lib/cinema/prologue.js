@@ -5,7 +5,7 @@
 // the hero's first bust becomes the anchor for label `hero.name`, and the
 // campaign key art carries the stable `keyart` label so later surfaces
 // (Chapter I mast, chronicle covers, the bound book) resolve the latest plate.
-import { keyArtPrompt, portraitPrompt } from './prompts.js';
+import { heroSoul, keyArtPrompt, portraitPrompt } from './prompts.js';
 
 export const KEYART_LABEL = 'keyart';
 
@@ -17,15 +17,10 @@ export const nameSeed = (name) => {
   return h >>> 0;
 };
 
-// Turn the hero the player wrote into a paintable soul. The optional "bearing"
-// line is the hero's short visual canon; background is the fallback.
-export function heroSoul(hero) {
-  return {
-    name: hero.name,
-    visual: String(hero.bearing || hero.background || `${hero.ancestry || ''} ${hero.className || hero.class || ''}`).slice(0, 300),
-    goal: 'the hero whose legend this chronicle records'
-  };
-}
+// heroSoul lives in prompts.js now — the scene easel seats the hero too, so
+// her canon reads the same wherever she is painted. Re-exported here so the
+// forge's older imports stay true.
+export { heroSoul } from './prompts.js';
 
 // The act determines how dark the key art reads, so a save's cover evolves as
 // the story turns. Cache key is per-act so each variant paints exactly once.
@@ -52,6 +47,6 @@ export function heroBustJob(campaign) {
     // The hero's bust is an origin anchor — it references nothing and becomes
     // the anchor that every later render of the hero resolves against.
     options: { kind: 'portrait', label: campaign.hero.name, variant: 'bust', seed: nameSeed(campaign.hero.name), referenceLabels: [] },
-    priority: 2
+    priority: 0
   };
 }

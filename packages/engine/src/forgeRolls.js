@@ -41,7 +41,7 @@ export const CLASSES = [
 ];
 export const SIGILS = ['\u2726', '\u2735', '\u273f', '\u2740', '\u2749', '\u2698', '\u269c', '\u2694'];
 const STANDARD = [15, 14, 13, 12, 10, 8];
-const DEFAULT_STYLE = 'Romantic dark-fantasy oil painting with illuminated-manuscript gold, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.';
+const DEFAULT_STYLE = 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.';
 
 const BEARINGS = {
   Ranger: 'Weather-worn leathers, a longbow slung easy, and eyes that never stop reading the treeline.',

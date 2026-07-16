@@ -2,12 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Dices, ShieldCheck } from 'lucide-react';
 import { SparkRow } from './Sparks.jsx';
 import { sparks } from '../lib/onboarding.js';
+import { isProving } from '../lib/proving.js';
 import { SPINES } from 'fatescript/spines';
 import { portraitPrompt, keyArtPrompt } from '../lib/cinema/prompts.js';
 import { heroSoul, nameSeed } from '../lib/cinema/prologue.js';
 import { auditionCandidates } from 'fatescript/cinema/casting';
 import { rollWorld, rollHero, oracleWorld, oracleHero, rollTitle, rollCovenant, rollTone, rollRegion, rollName, rollMark, ORACLE_WORLD, ORACLE_HERO } from 'fatescript/forgeRolls';
 import { openSitting, blessSitting, sittingRequired } from '../lib/sitting.js';
+import { rollLook } from '../lib/forgeRolls.js';
+
+// THE FORGE REMEMBERS (G4) — a sitting's draft survives a reload. Drafts live
+// in sessionStorage (per tab; never synced, never sealed, never exported) and
+// burn the moment the chronicle begins. A torn or walled-off storage never
+// blocks the forge — the defaults simply stand.
+const WORLD_DRAFT_KEY = 'mdq:forge:world';
+const HERO_DRAFT_KEY = 'mdq:forge:hero';
+export const clearForgeDrafts = () => {
+  try { sessionStorage.removeItem(WORLD_DRAFT_KEY); sessionStorage.removeItem(HERO_DRAFT_KEY); } catch { /* storage walled off */ }
+};
+const loadDraft = (key) => { try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch { return null; } };
+const saveDraft = (key, value) => { try { sessionStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ } };
 
 const seedWorlds = [
   'A drowned empire where memories are legal tender.',
@@ -80,12 +94,18 @@ function AuditionRow({ presentation, name, voiceId, onBless }) {
 }
 
 export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
-  const [form, setForm] = useState({ title: 'The Unwritten Road', covenant: seedWorlds[2], spineId: 'classic-epic', tone: 'Mythic, warm, and dangerous', linesText: '', veilsText: '', homeRegion: 'Larkspur Vale', styleBible: 'Romantic dark-fantasy oil painting with illuminated-manuscript gold, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.' });
+  const [form, setForm] = useState(() => {
+    const fallback = { title: 'The Unwritten Road', covenant: seedWorlds[2], spineId: 'classic-epic', tone: 'Mythic, warm, and dangerous', linesText: '', veilsText: '', homeRegion: 'Larkspur Vale', styleBible: 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.' };
+    const saved = loadDraft(WORLD_DRAFT_KEY);
+    return saved && typeof saved.title === 'string' ? { ...fallback, ...saved } : fallback;
+  });
+  useEffect(() => { saveDraft(WORLD_DRAFT_KEY, form); }, [form]);
   const set = (key) => (event) => setForm((value) => ({ ...value, [key]: event.target.value }));
   const [door, setDoor] = useState('spin');
   // THE THREE SPARKS (Directive V) — dealt once per minute-seed, so a
   // returning player sees a fresh hand without the row shuffling mid-choice.
-  const [sparkDeal] = useState(() => sparks((Date.now() / 60000) | 0));
+  // Under the proving rig (?proving=1, Task 52) the deal is the fixed seed 42.
+  const [sparkDeal] = useState(() => sparks(isProving() ? 42 : (Date.now() / 60000) | 0));
   const [keyArt, setKeyArt] = useState(null);
   const urlRef = useRef(null);
   const spin = () => setForm((value) => ({ ...value, ...rollWorld(randomSeed()) }));
@@ -159,7 +179,7 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
           <label>Lines — never appear<input value={form.linesText} onChange={set('linesText')} placeholder="comma separated" /></label>
           <label>Veils — fade to black<input value={form.veilsText} onChange={set('veilsText')} placeholder="comma separated" /></label>
         </div>
-        <label>The world's look<textarea value={form.styleBible} onChange={set('styleBible')} rows="3" maxLength={300}/></label>
+        <label><span className="label-line">The world's look <DiceButton label="Roll a look" onRoll={dice((s) => ({ styleBible: rollLook(s) }))}/></span><textarea value={form.styleBible} onChange={set('styleBible')} rows="3" maxLength={300}/></label>
         <div className="law-note"><ShieldCheck/><span>Every scene and painting stays PG-13. Your lines and veils never leave this device.</span></div>
         <button className="primary-button" onClick={forgeOn}>Forge the hero <ArrowRight/></button>
       </>}
@@ -168,7 +188,14 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
 }
 
 export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
-  const [form, setForm] = useState({ name: 'Aster Vale', sigil: '✦', ancestry: 'Human', className: 'Ranger', caster: 'half', hitDie: 10, abilities: { STR: 14, DEX: 15, CON: 13, INT: 10, WIS: 12, CHA: 8 }, skills: ['Perception','Survival','Stealth'], bearing: 'Weather-worn leathers, a road-warden\u2019s longbow, and eyes that never stop reading the treeline.', background: 'A former road-warden who can hear when a path is lying.', presentation: 'neutral', pronouns: '', mark: '', voiceId: null });
+  const [form, setForm] = useState(() => {
+    const fallback = { name: 'Aster Vale', sigil: '✦', ancestry: 'Human', className: 'Ranger', caster: 'half', hitDie: 10, abilities: { STR: 14, DEX: 15, CON: 13, INT: 10, WIS: 12, CHA: 8 }, skills: ['Perception','Survival','Stealth'], bearing: 'Weather-worn leathers, a road-warden\u2019s longbow, and eyes that never stop reading the treeline.', background: 'A former road-warden who can hear when a path is lying.', presentation: 'neutral', pronouns: '', mark: '', voiceId: null };
+    const saved = loadDraft(HERO_DRAFT_KEY);
+    // The blessing travels with the forge: a reload rehydrates the whole
+    // sheet, voiceId included, so the blessed chip still wears its mark.
+    return saved && typeof saved.name === 'string' ? { ...fallback, ...saved, abilities: { ...fallback.abilities, ...(saved.abilities || {}) } } : fallback;
+  });
+  useEffect(() => { saveDraft(HERO_DRAFT_KEY, form); }, [form]);
   const set = (key) => (event) => setForm((value) => ({ ...value, [key]: event.target.value }));
   const setPresentation = (event) => setForm((value) => ({ ...value, presentation: event.target.value, voiceId: null })); // a new register opens a new audition
   const updateAbility = (ability, value) => setForm((f) => ({ ...f, abilities: { ...f.abilities, [ability]: Number(value) } }));

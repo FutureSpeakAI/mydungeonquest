@@ -1,3 +1,4 @@
+import Dexie from 'dexie';
 import { canonicalize, sha256, bytesToBase64 } from 'fatescript/canonical';
 import { db } from './db.js';
 
@@ -35,12 +36,18 @@ export async function makeEnvelope({ type, i, prevHash = null, payload, ts = Dat
 }
 
 export async function appendEvent(campaignId, type, payload) {
-  return db.transaction('rw', db.campaigns, db.journal, db.keys, async () => {
+  // The signer is resolved BEFORE the transaction: minting a key pair awaits
+  // crypto.subtle, and awaiting crypto inside a live Dexie transaction commits
+  // it early — the chain write then dies with PrematureCommitError. Key minting
+  // is a get-then-put on its own; the chain's atomicity lives below.
+  const signer = await signerFor(campaignId);
+  return db.transaction('rw', db.campaigns, db.journal, async () => {
     const campaign = await db.campaigns.get(campaignId);
     if (!campaign) throw new Error('Campaign not found');
-    const signer = await signerFor(campaignId);
     const i = campaign.turnCount || 0;
-    const record = await makeEnvelope({ type, i, prevHash: campaign.headHash || null, payload, signer });
+    // Dexie.waitFor keeps the transaction alive across the envelope's hashing
+    // and signing — foreign promises with no IndexedDB work inside.
+    const record = await Dexie.waitFor(makeEnvelope({ type, i, prevHash: campaign.headHash || null, payload, signer }));
     await db.journal.put({ campaignId, ...record });
     await db.campaigns.update(campaignId, { headHash: record.recordHash, turnCount: i + 1, signatureStatus: signer.signed ? 'signed' : 'hash-only', updatedAt: Date.now() });
     return record;
@@ -70,6 +77,15 @@ export async function exportChronicle(campaignId) {
 
 export async function importChronicle(data) {
   if (data?.header?.format !== 'mydungeon.chronicle' || !Array.isArray(data.journal)) throw new Error('Invalid chronicle format');
+  // THE DOOR VERIFIES BEFORE IT OPENS (fail-closed, the Vault's own law):
+  // every record is re-hashed byte for byte against its seal and its link;
+  // one flipped byte anywhere in the chain and the whole tale is refused.
+  // Presentation state rides the campaign row, but truth lives here.
+  const verdicts = await verifyJournal(data.journal);
+  const broken = verdicts.find((verdict) => !verdict.ok);
+  if (broken) throw new Error(`the seal is broken at record ${broken.i} — this chronicle has been altered`);
+  const trueHead = data.journal.length ? data.journal[data.journal.length - 1].recordHash : null;
+  if ((data.header.headHash || null) !== trueHead) throw new Error('the head seal does not match the journal — this chronicle has been altered');
   const id = crypto.randomUUID();
   const imported = {
     ...data.campaign, id, title: `${data.campaign.title} — restored`, readOnly: true,

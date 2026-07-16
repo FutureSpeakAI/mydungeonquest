@@ -15,7 +15,9 @@ export function mockDmTurn({ campaign, hero, story, player, entropy, resolution,
       roll_request: null,
       state_updates: success ? { xp_gain: 25, chronicle_add: 'The marked threshold yielded.' } : { hp_delta: -1, chronicle_add: 'The threshold answered loudly.' },
       combat: null, cinematic: null, story: turn > 1 ? { beat_advance: true, cast_add: [], cast_update: [], world: null, arc: null } : null,
-      image_cue: { kind: 'scene', subjects: [], region: story.regions?.[0]?.name || null, mood: success ? 'hard-won wonder' : 'dangerous discovery' },
+      // The hero is on stage in her own resolution — the cue says so, so the
+      // easel can seat her and her bust anchor rides along.
+      image_cue: { kind: 'scene', subjects: [name], region: story.regions?.[0]?.name || null, mood: success ? 'hard-won wonder' : 'dangerous discovery' },
       dialogue_cue: null, time_advance: null, entropy_use: []
     };
   }
@@ -36,7 +38,7 @@ export function mockDmTurn({ campaign, hero, story, player, entropy, resolution,
     title: campaign.title || 'The Unwritten Road',
     evil_plot: 'The Hollow Regent is binding living roads into a perfect imperial map, erasing every future that cannot be predicted.',
     stakes: 'Home, memory, and the right to choose an unmapped life.',
-    style_bible: campaign.styleBible || 'Romantic dark-fantasy oil painting with illuminated-manuscript gold, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.'
+    style_bible: campaign.styleBible || 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.'
   } : null;
   return {
     narration_blocks: [{
@@ -52,7 +54,7 @@ export function mockDmTurn({ campaign, hero, story, player, entropy, resolution,
     state_updates: needsRoll ? null : { xp_gain: first ? 50 : 10, chronicle_add: first ? 'The impossible road turned north.' : 'The ridge revealed a waiting light.' },
     combat: null, cinematic,
     story: { beat_advance: false, arc, cast_add: castAdd, cast_update: turn === 6 ? [{ name: 'Mara Vey', bond_delta: 1, bond_reason: 'She trusted you with the truth of the old roads.', fact_add: 'Mara once mapped a road for the enemy.', last_seen: 'On the ridge above the wayhouse' }] : [], world: first ? { blight_delta: 0, region_add: { name: campaign.homeRegion || 'Larkspur Vale', visual: 'A green river vale of slate roofs, old orchards, white standing stones, and a northern ridge scarred by a road that should not exist.' }, region_update: null } : null },
-    image_cue: cinematic ? { kind: 'scene', subjects: first ? ['Mara Vey'] : [], region: campaign.homeRegion || 'Larkspur Vale', mood: first ? 'impossible invitation at dusk' : 'foreboding wonder' } : null,
+    image_cue: cinematic ? { kind: 'scene', subjects: first ? [name, 'Mara Vey'] : [name], region: campaign.homeRegion || 'Larkspur Vale', mood: first ? 'impossible invitation at dusk' : 'foreboding wonder' } : null,
     dialogue_cue: cinematic && first ? { speaker: 'Mara Vey', line: 'It knows your name. The first step is yours.' } : null,
     time_advance: first ? { unit: 'hours', n: 1 } : null,
     entropy_use: []

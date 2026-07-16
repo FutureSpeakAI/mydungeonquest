@@ -42,7 +42,7 @@ export function scrubPrompt(text, campaign = {}) {
 // Deliberately evokes fantasy-novel-cover and film-preproduction concept art
 // (Alan Lee / John Howe / early Lord of the Rings & Game of Thrones art books),
 // with explicit negatives to steer away from glossy CGI, cartoon, and anime.
-const ART_DIRECTION = 'Rendered as a painterly high-fantasy illustration in the tradition of Alan Lee and John Howe: naturalistic oil-and-watercolour concept art, muted earthen and candlelit palette, atmospheric depth with soft diffused light, fine painterly brushwork and film-preproduction realism, cinematic composition. Not cartoonish, not anime, not glossy 3D render, not video-game screenshot. Family-safe PG-13 with restrained peril and no exploitative detail. No text, watermarks, logos, or borders.';
+const ART_DIRECTION = 'Rendered as a painterly high-fantasy illustration in the classic English fantasy-illustration tradition: naturalistic oil-and-watercolour concept art, muted earthen and candlelit palette, atmospheric depth with soft diffused light, fine painterly brushwork and film-preproduction realism, cinematic composition. Not cartoonish, not anime, not glossy 3D render, not video-game screenshot. Family-safe PG-13 with restrained peril and no exploitative detail. Absolutely no text of any kind anywhere in the image: no lettering, no calligraphy, no runes, no inscriptions, no signatures, no watermarks, no logos, no borders, no title cards. This is an UNSIGNED work — every corner of the canvas holds only painted scenery, with no artist mark, monogram, initials, or scribble in any corner. In-world objects obey the same silence: any map, chart, scroll, book, banner, window, carved frame, letter, page, standing stone, waymark, milestone, gravestone, or monument shows only faint weathered smudges — never readable letters, runes, numerals, rows of glyphs, or neat lines of script, however illegible. Written matter is staged as an object — folded paper, a wax seal, a ribbon, a tube — with its face turned away, downward, or too distant to read.';
 
 // THE HOUSE STYLE — the brand's own art direction, used for marketing
 // art (the reel, key art, social cards) and as the final fallback when a
@@ -81,9 +81,21 @@ export function portraitPrompt(campaign, soul, variant = 'bust') {
   return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. ${identity} Expression and posture reveal this goal: ${soul.goal}. No text, no frame.`, campaign);
 }
 
+// THE STATE GRAMMAR — a region's state must read at a glance, not as a
+// caption. One word ("wounded") barely moves a painting, especially when a
+// reference plate anchors the composition; each state therefore speaks a
+// full visual sentence — palette, light, and the condition of roofs, fields,
+// and roads — so thriving and blighted can never wear the same picture.
+const REGION_STATE_GRAMMAR = {
+  thriving: 'State — THRIVING: the land is alive and generous. Green meadows in full color, hearth-smoke rising from whole roofs, blossom in the hedgerows, bright water, warm golden light across the whole frame. Dominant colors of this frame: living spring green, warm harvest gold, clear blue sky and bright water; no grey pall, no ash, no mud — the palette itself must say abundance at a glance.',
+  wounded: 'State — WOUNDED: the hurt shows everywhere. Scorched fence-lines and broken carts, trampled fields gone brown, a smoke-pall thinning the light, patched roofs and gaps in the hedgerows, a flat grey overcast palette. The region canon above describes this place in kinder days — keep its bones, never its colors. Dominant colors of this frame: flat grey, mud-brown, smoke-white; green survives only in bruised trampled patches; nothing glows. If a reference image anchors this place, it shows kinder days — keep only its landforms and landmarks, and repaint palette, sky, light, and vegetation entirely; the change of fortune must be unmistakable at a glance.',
+  blighted: 'State — BLIGHTED: the land is dying. Ashen dead fields, black leafless trees, collapsed roofs and abandoned lanes, standing water gone dark and still, a cold violet-grey gloom pressing down on everything, the whole frame low-key and DARK — deep shadows over most of the canvas, a heavy lightless sky, never a pale or bright blight. The region canon above describes this place in kinder days — keep its bones, never its colors. Dominant colors of this frame: ash-grey, charcoal-black, cold violet; no green and no warm gold anywhere in the image; the sky is dead slate; every field lies under ash. If a reference image anchors this place, it shows kinder days — keep only its landforms and landmarks, and repaint palette, sky, light, and vegetation entirely; the change of fortune must be unmistakable at a glance.'
+};
+
 export function regionPrompt(campaign, region) {
   const blight = campaign.codex.blight || 0;
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Establishing landscape of ${region.name}. Region canon: ${region.visual}. Current state: ${region.state}. World blight ${blight}/5, shown through weather, architecture, and vegetation rather than gore. Wide cinematic composition.`, campaign);
+  const grammar = REGION_STATE_GRAMMAR[String(region.state || '').toLowerCase()] || `Current state: ${region.state}.`;
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Establishing landscape of ${region.name}. Region canon: ${region.visual}. ${grammar} World blight ${blight}/5, shown through weather, architecture, and vegetation rather than gore. Wide cinematic composition.`, campaign);
 }
 
 // THE FRAMING WHEEL — eight compositions dealt deterministically by the turn's
@@ -111,6 +123,24 @@ export function sceneFraming(seed) {
 // `moment` (optional) carries the turn's own truth into the brief: a slice of
 // the actual prose and a per-turn seed for the framing wheel. Same turn, same
 // brief — a reopen or a refused pour repaints nothing it already has.
+// Turn the hero the player wrote into a paintable soul — shared by the
+// forge's bust job and the scene easel, so the hero's canon reads the same
+// wherever she is painted. (Moved from prologue.js when scenes learned to
+// seat the hero.)
+export function heroSoul(hero) {
+  // The forge hero's stated identity rides WHOLE: identityClause was built
+  // for exactly these fields (presentation, explicitAge, mark), and dropping
+  // them here once cost the hero her mark in every scene she entered.
+  return {
+    name: hero.name,
+    visual: String(hero.bearing || hero.background || `${hero.ancestry || ''} ${hero.className || hero.class || ''}`).slice(0, 300),
+    mark: hero.mark,
+    presentation: hero.presentation,
+    explicitAge: hero.explicitAge,
+    goal: 'the hero whose legend this chronicle records'
+  };
+}
+
 export function scenePrompt(campaign, cue, moment = null) {
   // THE ROSTER — at most three painted subjects per plate: speaker, then
   // villain, then bond, chosen the same way every time; everyone else is
@@ -118,17 +148,25 @@ export function scenePrompt(campaign, cue, moment = null) {
   // their bearings — the card is the prompt.
   const cards = cardsOf(campaign);
   const { painted, staged } = paintRoster({ present: cue.subjects || [], speaker: moment?.speaker || null, cards });
-  const souls = painted.map(({ name }) => campaign.codex.cast.find((soul) => soul.name === name)).filter(Boolean);
+  // The hero is seatable: she lives outside the cast wiki, but when the cue
+  // names her she is seated like any soul — same canon as her bust, and her
+  // bust anchor resolves by her name exactly as cast anchors do.
+  const souls = painted.map(({ name }) => campaign.codex.cast.find((soul) => soul.name === name) || (campaign.hero && name === campaign.hero.name ? heroSoul(campaign.hero) : null)).filter(Boolean);
   const region = campaign.codex.regions.find((entry) => entry.name === cue.region);
-  const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 220)}".` : '';
+  const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 320)}". Depict this beat literally — its action, props, weather, geography, and light — and stage every thing the telling names (a road, a fork, a bell, a glow, a letter) plainly in frame, prominent enough to identify at a glance, so this moment could be no other and never a generic vista of the same place. Where the beat and the region canon above disagree, the beat wins — paint the moment as told. The telling's words are stage directions only: never paint any of its words, phrases, or letters as visible writing anywhere in the image — not on roads, stones, skies, banners, or walls.` : '';
   const framing = moment ? ` Composition: ${sceneFraming(moment.seed)}.` : '';
+  // THE CAMERA LAW — a mark that lives on a face is testimony; a back view
+  // silences it. When a painted soul carries a named mark, the framing wheel
+  // still deals variety, but the marked face must stay toward the viewer.
+  const marked = souls.filter((soul) => soul.mark);
+  const markLaw = marked.length ? ` The camera keeps ${marked.map((soul) => soul.name).join(' and ')} facing the viewer — the marked face never turns fully away, and the mark stays plainly in frame, rendered large and distinct enough to recognize at this plate's distance. If the dealt composition is too wide for the mark to read, pull the camera closer until it does.` : '';
   const soulLines = souls.map((soul) => {
     const bearing = bearingLineFrom(cards, campaign, soul.name);
     const clause = `${soul.name} — ${identityClause(soul)}.`;
     return bearing ? `${clause} ${bearing}` : clause;
   }).join(' ');
   const stagedLine = staged.length ? ` Present but unpainted, staged in the scene's prose: ${staged.join(', ')}.` : '';
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}. ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${beat}${framing} Maintain exact faces, clothing motifs, and silhouette from reference images.`, campaign);
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}. ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${beat}${framing} Likeness law, equal in force to the moment: every named soul must be recognizably the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line must be plainly visible on them.${markLaw}`, campaign);
 }
 
 // The roster, exported for the job bench: the same painted-first seating

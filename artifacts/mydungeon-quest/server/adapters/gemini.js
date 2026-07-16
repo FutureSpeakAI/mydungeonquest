@@ -57,7 +57,10 @@ export function geminiAdapter(key) {
     // brief demands one JSON verdict, and the engine's parser judges the
     // reply. This adapter only carries the images and returns the words.
     async see({ brief, anchor, render }) {
-      const model = process.env.WARDEN_MODEL_GEMINI || 'gemini-3.1-flash';
+      // gemini-3.1-flash never existed as a servable name (only -lite/-image
+      // variants); the alias tracks the newest stable flash so a provider
+      // rename can never silently kill the warden again.
+      const model = process.env.WARDEN_MODEL_GEMINI || 'gemini-flash-latest';
       const response = await timedFetch(`${BASE}/models/${model}:generateContent?key=${key}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [

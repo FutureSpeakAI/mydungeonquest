@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { WARDEN_THRESHOLD, wardenBrief, parseVerdict, mockWarden, wardenRuling } from '../src/warden.js';
 
-assert.equal(WARDEN_THRESHOLD, 0.65);
+assert.equal(WARDEN_THRESHOLD, 0.75); // raised in lockstep with the proving judge — a lenient warden launders what a strict gate refuses
 
 // The brief: identity verbatim, two images named, one JSON demanded.
 const bearing = 'Mira — elder. A grey-eyed healer with rowan-stained hands. Signature: the rowan charm — always visible.';
@@ -50,7 +50,9 @@ assert.equal(wardenRuling(unsure, { attempt: 1 }).action, 'repaint', 'low-confid
 
 // The signature: repainted once, then tolerated with the lack attested.
 const bare = parseVerdict('{"same": true, "confidence": 0.9, "signature_present": false, "drift": []}');
-assert.ok(wardenRuling(bare, { attempt: 1 }).notes[0].includes('signature is missing'));
+const bareNote = wardenRuling(bare, { attempt: 1 }).notes[0];
+assert.ok(bareNote.includes('distinguishing feature'), 'the note demands the feature');
+assert.ok(bareNote.includes('the person does not change'), 'the note pins the face while the feature returns');
 const tolerated = wardenRuling(bare, { attempt: 2 });
 assert.equal(tolerated.action, 'pass');
 assert.equal(tolerated.attest.signature, false, 'identity is the hard law; the locket is the soft one');

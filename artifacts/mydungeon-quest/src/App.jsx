@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, ChevronRight, DoorOpen, Download, Dices, Feather, FileUp, Flame, HeartPulse, Menu, MessageCircleWarning, Pause, Play, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords, X } from 'lucide-react';
-import { WorldForge, HeroForge } from './components/Forge.jsx';
+import { WorldForge, HeroForge, clearForgeDrafts } from './components/Forge.jsx';
 import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
 import Ceremony from './components/Ceremony.jsx';
@@ -27,8 +27,9 @@ import { roomForTurn } from './lib/scriptorium.js';
 import { tellCourt } from './lib/tells.js';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
+import { isProving, seedProvingCampaign } from './lib/proving.js';
 import { Foundry } from './lib/cinema/foundry.js';
-import { portraitPrompt, regionPrompt, scenePrompt, sceneRoster, bearingTextFor } from './lib/cinema/prompts.js';
+import { heroSoul, identityClause, portraitPrompt, regionPrompt, scenePrompt, sceneRoster, bearingTextFor } from './lib/cinema/prompts.js';
 import { markRevealed, listReveals } from './lib/reveals.js';
 import { KEYART_LABEL, actOf, heroBustJob, keyArtJob, nameSeed } from './lib/cinema/prologue.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
@@ -46,9 +47,19 @@ import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
 import { rememberRefusedPour, reportTollRefusal, setPourContext, tollRefusal } from './patron/tollNotice.js';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
-// Task #50 — the re-entry recap shows once per SITTING: in memory only,
-// never sealed, never synced, gone when the tab closes.
-const RECAP_SEEN = new Set();
+// Task #50 — the recap greets a RETURN to the table, never the first seat,
+// and only once per SITTING. A sitting is the tab's lifetime: sessionStorage,
+// so a mid-sitting reload stays quiet and closing the tab forgets. Never
+// sealed, never synced, never exported.
+const sittingSet = (key) => {
+  try { return new Set(JSON.parse(sessionStorage.getItem(key) || '[]')); } catch { return new Set(); }
+};
+const sittingMark = (key, set, id) => {
+  set.add(id);
+  try { sessionStorage.setItem(key, JSON.stringify([...set])); } catch { /* private mode never blocks the table */ }
+};
+const SEATED = sittingSet('mdq:seated');
+const RECAP_SEEN = sittingSet('mdq:recap-seen');
 
 // One act, one light: the interstitial cards wear their own three-hex wash —
 // steady gold for the world as it was, bruised iron as it unravels, ember and
@@ -330,13 +341,19 @@ export default function App() {
   const [pendingRetells, setPendingRetells] = useState(() => new Set());
   const [recap, setRecap] = useState(null);
   useEffect(() => {
-    if (flow !== 'table' || !current?.id) return;
-    if (RECAP_SEEN.has(current.id)) return;
-    RECAP_SEEN.add(current.id);
+    if (flow !== 'table' || !current?.id) { setRecap(null); return; }
+    const returning = SEATED.has(current.id);
+    sittingMark('mdq:seated', SEATED, current.id);
+    if (!returning || RECAP_SEEN.has(current.id)) return;
     const moment = recapFor(current);
-    if (moment) setRecap({ ...moment, campaignId: current.id });
+    if (!moment) return;
+    sittingMark('mdq:recap-seen', RECAP_SEEN, current.id);
+    setRecap({ ...moment, campaignId: current.id });
   }, [flow, current?.id]);
-  useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: settings.reduceMotion ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, settings.reduceMotion]);
+  // STILLNESS FOR THOSE WHO ASK — the OS-level preference quiets the table
+  // exactly like the Care toggle; either voice is enough.
+  const stillness = settings.reduceMotion || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: stillness ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, stillness]);
   // Follow the prose as it streams in: as each chunk of the weaving turn arrives,
   // keep the newest text in view (instant, so rapid updates don't fight a smooth
   // animation) — older narration rises off the top like a live podcast transcript.
@@ -413,21 +430,38 @@ export default function App() {
     // bearing rides along as the Warden's brief: post-anchor renders are
     // judged beside the anchor, and a stranger never ships (Phase 13).
     const seating = sceneRoster(campaign, sceneCue, sceneMoment);
-    const sceneBearing = seating.painted[0]?.name ? bearingTextFor(campaign, seating.painted[0].name) : null;
+    // THE HERO'S BEARING — she lives outside the cast wiki, so hero-led
+    // scenes went unwardened from the start: her likeness and mark rode on
+    // prompt obedience alone. But her canon is still a bearing. When she
+    // leads the painted roster, the warden now holds the scene to HER
+    // identity line — same face, and the named mark present (the brief's
+    // signature law names the distinguishing feature, never lettering).
+    const leadName = seating.painted[0]?.name || null;
+    const sceneBearing = leadName
+      ? (campaign.hero && String(leadName).trim().toLowerCase() === String(campaign.hero.name).trim().toLowerCase()
+          ? `${campaign.hero.name} — ${identityClause(heroSoul(campaign.hero))}`
+          : bearingTextFor(campaign, leadName))
+      : null;
     jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', referenceLabels: [...seating.painted.map((seat) => seat.name), sceneCue.region].filter(Boolean).slice(0, 3), ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
-      if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name], ...(variant === 'bust' ? {} : { warden: { kind: 'soul', bearingText: bearingTextFor(campaign, soul.name) } }) }, priority: variant === 'bust' ? 2 : 6 });
+      if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name], ...(variant === 'bust' ? {} : { warden: { kind: 'soul', bearingText: bearingTextFor(campaign, soul.name) } }) }, priority: variant === 'bust' ? 0 : 6 });
     }
     if (dm.story?.world?.region_add) {
       const region = campaign.codex.regions.find((entry) => entry.name === dm.story.world.region_add.name);
       if (region) jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, region), options: { kind: 'region', label: region.name, seed: nameSeed(region.name) }, priority: 3 });
     }
     if (dm.story?.world?.region_update) {
-      // The land sickens without moving: the degraded plate is anchored
-      // to the original, so geography holds while the weather turns.
+      // The land sickens without moving: geography holds by the region's
+      // own seed and canon text. When the update turns the region's STATE —
+      // its season of fortune — the plate paints FRESH, never anchored to
+      // the old state's pixels: an anchor drags yesterday's palette into
+      // today's ruin, and the change of fortune must be unmistakable at a
+      // glance. Same-state refreshes keep the anchor, so geography holds
+      // exactly when nothing but detail moved.
       const region = campaign.codex.regions.find((entry) => entry.name === dm.story.world.region_update.name);
-      if (region) jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, region), options: { kind: 'region', label: region.name, seed: nameSeed(region.name), referenceLabels: [region.name] }, priority: 3 });
+      const stateTurned = dm.story.world.region_update.state != null;
+      if (region) jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, region), options: { kind: 'region', label: region.name, seed: nameSeed(region.name), ...(stateTurned ? {} : { referenceLabels: [region.name] }) }, priority: 3 });
     }
     if (dm.cinematic) {
       const keys = beatKeys(campaign.id, campaign.codex.beatIndex);
@@ -444,7 +478,12 @@ export default function App() {
     // measure is spent (or was never on this table), don't send the request
     // at all — the house would only refuse it. The server clamp remains the
     // law; an unknown or dormant standing changes nothing.
-    for (const job of jobs.filter((entry) => tollAllows(entry.kind))) {
+    // THE BENCH FLUSHES BY RANK — identity anchors (busts, rank 0) must enter
+    // the lane before the scene (rank 1) that will cite them as references.
+    // Array order alone once let a turn's first scene start painting before
+    // the very faces it was meant to hold existed; the lane then honored the
+    // queue, but the scene was already on the easel.
+    for (const job of jobs.filter((entry) => tollAllows(entry.kind)).sort((a, b) => (a.priority ?? 5) - (b.priority ?? 5))) {
       // The scene plate is painting: show a shimmer over the procedural stand-in
       // until the illuminated image lands (or the job resolves without one).
       if (job.logId && job.kind === 'paint') setPaintingImages((prev) => ({ ...prev, [job.logId]: true }));
@@ -801,6 +840,7 @@ export default function App() {
       turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null, heroBustHash: null,
       mediaTier: settings.mediaTier, spend: { images: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };
+    clearForgeDrafts(); // the chronicle has begun; the sitting's draft burns
     await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
     const started = await prologueRender(campaign);
     await playTurn(started, 'Begin the chronicle.', null, null);
@@ -848,6 +888,22 @@ export default function App() {
     try { const restored = await importChronicle(JSON.parse(await file.text())); await refreshShelf(); setCurrent(restored.mediaTier === 'cinema' ? { ...restored, mediaTier: 'illuminated' } : restored); setFlow('table'); }
     catch (error) { setStatus(`Restore failed: ${error.message}`); }
   };
+
+  // TASK 52 — THE PROVING HOOK (§2), second half of the one sanctioned hook:
+  // gated on ?proving=1 and absent otherwise. Seeds a fixture chronicle
+  // through the REAL primitives (fold, seal, memory — see lib/proving.js)
+  // and seats it at the table exactly the way a restore does.
+  useEffect(() => {
+    if (!isProving()) return undefined;
+    window.__mdqSeed = async (fixture) => {
+      const campaign = await seedProvingCampaign(fixture);
+      await refreshShelf();
+      setCurrent(campaign);
+      setFlow('table');
+      return campaign.id;
+    };
+    return () => { delete window.__mdqSeed; };
+  }, [refreshShelf]);
 
   const openStorybook = async (size = 'Letter', campaign = current) => {
     playUiSfx(campaign, 'page'); // the book opens (or rebinds): one page turn
@@ -900,8 +956,17 @@ export default function App() {
     const codex = requestSeal(current.codex, current.turnNumber || 0);
     if (codex === current.codex) { setOverlay(null); return; }
     const next = { ...current, codex };
-    await saveCampaign(next); setCurrent(next); setOverlay(null);
+    // The ask is answered with the wax in reach: the denouement directives
+    // arm for every turn still to come, and the ceremony rises with the
+    // press under the patron's own hand — return to the table and let the
+    // road turn home, or press now and bind the book as it stands. The
+    // seal-ask promised the wax; the promise is kept without a dead end.
+    // The ceremony rises in the same breath as the confirm — state lands
+    // synchronously with the click — and the save settles behind it.
+    setCurrent(next);
+    setOverlay('sealing');
     setStatus('✦ The denouement begins — the road turns home.');
+    await saveCampaign(next);
   };
 
   // THE PRESS — the journal's final block signs the whole chronicle. One wax
@@ -1017,7 +1082,7 @@ export default function App() {
 
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); greetTale(campaign); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} /></>;
+  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={stillness} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); greetTale(campaign); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} /></>;
   if (!current) return null;
 
   const chapter = chapterInfo(current.codex);
@@ -1054,7 +1119,7 @@ export default function App() {
         const seats = orderFeed(current.logs, current.chroniclePages || [], [...pendingRetells].map((key) => JSON.parse(key)));
         return seats.map((seat, index) => {
           if (seat.kind === 'page') return <ChroniclePage key={`page-${seat.page.recordHash || seat.page.beatIndex}`} page={seat.page} />;
-          if (seat.kind === 'page-pending') return <PendingPage key={`pending-${seat.beatIndex}`} reduceMotion={settings.reduceMotion} />;
+          if (seat.kind === 'page-pending') return <PendingPage key={`pending-${seat.beatIndex}`} reduceMotion={stillness} />;
           if (seat.kind === 'tick' || seat.log?.kind === 'span') {
             // Ticks and spans are both sealed time, and both render as quiet
             // dividers — never an empty turn row (Directive VI, Phase 1).
@@ -1075,8 +1140,12 @@ export default function App() {
     </main>
     {!current.readOnly && current.codex.sealing && !current.completed && <div className="near-end denouement"><span>✦ The denouement — the road turns home.</span></div>}
     {!current.readOnly && nearEnd && <div className="near-end"><span>✦ The final chapters draw near.</span><button onClick={() => setOverlay('seal-ask')}>Seal the Tale</button></div>}
-    {!current.readOnly && !current.completed && <Composer campaign={current} busy={busy} reduceMotion={settings.reduceMotion} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
-    {!current.readOnly && current.completed && <section className="tale-told"><span>✦ Your tale is told.</span><button onClick={() => setOverlay('sealing')}>{current.sealedAt ? 'Open the keepsakes' : 'Seal the chronicle'}</button></section>}
+    {!current.readOnly && !current.completed && <Composer campaign={current} busy={busy} reduceMotion={stillness} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
+    {/* A restored chronicle is a BOOK — its keepsakes (storybook, wax,
+        export) are the whole point of restoring it. Only the mutating acts
+        stay barred for read-only spines: the press refuses in pressSeal and
+        hides in the ceremony; the next volume is gated where it renders. */}
+    {(current.completed || current.sealedAt) && <section className="tale-told"><span>✦ Your tale is told.</span><button onClick={() => setOverlay('sealing')}>{current.sealedAt ? 'Open the keepsakes' : 'Seal the chronicle'}</button></section>}
     <footer className="seal-status"><span>{status}</span>{VAULT_MARKS[vaultMarks.get(current.id)?.state] && <span className="vault-mark" title={VAULT_MARKS[vaultMarks.get(current.id).state].word}>{VAULT_MARKS[vaultMarks.get(current.id).state].glyph} {VAULT_MARKS[vaultMarks.get(current.id).state].word}</span>}</footer>
     {diceResult && <DiceOverlay result={diceResult} haptics={settings.haptics} onDone={() => setDiceResult(null)} />}
     {/* THE FRESH CARD LAW — the key forces a NEW card lifecycle per card: a
@@ -1084,7 +1153,7 @@ export default function App() {
         so without it React would reuse the mounted card — same backdrop, no
         re-consult of the seen ledger, and no fresh close timer. Type differs
         across any chained pair, so the key always turns. */}
-    {cinematic && <Cinematic key={`${cinematic.cinematic?.type}:${cinematic.cinematic?.title}:${cinematic.beatIndex ?? 'b'}:${cinematic.replay ? 'replay' : 'live'}`} cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={settings.reduceMotion} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} replay={Boolean(cinematic.replay)} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
+    {cinematic && <Cinematic key={`${cinematic.cinematic?.type}:${cinematic.cinematic?.title}:${cinematic.beatIndex ?? 'b'}:${cinematic.replay ? 'replay' : 'live'}`} cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={stillness} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} replay={Boolean(cinematic.replay)} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
     {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
     {overlay === 'codex' && <Codex campaign={current} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Codex replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} />}
     {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
@@ -1110,7 +1179,7 @@ const VAULT_MARKS = {
   error: { glyph: '◌', word: 'the vault is out of reach — the tale is safe on this device' },
 };
 
-function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVaultRestore, onBurn, onBurnVault, onNew, onOpen, onRestore, reduceMotion, mediaTier }) {
+function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVaultRestore, onBurn, onBurnVault, onNew, onOpen, onRestore, reduceMotion, mediaTier, status }) {
   const input = useRef(null);
   // THE PYRE'S ASKING — a burn is asked once, in ember, with honest scope:
   // what is taken (device / vault / both) is said before any match is struck.
@@ -1169,6 +1238,10 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
     </section>
     {!attract && <section className="shelf">
       <header><div><span className="eyebrow">The Chronicle Shelf</span><h2>Every tale you have lived</h2></div><button className="secondary-button" onClick={() => input.current.click()}><FileUp/> Return a tale</button><input ref={input} type="file" accept=".json,.chronicle.json" hidden onChange={(e) => e.target.files[0] && onRestore(e.target.files[0])}/></header>
+      {/* The house speaks on the shelf too: a refused restore ("Restore
+          failed: the seal is broken…") must say so where the patron stands —
+          the door was refusing correctly but saying nothing. */}
+      {status && <p className="muted shelf-status" role="status">{status}</p>}
       <div className="book-wall">
         <div className="book-row">
           {campaigns.map((c) => {
@@ -1326,7 +1399,10 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null }) {
 function Composer({ campaign, busy, reduceMotion, onSubmit, onSuggestion, onRoll, onXCard }) {
   const [text,setText]=useState(''); const pending=campaign.pendingRoll;
   const send=()=>{if(text.trim()){onSubmit(text);setText('');}};
-  const latest=[...campaign.logs].reverse().find((l)=>!l.redacted);
+  // THE ROADS STAY OPEN — suggestions read the latest TURN, never a tick or
+  // span row: a time-advancing turn appends its divider after itself, and
+  // the divider must not swallow the roads the turn offered.
+  const latest=[...campaign.logs].reverse().find((l)=>!l.redacted && !l.kind);
   return <section className="composer-wrap">
     {latest?.dm?.suggestions && !pending && <SuggestionRow key={latest.id} suggestions={latest.dm.suggestions} disabled={busy} onPick={onSuggestion} reduceMotion={reduceMotion} />}
     {pending ? <button className="roll-button" onClick={onRoll} disabled={busy}><Dices/><span><small>{pending.kind} · DC {pending.dc ?? 'hidden'}</small>{pending.label}</span><b>Roll {pending.die}</b></button> : <div className="composer"><button className="x-card" onClick={onXCard} disabled={busy} title="Remove the last scene from active canon"><MessageCircleWarning/></button><textarea value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}} placeholder="What do you do?" rows="1" disabled={busy}/><button onClick={send} disabled={busy||!text.trim()}><Feather/></button></div>}

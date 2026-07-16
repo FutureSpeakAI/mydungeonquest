@@ -19,7 +19,11 @@
 // no warden at all — procedural woodcuts have no anchor to betray.
 // ------------------------------------------------------------
 
-export const WARDEN_THRESHOLD = 0.65; // below this confidence, "same" is not same enough
+// Below this confidence, "same" is not same enough. Raised from 0.65 after
+// a feature-repaint traded the face for the mark and slid through at the
+// old bar: the warden's eye must be at least as strict as the house's own
+// proving judge, or a lenient warden launders what a strict gate refuses.
+export const WARDEN_THRESHOLD = 0.75;
 
 const clean = (value, cap = 80) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, cap);
 
@@ -31,6 +35,7 @@ export function wardenBrief({ kind = 'soul', bearingText = '' } = {}) {
     'You are the Warden. IMAGE 1 is the blessed anchor. IMAGE 2 is a new render.',
     `Judge whether they show the same ${subject}.`,
     `The locked identity, verbatim: ${String(bearingText || '').trim()}`,
+    '"signature_present" means: the distinguishing feature named in the locked identity (a mark, scar, device, or landmark) is visible in IMAGE 2. It does NOT mean an artist\u2019s signature, lettering, or any text — painted text is a defect, never a signature.',
     'Answer with ONLY this JSON, nothing else:',
     '{"same": true|false, "confidence": 0.0-1.0, "signature_present": true|false, "drift": ["short notes on what differs, if anything"]}'
   ].join(' ');
@@ -81,7 +86,7 @@ export function wardenRuling(verdict, { attempt = 1 } = {}) {
   }
   if (!verdict.signature_present) {
     return attempt < 2
-      ? { action: 'repaint', notes: ['same soul, but the signature is missing — paint it visible'], attest: null }
+      ? { action: 'repaint', notes: ['same soul, but the distinguishing feature named in the locked identity is not visible — make that feature clearly visible. Never add lettering, an artist\u2019s signature, or text of any kind. Change nothing else: hold the blessed anchor\u2019s exact face, age, hair, and build — the feature returns, the person does not change.'], attest: null }
       : { action: 'pass', notes: [], attest: { warden: 'passed', confidence: verdict.confidence, signature: false } };
   }
   return { action: 'pass', notes: [], attest: { warden: 'passed', confidence: verdict.confidence, signature: true } };

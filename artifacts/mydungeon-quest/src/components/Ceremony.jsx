@@ -46,13 +46,15 @@ export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport,
       <h1>{campaign.title}</h1>
       <p className="ceremony-lede">{sealed
         ? 'The wax has taken the sigil. What was lived is now bound.'
-        : 'The tale has reached its final page. Only the wax remains.'}</p>
+        : campaign.codex?.sealing && !campaign.completed
+          ? 'The denouement is armed. Return to the table and play the road home — or press now, and bind the book as it stands.'
+          : 'The tale has reached its final page. Only the wax remains.'}</p>
 
       <div className={`ceremony-seal ${sealed ? 'is-sealed' : ''} ${pressing ? 'is-pressing' : ''}`} aria-hidden="true">
         <span className="wax-emboss">{campaign.hero?.sigil || '✦'}</span>
       </div>
 
-      {!sealed && <button className="press-seal" onClick={press} disabled={pressing}>
+      {!sealed && !campaign.readOnly && <button className="press-seal" onClick={press} disabled={pressing}>
         {pressing ? 'The wax cools…' : 'Press the seal'}
       </button>}
 

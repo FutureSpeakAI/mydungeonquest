@@ -5,6 +5,7 @@ import { db } from '../lib/db.js';
 import { ACT_NAMES, romanNumeral } from 'fatescript/story';
 import { cardsForCampaign } from 'fatescript/cards';
 import { roomForTurn, SCRIBES } from '../lib/scriptorium.js';
+import { tellCourt, TELL_FAMILIES } from '../lib/tells.js';
 import { voiceLineOf, wordsLine, tieLine } from 'fatescript/wikiText';
 import { doorBuilt } from '../patron/door.jsx';
 import { TollSection, useToll } from '../patron/toll.jsx';
@@ -123,6 +124,9 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
   // THE SCRIPTORIUM made visible: the standing plan the room holds for
   // the coming scene — four scribes, one domain each, never prose.
   const roomPlan = useMemo(() => roomForTurn(campaign), [campaign]);
+  // THE HUMAN HAND made visible: only when a family runs hot does the
+  // court speak on this page — the finding, never a rewrite.
+  const tells = useMemo(() => { try { return tellCourt(campaign); } catch { return null; } }, [campaign]);
   // THE COMMONS — a walked chapter's public face: the act's key art walks
   // the strict door as a data plate (or the card goes plateless, lawfully),
   // the engine composes and escapes, and the patron receives a file named
@@ -157,6 +161,8 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
     <h3>The evil design</h3><p className={revealed ? '' : 'gated'}>{revealed ? c.arc?.evil_plot : 'The page refuses to hold the whole shape. Revelation must be earned.'}</p>
     {roomPlan && <><h3>The scriptorium — the room plans, the door speaks</h3>
     <ul className="scriptorium-plan">{SCRIBES.map((scribe) => <li key={scribe}><b>{scribe}</b> — <span className="muted">{roomPlan.scratchpad[scribe]}</span></li>)}</ul></>}
+    {tells && tells.report.flagged.length > 0 && <><h3>The human hand — the tell court</h3>
+    <ul className="scriptorium-plan">{tells.report.flagged.map((key) => <li key={key}><b>{TELL_FAMILIES[key].name}</b> — <span className="muted">{TELL_FAMILIES[key].finding}</span></li>)}</ul></>}
     <h3>The cast — what the world remembers</h3>
     {openCard && <article className="soul-page">
       <button className="text-button" onClick={() => setOpenSoul(null)}>← All souls</button>

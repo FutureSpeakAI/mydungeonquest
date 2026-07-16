@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 55 present · 1 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 56 present · 0 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -226,11 +226,9 @@ After the forge, three portrait candidates of one unvarying identity sit for the
 
 Agents’ Room under house law: four scribes (plot, character, setting, conflict), each briefed to one domain, planning in notes and directives, never prose; a keyless mock room as the Floor; a court that refuses any plan that tries to speak.
 
-### The Human Hand — the tell court — PENDING (wiring 0/1)
+### The Human Hand — the tell court — PRESENT
 
 StoryScope’s measurable fingerprints (the stated moral, the borrowed body, the tidy bow, the hushed register) counted per thousand words over sealed narration, with capped, ordered counter-directives pushed into the pack’s directives the moment a family runs hot. The court measures; it never rewrites.
-
-*Awaiting: 'tellReport' under artifacts/mydungeon-quest/src.*
 
 ### The Warden — machine vision keeps the face — PRESENT
 

@@ -24,6 +24,7 @@ import { fetchSeasons, skyNoteFor } from './lib/sky.js';
 import { RavenNotice } from './components/RavenNotice.jsx';
 import { buildContextPack } from 'fatescript/graph';
 import { roomForTurn } from './lib/scriptorium.js';
+import { tellCourt } from './lib/tells.js';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
@@ -495,6 +496,13 @@ export default function App() {
       // speak is discarded whole; One Door is fed, never amended.
       const room = roomForTurn(base);
       if (room) story = { ...story, directives: [...(story.directives || []), ...room.directives] };
+      // THE HUMAN HAND — the tell court: the sealed record is measured
+      // (free, deterministic; struck rows stay struck), and when a tell
+      // family runs hot its counter-directive rides the pack — capped
+      // at three, hottest first. The court measures; it never rewrites.
+      // The pressure lands on this coming turn, where pressure belongs.
+      const hand = tellCourt(base);
+      if (hand.directives.length) story = { ...story, directives: [...(story.directives || []), ...hand.directives] };
       // The DM keeps its own memory now: prior turns ride along as a
       // real conversation, so prose has continuity — and the stable
       // prefix caches on the server side. Spans are the table's own clock

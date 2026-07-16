@@ -9,6 +9,7 @@ import { doorBuilt } from '../patron/door.jsx';
 import { TollSection, useToll } from '../patron/toll.jsx';
 import { clockWords } from '../lib/clockAtTable.js';
 import { resolveSheetFace } from '../lib/sheetFace.js';
+import { chapterCard, downloadCard } from '../lib/shareCard.js';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -101,6 +102,19 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
   const [openSoul, setOpenSoul] = useState(null);
   const openCard = openSoul ? wiki[openSoul.toLowerCase()] : null;
   const acts = [...new Set(c.spine.beats.map((beat) => beat.act || 1))];
+  // THE COMMONS — a walked chapter's public face: the act's key art walks
+  // the strict door as a data plate (or the card goes plateless, lawfully),
+  // the engine composes and escapes, and the patron receives a file named
+  // by the numeral alone.
+  const shareChapter = async (i) => {
+    let plate = null;
+    try {
+      const act = c.spine.beats[i]?.act || 1;
+      const row = await db.media.where('cacheKey').equals(`keyart:${campaign.id}:act-${act}`).first();
+      if (row?.blob) plate = await new Promise((resolve) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || '')); reader.onerror = () => resolve(null); reader.readAsDataURL(row.blob); });
+    } catch { /* the card is lawful without a plate */ }
+    downloadCard(chapterCard(campaign, i, plate), i);
+  };
   return <Frame title="The Codex" icon={<ScrollText/>} onClose={onClose} wide>
     <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p><p className="muted codex-clock" role="note">{clockWords(campaign.logs)}</p></div><div className="blight">Blight <b>{c.blight}/5</b></div></div>
     {/* The shape of the tale: the acts and the chapters already walked. The
@@ -109,7 +123,7 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
     <div className="tale-arc">{acts.map((act) => <div className="act-row" key={act}>
       <b>Act {romanNumeral(act)} — {ACT_NAMES[act] || 'the road beyond'}</b>
       <ol>{c.spine.beats.map((beat, i) => (beat.act || 1) === act
-        ? <li key={i} className={i < c.beatIndex ? 'walked' : i === c.beatIndex ? 'here' : ''}>{i <= c.beatIndex ? beat.title : '· · ·'}</li>
+        ? <li key={i} className={i < c.beatIndex ? 'walked' : i === c.beatIndex ? 'here' : ''}>{i <= c.beatIndex ? beat.title : '· · ·'}{(i < c.beatIndex || campaign.completed) && <button className="text-button" onClick={() => shareChapter(i)}>public face</button>}</li>
         : null)}</ol>
     </div>)}</div>
     {campaign.completed

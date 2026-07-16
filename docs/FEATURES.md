@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 49 present · 7 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 50 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -192,11 +192,9 @@ One seasonal sky over every world — an omen entering the pack as a bounded hoo
 
 Delivery tags derived from the record (‘wounded’, ‘warm, close’) riding each speak call — the Tenor Law’s second half, begun.
 
-### Share cards & the public shelf — PENDING (wiring 0/1)
+### Share cards & the public shelf — PRESENT
 
 A chapter’s public face: secrets struck, quotes verbatim, plates through the strict door; a fork carries the covenant, never another patron’s journal.
-
-*Awaiting: 'shareCard' under artifacts/mydungeon-quest/src.*
 
 ## VII. The World groundwork (Directive VI)
 

@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import { sha256 } from 'fatescript/canonical';
 import { narratorVoiceId, resolveVoiceId, resolveHeroVoiceId, speakerIsHero, dialogueLeadIn } from 'fatescript/cinema/casting';
 import { setVoiceActive } from './audioDirector.js';
+import { directedBody, directedKey } from './direction.js';
 import { tollRefusal } from '../../patron/tollNotice.js';
 
 // ------------------------------------------------------------
@@ -49,7 +50,7 @@ export function narrationSegments(dm, cast = [], hero = null) {
   const raw = [];
   blocks.forEach((block, i) => {
     if (!block.speaker) {
-      raw.push({ voiceId: narratorVoiceId(), speaker: null, text: block.text });
+      raw.push({ voiceId: narratorVoiceId(), speaker: null, text: block.text, isNarrator: true });
       return;
     }
     const key = String(block.speaker).toLowerCase();
@@ -58,8 +59,8 @@ export function narrationSegments(dm, cast = [], hero = null) {
       soul = { name: hero.name, voiceId: resolveHeroVoiceId(hero) };
     }
     const leadIn = dialogueLeadIn(block.speaker, blocks[i - 1]);
-    if (leadIn) raw.push({ voiceId: narratorVoiceId(), speaker: null, text: leadIn });
-    raw.push({ voiceId: resolveVoiceId(soul, block.speaker), speaker: block.speaker, text: block.text });
+    if (leadIn) raw.push({ voiceId: narratorVoiceId(), speaker: null, text: leadIn, isNarrator: true });
+    raw.push({ voiceId: resolveVoiceId(soul, block.speaker), speaker: block.speaker, text: block.text, soul: soul || null });
   });
   const merged = [];
   for (const seg of raw) {
@@ -89,13 +90,19 @@ const segmentKey = (campaignId, log, index, voiceId) =>
 // serving the old take.
 export async function ensureSegmentAsset(campaign, log, segment, index) {
   if (!segment?.text) return null;
-  const key = segmentKey(campaign.id, log, index, segment.voiceId);
+  // THE CHOIR'S SECOND HALF — the line is directed from the record
+  // (status, bond, blight, the roll just resolved) and the tag rides the
+  // speak call additively; a directed take caches under its own key so a
+  // 'shaken' line never replays a 'warm' one. Providers with prosody
+  // honor it, providers without ignore it, and silence stays silence.
+  const body = directedBody(segment, campaign, log);
+  const key = directedKey(segmentKey(campaign.id, log, index, segment.voiceId), body);
   const cached = await db.media.where('cacheKey').equals(key).first();
   if (cached?.blob) return { blob: cached.blob, provider: cached.provider || 'unknown' };
   const response = await fetch('/api/speak', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: segment.text, voiceId: segment.voiceId }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const closed = await tollRefusal(response); // a 402 receipt reaches the patron

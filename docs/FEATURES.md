@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 48 present · 8 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 49 present · 7 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -188,11 +188,9 @@ Come back after days away and the world reports what moved: absence counted hone
 
 One seasonal sky over every world — an omen entering the pack as a bounded hook, never a command; the off-switch is silence.
 
-### Per-line voice direction — PENDING (wiring 0/1)
+### Per-line voice direction — PRESENT
 
 Delivery tags derived from the record (‘wounded’, ‘warm, close’) riding each speak call — the Tenor Law’s second half, begun.
-
-*Awaiting: 'directionFor' under artifacts/mydungeon-quest/src/lib/cinema.*
 
 ### Share cards & the public shelf — PENDING (wiring 0/1)
 

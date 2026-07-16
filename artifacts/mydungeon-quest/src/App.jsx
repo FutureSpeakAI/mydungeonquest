@@ -573,7 +573,11 @@ export default function App() {
       const deed = !visiblePlayer && resolution
         ? `The ${resolution.selectedDie || 'die'} falls ${resolution.total} — ${String(resolution.outcome || '').replaceAll('_', ' ')}.`
         : null;
-      const log = { id: crypto.randomUUID(), player: visiblePlayer, deed, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, beatIndex: codex.beatIndex };
+      // The row now carries the roll the seal has always kept (additive,
+      // duplicating sealed truth only) so the narrator can direct the line
+      // — a dying friend sounds like one. Retellings still quote the deed,
+      // never the die.
+      const log = { id: crypto.randomUUID(), player: visiblePlayer, deed, sent: player, dm, ts: Date.now(), resolution, redacted: false, beatIndex: codex.beatIndex };
       // A completing turn strands no die: the tale that just ended has no
       // roll left to make.
       let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: codex.completed ? null : dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed };

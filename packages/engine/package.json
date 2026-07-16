@@ -1,7 +1,7 @@
 {
   "name": "fatescript",
   "version": "1.2.0-dev",
-  "description": "The FateScript engine \u2014 the deterministic law layer for AI-governed, player-driven narratives. Give the model all of the talent and none of the authority.",
+  "description": "The FateScript engine — the deterministic law layer for AI-governed, player-driven narratives. Give the model all of the talent and none of the authority.",
   "license": "MIT",
   "type": "module",
   "private": false,
@@ -11,7 +11,8 @@
   },
   "exports": {
     ".": "./src/index.js",
-    "./*": "./src/*.js"
+    "./*": "./src/*.js",
+    "./direction": "./src/direction.js"
   },
   "files": [
     "src",

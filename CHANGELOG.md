@@ -2,7 +2,15 @@
 
 Newest first; releases carry names. The game keeps its own finer-grained log at [`artifacts/mydungeon-quest/CHANGELOG.md`](artifacts/mydungeon-quest/CHANGELOG.md), and every cut's full intent is preserved in [`docs/directives/`](docs/directives/).
 
-## [Unreleased] — 0.6.0-dev · the Saga Cut groundwork
+## [Unreleased] — 0.6.0-dev · the Saga & World Cut groundwork
+
+### The World Cut groundwork (Directive VI)
+- Eight new engine modules in the house voice — `clock`, `ledger`, `market`, `atlas`, `bearing`, `sitting`, `scriptorium`, `tells` — with eight gates; the suite grows **65 → 74** (15 engine · 58 game · 1 salon), keyless as ever.
+- **The Scriptorium** adapts DeepMind's Agents' Room (arXiv 2410.02603): specialized scribes plan in notes and directives under One Door — the room plans, the door speaks.
+- **The Human Hand** answers StoryScope (arXiv 2604.03136, 93% detection from structure alone): the four measurable tell families are convicted deterministically in the sealed record and countered in the pack's own `directives` — and the durable fingerprint, machine plotting, was never ours to leave: the player, the dice, the entropy, the spine, and the ticks author the structure here.
+- **The Salon** (`tools/salon/`): the Tell Me A Story human shelf, opened with zero dependencies, untracked by law — root gate `check:salon`.
+- **The Folio**: the codex presentation reconsidered — vellum on ink, ribbon tabs, marginalia seals that open the sealed record; `docs/design/codex-folio.html` + spec. The Sitting is visible on the hero's leaf: three faces sat, one was blessed, and no sheet minted before the face was accepted.
+- `docs/directives/EXPERIENCE-DIRECTIVE-VI.md` — **THE WORLD CUT**: eight laws standing, ten wiring phases charted, one per checkpoint.
 
 ### The ascension (Phase 0)
 - FateScript extracted to `packages/engine` and consumed as the `fatescript` workspace package (zero dependencies, MIT, `1.2.0-dev`). All 58 game gates green through the move.

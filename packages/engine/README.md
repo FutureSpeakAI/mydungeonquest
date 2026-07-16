@@ -12,6 +12,7 @@ The model narrates; the client rules. FateScript is the ruling half: a zero-depe
 - **The Living World** — offscreen movement as deterministic, budgeted, ops-only ticks.
 - **The Graph Law** — context packs assembled from the sealed record alone, under budget, scene floor never trimmed.
 - **The Saga groundwork** *(Directive V)* — sagas and legacy packets, the hearth sync client, annals, ravens, the shared sky, per-line voice direction, and share cards. Modules and gates stand; host wiring lands phase by phase.
+- **The World groundwork** *(Directive VI)* — the clock, the ledger, the market, the atlas, bearing & signature, the Sitting, the Scriptorium, and the Human Hand. Modules and gates stand; wiring lands phase by phase.
 
 ## Install & import
 
@@ -35,11 +36,12 @@ Every module is also re-exported from the root (`import { ... } from 'fatescript
 | `fatescript/cinema/casting` | voice casting under the Cast Law |
 | `fatescript/mockDm` | the deterministic floor |
 | `fatescript/saga`, `/hearth`, `/memoir`, `/ravens`, `/sky`, `/direction`, `/shareCard` | the Saga groundwork (Directive V) |
+| `fatescript/clock`, `/ledger`, `/market`, `/atlas`, `/bearing`, `/sitting`, `/scriptorium`, `/tells` | the World groundwork (Directive VI) |
 
 ## The gates
 
 ```bash
-npm run check   # seven Saga gates, keyless, no network, in seconds
+npm run check   # fifteen gates, keyless, no network, in seconds
 ```
 
 Each prints its verdict in the house voice — `PASS — the saga gate: …` — and the suite only ever grows. The engine's classical behavior (protocol, rules, chronicler, living world) is additionally exercised end-to-end by the host game's 58-gate suite in this monorepo.

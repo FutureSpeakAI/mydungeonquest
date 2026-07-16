@@ -57,3 +57,13 @@ One line per term, grouped by room. When code and directive disagree on a name, 
 - **Minted voice** — a unique voice designed from a major soul's own card; cast once, kept forever.
 - **Share card / shelf / fork** — the chapter's public face; the public shelf (secrets struck, quotes verbatim, text as text); a credited copy of covenant and genesis — never another patron's journal.
 - **The Long Road** — the release this road leads to (fatescript 1.2.0) and the patron tier sized for years.
+- **World Clock / span** — time derived by folding the record; a sealed `span` row covers roads and interludes; age walks the band ladder forward only, and the dead are outside time.
+- **Trade op / ledger line** — double-entry, atomic, cause-bearing movement of coin and goods; wallets and inventories are projections of the record.
+- **Witnessed price / price attack / the slate** — the first quote locks; uncaused change is refused by name; the slate reads trend and cause in one line.
+- **Atlas / fog / reach / aftermath / missing** — placement phrases become coordinates in days of travel; the chart shows only the witnessed; a world event's zone is geometry; the world may move souls — `missing` — never end them.
+- **Bearing / signature / roster** — the deterministic paint block derived from a card; the one trackable item the ledger moves and the paint follows; three painted subjects at most — speaker, villain, bond.
+- **The Sitting / blessing / sheet** — three candidates of one identity, one accepted face, and only then the turnaround mints from the blessed anchor.
+- **The Folio / marginalia** — the codex presented as the book the table keeps; every fact wears its turn seal in the margin, and the seal opens the record.
+- **The Scriptorium / room law** — four specialized scribes (plot, character, setting, conflict) planning in notes and directives; the room plans, the door speaks (Agents' Room).
+- **The Human Hand / tell families / counter-directive** — the court that measures the stated moral, the borrowed body, the tidy bow, and the hushed register in sealed narration, answering with capped, ordered directives (StoryScope).
+- **The Salon / the human shelf** — the Tell Me A Story corpus, lawfully opened on your machine and never committed; the shelf the house calibrates against.

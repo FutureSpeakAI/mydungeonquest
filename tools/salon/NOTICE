@@ -1,0 +1,8 @@
+The keys in ./keys and the download URLs in salon.mjs come from
+google-deepmind/tell_me_a_story (Apache-2.0), published there so that
+people — not scrapers — can read the corpus. The dataset itself is
+"Tell Me A Story" (Huot et al., Agents' Room, ICLR 2025), licensed
+CC-BY 4.0. The decrypted corpus is deliberately untracked here: the
+authors encrypted it to keep it out of automated scrapes, and this
+house honors that. Attribution and citation live in
+docs/research/AGENTS-ROOM.md.

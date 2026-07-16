@@ -5,7 +5,7 @@ A law here is not a comment. A law is three things landed together: a **statemen
 Run the whole court, keyless, from the root:
 
 ```bash
-pnpm run check   # engine gates, then the game suite — 65 and counting
+pnpm run check   # engine gates, then the game suite — 74 and counting
 ```
 
 ---
@@ -47,6 +47,20 @@ Nine laws for the long road, stated in full in [`directives/EXPERIENCE-DIRECTIVE
 | **VIII. Commons Law** | Sealed chapters may walk the public shelf — secrets struck, quotes verbatim, forks credited, and the shelf shows text as text. The share-card composer stands today. | `fatescript/shareCard` (floor) | `shareCard` (floor); `commons` charted | Floor standing |
 | **IX. Long Toll Law** | A tier for patrons of years; one table drives every ceiling; the watch keeps its ledger through the night. | toll-house (charted) | `longToll` | Charted |
 
+## The World laws (Directive VI — groundwork standing)
+
+| Law | The rule | The court |
+|---|---|---|
+| The Calendar Law | time is derived, never stored; age walks the ladder forward only | gate `calendar` |
+| The Ledger Law | double-entry trades, atomic, cause-bearing; refusals are receipts | gate `ledger` |
+| The Market Law | first quote locks; uncaused change is a price attack; drift is causal, one notch at most | gate `market` |
+| The Atlas Law | relations become coordinates in days; fog shows only the witnessed; the world may move souls — only the table may end them | gate `atlas` |
+| Bearing, Signature & Roster | the card is the prompt; the dead never age; three painted — speaker, villain, bond | gate `bearing` |
+| The Sitting (Likeness, first half) | a face is accepted, not assigned; no sheet before the blessing | gate `sitting` |
+| The Scriptorium Law | the room plans; the door speaks (Agents' Room, arXiv 2410.02603) | gate `scriptorium` |
+| The Human Hand | the four tell families convicted and countered (StoryScope, arXiv 2604.03136) | gate `tells` |
+| The Salon | the human shelf is read, respected, never committed | root gate `check:salon` |
+
 ## The amendment log
 
 Amendments are stated plainly, landed in lockstep, and never weaken a gate.
@@ -59,3 +73,5 @@ Amendments are stated plainly, landed in lockstep, and never weaken a gate.
 ---
 
 *The meta-law over all of it: **PASS only grows.** Evals are append-only; fixing a failure by loosening a gate is the one forbidden move. See [`../CONTRIBUTING.md`](../CONTRIBUTING.md).*
+
+- **Directive VI groundwork lands.** Eight world laws and the Salon enter with gates; the folio design ships beside them; the suite grows **65 → 74**. PASS only grows.

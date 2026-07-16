@@ -5,11 +5,13 @@
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "check": "pnpm run check:engine && pnpm run check:game",
+    "check": "pnpm run check:engine && pnpm run check:game && pnpm run check:salon",
     "check:engine": "pnpm --filter fatescript run check",
     "check:game": "pnpm --filter @workspace/mydungeon-quest run check",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "salon": "node tools/salon/salon.mjs",
+    "check:salon": "node tools/salon/salon.test.mjs"
   },
   "private": true,
   "packageManager": "pnpm@10.26.1",

@@ -20,6 +20,18 @@ Each module ships with its gate in `packages/engine/evals/`. **Gated but not yet
 | `fatescript/direction` | Choir (floor) | `direction` | Deterministic per-line direction from record state — the dead say nothing, crits ring bright, blight hushes the room. |
 | `fatescript/shareCard` | Commons (floor) | `shareCard` | Turning-point picks, verbatim quotes, secrets struck, hostile names inert, fork genesis credited. |
 
+## Standing now — the World Cut groundwork (Directive VI: the suite is at 74)
+
+Eight engine laws with green gates — clock, ledger, market, atlas,
+bearing, sitting, scriptorium, tells — plus **the Salon**
+(`tools/salon/`: the Tell Me A Story human shelf, opened with zero
+dependencies, untracked by law) and **the Folio** design
+(`docs/design/`). Wiring is charted in
+`docs/directives/EXPERIENCE-DIRECTIVE-VI.md`, one phase per checkpoint:
+world ops at the protocol (lockstep), the Sitting at the forge, the
+Folio, ripples & the Loom, the Scriptorium convened, the Human Hand at
+the table.
+
 ## Charted — the wiring phases (Directive V, in order)
 
 | Phase | Lands | Gate(s) |

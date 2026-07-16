@@ -78,7 +78,7 @@ export function orderFeed(logs = [], pages = [], pendingPages = []) {
 // (act, chapter, the arc's name); a fresh or completed tale stays silent.
 export function recapFor(campaign) {
   const logs = (campaign?.logs || []);
-  if (!logs.some((log) => !log.redacted && log.kind !== 'tick')) return null;
+  if (!logs.some((log) => !log.redacted && log.kind !== 'tick' && log.kind !== 'span')) return null;
   if (campaign.completed) return null; // a finished book opens to its keepsakes, not a recap
   if (campaign.readOnly) return null; // a borrowed book opens where it lies — read-only spines are never recapped
   const codex = campaign.codex;

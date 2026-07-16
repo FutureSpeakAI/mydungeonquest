@@ -248,8 +248,14 @@ export function buildChronicleRequest(campaign, closedBeatIndex) {
   };
   const range = { from, to };
   const context = { range, names, corpus, deaths, totals };
+  // The page's seat: a chapter page anchors after the last row that can
+  // close a chapter — a narrative turn — never after sealed time (a tick,
+  // a span) or an annal. The dividers follow the page; the page follows
+  // the prose: turn → page → the road moving on.
+  let anchor = to;
+  while (anchor > from && (logs[anchor]?.kind === 'tick' || logs[anchor]?.kind === 'span' || logs[anchor]?.kind === 'annal')) anchor -= 1;
   return {
-    afterLogId: logs[to].id,
+    afterLogId: logs[anchor].id,
     context,
     body: {
       campaign: { title: campaign.title, tone: campaign.tone, styleBible: campaign.styleBible },

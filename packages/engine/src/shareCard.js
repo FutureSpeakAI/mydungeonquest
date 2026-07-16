@@ -24,7 +24,7 @@ const attestedPlate = (src) => typeof src === 'string' && /^data:image\//.test(s
 export function pickTurningPoint(entries = []) {
   let best = null;
   entries.forEach((entry, index) => {
-    if (entry.redacted || entry.kind === 'tick' || entry.kind === 'annal') return;
+    if (entry.redacted || entry.kind === 'tick' || entry.kind === 'annal' || entry.kind === 'span') return;
     const res = entry.resolution;
     if (!res || !res.success) return;
     const dc = Number(res.dc ?? res.DC ?? 0);
@@ -75,7 +75,7 @@ export function shelfModel({ worldTitle = '', taleTitle = '', covenant = '', cas
       secret: soul.secret ? '◈ struck from the public record' : null
     })),
     passages: entries
-      .filter((entry) => entry.kind !== 'tick' && entry.kind !== 'annal')
+      .filter((entry) => entry.kind !== 'tick' && entry.kind !== 'annal' && entry.kind !== 'span')
       .map((entry) => entry.redacted
         ? { struck: true, text: '[struck from the record]' }
         : { struck: false, text: (entry.dm?.narration_blocks || []).map((b) => b?.text).filter(Boolean).join(' ') })

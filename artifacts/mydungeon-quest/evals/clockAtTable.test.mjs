@@ -67,4 +67,31 @@ assert.ok(rendered.includes('Mirabel has grown out of childhood.'), 'the crossin
 assert.ok(rendered.includes('time-divider'), 'a span is a quiet divider, never an empty turn row');
 TestRenderer.act(() => tree.unmount());
 
-console.log('PASS \u2014 the clock at the table: the pack speaks the derived hour, the interlude seals one honest day at its beat with a silent envelope, band-crossings surface as raven-style notes (the dead never age), and the divider quotes the span verbatim.');
+// --- 6. Sealed time never takes a narrative seat downstream ---
+// The chapter page anchors after the closing TURN, never after the span
+// or tick that followed it; the recap guard sees spans as sealed time,
+// not story; the public shelf never shows an empty span passage.
+const { buildChronicleRequest } = await import('fatescript/chronicler');
+const { recapFor } = await import('fatescript/sequencing');
+const { shelfModel, pickTurningPoint } = await import('fatescript/shareCard');
+
+const turnRow = (id, beatIndex, text) => ({ id, beatIndex, redacted: false, player: `deed of ${id}`, resolution: null,
+  dm: { narration_blocks: [{ text }], story: null, time_advance: null, dialogue_cue: null } });
+const tickRow = { id: 'k9', kind: 'tick', beatIndex: 1, redacted: false, player: null,
+  dm: { narration_blocks: [], story: { cast_update: [] }, time_advance: null, dialogue_cue: null } };
+const spanRow2 = { ...interludeRow([], { turn: 2, beatIndex: 1, cause: 'the act turns' }).row };
+
+const fixture = {
+  title: 'The Salt Road', tone: 'grim', styleBible: '', homeRegion: 'Saltmere',
+  hero: { name: 'Aldric' },
+  codex: { cast: [], regions: [], spine: { beats: [{ title: 'The Door', goal: 'open it', act: 1 }, { title: 'The Road', goal: 'walk it', act: 2 }] } },
+  logs: [turnRow('t1', 0, 'The door refuses.'), turnRow('t2', 0, 'The door yields at last.'), tickRow, spanRow2]
+};
+const request = buildChronicleRequest(fixture, 0);
+assert.equal(request.afterLogId, 't2', 'the page anchors after the closing turn — never after sealed time');
+assert.equal(recapFor({ logs: [spanRow2], codex: fixture.codex, chroniclePages: [] }) ?? null, null, 'a journal of spans alone is sealed time, not a tale to recap');
+const shelf = shelfModel({ worldTitle: 'w', taleTitle: 't', entries: [turnRow('t1', 0, 'Prose.'), spanRow2] });
+assert.equal(shelf.passages.length, 1, 'the public shelf never shows an empty span passage');
+assert.equal(pickTurningPoint([spanRow2]) ?? null, null, 'a span is never a turning point');
+
+console.log('PASS \u2014 the clock at the table: the pack speaks the derived hour, the interlude seals one honest day at its beat with a silent envelope, band-crossings surface as raven-style notes (the dead never age), the divider quotes the span verbatim, and sealed time never takes a narrative seat — the page anchors after the prose, the recap and the public shelf hold their tongues.');

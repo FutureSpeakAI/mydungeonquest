@@ -1,6 +1,21 @@
 import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
 import { mockDmTurn } from 'fatescript/mockDm';
 import { safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
+import { censusNote, unrecordedSouls } from 'fatescript/census';
+
+// THE CENSUS AT THE DOOR — Directive VI, Phase 11. The validator rules the
+// shape; the census rules the roll: an attributed speaker the record does
+// not know is an unrecorded soul. Both courts read the same pre-turn
+// snapshot, and their findings share the one-repair message — the model
+// either declares the stranger (cast_add, voice_card and all) or unclaims
+// the line. Exported for the bench; the door is the only live caller.
+export function judgeTurn(turn, input) {
+  const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [] });
+  const errors = validation.ok ? [] : [...validation.errors];
+  const strangers = unrecordedSouls(turn, input.story?.cast || [], { hero: input.hero || null });
+  if (strangers.length) errors.push(censusNote(strangers));
+  return { ok: errors.length === 0, errors };
+}
 
 // Mirrors the constraints enforced by fatescript/protocol#validateDmTurn.
 // The tool schema is what the model actually sees, so any enum/shape the
@@ -289,7 +304,7 @@ export async function getDmTurn(input, { onNarration = null, onRetract = null, b
   if (useMock) {
     try {
       const turn = await mockWithNarration(input, onNarration);
-      const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [] });
+      const validation = judgeTurn(turn, input);
       if (!validation.ok) throw new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
       return { turn, provider: 'mock' };
     } catch (error) {
@@ -314,7 +329,7 @@ export async function getDmTurn(input, { onNarration = null, onRetract = null, b
       const turn = streamingNarration
         ? await anthropicTurnStream(input, streamingNarration).catch(() => anthropicTurn(input))
         : await anthropicTurn(input, repair);
-      const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [] });
+      const validation = judgeTurn(turn, input);
       if (validation.ok) return { turn, provider: 'anthropic', repaired: attempt > 0 };
       lastError = new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
       repair = { turn, errors: validation.errors };
@@ -334,7 +349,7 @@ export async function getDmTurn(input, { onNarration = null, onRetract = null, b
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         const turn = await openaiTurn(input, repairO);
-        const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [] });
+        const validation = judgeTurn(turn, input);
         if (validation.ok) return { turn, provider: 'openai', repaired: attempt > 0, fellBackFrom: 'anthropic' };
         lastError = new Error(`Invalid DM turn (openai): ${validation.errors.join('; ')}`);
         repairO = { turn, errors: validation.errors };

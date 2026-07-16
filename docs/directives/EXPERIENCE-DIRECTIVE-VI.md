@@ -8,9 +8,24 @@ Read `docs/CLAWS.md` first. PASS only grows.*
 
 ---
 
+## THE TRIAGE (playtest of July 15 — take these before roll order)
+
+Three wounds from a live table. It was good at first and decayed with
+context — which is exactly why the answers below are courts, not
+prompts. `pnpm run muster` prints them under THE TRIAGE:
+
+1. **Unrecorded souls** — NPCs spoken in prose never reached the
+   codex. The census court stands and is gated; Phase 11 wires it
+   into the door.
+2. **The empty sheet** — the hero's own face never reaches the
+   character sheet. Phase 12.
+3. **The drifting face** — renders stray from the anchor as turns
+   accumulate. Wire the bearing (already on the roll), then Phase 13
+   gives the house eyes.
+
 ## THE LAWS (already standing — groundwork shipped and gated)
 
-Eight modules stand in `packages/engine/src/`, each with a green gate in
+Ten modules stand in `packages/engine/src/`, each with a green gate in
 the engine suite. **They are law now; your work is wiring them.**
 
 1. **The Calendar Law** (`clock.js`, gate `calendar`) — time is derived
@@ -68,6 +83,22 @@ the engine suite. **They are law now; your work is wiring them.**
    narration, with counter-directives — capped, ordered,
    deterministic — pushed into the pack's `directives` the moment a
    family runs hot. The court measures; it never rewrites.
+
+9. **The Census** (`census.js`, gate `census`) — the court against op
+decay: an attributed speaker the record does not know is an
+**unrecorded soul**, and the turn returns through the one-repair door
+with the census note — add the `cast_add` (voice_card and all) or
+remove the attribution. A soul added this turn may speak this turn;
+the dead are counted (their speech is the snapshot court's business).
+Nobody speaks who isn't counted.
+
+10. **The Warden** (`warden.js`, gate `warden`) — the Likeness Law's
+second half: machine vision judges every post-blessing render beside
+the blessed anchor, under a deterministic ruling — pass with the
+verdict attested, repaint once with the drift notes appended, then
+the anchor itself stands in. **The house never ships a stranger.**
+The keyless floor admits it has no eyes and attests every pass as
+unjudged; parchment owes no warden.
 
 Also standing: **the Salon** (`tools/salon/`, root gate `check:salon`)
 — see `docs/research/AGENTS-ROOM.md`. The corpus stays untracked; that
@@ -142,6 +173,28 @@ sealed record each turn — it is free and deterministic — and
 hottest family first. Pressure lands on the NEXT turn, where pressure
 belongs. Gate: `humanHand`.
 
+**Phase 11 — The Census at the door.** After `validateDmTurn`, run
+`assertCensus(dm, cast, { hero })` against the same pre-turn snapshot;
+a failing census joins the one-repair message with `censusNote`, and
+the repaired turn is judged again. The DM prompt gains the standing
+census rule in the same change — schema, prompt, and validator move
+in lockstep. Gate: `censusDoor`.
+
+**Phase 12 — The face on the sheet.** The `CharacterSheet` overlay
+gains an `AnchorBust`: the hero's blessed anchor (post-Sitting), else
+the first attested anchor, else the procedural bust on parchment —
+sourced from the media store by asset hash, never re-rendered for the
+occasion. A sheet without its face is a form, not a leaf.
+Gate: `sheetFace`.
+
+**Phase 13 — The Warden's eyes.** A vision route through the standing
+adapter plan — the key that paints can also see. The foundry pipeline
+becomes render → `wardenBrief` + anchor + render → `parseVerdict` →
+`wardenRuling`: a repaint appends the notes to the prompt, a fallback
+ships the anchor, and every attestation carries its verdict. The
+watchtower counts warden calls under the image ceiling; `mockWarden`
+is the floor; parchment owes nothing. Gate: `wardenEyes`.
+
 **Charted beyond (in this order):** gossip horizons (known_facts as
 hard pack horizon) · renown · the almanac (weather from the clock) ·
 roads as cost functions on atlas distance · institutions with clocks ·
@@ -150,7 +203,7 @@ the Salon's keyed harness and **the Tell Bench** — StoryScope's own feature co
 
 ## THE INHERITANCE
 
-Suite at handoff: **74 gates green, keyless** — 15 engine, 58 game,
+Suite at handoff: **76 gates green, keyless** — 17 engine, 58 game,
 1 salon — via `pnpm run check`. The groundwork above is engine-pure
 and consumed by nothing yet; that is not a gap, it is the method:
 **the law precedes the courtroom.** Wire one phase, gate it, checkpoint,

@@ -67,3 +67,5 @@ One line per term, grouped by room. When code and directive disagree on a name, 
 - **The Scriptorium / room law** — four specialized scribes (plot, character, setting, conflict) planning in notes and directives; the room plans, the door speaks (Agents' Room).
 - **The Human Hand / tell families / counter-directive** — the court that measures the stated moral, the borrowed body, the tidy bow, and the hushed register in sealed narration, answering with capped, ordered directives (StoryScope).
 - **The Salon / the human shelf** — the Tell Me A Story corpus, lawfully opened on your machine and never committed; the shelf the house calibrates against.
+- **The Census / unrecorded soul** — the court against op decay: an attributed speaker the record does not know bounces the turn through the repair door until its cast_add lands. Nobody speaks who isn't counted.
+- **The Warden / verdict / ruling** — machine vision judging every post-blessing render beside the blessed anchor: pass attested, repaint once with drift notes, then the anchor stands in — the house never ships a stranger.

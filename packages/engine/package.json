@@ -6,7 +6,7 @@
   "type": "module",
   "private": false,
   "scripts": {
-    "eval": "node evals/saga.test.mjs && node evals/hearth.test.mjs && node evals/annals.test.mjs && node evals/ravens.test.mjs && node evals/sky.test.mjs && node evals/direction.test.mjs && node evals/shareCard.test.mjs && node evals/calendar.test.mjs && node evals/ledger.test.mjs && node evals/market.test.mjs && node evals/atlas.test.mjs && node evals/bearing.test.mjs && node evals/sitting.test.mjs && node evals/scriptorium.test.mjs && node evals/tells.test.mjs",
+    "eval": "node evals/saga.test.mjs && node evals/hearth.test.mjs && node evals/annals.test.mjs && node evals/ravens.test.mjs && node evals/sky.test.mjs && node evals/direction.test.mjs && node evals/shareCard.test.mjs && node evals/calendar.test.mjs && node evals/ledger.test.mjs && node evals/market.test.mjs && node evals/atlas.test.mjs && node evals/bearing.test.mjs && node evals/sitting.test.mjs && node evals/scriptorium.test.mjs && node evals/tells.test.mjs && node evals/census.test.mjs && node evals/warden.test.mjs",
     "check": "npm run eval"
   },
   "exports": {

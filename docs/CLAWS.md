@@ -5,7 +5,7 @@ A law here is not a comment. A law is three things landed together: a **statemen
 Run the whole court, keyless, from the root:
 
 ```bash
-pnpm run check   # engine gates, then the game suite — 74 and counting
+pnpm run check   # engine gates, then the game suite — 76 and counting
 ```
 
 ---
@@ -59,6 +59,8 @@ Nine laws for the long road, stated in full in [`directives/EXPERIENCE-DIRECTIVE
 | The Sitting (Likeness, first half) | a face is accepted, not assigned; no sheet before the blessing | gate `sitting` |
 | The Scriptorium Law | the room plans; the door speaks (Agents' Room, arXiv 2410.02603) | gate `scriptorium` |
 | The Human Hand | the four tell families convicted and countered (StoryScope, arXiv 2604.03136) | gate `tells` |
+| The Census | nobody speaks who isn't counted; unrecorded speakers bounce through the repair door | gate `census` |
+| The Warden | machine vision keeps the blessed face; the house never ships a stranger | gate `warden` |
 | The Salon | the human shelf is read, respected, never committed | root gate `check:salon` |
 
 ## The amendment log
@@ -75,3 +77,4 @@ Amendments are stated plainly, landed in lockstep, and never weaken a gate.
 *The meta-law over all of it: **PASS only grows.** Evals are append-only; fixing a failure by loosening a gate is the one forbidden move. See [`../CONTRIBUTING.md`](../CONTRIBUTING.md).*
 
 - **Directive VI groundwork lands.** Eight world laws and the Salon enter with gates; the folio design ships beside them; the suite grows **65 → 74**. PASS only grows.
+- **The playtest triage (July 15).** Faces drifted, NPCs went uncounted, the sheet sat faceless. The Census and the Warden enter as laws with gates; the muster gains a triage roll that outranks roll order; the suite grows **74 → 76**. PASS only grows.

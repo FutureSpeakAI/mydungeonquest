@@ -43,7 +43,7 @@ The game imports the engine as a workspace package — `import { validateDmTurn 
 
 ## The two proving grounds
 
-Sixty-five gates, all keyless, all green before anything ships: the engine's fifteen engine gates (`pnpm run check:engine`) and the game's fifty-eight (`pnpm run check:game` — build plus the full suite, React exercised headless via an esbuild JSX loader and `fake-indexeddb`). CI runs both on every push with no secrets on purpose — see [`.github/workflows/check.yml`](.github/workflows/check.yml).
+Seventy-six gates, all keyless, all green before anything ships: the engine's seventeen gates (`pnpm run check:engine`) and the game's fifty-eight (`pnpm run check:game` — build plus the full suite, React exercised headless via an esbuild JSX loader and `fake-indexeddb`), and the Salon's one (`pnpm run check:salon`). CI runs all of it on every push with no secrets on purpose — see [`.github/workflows/check.yml`](.github/workflows/check.yml).
 
 ## The second proof
 

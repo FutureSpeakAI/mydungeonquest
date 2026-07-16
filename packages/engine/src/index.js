@@ -33,3 +33,5 @@ export * from './bearing.js';
 export * from './sitting.js';
 export * from './scriptorium.js';
 export * from './tells.js';
+export * from './census.js';
+export * from './warden.js';

@@ -1,0 +1,25 @@
+You are continuing MyDungeon.Quest, a pnpm monorepo governed by deterministic laws (gates) and a feature acceptance roll (the Muster).
+
+SETUP — before touching anything: corepack enable && pnpm install pnpm run check → must show 76 gates green (the floor) pnpm run muster → expect: 38 present · 18 pending · 0 regressed If check is red or the muster shows REGRESSED, stop and report. Never work on red.
+
+THE LOOP — repeat until the muster is full:
+
+pnpm run muster. Take THE TRIAGE items first, top to bottom — these are live playtest bugs. Then take the first PENDING feature in roll order. Saga features → docs/directives/EXPERIENCE-DIRECTIVE-V.md; World and triage features → docs/directives/EXPERIENCE-DIRECTIVE-VI.md.
+Read that feature's phase in its directive fully, plus docs/FEATURES.md (intent) and docs/CLAWS.md (binding laws). For the Folio, match docs/design/CODEX-FOLIO.md and docs/design/codex-folio.html exactly.
+Implement ONLY that phase.
+Prove it: the feature's probes in tools/muster/features.mjs must flip to PRESENT because the wiring exists — NEVER by weakening, loosening, or deleting a probe. Adding stronger probes is allowed.
+Write or extend the phase's named gate, chain it into the eval script, then run both: pnpm run check → all green, count ≥ previous pnpm run muster → pending decreased, regressed = 0
+pnpm run muster -- --write-doc (regenerates docs/FEATURES.md)
+Checkpoint with: phase name, new gate name, both counts. One phase per checkpoint. Then loop.
+EXIT — you are done ONLY when:
+
+pnpm run muster exits 0 and prints "THE MUSTER IS FULL"
+pnpm run check is all green with more than 76 gates Nothing is complete that the muster does not certify.
+BINDING RULES:
+
+Protected: server/dm.js core, protocol.js (additive-only; schema, prompt, and validator move in lockstep), seal.js, rules.js. App.jsx gains hooks, never logic.
+Keyless first: every new gate and probe passes with zero API keys. The Warden's keyless floor rules "no eyes," attested — it never fakes a verdict. tools/salon/corpus/ stays untracked; never fetch or commit it.
+CHARTED features are out of scope; do not start them.
+If blocked, checkpoint with the blocker stated plainly — never route around it by weakening anything.
+Start now with step 1.
+

@@ -14,6 +14,7 @@ import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } fr
 import { applyStateUpdates, createHero, heroRoll, rollInitiative } from 'fatescript/rules';
 import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
 import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
+import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
 import { buildContextPack } from 'fatescript/graph';
@@ -496,7 +497,17 @@ export default function App() {
       // soul may speak its dying words in the very turn that kills it — and
       // the dead of earlier turns cannot be given dialogue at all.
       const validation = validateDmTurn(dm, entropy, { cast: base.codex.cast });
-      if (!validation.ok) throw new Error(validation.errors.join('; '));
+      // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
+      // the door ran, run once more where the turn becomes record, on the
+      // same pre-turn snapshot. A stranger who survived the road is refused
+      // here by name — the codex only knows what the ops declare.
+      const strangers = unrecordedSouls(dm, base.codex.cast, { hero: base.hero });
+      if (!validation.ok || strangers.length) {
+        throw new Error([
+          ...(validation.ok ? [] : validation.errors),
+          ...(strangers.length ? [censusNote(strangers)] : []),
+        ].join('; '));
+      }
       let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0 });
       if (dm.state_updates?.chronicle_add) codex.chronicle = [...codex.chronicle, String(dm.state_updates.chronicle_add).slice(0, 260)];
       const heroBeforeLevel = base.hero.level;

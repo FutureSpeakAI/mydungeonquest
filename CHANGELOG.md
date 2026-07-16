@@ -4,6 +4,11 @@ Newest first; releases carry names. The game keeps its own finer-grained log at 
 
 ## [Unreleased] — 0.6.0-dev · the Saga & World Cut groundwork
 
+### The playtest triage (July 15)
+- **The Census** (`census.js`, gate `census`): prose-born NPCs can no longer vanish — an attributed speaker the record does not know bounces the turn back through the one-repair door demanding its `cast_add`. Answers the codex blindness seen a dozen turns into a live table.
+- **The Warden** (`warden.js`, gate `warden`): machine vision judges every post-blessing render against the blessed anchor under a deterministic ruling — pass attested, repaint once with the drift notes, then the anchor stands in. The house never ships a stranger. Answers the visual drift from the same table.
+- The muster gains **THE TRIAGE**: playtest wounds print first and outrank roll order; `census`, `hero-avatar` (the face on the sheet), and `warden` join the roll. Suite **74 → 76**.
+
 ### The World Cut groundwork (Directive VI)
 - Eight new engine modules in the house voice — `clock`, `ledger`, `market`, `atlas`, `bearing`, `sitting`, `scriptorium`, `tells` — with eight gates; the suite grows **65 → 74** (15 engine · 58 game · 1 salon), keyless as ever.
 - **The Scriptorium** adapts DeepMind's Agents' Room (arXiv 2410.02603): specialized scribes plan in notes and directives under One Door — the room plans, the door speaks.

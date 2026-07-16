@@ -23,6 +23,7 @@ import { greetReturning } from './lib/ravens.js';
 import { fetchSeasons, skyNoteFor } from './lib/sky.js';
 import { RavenNotice } from './components/RavenNotice.jsx';
 import { buildContextPack } from 'fatescript/graph';
+import { roomForTurn } from './lib/scriptorium.js';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
@@ -487,6 +488,13 @@ export default function App() {
       // clock: a hook, never a command; a closed sky adds nothing.
       const sky = skyNoteFor(base, seasonsRef.current);
       if (sky) story = { ...story, sky };
+      // THE SCRIPTORIUM — the room plans, the door speaks: the keyless
+      // mock room convenes over the record, its plan is courted for
+      // silence, and only a silent plan's directives ride the pack —
+      // additively, like the clock and the sky. A plan that tries to
+      // speak is discarded whole; One Door is fed, never amended.
+      const room = roomForTurn(base);
+      if (room) story = { ...story, directives: [...(story.directives || []), ...room.directives] };
       // The DM keeps its own memory now: prior turns ride along as a
       // real conversation, so prose has continuity — and the stable
       // prefix caches on the server side. Spans are the table's own clock

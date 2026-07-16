@@ -4,6 +4,7 @@ import { CONDITIONS } from 'fatescript/rules';
 import { db } from '../lib/db.js';
 import { ACT_NAMES, romanNumeral } from 'fatescript/story';
 import { cardsForCampaign } from 'fatescript/cards';
+import { roomForTurn, SCRIBES } from '../lib/scriptorium.js';
 import { voiceLineOf, wordsLine, tieLine } from 'fatescript/wikiText';
 import { doorBuilt } from '../patron/door.jsx';
 import { TollSection, useToll } from '../patron/toll.jsx';
@@ -119,6 +120,9 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
   const [openSoul, setOpenSoul] = useState(null);
   const openCard = openSoul ? wiki[openSoul.toLowerCase()] : null;
   const acts = [...new Set(c.spine.beats.map((beat) => beat.act || 1))];
+  // THE SCRIPTORIUM made visible: the standing plan the room holds for
+  // the coming scene — four scribes, one domain each, never prose.
+  const roomPlan = useMemo(() => roomForTurn(campaign), [campaign]);
   // THE COMMONS — a walked chapter's public face: the act's key art walks
   // the strict door as a data plate (or the card goes plateless, lawfully),
   // the engine composes and escapes, and the patron receives a file named
@@ -151,6 +155,8 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
           ? <div className="seal-tale-row"><button className="secondary-button" onClick={onSealTale}>Seal the Tale</button><p className="muted">End with honor: a few closing turns, then the wax.</p></div>
           : null}
     <h3>The evil design</h3><p className={revealed ? '' : 'gated'}>{revealed ? c.arc?.evil_plot : 'The page refuses to hold the whole shape. Revelation must be earned.'}</p>
+    {roomPlan && <><h3>The scriptorium — the room plans, the door speaks</h3>
+    <ul className="scriptorium-plan">{SCRIBES.map((scribe) => <li key={scribe}><b>{scribe}</b> — <span className="muted">{roomPlan.scratchpad[scribe]}</span></li>)}</ul></>}
     <h3>The cast — what the world remembers</h3>
     {openCard && <article className="soul-page">
       <button className="text-button" onClick={() => setOpenSoul(null)}>← All souls</button>

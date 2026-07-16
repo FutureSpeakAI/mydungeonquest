@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 54 present · 2 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 55 present · 1 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -222,11 +222,9 @@ The card is the prompt: locked visual verbatim, one trackable signature item per
 
 After the forge, three portrait candidates of one unvarying identity sit for the player; one is blessed, once, finally — and NO SHEET BEFORE THE BLESSING: the six-view turnaround (five for places, in context) mints only from the accepted anchor. Parchment is exempt; the Floor owes no sitting.
 
-### The Scriptorium — the room plans, the door speaks — PENDING (wiring 0/1)
+### The Scriptorium — the room plans, the door speaks — PRESENT
 
 Agents’ Room under house law: four scribes (plot, character, setting, conflict), each briefed to one domain, planning in notes and directives, never prose; a keyless mock room as the Floor; a court that refuses any plan that tries to speak.
-
-*Awaiting: 'mockRoom' under artifacts/mydungeon-quest/src.*
 
 ### The Human Hand — the tell court — PENDING (wiring 0/1)
 

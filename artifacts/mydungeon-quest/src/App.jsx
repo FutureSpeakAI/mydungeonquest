@@ -6,6 +6,7 @@ import Cinematic from './components/Cinematic.jsx';
 import Ceremony from './components/Ceremony.jsx';
 import ChroniclePage from './components/ChroniclePage.jsx';
 import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components/Sequence.jsx';
+import { packClock, interludeRow, bandNotes } from './lib/clockAtTable.js';
 import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
 import { CharacterSheet, Codex, Settings, Storybook } from './components/Overlays.jsx';
@@ -432,10 +433,15 @@ export default function App() {
       // present, their ties, the villain, the standing world — not a flat dump.
       let story;
       try { story = buildContextPack(base); } catch { story = storyBlock(base.codex); }
+      // THE CLOCK AT THE TABLE — Directive VI, Phase 1: the derived world
+      // clock rides the [STORY] pack, so the DM reads the same hour the
+      // codex head shows. One clock, two witnesses; derived, never stored.
+      story = { ...story, clock: packClock(base.logs) };
       // The DM keeps its own memory now: prior turns ride along as a
       // real conversation, so prose has continuity — and the stable
-      // prefix caches on the server side.
-      const history = base.logs.filter((entry) => !entry.redacted && entry.kind !== 'tick').slice(-15).flatMap((entry) => [
+      // prefix caches on the server side. Spans are the table's own clock
+      // rows — sealed time, not speech — so the conversation skips them.
+      const history = base.logs.filter((entry) => !entry.redacted && entry.kind !== 'tick' && entry.kind !== 'span').slice(-15).flatMap((entry) => [
         { role: 'user', content: entry.sent || entry.player || 'Continue.' },
         { role: 'assistant', content: (entry.dm?.narration_blocks || []).map((block) => block.text).join('\n\n') }
       ]).filter((message) => message.content);
@@ -538,6 +544,24 @@ export default function App() {
             await saveCampaign(next);
           }
         } catch (error) { console.error('The living world held still:', error); }
+      }
+      // THE INTERLUDE'S DAY — Directive VI, Phase 1: when this turn crossed
+      // an act boundary, the table seals one honest day of road between the
+      // acts — a span row, silent to the DM's conversation, anchored at its
+      // beat, carrying any band-crossings as raven-style notes. Derived,
+      // deterministic, sealed like everything else.
+      if (!next.completed && (codex.spine.beats[codex.beatIndex]?.act || 1) > (base.codex.spine.beats[base.codex.beatIndex]?.act || 1)) {
+        try {
+          const { row, before, after } = interludeRow(next.logs, { turn: next.turnNumber - 1, beatIndex: next.codex.beatIndex, cause: 'the act turns' });
+          row.notes = bandNotes(next.codex.cast, before, after);
+          next = { ...next, logs: [...next.logs, row] };
+          await saveCampaign(next);
+          const spanRecord = await seal(base.id, 'span', { clock_advance: row.clock_advance, cause: row.cause, notes: row.notes, beatIndex: row.beatIndex });
+          const afterSpan = await db.campaigns.get(base.id);
+          next = { ...next, headHash: afterSpan.headHash, turnCount: afterSpan.turnCount, signatureStatus: afterSpan.signatureStatus };
+          next.logs[next.logs.length - 1].recordHash = spanRecord.recordHash;
+          await saveCampaign(next);
+        } catch (error) { console.error('The interlude kept no clock:', error); }
       }
       await saveCampaign(next); setCurrent(next); await refreshShelf();
       setStatus('✦ The turn is sealed.');
@@ -902,7 +926,9 @@ export default function App() {
         return seats.map((seat, index) => {
           if (seat.kind === 'page') return <ChroniclePage key={`page-${seat.page.recordHash || seat.page.beatIndex}`} page={seat.page} />;
           if (seat.kind === 'page-pending') return <PendingPage key={`pending-${seat.beatIndex}`} reduceMotion={settings.reduceMotion} />;
-          if (seat.kind === 'tick') {
+          if (seat.kind === 'tick' || seat.log?.kind === 'span') {
+            // Ticks and spans are both sealed time, and both render as quiet
+            // dividers — never an empty turn row (Directive VI, Phase 1).
             const prev = seats.slice(0, index).reverse().find((s) => s.kind === 'turn')?.log;
             return <TickDivider key={seat.log.id} log={seat.log} prevLog={prev} />;
           }

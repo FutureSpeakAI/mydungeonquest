@@ -1,6 +1,7 @@
 import { Feather } from 'lucide-react';
 import ChroniclePage from './ChroniclePage.jsx';
 import { tickPhrase, tickWhispers } from 'fatescript/sequencing';
+import { spanPhrase } from '../lib/clockAtTable.js';
 
 // ------------------------------------------------------------
 // SEQUENCE ROWS — Task #50: story beats land in order.
@@ -11,6 +12,16 @@ import { tickPhrase, tickWhispers } from 'fatescript/sequencing';
 // turn row. The phrase reads the SEALED neighbor's time_advance; the
 // whispers quote the tick's own ops, never invent.
 export function TickDivider({ log, prevLog }) {
+  // A sealed span (Directive VI, Phase 1) is time the table itself
+  // declared — an interlude's day on the road. Its phrase is its own
+  // clock words, its whispers the band-crossings it carried. Quotes only.
+  if (log.kind === 'span') {
+    const notes = Array.isArray(log.notes) ? log.notes : [];
+    return <div className="time-divider" role="note" aria-label="Time passes in the world">
+      <span className="divider-row"><i /><em>{spanPhrase(log)}</em><i /></span>
+      {notes.length > 0 && <p className="whispers">{notes.map((note, i) => <span key={i}>{note}</span>)}</p>}
+    </div>;
+  }
   const whispers = tickWhispers(log);
   return <div className="time-divider" role="note" aria-label="Time passes in the world">
     <span className="divider-row"><i /><em>{tickPhrase(prevLog)}</em><i /></span>

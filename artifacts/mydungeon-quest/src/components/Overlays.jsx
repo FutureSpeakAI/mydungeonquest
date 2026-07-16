@@ -7,6 +7,7 @@ import { cardsForCampaign } from 'fatescript/cards';
 import { voiceLineOf, wordsLine, tieLine } from 'fatescript/wikiText';
 import { doorBuilt } from '../patron/door.jsx';
 import { TollSection, useToll } from '../patron/toll.jsx';
+import { clockWords } from '../lib/clockAtTable.js';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -87,7 +88,7 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
   const openCard = openSoul ? wiki[openSoul.toLowerCase()] : null;
   const acts = [...new Set(c.spine.beats.map((beat) => beat.act || 1))];
   return <Frame title="The Codex" icon={<ScrollText/>} onClose={onClose} wide>
-    <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p></div><div className="blight">Blight <b>{c.blight}/5</b></div></div>
+    <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p><p className="muted codex-clock" role="note">{clockWords(campaign.logs)}</p></div><div className="blight">Blight <b>{c.blight}/5</b></div></div>
     {/* The shape of the tale: the acts and the chapters already walked. The
         pages ahead keep their titles to themselves — no spoilers. */}
     <h3>The shape of the tale</h3>

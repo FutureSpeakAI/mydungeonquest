@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 45 present · 11 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 46 present · 10 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -176,11 +176,9 @@ A sealed tale hands a legacy packet to the next volume: exact voices, locked can
 
 Multi-device sync where the record is home: rows land once by hash, stale heads and broken chains are refused, and a losing fork hands back its deed unsent instead of losing anything.
 
-### The annals — long memory — PENDING (wiring 0/1)
+### The annals — long memory — PRESENT
 
 Deterministic annals spoken in the record’s own words, quotes verbatim or contraband, feeding [MEMORY] without ever inventing.
-
-*Awaiting: 'fatescript/memoir' under artifacts/mydungeon-quest/src.*
 
 ### The ravens — absence recaps — PENDING (wiring 0/1)
 

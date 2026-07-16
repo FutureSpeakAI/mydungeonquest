@@ -18,6 +18,7 @@ import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
 import { sealLegacy, openNextVolume } from './lib/saga.js';
+import { chronicleActClose, memoryLadder } from './lib/memoir.js';
 import { buildContextPack } from 'fatescript/graph';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
@@ -440,7 +441,10 @@ export default function App() {
     setBusy(true); setStatus('The Dungeon Master is reading the road…');
     try {
       const entropy = makeEntropy();
-      const memory = await recallScenes(base.id, player, base.turnNumber || 0);
+      // THE LONG MEMORY — [MEMORY] drinks the ladder first: annals
+      // newest-first (the freshest in full, elders as headlines), then the
+      // recalled scenes. Year two remembers year one from the record alone.
+      const memory = [...memoryLadder(base), ...(await recallScenes(base.id, player, base.turnNumber || 0))];
       // THE CHRONICLEGRAPH: [STORY] is a budgeted, scene-first pack — souls
       // present, their ties, the villain, the standing world — not a flat dump.
       let story;
@@ -453,7 +457,7 @@ export default function App() {
       // real conversation, so prose has continuity — and the stable
       // prefix caches on the server side. Spans are the table's own clock
       // rows — sealed time, not speech — so the conversation skips them.
-      const history = base.logs.filter((entry) => !entry.redacted && entry.kind !== 'tick' && entry.kind !== 'span').slice(-15).flatMap((entry) => [
+      const history = base.logs.filter((entry) => !entry.redacted && entry.kind !== 'tick' && entry.kind !== 'span' && entry.kind !== 'annal').slice(-15).flatMap((entry) => [
         { role: 'user', content: entry.sent || entry.player || 'Continue.' },
         { role: 'assistant', content: (entry.dm?.narration_blocks || []).map((block) => block.text).join('\n\n') }
       ]).filter((message) => message.content);
@@ -585,6 +589,19 @@ export default function App() {
           await saveCampaign(next);
         } catch (error) { console.error('The interlude kept no clock:', error); }
       }
+      // THE CHRONICLER'S SEAT — Directive V, Phase 3: when an act closes
+      // (or the tale completes), its annal is composed from the record
+      // alone, held to the court, and sealed by the tick pattern. Refusal
+      // is honest silence — that act simply carries no digest.
+      try {
+        const actAfterTurn = next.codex.spine.beats[next.codex.beatIndex]?.act || 1;
+        const actAtEntry = base.codex.spine.beats[base.codex.beatIndex]?.act || 1;
+        const closedAct = next.completed ? actAfterTurn : (actAfterTurn > actAtEntry ? actAtEntry : null);
+        if (closedAct) {
+          const chronicled = await chronicleActClose(next, closedAct, { seal, save: saveCampaign, reload: (id) => db.campaigns.get(id) });
+          if (chronicled.annal) next = chronicled.campaign;
+        }
+      } catch (error) { console.error('The Chronicler kept silence:', error); }
       await saveCampaign(next); setCurrent(next); await refreshShelf();
       setStatus('✦ The turn is sealed.');
       // THE ACT TURNS — when this turn crossed an act boundary, a full-bleed

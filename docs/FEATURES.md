@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 53 present · 3 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 54 present · 2 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -218,11 +218,9 @@ Placement phrases (‘half a day north of Harrow Ford’) become deterministic c
 
 The card is the prompt: locked visual verbatim, one trackable signature item per soul (the ledger moves it, the paint follows), wounds from the record, age from the clock, the dead never aging — and at most three painted subjects per plate: speaker, then villain, then bond.
 
-### The Sitting — a face is accepted, not assigned — PENDING (wiring 0/2)
+### The Sitting — a face is accepted, not assigned — PRESENT
 
 After the forge, three portrait candidates of one unvarying identity sit for the player; one is blessed, once, finally — and NO SHEET BEFORE THE BLESSING: the six-view turnaround (five for places, in context) mints only from the accepted anchor. Parchment is exempt; the Floor owes no sitting.
-
-*Awaiting: 'openSitting' in artifacts/mydungeon-quest/src/components/Forge.jsx; 'blessCandidate' under artifacts/mydungeon-quest/src.*
 
 ### The Scriptorium — the room plans, the door speaks — PENDING (wiring 0/1)
 

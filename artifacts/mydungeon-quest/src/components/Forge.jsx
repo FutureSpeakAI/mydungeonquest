@@ -5,6 +5,7 @@ import { portraitPrompt, keyArtPrompt } from '../lib/cinema/prompts.js';
 import { heroSoul, nameSeed } from '../lib/cinema/prologue.js';
 import { auditionCandidates } from 'fatescript/cinema/casting';
 import { rollWorld, rollHero, oracleWorld, oracleHero, rollTitle, rollCovenant, rollTone, rollRegion, rollName, rollMark, ORACLE_WORLD, ORACLE_HERO } from 'fatescript/forgeRolls';
+import { openSitting, blessSitting, sittingRequired } from '../lib/sitting.js';
 
 const seedWorlds = [
   'A drowned empire where memories are legal tender.',
@@ -172,6 +173,20 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
   const dice = (roll) => () => { const seed = randomSeed(); setForm((value) => ({ ...value, ...roll(seed) })); };
   const bless = (voiceId) => setForm((value) => ({ ...value, voiceId }));
 
+  // THE SITTING — a face is accepted, not assigned (illuminated tier
+  // only; parchment paints procedurally and owes no sitting). Three
+  // chairs open from the hero's own bearing; editing the identity seats
+  // a new sitting; the blessing is final and travels with the forge.
+  const [sitting, setSitting] = useState(null);
+  useEffect(() => {
+    if (!sittingRequired(mediaTier) || !form.name.trim()) { setSitting(null); return; }
+    setSitting(openSitting(form));
+  }, [form.name, form.bearing, form.mark, form.background, mediaTier]);
+  const blessChair = (candidateId) => setSitting((current) => {
+    const out = blessSitting(current, candidateId);
+    return out.ok ? out.sitting : current;
+  });
+
   // The hero's face materialises live beside the sheet: shimmer, then the
   // generated bust. Uses the same prompt + seed as the sealed anchor so the
   // ritual and the canon match.
@@ -257,8 +272,16 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
         <p className="fine-print">Starting skills: {Array.isArray(form.skills) ? form.skills.join(', ') : 'Perception, Survival, Stealth'}. Every value is yours to change before play.</p>
       </>}
 
+      {sitting && <div className="sitting-panel">
+        <h3>The Sitting — a face is accepted, not assigned</h3>
+        <p className="fine-print">Three chairs, one identity — only the light differs. Bless one; the blessing is final, and every later painting answers to the face you accept. No sheet is minted before the blessing.</p>
+        <div className="audition-choices">{sitting.candidates.map((candidate) =>
+          <button key={candidate.id} type="button" className={`door-tab${sitting.blessed?.id === candidate.id ? ' selected' : ''}`} aria-pressed={sitting.blessed?.id === candidate.id} disabled={sitting.status === 'blessed' && sitting.blessed?.id !== candidate.id} onClick={() => blessChair(candidate.id)}>
+            {candidate.id}
+          </button>)}</div>
+      </div>}
       <AuditionRow presentation={form.presentation} name={form.name} voiceId={form.voiceId} onBless={bless}/>
-      <button className="primary-button" onClick={() => onBegin(form)}>Begin the chronicle <ArrowRight/></button>
+      <button className="primary-button" onClick={() => onBegin(sitting ? { ...form, sitting } : form)}>Begin the chronicle <ArrowRight/></button>
     </section>
   </main>;
 }

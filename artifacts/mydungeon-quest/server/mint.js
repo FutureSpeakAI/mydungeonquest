@@ -122,11 +122,22 @@ export async function initMint() {
     try {
       await runMigrations({ databaseUrl: process.env.DATABASE_URL, schema: 'stripe' });
       const sync = await getStripeSync();
-      const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
-      if (domain) {
-        await sync.findOrCreateManagedWebhook(`https://${domain}/api/stripe/webhook`);
+      // THE HERALD STAYS HOME IN THE WORKSHOP. Dev and the published house
+      // share one Stripe (test) account but keep separate ledgers, and the
+      // managed-webhook housekeeping prunes any endpoint its own ledger
+      // doesn't know — so a dev boot was deleting the PUBLISHED house's
+      // webhook as an "orphan" (and vice versa), and bought seats stopped
+      // lighting. Only the published house registers a herald; the workshop
+      // relies on the boot backfill and the checkout-return reconcile.
+      if (!process.env.REPLIT_DEPLOYMENT) {
+        console.log('[mint] workshop boot — the herald stays home; only the published house keeps a webhook.');
       } else {
-        console.error('[mint] REPLIT_DOMAINS missing — webhook not registered; entitlements will lag.');
+        const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
+        if (domain) {
+          await sync.findOrCreateManagedWebhook(`https://${domain}/api/stripe/webhook`);
+        } else {
+          console.error('[mint] REPLIT_DOMAINS missing — webhook not registered; entitlements will lag.');
+        }
       }
       sync
         .syncBackfill({ object: 'all' })

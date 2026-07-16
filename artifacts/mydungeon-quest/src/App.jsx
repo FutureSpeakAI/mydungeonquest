@@ -20,6 +20,7 @@ import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from '.
 import { sealLegacy, openNextVolume } from './lib/saga.js';
 import { chronicleActClose, memoryLadder } from './lib/memoir.js';
 import { greetReturning } from './lib/ravens.js';
+import { fetchSeasons, skyNoteFor } from './lib/sky.js';
 import { RavenNotice } from './components/RavenNotice.jsx';
 import { buildContextPack } from 'fatescript/graph';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
@@ -151,6 +152,10 @@ export default function App() {
   const [overlay, setOverlay] = useState(null);
   const [cinematic, setCinematic] = useState(null);
   const [ravenRecap, setRavenRecap] = useState(null);
+  // THE SHARED SKY — the house's season feed, fetched once a sitting;
+  // the fixture seasons stand when the house cannot be reached.
+  const seasonsRef = useRef(null);
+  useEffect(() => { fetchSeasons().then((list) => { seasonsRef.current = list; }).catch(() => {}); }, []);
   const [diceResult, setDiceResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [weaving, setWeaving] = useState(null);
@@ -347,6 +352,11 @@ export default function App() {
     if (current && next.mediaTier !== current.mediaTier) {
       const updated = { ...current, mediaTier: next.mediaTier }; setCurrent(updated); await saveCampaign(updated);
     }
+    // THE SHARED SKY — the world's own switch: 'off' closes this sky,
+    // and a closed sky is a silent one. Mirrored like the tier above.
+    if (current && next.sky && next.sky !== (current.sky || 'open')) {
+      const updated = { ...current, sky: next.sky }; setCurrent(updated); await saveCampaign(updated);
+    }
   };
 
   const queueMedia = useCallback(async (campaign, turnRecord, dm, logId) => {
@@ -473,6 +483,10 @@ export default function App() {
       // clock rides the [STORY] pack, so the DM reads the same hour the
       // codex head shows. One clock, two witnesses; derived, never stored.
       story = { ...story, clock: packClock(base.logs) };
+      // THE SHARED SKY — the omen rides the pack additively, like the
+      // clock: a hook, never a command; a closed sky adds nothing.
+      const sky = skyNoteFor(base, seasonsRef.current);
+      if (sky) story = { ...story, sky };
       // The DM keeps its own memory now: prior turns ride along as a
       // real conversation, so prose has continuity — and the stable
       // prefix caches on the server side. Spans are the table's own clock

@@ -154,6 +154,27 @@ app.use((req, res, next) => {
 // The uptime surface: fast, honest, 200 while the table itself lives. A
 // mislaid ledger is reported (`ledger:false`), never fatal — the tale does
 // not die of it, so the monitor should not page as if it had.
+// THE SHARED SKY — the house publishes the season feed; every world may
+// see the same comet and read it by its own covenant. The file is the
+// feed; the engine's fixture seasons stand when the house has not
+// written one (or wrote one the parser refuses).
+let seasonsCache = { at: 0, body: null };
+app.get('/api/seasons', async (_req, res) => {
+  try {
+    if (!seasonsCache.body || Date.now() - seasonsCache.at > 60_000) {
+      const { readFile } = await import('node:fs/promises');
+      const { fileURLToPath } = await import('node:url');
+      const pathMod = await import('node:path');
+      const here = pathMod.dirname(fileURLToPath(import.meta.url));
+      const list = JSON.parse(await readFile(pathMod.join(here, 'seasons', 'seasons.json'), 'utf8'));
+      seasonsCache = { at: Date.now(), body: Array.isArray(list) && list.length ? list : null };
+    }
+  } catch { seasonsCache = { at: Date.now(), body: null }; }
+  if (seasonsCache.body) return res.json(seasonsCache.body);
+  const { FIXTURE_SEASONS } = await import('fatescript/sky');
+  return res.json(FIXTURE_SEASONS);
+});
+
 app.get('/api/health', async (_req, res) => {
   const a = adapters();
   res.json({

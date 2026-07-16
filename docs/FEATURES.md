@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 47 present · 9 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 48 present · 8 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -184,11 +184,9 @@ Deterministic annals spoken in the record’s own words, quotes verbatim or cont
 
 Come back after days away and the world reports what moved: absence counted honestly and capped, batches deterministic and ops-only, every recap line tracing to a sealed fact.
 
-### The shared sky — PENDING (wiring 0/1)
+### The shared sky — PRESENT
 
 One seasonal sky over every world — an omen entering the pack as a bounded hook, never a command; the off-switch is silence.
-
-*Awaiting: 'skyNote' under artifacts/mydungeon-quest/src.*
 
 ### Per-line voice direction — PENDING (wiring 0/1)
 

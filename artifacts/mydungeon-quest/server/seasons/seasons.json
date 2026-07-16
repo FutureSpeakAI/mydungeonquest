@@ -1,0 +1,20 @@
+[
+  {
+    "id": "comet-year",
+    "name": "The Comet Year",
+    "omen": "A pale comet crosses every sky; each world reads it by its own covenant.",
+    "motif": "omens overhead",
+    "palette": "#c8502e",
+    "hook": "Someone in the tale has seen the comet before.",
+    "start": 1782864000000
+  },
+  {
+    "id": "long-thaw",
+    "name": "The Long Thaw",
+    "omen": "Ice gives up what it kept.",
+    "motif": "what returns",
+    "palette": "#4a6b8a",
+    "hook": "A thing lost in a cold season is found.",
+    "start": 1790812800000
+  }
+]

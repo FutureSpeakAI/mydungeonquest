@@ -32,6 +32,10 @@ function wavTone({ seconds = 2, frequency = 220, volume = 0.15 }) {
 export const mockAdapter = {
   name: 'mock',
   capabilities: { configured: true, supportsReferences: true, maxReferenceImages: 3, supportsSeed: true, includesAudio: false, asynchronous: false },
+  // THE FLOOR HAS NO EYES (Directive VI, Phase 13) — and says so. The
+  // route answers floor:true before ever calling this; it exists so the
+  // adapter plan is complete and the honesty is inspectable.
+  async see() { return { floor: true, text: '', provider: 'mock', model: 'no-eyes' }; },
   async paint({ prompt, kind = 'scene', references = [] }) {
     const anchored = references.length ? ` ⚓${hash(references.map((ref) => ref.assetHash || ref.data || '').join('|')).slice(0, 6)}` : '';
     return { bytes: svgBytes(`MOCK ${kind.toUpperCase()}${anchored}`, prompt, kind === 'portrait' ? 768 : 1280, kind === 'portrait' ? 1024 : 720), mime: 'image/svg+xml', provider: 'mock', model: 'procedural-svg', seed: hash(prompt).slice(0, 12), usage: { cost: 0 } };

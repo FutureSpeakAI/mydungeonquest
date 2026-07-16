@@ -110,9 +110,39 @@ app.use('/api', requestLog());
 // to the nameless; a keyless fork has no door and this line is a
 // pass-through (the eval's table is untouched).
 app.use(
-  ['/api/dm', '/api/retell', '/api/paint', '/api/speak', '/api/music', '/api/sfx', '/api/quest-audio', '/api/bind-pdf'],
+  ['/api/dm', '/api/retell', '/api/paint', '/api/speak', '/api/music', '/api/sfx', '/api/quest-audio', '/api/bind-pdf', '/api/warden'],
   namedOnly(),
 );
+
+// THE WARDEN'S EYES (Directive VI, Phase 13): the key that paints can also
+// see. Two lawful images and the locked brief go in; the verdict's words
+// come out for the engine to parse and rule on. The floor answers honestly
+// when the house has no eyes — keyless, a barred artisan, or a judge that
+// stumbles all return floor:true, and the client attests the pass as
+// unjudged. A real verdict is debited under the artisan's own daily
+// ceiling — the image ceiling counts the warden's calls.
+const WARDEN_IMAGE = /^data:image\/(?:png|jpe?g|webp|svg\+xml);base64,([A-Za-z0-9+/=]+)$/;
+app.post('/api/warden', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), abuseCaps('warden'), async (req, res) => {
+  const { brief = '', anchor = '', render = '' } = req.body || {};
+  const anchorMatch = WARDEN_IMAGE.exec(String(anchor));
+  const renderMatch = WARDEN_IMAGE.exec(String(render));
+  if (!anchorMatch || !renderMatch || typeof brief !== 'string' || brief.length > 4000) {
+    return res.status(400).json({ error: 'The warden judges exactly two lawful images beside one brief.' });
+  }
+  const eyes = adapters().paint;
+  if (typeof eyes.see !== 'function' || eyes.name === 'mock' || !(await spendAllowed(eyes.name))) {
+    return res.json({ floor: true });
+  }
+  try {
+    const part = (match) => ({ mime: match[0].slice(5, match[0].indexOf(';')), data: match[1] });
+    const verdict = await eyes.see({ brief, anchor: part(anchorMatch), render: part(renderMatch) });
+    debit(req, 'warden', verdict.provider);
+    return res.json({ text: verdict.text, provider: verdict.provider, model: verdict.model });
+  } catch (error) {
+    console.error(`[warden] the judge stumbled: ${String(error?.message || error).slice(0, 200)}`);
+    return res.json({ floor: true });
+  }
+});
 
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');

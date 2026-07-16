@@ -31,6 +31,31 @@ export function openaiAdapter(key) {
       const bytes = item?.b64_json ? Buffer.from(item.b64_json, 'base64') : Buffer.from(await (await fetch(item.url)).arrayBuffer());
       return { bytes, mime: 'image/png', provider: 'openai', model, seed: null, usage: json.usage || null };
     },
+    // THE WARDEN'S EYES (Directive VI, Phase 13) — the understudy's sight,
+    // same law as Gemini's: carry the brief and both images, return the
+    // verdict's words; the engine parses and rules.
+    async see({ brief, anchor, render }) {
+      const model = process.env.WARDEN_MODEL_OPENAI || 'gpt-4o-mini';
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: [
+            { type: 'text', text: brief },
+            { type: 'image_url', image_url: { url: `data:${anchor?.mime || 'image/png'};base64,${anchor?.data || ''}` } },
+            { type: 'image_url', image_url: { url: `data:${render?.mime || 'image/png'};base64,${render?.data || ''}` } }
+          ] }],
+          max_tokens: 300
+        })
+      });
+      if (!response.ok) throw new Error(`OpenAI warden ${response.status}: ${(await response.text()).slice(0, 300)}`);
+      const json = await response.json();
+      const text = String(json.choices?.[0]?.message?.content || '').trim();
+      if (!text) throw new Error('OpenAI warden returned no verdict');
+      return { text, provider: 'openai', model };
+    },
+
     async speak({ text, voice = 'alloy', instructions = 'Warm, cinematic, restrained.' }) {
       const response = await api('/v1/audio/speech', { model: process.env.SPEAK_MODEL_OPENAI || 'gpt-4o-mini-tts', voice, input: text, instructions, response_format: 'wav' }, key);
       return { bytes: Buffer.from(await response.arrayBuffer()), mime: 'audio/wav', provider: 'openai', model: process.env.SPEAK_MODEL_OPENAI || 'gpt-4o-mini-tts', seed: null, usage: null };

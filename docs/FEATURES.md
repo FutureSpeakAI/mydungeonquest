@@ -2,9 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 42 present · 14 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
-
-**THE TRIAGE (wire first):** The Warden — machine vision keeps the face.
+**Standing: 43 present · 13 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -258,11 +256,9 @@ StoryScope’s measurable fingerprints (the stated moral, the borrowed body, the
 
 *Awaiting: 'tellReport' under artifacts/mydungeon-quest/src.*
 
-### The Warden — machine vision keeps the face — PENDING (wiring 0/2)
+### The Warden — machine vision keeps the face — PRESENT
 
 The Likeness Law’s second half: every post-blessing soul render is judged by a vision model beside the blessed anchor under a deterministic ruling — pass with the verdict attested, repaint once with the drift notes appended to the prompt, then fall back to the anchor itself. The house never ships a stranger. The keyless floor admits it has no eyes and attests every pass as unjudged; parchment is exempt. From the July 15 playtest, where faces drifted as turns accumulated.
-
-*Awaiting: 'wardenRuling' under artifacts/mydungeon-quest/src; 'warden' under artifacts/mydungeon-quest/server.*
 
 ### The Salon — the human shelf — PRESENT
 

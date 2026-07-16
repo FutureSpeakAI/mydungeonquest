@@ -1,6 +1,7 @@
 import { db } from '../db.js';
 import { generationSpec } from './prompts.js';
 import { sha256 } from 'fatescript/canonical';
+import { wardenBrief, parseVerdict, mockWarden, wardenRuling } from 'fatescript/warden';
 import { tollRefusal } from '../../patron/tollNotice.js';
 
 // ------------------------------------------------------------
@@ -84,23 +85,47 @@ export class Foundry {
   }
 
   async generate(job) {
-    let response;
     const anchors = await resolveAnchors(this.campaignId, job.options?.referenceLabels || []);
     const references = await Promise.all(anchors.map(async (row) => ({ mime: row.mime, data: await blobToBase64(row.blob), assetHash: row.assetHash })));
     const referenceAssetHashes = anchors.map((row) => row.assetHash);
     if (references.length) job.options = { ...job.options, references };
     const route = job.kind === 'paint' ? 'paint' : job.kind;
-    response = await fetch(`/api/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: job.prompt, ...job.options }) });
-    if (!response.ok) {
-      // THE RECEIPT: a 402 is the innkeeper's refusal, not a foundry fault —
-      // surface it to the patron before the error rides the reject path.
-      const closed = await tollRefusal(response);
-      throw new Error(closed?.error || `Foundry ${response.status}`);
-    }
-    const blob = await response.blob();
-    const assetHash = await sha256(new Uint8Array(await blob.arrayBuffer()));
+    // THE WARDEN'S EYES (Directive VI, Phase 13) — every post-anchor soul
+    // render is judged beside its anchor: a pass ships with the verdict
+    // attested, drift repaints ONCE with the notes appended to the prompt,
+    // and a second drift ships the anchor itself — THE HOUSE NEVER SHIPS A
+    // STRANGER. Renders with no anchor to betray (first takes, parchment's
+    // procedural woodcuts, covers, audio) owe the warden nothing.
+    const wardenPlan = job.kind === 'paint' && job.options?.warden?.bearingText && anchors.length ? job.options.warden : null;
     const bucket = job.kind === 'paint' ? 'images' : job.kind === 'music' ? 'music' : null;
-    if (bucket) this.spend[bucket] += 1;
+    let prompt = job.prompt;
+    let response; let blob; let wardenAttest = null;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      response = await fetch(`/api/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, ...job.options }) });
+      if (!response.ok) {
+        // THE RECEIPT: a 402 is the innkeeper's refusal, not a foundry fault —
+        // surface it to the patron before the error rides the reject path.
+        const closed = await tollRefusal(response);
+        throw new Error(closed?.error || `Foundry ${response.status}`);
+      }
+      blob = await response.blob();
+      // Every render spends — a repaint costs its own slot in the cap.
+      if (bucket) this.spend[bucket] += 1;
+      if (!wardenPlan) break;
+      const verdict = await this.judge(wardenPlan, anchors[0], blob);
+      const ruling = wardenRuling(verdict, { attempt });
+      if (ruling.action === 'repaint') { prompt = `${prompt} ${ruling.notes.join(' ')}`; continue; }
+      if (ruling.action === 'anchor') {
+        // The anchor stands in — no new bytes are minted (the anchor row
+        // already holds these very bytes under its own name); the sealed
+        // attestation carries the fallback verdict for provenance.
+        await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: anchors[0].assetHash, mime: anchors[0].mime, byteLength: anchors[0].blob?.size ?? 0, referenceAssetHashes, warden: ruling.attest });
+        return anchors[0];
+      }
+      wardenAttest = ruling.attest;
+      break;
+    }
+    const assetHash = await sha256(new Uint8Array(await blob.arrayBuffer()));
     const row = {
       campaignId: this.campaignId, kind: job.kind, cacheKey: job.cacheKey, promptHash: job.spec.promptHash,
       generationSpecHash: job.spec.hash, assetHash, originTurnHash: job.originTurnHash, mime: blob.type,
@@ -111,6 +136,9 @@ export class Foundry {
       subtype: job.options?.kind || null,
       referenceAssetHashes,
       provider: response.headers.get('X-Media-Provider') || 'unknown', model: response.headers.get('X-Media-Model') || 'unknown',
+      // The Warden's attest rides the row — 'passed' with its confidence,
+      // or 'floor' with the blindness admitted; null for the unjudged kinds.
+      warden: wardenAttest || null,
       blob, createdAt: Date.now()
     };
     // The pyre law (same choke as saveCampaign's guard): a burned spine takes
@@ -119,7 +147,29 @@ export class Foundry {
     const { spineBurned } = await import('../db.js');
     if (spineBurned(this.campaignId)) return row;
     await db.media.put(row);
-    await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size, referenceAssetHashes });
+    await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size, referenceAssetHashes, ...(wardenAttest ? { warden: wardenAttest } : {}) });
     return row;
+  }
+
+  // The judge's errand: both images as lawful data URLs beside the engine's
+  // own brief, one POST to the warden's door. A closed door, a floor answer,
+  // or a stumble all come home as the floor verdict — unjudged, and attested
+  // as such; the errand never breaks the render it was sent to judge.
+  async judge(plan, anchorRow, renderBlob) {
+    try {
+      const toDataUrl = async (source, mime) => `data:${mime || source.type || 'image/png'};base64,${await blobToBase64(source)}`;
+      const [anchor, render] = await Promise.all([
+        toDataUrl(anchorRow.blob, anchorRow.mime),
+        toDataUrl(renderBlob, renderBlob.type),
+      ]);
+      const response = await fetch('/api/warden', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief: wardenBrief({ kind: plan.kind || 'soul', bearingText: plan.bearingText }), anchor, render }),
+      });
+      if (!response.ok) return mockWarden();
+      const body = await response.json();
+      if (body.floor) return mockWarden();
+      return parseVerdict(body.text || '');
+    } catch { return mockWarden(); }
   }
 }

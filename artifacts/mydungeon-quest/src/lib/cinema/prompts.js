@@ -111,6 +111,14 @@ export function sceneRoster(campaign, cue, moment = null) {
   return paintRoster({ present: cue.subjects || [], speaker: moment?.speaker || null, cards: cardsOf(campaign) });
 }
 
+// The locked bearing as one string for the Warden's brief — the same
+// words the easel paints by, so the judge and the painter read one law.
+// Null when the wiki cannot card the soul yet; a null bearing is a
+// render the warden owes nothing (the first take has no anchor anyway).
+export function bearingTextFor(campaign, name) {
+  return bearingLineFrom(cardsOf(campaign), campaign, name);
+}
+
 export function keyArtPrompt(campaign, variant = 'establishing') {
   const bible = campaign.codex?.arc?.style_bible || campaign.styleBible;
   const darkening = variant === 'act-3'

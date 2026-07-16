@@ -21,7 +21,7 @@ import { buildContextPack } from 'fatescript/graph';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
-import { portraitPrompt, regionPrompt, scenePrompt, sceneRoster } from './lib/cinema/prompts.js';
+import { portraitPrompt, regionPrompt, scenePrompt, sceneRoster, bearingTextFor } from './lib/cinema/prompts.js';
 import { markRevealed, listReveals } from './lib/reveals.js';
 import { KEYART_LABEL, actOf, heroBustJob, keyArtJob, nameSeed } from './lib/cinema/prologue.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
@@ -375,11 +375,15 @@ export default function App() {
     };
     // Reference anchors follow the roster — the same painted-first seating
     // the scene prompt uses, so no staged soul spends a reference slot a
-    // painted face needed (the drifting-face law).
-    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', referenceLabels: [...sceneRoster(campaign, sceneCue, sceneMoment).painted.map((seat) => seat.name), sceneCue.region].filter(Boolean).slice(0, 3) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
+    // painted face needed (the drifting-face law). The first chair's locked
+    // bearing rides along as the Warden's brief: post-anchor renders are
+    // judged beside the anchor, and a stranger never ships (Phase 13).
+    const seating = sceneRoster(campaign, sceneCue, sceneMoment);
+    const sceneBearing = seating.painted[0]?.name ? bearingTextFor(campaign, seating.painted[0].name) : null;
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', referenceLabels: [...seating.painted.map((seat) => seat.name), sceneCue.region].filter(Boolean).slice(0, 3), ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
-      if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name] }, priority: variant === 'bust' ? 2 : 6 });
+      if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name], ...(variant === 'bust' ? {} : { warden: { kind: 'soul', bearingText: bearingTextFor(campaign, soul.name) } }) }, priority: variant === 'bust' ? 2 : 6 });
     }
     if (dm.story?.world?.region_add) {
       const region = campaign.codex.regions.find((entry) => entry.name === dm.story.world.region_add.name);

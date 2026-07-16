@@ -50,6 +50,27 @@ export function geminiAdapter(key) {
       const image = (json.candidates?.[0]?.content?.parts || []).find((p) => p.inlineData?.data);
       if (!image) throw new Error('Gemini returned no image');
       return { bytes: Buffer.from(image.inlineData.data, 'base64'), mime: image.inlineData.mimeType || 'image/png', provider: 'gemini', model, seed: null, usage: json.usageMetadata || null };
+    },
+
+    // THE WARDEN'S EYES (Directive VI, Phase 13) — the key that paints can
+    // also see. IMAGE 1 the blessed anchor, IMAGE 2 the new render; the
+    // brief demands one JSON verdict, and the engine's parser judges the
+    // reply. This adapter only carries the images and returns the words.
+    async see({ brief, anchor, render }) {
+      const model = process.env.WARDEN_MODEL_GEMINI || 'gemini-3.1-flash';
+      const response = await timedFetch(`${BASE}/models/${model}:generateContent?key=${key}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [
+          { text: brief },
+          { inlineData: { mimeType: anchor?.mime || 'image/png', data: anchor?.data || '' } },
+          { inlineData: { mimeType: render?.mime || 'image/png', data: render?.data || '' } }
+        ] }] })
+      }, 60000);
+      if (!response.ok) throw new Error(`Gemini warden ${response.status}: ${(await response.text()).slice(0, 300)}`);
+      const json = await response.json();
+      const text = (json.candidates?.[0]?.content?.parts || []).map((part) => part.text || '').join(' ').trim();
+      if (!text) throw new Error('Gemini warden returned no verdict');
+      return { text, provider: 'gemini', model };
     }
   };
 }

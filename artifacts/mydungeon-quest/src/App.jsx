@@ -19,6 +19,8 @@ import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnS
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
 import { sealLegacy, openNextVolume } from './lib/saga.js';
 import { chronicleActClose, memoryLadder } from './lib/memoir.js';
+import { greetReturning } from './lib/ravens.js';
+import { RavenNotice } from './components/RavenNotice.jsx';
 import { buildContextPack } from 'fatescript/graph';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
@@ -148,6 +150,7 @@ export default function App() {
   const [worldDraft, setWorldDraft] = useState(null);
   const [overlay, setOverlay] = useState(null);
   const [cinematic, setCinematic] = useState(null);
+  const [ravenRecap, setRavenRecap] = useState(null);
   const [diceResult, setDiceResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [weaving, setWeaving] = useState(null);
@@ -245,6 +248,23 @@ export default function App() {
   // Pour a remembered refused intent again. Opens the intent's own table if
   // the shelf is showing (a checkout return lands on the title screen), then
   // retries by kind. Media kinds re-queue the sealed log's jobs; a refused
+  // THE RAVENS — on open, the world accounts for its absence: measured
+  // from the last sealed record (never a settings save), walked one
+  // sealed batch per elapsed day under the engine's cap, and told as a
+  // recap whose every line traces to a row sealed on this very open.
+  const greetTale = useCallback(async (tale) => {
+    try {
+      if (!tale || tale.readOnly || tale.completed) return;
+      const journal = await campaignJournal(tale.id);
+      const lastSealTs = journal.length ? Number(journal[journal.length - 1].ts) || 0 : 0;
+      const { campaign: walked, recap } = await greetReturning(tale, lastSealTs, { seal, save: saveCampaign, reload: (id) => db.campaigns.get(id) });
+      if (recap) {
+        setRavenRecap(recap);
+        if (currentIdRef.current === walked.id) setCurrent(walked);
+        await refreshShelf();
+      }
+    } catch (error) { console.error('The ravens stayed on the wire:', error); }
+  }, [refreshShelf]);
   // DM turn replays the very words the innkeeper refused.
   const retryRefusedPour = async (intent) => {
     try {
@@ -959,7 +979,7 @@ export default function App() {
 
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} /></>;
+  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={settings.reduceMotion} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); greetTale(campaign); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} /></>;
   if (!current) return null;
 
   const chapter = chapterInfo(current.codex);
@@ -968,6 +988,7 @@ export default function App() {
 
   return <div className={`app-shell${current.combat?.active ? ' under-arms' : ''}`}>
     <TollNotice />
+    <RavenNotice recap={ravenRecap} onClose={() => setRavenRecap(null)} />
     {pourBanner}
     <div ref={regionStripRef} className="region-strip" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
       <span>{activeRegion?.name || current.homeRegion}</span><small>{activeRegion?.state || 'unmapped'} · blight {current.codex.blight}/5</small>

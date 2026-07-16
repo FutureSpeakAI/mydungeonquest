@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 46 present · 10 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 47 present · 9 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 ## I. The Table — the core loop
 
@@ -180,11 +180,9 @@ Multi-device sync where the record is home: rows land once by hash, stale heads 
 
 Deterministic annals spoken in the record’s own words, quotes verbatim or contraband, feeding [MEMORY] without ever inventing.
 
-### The ravens — absence recaps — PENDING (wiring 0/1)
+### The ravens — absence recaps — PRESENT
 
 Come back after days away and the world reports what moved: absence counted honestly and capped, batches deterministic and ops-only, every recap line tracing to a sealed fact.
-
-*Awaiting: 'fatescript/ravens' under artifacts/mydungeon-quest/src.*
 
 ### The shared sky — PENDING (wiring 0/1)
 

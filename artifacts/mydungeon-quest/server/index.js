@@ -79,6 +79,13 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), tollW
 // which can exceed the default limit; give this route its own headroom BEFORE
 // the global parser so the smaller limit doesn't reject a long chronicle.
 app.use('/api/quest-audio', express.json({ limit: process.env.MAX_AUDIO_BYTES || '200mb' }));
+// A scene paint rides up to three anchor references as base64 in one body,
+// and a fat roll of anchors can push that past the general limit — the
+// paint door gets its own headroom BEFORE the global parser so the house's
+// own references are never turned away at the threshold. (A 413 here
+// starves the scene shelf for the whole session: the plate falls to the
+// procedural woodcut and no scene row ever lands.)
+app.use('/api/paint', express.json({ limit: process.env.MAX_PAINT_BYTES || '80mb' }));
 // THE VAULT's blob door takes raw bytes, content-addressed — mounted before
 // the JSON parser so an asset body is never mis-read as a document.
 app.post('/api/vault/media/:hash', express.raw({ type: () => true, limit: process.env.MAX_VAULT_BLOB_BYTES || '25mb' }));
@@ -124,10 +131,13 @@ app.use(
 const WARDEN_IMAGE = /^data:image\/(?:png|jpe?g|webp|svg\+xml);base64,([A-Za-z0-9+/=]+)$/;
 app.post('/api/warden', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), abuseCaps('warden'), async (req, res) => {
   const { brief = '', anchor = '', render = '' } = req.body || {};
-  const anchorMatch = WARDEN_IMAGE.exec(String(anchor));
+  // (0.6.1, THE UNLETTERED WORLD) The anchor is optional now: plates with
+  // no likeness anchor are judged alone on the text question. A present
+  // anchor must still be lawful; the render always must be.
+  const anchorMatch = anchor ? WARDEN_IMAGE.exec(String(anchor)) : null;
   const renderMatch = WARDEN_IMAGE.exec(String(render));
-  if (!anchorMatch || !renderMatch || typeof brief !== 'string' || brief.length > 4000) {
-    return res.status(400).json({ error: 'The warden judges exactly two lawful images beside one brief.' });
+  if (!renderMatch || (anchor && !anchorMatch) || typeof brief !== 'string' || brief.length > 4000) {
+    return res.status(400).json({ error: 'The warden judges one or two lawful images beside one brief.' });
   }
   const eyes = adapters().paint;
   if (typeof eyes.see !== 'function' || eyes.name === 'mock' || !(await spendAllowed(eyes.name))) {
@@ -135,7 +145,7 @@ app.post('/api/warden', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)
   }
   try {
     const part = (match) => ({ mime: match[0].slice(5, match[0].indexOf(';')), data: match[1] });
-    const verdict = await eyes.see({ brief, anchor: part(anchorMatch), render: part(renderMatch) });
+    const verdict = await eyes.see({ brief, anchor: anchorMatch ? part(anchorMatch) : null, render: part(renderMatch) });
     debit(req, 'warden', verdict.provider);
     return res.json({ text: verdict.text, provider: verdict.provider, model: verdict.model });
   } catch (error) {

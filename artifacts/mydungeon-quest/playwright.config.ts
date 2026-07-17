@@ -1,9 +1,12 @@
 import { defineConfig } from '@playwright/test';
 
-// TASK 52 — THE PROVING LOOP. One project, one worker: the criteria are a
-// ladder (g00 preflight → g01…g18 → sabotage) and the vision specs feed on
-// plates the harvest spec (g09) mints. Retries 0 per the letter; trace
-// on-first-retry per the letter (moot at 0 retries, kept as written).
+// TASK 53 — HARVEST-THEN-JUDGE. The ladder is explicit now: preflight
+// proves the environment; ONE harvest project mints every artifact
+// (plates, records, storybook, captions, the top manifest) into
+// test-results/harvest/; and the courts — dom, six judge projects, and
+// the teeth — read only the disk. A judge project can never repaint; a
+// missing artifact is a loud, NAMED preflight refusal, never a skip-by
+// -silence. One worker: the ladder is a ladder. Retries 0 per the letter.
 export default defineConfig({
   testDir: './tests/e2e',
   outputDir: './test-results/artifacts',
@@ -23,6 +26,18 @@ export default defineConfig({
       ? { executablePath: process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE }
       : {},
   },
+  projects: [
+    { name: 'preflight', testMatch: /g00-preflight\.spec\.ts/ },
+    { name: 'harvest', testMatch: /harvest\.spec\.ts/, dependencies: ['preflight'] },
+    { name: 'dom', testMatch: /(g01|g02|g04|g05|g07|g12|g13|g14|g15)-.*\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'g09-character', testMatch: /g09-character\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'g10-environment', testMatch: /g10-environment\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'g11-style', testMatch: /g11-style\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'g16-captions', testMatch: /g16-captions\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'g17-framing', testMatch: /g17-framing\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'g18-storybook', testMatch: /g18-storybook\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
+  ],
   webServer: {
     command: 'bash tests/e2e/webserver.sh',
     url: 'http://localhost:5199/',

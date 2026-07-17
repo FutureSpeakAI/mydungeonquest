@@ -29,7 +29,7 @@ import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { isProving, seedProvingCampaign } from './lib/proving.js';
 import { Foundry } from './lib/cinema/foundry.js';
-import { heroSoul, identityClause, portraitPrompt, regionPrompt, scenePrompt, sceneRoster, bearingTextFor } from './lib/cinema/prompts.js';
+import { heroSoul, identityClause, plateMood, portraitPrompt, regionPrompt, scenePrompt, sceneRoster, bearingTextFor } from './lib/cinema/prompts.js';
 import { markRevealed, listReveals } from './lib/reveals.js';
 import { KEYART_LABEL, actOf, heroBustJob, keyArtJob, nameSeed } from './lib/cinema/prologue.js';
 import { proceduralArtDataUrl } from './lib/cinema/procedural.js';
@@ -406,7 +406,7 @@ export default function App() {
       ? { ...dm.image_cue, subjects: (dm.image_cue.subjects?.length ? dm.image_cue.subjects : presentCast) }
       : {
           kind: 'scene',
-          mood: dm.narration_blocks?.[0]?.text?.slice(0, 140) || 'the unfolding scene',
+          mood: plateMood(dm, 140) || 'the unfolding scene',
           subjects: presentCast,
           region: campaign.codex.regions?.[0]?.name || campaign.homeRegion
         };
@@ -418,7 +418,7 @@ export default function App() {
     // from composition — the subjects' appearance canon and reference
     // anchors stay wired in regardless.
     const sceneMoment = {
-      prose: (dm.narration_blocks || []).map((block) => block?.text || '').join(' ').slice(0, 220),
+      prose: (dm.narration_blocks || []).map((block) => block?.text || '').join(' ').slice(0, 480),
       seed: turnRecord.recordHash || String(logId || ''),
       // The roster's first chair: the turn's first attributed voice. The
       // easel seats speaker → villain → bond, deterministic (bearing law).
@@ -442,7 +442,7 @@ export default function App() {
           ? `${campaign.hero.name} — ${identityClause(heroSoul(campaign.hero))}`
           : bearingTextFor(campaign, leadName))
       : null;
-    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', referenceLabels: [...seating.painted.map((seat) => seat.name), sceneCue.region].filter(Boolean).slice(0, 3), ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', ...(sceneMoment.prose ? { moment: { prose: sceneMoment.prose } } : {}), referenceLabels: [...seating.painted.map((seat) => seat.name), sceneCue.region].filter(Boolean).slice(0, 3), ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
       if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name], ...(variant === 'bust' ? {} : { warden: { kind: 'soul', bearingText: bearingTextFor(campaign, soul.name) } }) }, priority: variant === 'bust' ? 0 : 6 });
@@ -1334,7 +1334,7 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null }) {
   // Every turn shows a plate: the DM's cue mood when present, otherwise the
   // opening line of narration. The procedural plate stands in until (or unless)
   // the painted scene arrives.
-  const mood = cue?.mood || log.dm.narration_blocks?.[0]?.text?.slice(0, 90) || 'the scene';
+  const mood = cue?.mood || plateMood(log.dm, 90) || 'the scene';
   const art = proceduralArtDataUrl(`${campaign.id}:${log.id}`, mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
   // Chronicles sealed before films were retired may carry a painted keyframe
   // poster on their film turns. Sealed history is immutable, so render that

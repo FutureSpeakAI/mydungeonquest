@@ -1,7 +1,8 @@
 import { db } from '../db.js';
-import { generationSpec } from './prompts.js';
+import { generationSpec, momentBrief, parseMoment, momentRuling } from './prompts.js';
 import { sha256 } from 'fatescript/canonical';
 import { wardenBrief, parseVerdict, mockWarden, wardenRuling } from 'fatescript/warden';
+import { unletteredBrief, parseUnlettered, unletteredRuling } from 'fatescript/unlettered';
 import { tollRefusal } from '../../patron/tollNotice.js';
 
 // ------------------------------------------------------------
@@ -97,6 +98,10 @@ export class Foundry {
     // STRANGER. Renders with no anchor to betray (first takes, parchment's
     // procedural woodcuts, covers, audio) owe the warden nothing.
     const wardenPlan = job.kind === 'paint' && job.options?.warden?.bearingText && anchors.length ? job.options.warden : null;
+    // THE MOMENT LAW (0.6.1) — a scene paint that carries its turn's moment
+    // answers for it: the beat-supremacy clause is a plea until someone
+    // checks the work.
+    const momentPlan = job.kind === 'paint' && job.options?.kind === 'scene' && job.options?.moment?.prose ? String(job.options.moment.prose) : null;
     const bucket = job.kind === 'paint' ? 'images' : job.kind === 'music' ? 'music' : null;
     let prompt = job.prompt;
     let response; let blob; let wardenAttest = null;
@@ -111,16 +116,45 @@ export class Foundry {
       blob = await response.blob();
       // Every render spends — a repaint costs its own slot in the cap.
       if (bucket) this.spend[bucket] += 1;
-      if (!wardenPlan) break;
-      const verdict = await this.judge(wardenPlan, anchors[0], blob);
-      const ruling = wardenRuling(verdict, { attempt });
+      if (job.kind !== 'paint') break;
+      // THE UNLETTERED WORLD (0.6.1) — every delivered plate is asked the
+      // text question. Anchored soul renders ask it inside the likeness
+      // verdict (one look, two laws); anchor-less plates get the single-
+      // image brief alone. On text: ONE repaint with the clause reinforced;
+      // on a second sighting the plate is REFUSED — the surface keeps its
+      // lawful textless fallback and the refusal is sealed into the record.
+      const ruling = wardenPlan
+        ? wardenRuling(await this.judge(wardenPlan, anchors[0], blob), { attempt })
+        : unletteredRuling(await this.judgeText(blob), { attempt });
       if (ruling.action === 'repaint') { prompt = `${prompt} ${ruling.notes.join(' ')}`; continue; }
+      if (ruling.action === 'refuse') {
+        // The refused bytes are hashed for the record and then dropped —
+        // never stored, never shipped. The blessed anchor is the lawful
+        // textless fallback where one exists (its bytes passed this same
+        // law when they were minted); silence — null — everywhere else.
+        const refusedHash = await sha256(new Uint8Array(await blob.arrayBuffer()));
+        await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: refusedHash, mime: blob.type, byteLength: blob.size, referenceAssetHashes, warden: ruling.attest });
+        return anchors.length ? anchors[0] : null;
+      }
       if (ruling.action === 'anchor') {
         // The anchor stands in — no new bytes are minted (the anchor row
         // already holds these very bytes under its own name); the sealed
         // attestation carries the fallback verdict for provenance.
         await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: anchors[0].assetHash, mime: anchors[0].mime, byteLength: anchors[0].blob?.size ?? 0, referenceAssetHashes, warden: ruling.attest });
         return anchors[0];
+      }
+      // THE MOMENT LAW (0.6.1) — one more question at the same door for
+      // scene plates that carry their moment: is THIS moment staged? A miss
+      // repaints once with the order reinforced; a second miss SHIPS the
+      // better take with the miss sealed in its attest — the house labels
+      // dishonesty, it does not starve the shelf (a turn with no plate
+      // starves every consumer waiting on the easel). The judge's own
+      // stumbles (floor, malformed) never count against a render.
+      if (momentPlan) {
+        const momentVerdict = momentRuling(await this.judgeMoment(blob, momentPlan), { attempt });
+        if (momentVerdict.action === 'repaint') { prompt = `${prompt} ${momentVerdict.notes.join(' ')}`; continue; }
+        wardenAttest = { ...(ruling.attest || {}), ...momentVerdict.attest };
+        break;
       }
       wardenAttest = ruling.attest;
       break;
@@ -171,5 +205,43 @@ export class Foundry {
       if (body.floor) return mockWarden();
       return parseVerdict(body.text || '');
     } catch { return mockWarden(); }
+  }
+
+  // The text-only errand for plates with no anchor to stand beside: one
+  // image, one brief, the same door. A closed door, a floor answer, or a
+  // stumble all come home as an unjudged pass — the judge's own failure
+  // never refuses the render it was sent to judge (the likeness errand's
+  // own law).
+  async judgeText(renderBlob) {
+    const floor = { contains_text_or_watermark: false, confidence: 0, malformed: false, floor: true };
+    try {
+      const render = `data:${renderBlob.type || 'image/png'};base64,${await blobToBase64(renderBlob)}`;
+      const response = await fetch('/api/warden', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief: unletteredBrief(), render }),
+      });
+      if (!response.ok) return floor;
+      const body = await response.json();
+      if (body.floor) return floor;
+      return parseUnlettered(body.text || '');
+    } catch { return floor; }
+  }
+
+  // The moment errand — one image, the moment brief, the same door, the
+  // same floor law: a closed door, a floor answer, or a stumble come home
+  // as an unjudged pass, never a refusal.
+  async judgeMoment(renderBlob, prose) {
+    const floor = { moment_staged: true, missing: '', floor: true };
+    try {
+      const render = `data:${renderBlob.type || 'image/png'};base64,${await blobToBase64(renderBlob)}`;
+      const response = await fetch('/api/warden', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief: momentBrief(prose), render }),
+      });
+      if (!response.ok) return floor;
+      const body = await response.json();
+      if (body.floor) return floor;
+      return parseMoment(body.text || '');
+    } catch { return floor; }
   }
 }

@@ -6,10 +6,14 @@ import { boot, loadManifest, plateBytes } from './lib/harness';
 import type { PlateEntry } from './lib/harness';
 import { GAME_ROOT, histogramDelta, judge } from './lib/vision';
 import { checkFeedOrder } from './lib/feedOrder';
+import { JUDGE_PROJECTS, doctorFirstNeed, loadTopManifest, preflightManifest } from './lib/harvestManifest';
+import { markLaw } from './lib/markLaw';
 
 // SECTION 5 — THE SABOTAGE CHECK. A consistency test that cannot fail is
-// not a test. Six teeth, using the SAME questions and schemas as the real
-// criteria, must bite on deliberately wrong inputs.
+// not a test. Eight teeth, using the SAME questions, schemas, and laws as
+// the real criteria, must bite on deliberately wrong inputs. Teeth 7 and
+// 8 joined under TASK 53: the mark law refuses the unattested markless
+// plate by name, and every judge preflight refuses its doctored manifest.
 
 const EVIDENCE = path.join(GAME_ROOT, 'test-results', 'vision', 'evidence');
 
@@ -107,4 +111,44 @@ test('tooth 6: the order checker fails the shuffled feed', async () => {
   expect(violations.some((v) => /order|deed|roll/i.test(v)), `a deed-before-roll violation is named:\n${violations.join('\n')}`).toBe(true);
   expect(violations.some((v) => /tick|stamp|duplicate|increase/i.test(v)), `a stamp/tick violation is named:\n${violations.join('\n')}`).toBe(true);
   saveDeterministicEvidence('sabotage-6-order', { rows, violations, bites: violations.length >= 2 });
+});
+
+test('tooth 7: the markless crop is seen markless, and the mark law refuses it by name', async () => {
+  test.setTimeout(180_000);
+  // A narrow band from the anchor's crown: real painted pixels, but no
+  // room for a key-shaped burn. The REAL judge must answer mark_visible
+  // false on real bytes, and the pure mark law — handed that verdict with
+  // the attestations stripped — must fail NAMING the attestation path.
+  const hero = need('live', (e) => e.klass === 'portrait' && e.label === 'Maren' && e.variant === 'bust', 'hero anchor');
+  const meta = await sharp(hero).metadata();
+  const band = await sharp(hero)
+    .extract({ left: 0, top: 0, width: meta.width || 1, height: Math.max(16, Math.floor((meta.height || 1) * 0.18)) })
+    .png().toBuffer();
+  const verdict = await judge({
+    id: 'sabotage-7-markless-crop', criterion: 'sabotage-7',
+    images: [band],
+    question: 'Is a key-shaped burn mark (a burn scar in the shape of a key) visible anywhere in this image?',
+    schema: { mark_visible: 'boolean', confidence: 'number 0..1' }
+  });
+  expect(verdict.mark_visible, `the judge must see no mark in the crown band: ${JSON.stringify(verdict)}`).toBe(false);
+  const ruling = markLaw({ plate: 'sabotage-7-crop', assetHash: 'stripped-attestations', markVisible: false, attestedLack: false });
+  expect(ruling.verdict, 'the mark law must refuse the unattested markless plate').toBe('fail');
+  expect((ruling as any).reason, 'the refusal names the attestation path').toMatch(/attestation path/);
+  saveDeterministicEvidence('sabotage-7-mark-law', { verdict, ruling, bites: ruling.verdict === 'fail' });
+});
+
+test('tooth 8: every judge preflight refuses its doctored manifest by name', () => {
+  const top = loadTopManifest();
+  if (!top) throw new Error('plate store missing the top manifest — harvest first');
+  const messages: Record<string, string> = {};
+  for (const project of JUDGE_PROJECTS) {
+    const { manifest, what } = doctorFirstNeed(project, top);
+    let thrown: Error | null = null;
+    try { preflightManifest(project, manifest); } catch (error: any) { thrown = error; }
+    expect(thrown, `${project} must refuse its doctored manifest (doctored: ${what})`).toBeTruthy();
+    expect(String(thrown!.message), `${project} names its own court`).toContain(`${project} preflight: harvest artifact missing`);
+    expect(String(thrown!.message), `${project} names the missing artifact`).toContain(what);
+    messages[project] = String(thrown!.message);
+  }
+  saveDeterministicEvidence('sabotage-8-preflight', { messages, bites: Object.keys(messages).length === JUDGE_PROJECTS.length });
 });

@@ -65,7 +65,9 @@ export function geminiAdapter(key) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [
           { text: brief },
-          { inlineData: { mimeType: anchor?.mime || 'image/png', data: anchor?.data || '' } },
+          // (0.6.1) The anchor is optional — a text-only brief carries one
+          // image; the likeness brief still carries two, anchor first.
+          ...(anchor?.data ? [{ inlineData: { mimeType: anchor.mime || 'image/png', data: anchor.data } }] : []),
           { inlineData: { mimeType: render?.mime || 'image/png', data: render?.data || '' } }
         ] }] })
       }, 60000);

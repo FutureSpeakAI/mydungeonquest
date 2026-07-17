@@ -6,8 +6,12 @@
 // its anchor — a pass ships with the verdict attested, drift repaints
 // ONCE with the notes appended to the prompt, a second drift ships
 // the anchor itself (the house never ships a stranger, and no
-// colliding bytes are minted), the keyless floor attests its
-// blindness, and renders with no anchor to betray owe nothing.
+// colliding bytes are minted), and the keyless floor attests its
+// blindness. Since 0.6.1 (THE UNLETTERED WORLD) renders with no anchor
+// to betray owe the ONE text question through a render-only brief:
+// clean ships untouched, text buys one reinforced repaint, and a
+// second sighting REFUSES the plate — anchor as textless fallback
+// where one exists, silence elsewhere, the refusal attested.
 // Headless: node + fake-indexeddb, scripted doors, no AI keys.
 // ------------------------------------------------------------
 import 'fake-indexeddb/auto';
@@ -122,14 +126,52 @@ const wardenJob = (cacheKey) => ({
   assert.equal(await db.media.where('cacheKey').equals('k-fallen').count(), 0, 'no new row is minted over the anchor\u2019s bytes');
 }
 
-// 5. NO ANCHOR TO BETRAY — a job without a warden plan is exempt: the
-//    judge is never called, the render ships as before.
+// 5. NO ANCHOR TO BETRAY — a job without a warden plan owes no likeness
+//    judge, but THE UNLETTERED WORLD (0.6.1) still asks its one question:
+//    exactly one render-only call, no anchor in the body, and a clean
+//    answer ships the render untouched with no verdict invented.
 {
   const judged = wardenCalls.length;
+  wardenScript = [{ text: '{"contains_text_or_watermark": false, "confidence": 0.95}' }];
   const row = await forge.enqueue({ kind: 'paint', prompt: 'A cover.', priority: 1, cacheKey: 'k-exempt', options: { kind: 'keyart' } });
-  assert.equal(wardenCalls.length, judged, 'the warden was never troubled');
-  assert.ok(row.assetHash, 'the render shipped untouched');
-  assert.equal(row.warden ?? null, null, 'no verdict is invented for the unjudged');
+  assert.equal(wardenCalls.length, judged + 1, 'the text question is asked of every plate — exactly once');
+  const call = wardenCalls.at(-1);
+  assert.ok(!call.anchor, 'no anchor rides the text-only brief');
+  assert.ok(String(call.brief).includes('"contains_text_or_watermark"'), 'the brief asks the one question');
+  assert.ok(row.assetHash, 'the clean render shipped untouched');
+  assert.equal(row.warden ?? null, null, 'no verdict is invented for the clean');
+}
+
+// 5b. TEXT TWICE, NO ANCHOR → THE PLATE IS REFUSED (0.6.1). Nothing
+//     ships, nothing is minted; the refusal is attested with the refused
+//     bytes hashed — the record hears what the shelf never holds.
+{
+  const before = paintCalls.length;
+  wardenScript = [
+    { text: '{"contains_text_or_watermark": true, "confidence": 0.9}' },
+    { text: '{"contains_text_or_watermark": true, "confidence": 0.9}' },
+  ];
+  const row = await forge.enqueue({ kind: 'paint', prompt: 'A lettered cover.', priority: 1, cacheKey: 'k-refused', options: { kind: 'keyart' } });
+  assert.equal(paintCalls.length, before + 2, 'one reinforced repaint, then the house stops painting');
+  assert.match(paintCalls.at(-1).prompt, /broke THE UNLETTERED WORLD/, 'the reinforcement rides the second prompt');
+  assert.equal(row, null, 'nothing ships — the surface keeps its textless silence');
+  assert.equal(attests.at(-1)?.warden?.warden, 'refused', 'the refusal is attested');
+  assert.match(attests.at(-1)?.warden?.reason || '', /painted text twice/, 'the note lands in the record');
+  assert.ok(attests.at(-1)?.assetHash, 'the refused bytes are hashed for the record');
+  assert.equal(await db.media.where('cacheKey').equals('k-refused').count(), 0, 'refused bytes are never minted');
+}
+
+// 5c. TEXT TWICE WITH AN ANCHOR → the anchor stands in as the textless
+//     fallback: its bytes passed this same law when they were minted.
+{
+  wardenScript = [
+    { text: '{"same": true, "confidence": 0.9, "signature_present": true, "contains_text_or_watermark": true, "drift": []}' },
+    { text: '{"same": true, "confidence": 0.9, "signature_present": true, "contains_text_or_watermark": true, "drift": []}' },
+  ];
+  const row = await forge.enqueue(wardenJob('k-texted'));
+  assert.equal(row.assetHash, 'anch-wren', 'the anchor is the lawful textless fallback');
+  assert.equal(attests.at(-1)?.warden?.warden, 'refused', 'the refusal is attested even when the anchor stands in');
+  assert.equal(await db.media.where('cacheKey').equals('k-texted').count(), 0, 'no row is minted for the refused plate');
 }
 
 // 6. THE WIRING — the foundry rules by the engine, the server's door is
@@ -152,4 +194,4 @@ const wardenJob = (cacheKey) => ({
   assert.ok(app.includes('warden: { kind'), 'the job bench seats the warden plan');
 }
 
-console.log('PASS — the warden\u2019s eyes: the floor attests its blindness, a seen pass carries its confidence, drift buys exactly one repaint with the notes in the prompt, a second drift ships the anchor with no colliding bytes and the fallback attested, anchorless renders owe nothing, and door, adapters, and job bench are all wired.');
+console.log('PASS — the warden\u2019s eyes: the floor attests its blindness, a seen pass carries its confidence, drift buys exactly one repaint with the notes in the prompt, a second drift ships the anchor with no colliding bytes and the fallback attested, anchorless renders owe the one text question, painted text twice refuses the plate with the refusal in the record, and door, adapters, and job bench are all wired.');

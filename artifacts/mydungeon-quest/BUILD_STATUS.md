@@ -1,5 +1,22 @@
 # Build status
 
+## 0.6.1 — The Unlettered World (2026-07-16, Task 53)
+- The text law is ONE engine-owned clause now (`fatescript/unlettered`),
+  riding every builder exactly once via `scrubPrompt`; the noun-pile that
+  ART_DIRECTION had accumulated iteration by iteration is retired, and the
+  per-builder "No text" fragments fell with it.
+- The warden asks `contains_text_or_watermark` of EVERY delivered plate:
+  inside the likeness verdict where an anchor stands; alone, through a
+  render-only brief, for the plates that never had one (covers, regions,
+  first busts — `/api/warden` and both adapters now accept one image).
+- Ruling ladder: text seen → one repaint with the clause reinforced;
+  seen again → the plate is REFUSED. Refusals attest into the sealed
+  record (`warden: 'refused'`, refused bytes hashed then dropped); the
+  surface keeps its blessed anchor where one exists, silence elsewhere.
+  Identity outranks text; text outranks the locket.
+- Gates 101 → 102 (`unletteredWorld`, the cut's native 65 → 66); engine
+  eval chain untouched and green under the frozen `warden` gate.
+
 ## 0.6.0 — The Hooked World (2026-07-16, Task 51 grafted)
 - The studio's Directive V lifted delta-by-delta into this line's seats:
   engine gains `calendar.js` and `threads.js` whole, atlas/graph/story/

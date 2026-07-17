@@ -43,7 +43,9 @@ export function openaiAdapter(key) {
           model,
           messages: [{ role: 'user', content: [
             { type: 'text', text: brief },
-            { type: 'image_url', image_url: { url: `data:${anchor?.mime || 'image/png'};base64,${anchor?.data || ''}` } },
+            // (0.6.1) The anchor is optional — a text-only brief carries
+            // one image; the likeness brief still carries two, anchor first.
+            ...(anchor?.data ? [{ type: 'image_url', image_url: { url: `data:${anchor.mime || 'image/png'};base64,${anchor.data}` } }] : []),
             { type: 'image_url', image_url: { url: `data:${render?.mime || 'image/png'};base64,${render?.data || ''}` } }
           ] }],
           max_tokens: 300

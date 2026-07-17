@@ -263,7 +263,8 @@ console.log('PASS — the book always exists: illuminated when the Chronicler sp
   ];
   const html = buildStorybook({ campaign: camp, journal: [], media: rows, reveals: [] });
   assert.ok(html.includes('Sorrel the Renamed'), 'the hero leads the dramatis personae under the CURRENT name');
-  assert.equal(html.split(pxOriginal).length - 1, 1, 'the ORIGINAL bust binds exactly once — the hero plate — found by key, not by label');
+  assert.equal(html.split(pxOriginal).length - 1, 2, 'the ORIGINAL bust binds exactly twice — the cover medallion and the hero plate — found by key, not by label');
+  assert.ok(html.includes('cover-art'), 'the cover wears the hero medallion when a lawful face exists');
   assert.ok(!html.includes(pxRetake), 'a newer retake never replaces the original, and busts never ride the reel');
   console.log('PASS storybook: the hero wears the original face, rename or no');
 }

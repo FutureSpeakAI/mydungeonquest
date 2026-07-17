@@ -163,7 +163,11 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
   // THE SEATED PLATE: a chapter opens on art FIRST SHOWN during its own
   // stretch — a plate dealt on one of its turns, or a cover dealt for its
   // beat (covers seat with the beat's first stretch). Nothing seen in the
-  // stretch → the honest procedural plate. A ledgerless elder tale seats
+  // stretch → the honest procedural plate. Among the stretch's own seen
+  // plates, the EARLIEST MOMENT leads — the chapter opens on the art of its
+  // opening turns, so the plate faces the prose that opens the page, and a
+  // beat cover (no turn of its own) yields to any turn-bound plate.
+  // A ledgerless elder tale seats
   // plates in paint order, one per chapter — never the old even-spread that
   // landed early art on late chapters.
   const firstRunOfBeat = new Map();
@@ -178,7 +182,7 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
       if (mark.logTurn != null) return mark.logTurn >= from && mark.logTurn <= to;
       if (mark.cardBeat != null) return mark.cardBeat === run.beatIndex && firstRunOfBeat.get(run.beatIndex) === runAt;
       return false;
-    }).sort((a, b) => a[1].ts - b[1].ts);
+    }).sort((a, b) => ((a[1].logTurn ?? Number.MAX_SAFE_INTEGER) - (b[1].logTurn ?? Number.MAX_SAFE_INTEGER)) || (a[1].ts - b[1].ts));
     return candidates.length ? byHash.get(candidates[0][0]).dataUrl : null;
   };
 
@@ -209,8 +213,8 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
     const prose = chapter.page
       ? `<div class="retelling"><p>${dropcapped(chapter.page.passage)}</p></div>
          <p class="provenance">${chapter.page.raw ? 'the sealed text, bound as written' : 'retold by the Chronicler · sealed as written'} · turns ${Number(chapter.page.cites?.from_turn ?? 0)}–${Number(chapter.page.cites?.to_turn ?? 0)}</p>`
-      : `<p class="raw-note">No Chronicler spoke for this chapter — its sealed words stand as written.</p>
-         ${chapter.entries.map(({ log }) => `${log.player ? `<p class="player">“${esc(log.player)}”</p>` : ''}${(log.dm?.narration_blocks || []).map((block) => `<p>${block.speaker ? `<strong>${esc(block.speaker)}:</strong> ` : ''}${esc(block.text)}</p>`).join('')}`).join('')}`;
+      : `${chapter.entries.map(({ log }) => `${log.player ? `<p class="player">“${esc(log.player)}”</p>` : ''}${(log.dm?.narration_blocks || []).map((block) => `<p>${block.speaker ? `<strong>${esc(block.speaker)}:</strong> ` : ''}${esc(block.text)}</p>`).join('')}`).join('')}
+         <p class="raw-note">No Chronicler spoke for this chapter — its sealed words stand as written.</p>`;
     return `<section class="leaf chapter act-${chapter.act}" style="--tint:${ACT_TINTS[chapter.act] || ACT_TINTS[1]}">
       ${chapter.plate ? `<figure class="chapter-plate"><img src="${esc(chapter.plate)}" alt="a painted plate of the journey"></figure>` : '<div class="procedural-plate">✦</div>'}
       <header class="chapter-head"><span class="eyebrow">Chapter ${chapter.numeral} · Act ${romanNumeral(chapter.act)} — ${esc(ACT_NAMES[chapter.act] || 'the road beyond')}</span><h2>${esc(chapter.title)}</h2></header>
@@ -264,6 +268,8 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
   .cover .byline{letter-spacing:.14em;text-transform:uppercase;font-size:11pt;color:#e7c583}
   .epigraph{font-style:italic;max-width:5in;margin:.28in auto 0;color:#efe4cb;text-shadow:0 1px 8px rgba(0,0,0,.6)}
   .wax{width:1.15in;height:1.15in;margin:0 auto .25in;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34pt;color:#f2d9a4;background:radial-gradient(circle at 35% 30%,#a03030,#6d1a1a 62%,#571111);box-shadow:inset 0 2px 8px rgba(255,220,160,.25),inset 0 -6px 14px rgba(0,0,0,.5),0 3px 10px rgba(0,0,0,.45);transform:rotate(-4deg)}
+  .cover-art{width:1.9in;height:1.9in;margin:0 auto .22in;border-radius:50%;overflow:hidden;border:3px solid #9f7438;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+  .cover-art img{width:100%;height:100%;object-fit:cover;display:block}
   .wax.large{width:1.5in;height:1.5in;font-size:44pt}
   .chapter{page-break-before:always}
   .chapter-plate{margin:0 0 .22in}.chapter-plate img{width:100%;max-height:3.4in;object-fit:cover;border-radius:3px;display:block}
@@ -308,13 +314,13 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
   .reader-bar .progress{position:absolute;top:-2px;left:0;height:2px;background:#d4a24e;width:0;transition:width .4s ease}
   @media print{.reader-bar,.proof-button{display:none!important}.leaf,html.book-reader .leaf{display:block!important}}
   </style></head><body>
-  <section class="leaf cover"><div class="wax">${esc(campaign.hero?.sigil || '✦')}</div><h1>${esc(campaign.title)}</h1><p class="byline">${esc(campaign.hero?.name)} · ${esc(campaign.codex?.spine?.label)}</p><p class="epigraph">${esc(campaign.codex?.arc?.style_bible || campaign.styleBible || '')}</p>${closed ? `<p class="byline small">${esc(closed)}</p>` : ''}</section>
+  <section class="leaf cover"><div class="wax">${esc(campaign.hero?.sigil || '✦')}</div>${heroFace ? `<figure class="cover-art"><img src="${esc(heroFace)}" alt="${esc(heroName)}"></figure>` : ''}<h1>${esc(campaign.title)}</h1><p class="byline">${esc(campaign.hero?.name)} · ${esc(campaign.codex?.spine?.label)}</p><p class="epigraph">${esc(campaign.codex?.arc?.style_bible || campaign.styleBible || '')}</p>${closed ? `<p class="byline small">${esc(closed)}</p>` : ''}</section>
   <section class="leaf"><h2>The Covenant</h2><p>${esc(campaign.covenant)}</p><h2>The Half-Lit Design</h2><p class="${revealed ? '' : 'gated'}">${revealed ? esc(campaign.codex?.arc?.evil_plot || 'The design remained hidden.') : 'The page refuses to hold the whole shape. Revelation must be earned.'}</p></section>
-  <section class="leaf chapter"><h2>Dramatis Personae</h2><div class="plates">${cast}</div></section>
+  <section class="leaf chapter"><h2>Dramatis Personae</h2><div class="folio-prose">These are the souls who walked this road — drawn as the table last saw them, each carrying the first and last words the sealed record holds.</div><div class="plates">${cast}</div></section>
   ${chapterLeaves}
-  <section class="leaf chapter"><h2>The World’s Wounds</h2><div class="plates">${regions}</div></section>
+  <section class="leaf chapter"><h2>The World’s Wounds</h2><div class="folio-prose">The lands the road crossed, and the state the crossing left them in — kept exactly as the codex remembers.</div><div class="plates">${regions}</div></section>
   ${strip}
-  <section class="leaf chapter"><h2>The Memoir</h2>${(campaign.codex?.memoir || []).map((line) => `<p>${esc(line)}</p>`).join('') || '<p>No memoir was written.</p>'}</section>
+  <section class="leaf chapter"><h2>The Memoir</h2><div class="folio-prose">${(campaign.codex?.memoir || []).map((line) => `<p>${esc(line)}</p>`).join('') || '<p>No memoir was written.</p>'}</div></section>
   <section class="leaf seal-page"><div class="wax large">${esc(campaign.hero?.sigil || '✦')}</div><h2>Sealed, and true</h2>
     <p class="verify-statement">Made at the table of MyDungeon.Quest — every word and every plate from one told tale, kept exactly as it was lived, from the first step to the last.</p>
     <dl><dt>Begun</dt><dd>${esc(begun || '—')}</dd><dt>${campaign.sealedAt ? 'Sealed' : 'Last written'}</dt><dd>${esc((campaign.sealedAt ? dateWord(campaign.sealedAt) : dateWord(campaign.updatedAt)) || '—')}</dd><dt>Records</dt><dd>${journal.length}</dd><dt>Head hash</dt><dd>${esc(campaign.headHash || 'unsealed')}</dd><dt>Signature</dt><dd>${esc(campaign.signatureStatus || 'hash-only')}</dd></dl>

@@ -35,3 +35,4 @@ export * from './scriptorium.js';
 export * from './tells.js';
 export * from './census.js';
 export * from './warden.js';
+export * from './unlettered.js';

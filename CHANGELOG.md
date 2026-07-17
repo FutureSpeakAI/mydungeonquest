@@ -4,6 +4,9 @@ Newest first; releases carry names. The game keeps its own finer-grained log at 
 
 ## [Unreleased] — 0.6.0-dev · the Saga & World Cut groundwork
 
+### The Unlettered World (July 16)
+- **One clause, every easel** (`unlettered.js`; game gate `unletteredWorld`): the paint law's accumulated silence vocabulary is a single engine-owned clause now, riding every prompt builder exactly once, and the Warden asks `contains_text_or_watermark` of every delivered plate — one repaint with the clause reinforced, then the plate is refused and the refusal attested into the sealed record. Game suite **101 → 102**; the engine's own chain untouched.
+
 ### The playtest triage (July 15)
 - **The Census** (`census.js`, gate `census`): prose-born NPCs can no longer vanish — an attributed speaker the record does not know bounces the turn back through the one-repair door demanding its `cast_add`. Answers the codex blindness seen a dozen turns into a live table.
 - **The Warden** (`warden.js`, gate `warden`): machine vision judges every post-blessing render against the blessed anchor under a deterministic ruling — pass attested, repaint once with the drift notes, then the anchor stands in. The house never ships a stranger. Answers the visual drift from the same table.

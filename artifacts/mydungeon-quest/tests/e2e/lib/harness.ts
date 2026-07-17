@@ -11,7 +11,11 @@ import { GAME_ROOT } from './vision';
 // ------------------------------------------------------------
 
 export const FIXTURE_PATH = path.join(GAME_ROOT, 'tests', 'e2e', 'fixtures', 'proving-campaign.json');
-export const PLATES_DIR = path.join(GAME_ROOT, 'test-results', 'vision', 'plates');
+// (TASK 53, Move Three — logged) The plate store moved to the harvest
+// project's own ground: ONE project mints every artifact here, and the
+// judge courts read only this disk. The Task 52 store at
+// test-results/vision/plates is left in place as that loop's evidence.
+export const PLATES_DIR = path.join(GAME_ROOT, 'test-results', 'harvest');
 
 export function fixture(): any {
   return JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
@@ -168,13 +172,13 @@ export async function harvestPlates(page: Page, campaignId: string, tag: string)
  * plates. This is the letter's "paint or seed" sanction: the pipe is real,
  * only the enqueue trigger is the test. Scene plates land on their logs
  * exactly the way the table lands them. */
-export async function paintFixtureExtras(page: Page, campaignId: string): Promise<{ painted: number; prompts: Record<string, string> }> {
-  return page.evaluate(async (id) => {
+export async function paintFixtureExtras(page: Page, campaignId: string, anchorSeed: { dataUrl: string; assetHash: string; mime: string } | null = null): Promise<{ painted: number; prompts: Record<string, string> }> {
+  return page.evaluate(async ({ id, seed }) => {
     const { db, saveCampaign } = await import('/src/lib/db.js');
     const { appendEvent } = await import('/src/lib/seal.js');
     const { Foundry } = await import('/src/lib/cinema/foundry.js');
     const { portraitPrompt, regionPrompt, scenePrompt } = await import('/src/lib/cinema/prompts.js');
-    const { keyArtJob, heroBustJob, actOf, nameSeed } = await import('/src/lib/cinema/prologue.js');
+    const { keyArtJob, heroBustJob, heroSoul, actOf, nameSeed } = await import('/src/lib/cinema/prologue.js');
     const campaign = await db.campaigns.get(id);
     if (!campaign) throw new Error('fixture campaign missing');
     const regions = campaign.codex.regions || [];
@@ -183,6 +187,19 @@ export async function paintFixtureExtras(page: Page, campaignId: string): Promis
     const edda = cast.find((soul: any) => soul.name === 'Edda');
     if (!vale || !edda) throw new Error(`fixture codex incomplete: vale=${!!vale} edda=${!!edda}`);
 
+    // (iteration-8 logged edit) THE ANCHOR CROSSES THE MIRROR: the live
+    // session's blessed anchor is seeded into the fixture store, so the
+    // fixture's hero bust paints as a POST-anchor render through the app's
+    // own warden lane (drift repaints once; a second drift ships the anchor
+    // itself — the house never ships a stranger). This mirrors the app law
+    // that every hero render after the blessing resolves against the anchor;
+    // two independent blessings of one soul was the mirror's deviation, and
+    // no court's question changed.
+    if (seed?.dataUrl) {
+      const anchorBlob = await (await fetch(seed.dataUrl)).blob();
+      await db.media.put({ assetHash: seed.assetHash, campaignId: id, kind: 'paint', label: campaign.hero.name, variant: 'bust', mime: seed.mime, blob: anchorBlob, cacheKey: `proving:${id}:anchor-seed`, createdAt: Date.now() });
+    }
+
     const foundry = new Foundry({
       campaignId: id, tier: campaign.mediaTier, spend: campaign.spend,
       onAttestation: async (payload: any) => appendEvent(id, 'media_attestation', payload)
@@ -190,7 +207,9 @@ export async function paintFixtureExtras(page: Page, campaignId: string): Promis
 
     const jobs: any[] = [];
     jobs.push({ ...keyArtJob(campaign, actOf(campaign)), originTurnHash: null, slot: 'keyart' });
-    jobs.push({ ...heroBustJob(campaign), originTurnHash: null, slot: 'hero-bust' });
+    jobs.push(seed?.dataUrl
+      ? { kind: 'paint', prompt: portraitPrompt(campaign, heroSoul(campaign.hero), 'bust'), options: { kind: 'portrait', label: campaign.hero.name, variant: 'bust', seed: nameSeed(campaign.hero.name), referenceLabels: [campaign.hero.name] }, priority: 0, originTurnHash: null, slot: 'hero-bust' }
+      : { ...heroBustJob(campaign), originTurnHash: null, slot: 'hero-bust' });
     jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, edda, 'bust'), options: { kind: 'portrait', label: edda.name, variant: 'bust', seed: nameSeed(edda.name) }, priority: 2, originTurnHash: null, slot: 'edda-bust' });
     jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, vale), options: { kind: 'region', label: vale.name, seed: nameSeed(vale.name) }, priority: 3, originTurnHash: null, slot: 'vale-1' });
     jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, vale), options: { kind: 'region', label: vale.name, seed: nameSeed(vale.name) }, priority: 3, originTurnHash: null, cacheKey: `proving:${id}:vale-2`, slot: 'vale-2' });
@@ -211,12 +230,25 @@ export async function paintFixtureExtras(page: Page, campaignId: string): Promis
       .filter(({ log }: any) => !log.redacted && log.recordHash && (log.narrations?.length || log.dm?.narration_blocks?.length))
       .filter(({ index }: any) => index === 1 || index === 3);
     for (const { log } of sceneLogs) {
-      const moment = log.dm.narration_blocks[0];
+      // THE MOMENT, GAME-SHAPED — the app's own easel builds its moment as
+      // { prose, seed, speaker } (App.jsx sceneMoment); the beat-supremacy
+      // clause in scenePrompt reads moment.prose. The old pass-through of a
+      // raw narration block (.text) left the beat clause silently empty —
+      // fixture plates painted region canon instead of the moment.
+      const blocks = log.dm.narration_blocks || [];
+      const moment = {
+        prose: blocks.map((block: any) => (block && block.text) || '').join(' ').slice(0, 480),
+        seed: log.recordHash || String(log.id || ''),
+        speaker: (blocks.find((block: any) => block && block.speaker) || {}).speaker || null
+      };
       const speakers = log.dm.narration_blocks.map((block: any) => block.speaker).filter(Boolean);
-      const cue = { kind: 'scene', region: vale.name, subjects: speakers.slice(0, 2), mood: (moment.text || '').slice(0, 90) };
+      // Mirror the app's plateMood law: the cue mood is the first
+      // UNATTRIBUTED narration line (stage directions), not dialogue.
+      const moodLine: any = blocks.find((block: any) => block && !block.speaker && block.text) || blocks[0] || {};
+      const cue = { kind: 'scene', region: vale.name, subjects: speakers.slice(0, 2), mood: String(moodLine.text || '').slice(0, 140) };
       jobs.push({
         kind: 'paint', prompt: scenePrompt(campaign, cue, moment),
-        options: { kind: 'scene', referenceLabels: [...speakers.filter((name: string) => name === 'Edda'), vale.name].slice(0, 3) },
+        options: { kind: 'scene', moment: { prose: moment.prose }, referenceLabels: [...speakers.filter((name: string) => name === 'Edda'), vale.name].slice(0, 3) },
         priority: 1, originTurnHash: log.recordHash, cacheKey: `scene:${id}:${log.recordHash}`, slot: `scene-${log.id}`, logId: log.id
       });
     }
@@ -257,7 +289,7 @@ export async function paintFixtureExtras(page: Page, campaignId: string): Promis
       updatedAt: Date.now()
     });
     return { painted: assets.filter((entry) => entry.asset).length, prompts };
-  }, campaignId);
+  }, { id: campaignId, seed: anchorSeed });
 }
 
 // ---------- table drivers ----------

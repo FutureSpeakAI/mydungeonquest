@@ -12,3 +12,5 @@ description: Production hardening doctrine — spend ceilings, durable limits, l
 - **The front gate is static HTML in public/** (landing/pricing, ToS, privacy). Keyless builds have no client router at all, so these pages must never move into the React app's routes.
 
 **Why:** public launch demanded budget guardrails and legal pages without breaking the opt-in doctrine or the keyless eval bench.
+
+- **Abuse-cap ceilings must track lawful prompt growth.** The house must never construct an ask its own door refuses: any prompt-builder expansion needs a cap audit (MAX_PAINT_PROMPT_CHARS et al., ~2× the worst lawful ask). The oversized-probe evals must move WITH a righted ceiling to stay oversized — that is a probe re-size, not an assertion weakening.

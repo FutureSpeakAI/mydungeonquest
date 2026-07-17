@@ -85,7 +85,9 @@ const run = (mw, rq) => new Promise((resolve) => {
 // ---- 2. abuse caps ---------------------------------------------------------
 {
   const paint = abuseCaps('paint');
-  const big = await run(paint, req({ path: '/api/paint', body: { prompt: 'x'.repeat(5000) } }));
+  // 13000 sits above the cured ceiling (12000; a lawful scene prompt runs
+  // 4–6k, so 5000 stopped being "oversized" when the cap was righted).
+  const big = await run(paint, req({ path: '/api/paint', body: { prompt: 'x'.repeat(13000) } }));
   assert.equal(big.rs.code, 413, 'an oversized paint ask is refused 413');
   assert.match(big.rs.body.error, /house/, 'refusal in the house tongue');
   const wide = await run(paint, req({ path: '/api/paint', body: { prompt: 'a plate', width: 99999 } }));

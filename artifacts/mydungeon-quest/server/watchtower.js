@@ -255,7 +255,13 @@ export function rateLimit(max, deps = {}) {
 const CAPS = {
   dm: { body: Number(process.env.MAX_PROMPT_BYTES || 400000) },
   retell: { body: Number(process.env.MAX_PROMPT_BYTES || 400000) },
-  paint: { text: Number(process.env.MAX_PAINT_PROMPT_CHARS || 4000), dim: Number(process.env.MAX_PAINT_DIM || 2048) },
+  // The paint prompt ceiling guards against abuse, not against the house's
+  // own hand: a lawful scene prompt (style bible + region canon + souls +
+  // the 480-char moment clause + framing and mark law) runs ~4–6k chars,
+  // and the old 4000 ceiling turned away the foundry's own scene asks —
+  // a 413 at this door starves the scene shelf for the whole session.
+  // 12000 is double the worst lawful prompt and still no abuse vector.
+  paint: { text: Number(process.env.MAX_PAINT_PROMPT_CHARS || 12000), dim: Number(process.env.MAX_PAINT_DIM || 2048) },
   speak: { text: Number(process.env.MAX_SPEAK_CHARS || 10000) },
   music: { text: Number(process.env.MAX_MUSIC_PROMPT_CHARS || 2000) },
   sfx: { text: Number(process.env.MAX_SFX_PROMPT_CHARS || 2000) },

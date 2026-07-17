@@ -1,6 +1,7 @@
 import { canonicalize, sha256 } from 'fatescript/canonical';
 import { bearingFor, bearingBlock, paintRoster } from 'fatescript/bearing';
 import { cardsForCampaign } from 'fatescript/cards';
+import { UNLETTERED_WORLD } from 'fatescript/unlettered';
 import { yearsSinceTurn } from '../clockAtTable.js';
 
 // THE BEARING AT THE EASEL — Directive VI: the card IS the prompt. Every
@@ -42,7 +43,12 @@ export function scrubPrompt(text, campaign = {}) {
 // Deliberately evokes fantasy-novel-cover and film-preproduction concept art
 // (Alan Lee / John Howe / early Lord of the Rings & Game of Thrones art books),
 // with explicit negatives to steer away from glossy CGI, cartoon, and anime.
-const ART_DIRECTION = 'Rendered as a painterly high-fantasy illustration in the classic English fantasy-illustration tradition: naturalistic oil-and-watercolour concept art, muted earthen and candlelit palette, atmospheric depth with soft diffused light, fine painterly brushwork and film-preproduction realism, cinematic composition. Not cartoonish, not anime, not glossy 3D render, not video-game screenshot. Family-safe PG-13 with restrained peril and no exploitative detail. Absolutely no text of any kind anywhere in the image: no lettering, no calligraphy, no runes, no inscriptions, no signatures, no watermarks, no logos, no borders, no title cards. This is an UNSIGNED work — every corner of the canvas holds only painted scenery, with no artist mark, monogram, initials, or scribble in any corner. In-world objects obey the same silence: any map, chart, scroll, book, banner, window, carved frame, letter, page, standing stone, waymark, milestone, gravestone, or monument shows only faint weathered smudges — never readable letters, runes, numerals, rows of glyphs, or neat lines of script, however illegible. Written matter is staged as an object — folded paper, a wax seal, a ribbon, a tube — with its face turned away, downward, or too distant to read.';
+// (0.6.1, THE UNLETTERED WORLD) The text law is ONE general clause now,
+// owned by the engine (fatescript/unlettered) and shared with the warden
+// that enforces it — the accumulated noun-pile this paragraph once carried
+// is retired. The clause rides every builder exactly once, via this
+// constant, via scrubPrompt.
+const ART_DIRECTION = `Rendered as a painterly high-fantasy illustration in the classic English fantasy-illustration tradition: naturalistic oil-and-watercolour concept art, muted earthen and candlelit palette, atmospheric depth with soft diffused light, fine painterly brushwork and film-preproduction realism, cinematic composition. Not cartoonish, not anime, not glossy 3D render, not video-game screenshot. Family-safe PG-13 with restrained peril and no exploitative detail. ${UNLETTERED_WORLD}`;
 
 // THE HOUSE STYLE — the brand's own art direction, used for marketing
 // art (the reel, key art, social cards) and as the final fallback when a
@@ -78,7 +84,11 @@ export function portraitPrompt(campaign, soul, variant = 'bust') {
   const bearing = bearingLineFrom(cardsOf(campaign), campaign, soul.name);
   const clause = identityClause(soul);
   const identity = bearing ? `${bearing} Painted as ${clause}.` : `Painted as ${clause}.`;
-  return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. ${identity} Expression and posture reveal this goal: ${soul.goal}. No text, no frame.`, campaign);
+  // THE MARK AT PORTRAIT DISTANCE — a portrait is testimony at arm's length;
+  // a mark the scene law renders "large and distinct" must be unmistakable
+  // here, where the camera is closest of all (Likeness Law, Directive VI).
+  const markClause = soul.mark ? ` The mark — ${soul.mark} — is plainly visible at this distance: rendered large, sharp, and unmistakable, framed whole, never cropped away and never turned from the viewer.` : '';
+  return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. ${identity} Expression and posture reveal this goal: ${soul.goal}.${markClause} No frame.`, campaign);
 }
 
 // THE STATE GRAMMAR — a region's state must read at a glance, not as a
@@ -153,7 +163,13 @@ export function scenePrompt(campaign, cue, moment = null) {
   // bust anchor resolves by her name exactly as cast anchors do.
   const souls = painted.map(({ name }) => campaign.codex.cast.find((soul) => soul.name === name) || (campaign.hero && name === campaign.hero.name ? heroSoul(campaign.hero) : null)).filter(Boolean);
   const region = campaign.codex.regions.find((entry) => entry.name === cue.region);
-  const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 320)}". Depict this beat literally — its action, props, weather, geography, and light — and stage every thing the telling names (a road, a fork, a bell, a glow, a letter) plainly in frame, prominent enough to identify at a glance, so this moment could be no other and never a generic vista of the same place. Where the beat and the region canon above disagree, the beat wins — paint the moment as told. The telling's words are stage directions only: never paint any of its words, phrases, or letters as visible writing anywhere in the image — not on roads, stones, skies, banners, or walls.` : '';
+  // BEAT SUPREMACY IS POSITIONAL TOO — the moment rides directly behind the
+  // style bible, BEFORE the souls and the region canon, so a painter that
+  // weights the opening cannot drown the moment in eight hundred characters
+  // of contradicting canon (a dawn beat was painted dusk because "soft
+  // northern light" spoke first). The words say the moment wins; now the
+  // order says it with them.
+  const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 480)}". Depict this beat literally — its action, props, weather, geography, time of day, and light — and stage every thing the telling names (a road, a fork, a bell, a glow, a letter) plainly in the foreground of the frame — large, filling a commanding share of it, each named thing carried by its form and silhouette alone — so this moment could be no other and never a generic vista of the same place. Where the beat and the region canon below disagree, the beat wins — time of day, weather, light, and the count of named features come from the moment alone, never from the canon. The telling's words are stage directions only — never painted as visible writing.` : '';
   const framing = moment ? ` Composition: ${sceneFraming(moment.seed)}.` : '';
   // THE CAMERA LAW — a mark that lives on a face is testimony; a back view
   // silences it. When a painted soul carries a named mark, the framing wheel
@@ -166,7 +182,7 @@ export function scenePrompt(campaign, cue, moment = null) {
     return bearing ? `${clause} ${bearing}` : clause;
   }).join(' ');
   const stagedLine = staged.length ? ` Present but unpainted, staged in the scene's prose: ${staged.join(', ')}.` : '';
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}. ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${beat}${framing} Likeness law, equal in force to the moment: every named soul must be recognizably the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line must be plainly visible on them.${markLaw}`, campaign);
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}.${beat} ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul must be recognizably the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line must be plainly visible on them.${markLaw}`, campaign);
 }
 
 // The roster, exported for the job bench: the same painted-first seating
@@ -191,7 +207,7 @@ export function keyArtPrompt(campaign, variant = 'establishing') {
     : variant === 'act-2'
       ? ' The world has darkened since the beginning: longer shadows, colder light, a threat now gathering on the horizon.'
       : '';
-  return scrubPrompt(`${bible}. Epic 16:9 key art establishing this world — a single iconic vista with cinematic depth and dramatic light, no figures in the foreground. The world: ${campaign.covenant || ''}. Home region: ${campaign.homeRegion || 'the frontier'}. Tone: ${campaign.tone || 'mythic'}. No text, no frame, no title.${darkening}`, campaign);
+  return scrubPrompt(`${bible}. Epic 16:9 key art establishing this world — a single iconic vista with cinematic depth and dramatic light, no figures in the foreground. The world: ${campaign.covenant || ''}. Home region: ${campaign.homeRegion || 'the frontier'}. Tone: ${campaign.tone || 'mythic'}. No frame.${darkening} The vista stands EMPTY — no people, no figures, no creatures, no riders, no silhouettes anywhere in frame; the land alone carries the story.`, campaign);
 }
 
 
@@ -201,3 +217,52 @@ export async function generationSpec(kind, prompt, options = {}) {
 }
 
 function escapeRegExp(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// ------------------------------------------------------------
+// THE PLATE'S CAPTION (0.6.1, THE MOMENT LAW) — the figcaption under a
+// plate must DESCRIBE the picture, and the cue mood the easel builds must
+// brief the painter in stage directions, not dialogue. Both draw the first
+// UNATTRIBUTED narration line — the telling's own scene description — and
+// fall back to the opening line only when a turn is wall-to-wall speech.
+// (A raw quote sliced mid-sentence captioned a hearth interior; the
+// caption court refused it — rightly.)
+export function plateMood(dm, max = 90) {
+  const blocks = dm?.narration_blocks || [];
+  const line = blocks.find((block) => block && !block.speaker && block.text) || blocks[0] || null;
+  return String((line && line.text) || '').slice(0, max);
+}
+
+// ------------------------------------------------------------
+// THE MOMENT LAW (0.6.1) — the beat-supremacy clause is a plea until
+// someone checks the work. A live plate answered a rain-on-iron threshold
+// with the region canon's sunny vale and two invented riders; every scene
+// plate that carries its moment now goes back to the warden's door with
+// ONE question: is THIS moment staged? A miss repaints once with the
+// order reinforced; a second miss ships the better take with the miss
+// sealed in its attest — the house labels dishonesty rather than starve
+// the shelf. The judge's own stumbles never count against a render.
+export function momentBrief(prose) {
+  return `You are judging ONE image against the story moment it was painted to depict: "${String(prose).replace(/"/g, '\u2019').slice(0, 480)}". Does the image stage THIS moment — its action, its time of day and weather, and the specific things the text names (a road, a fork, a mechanism, a hearth, a threshold, a figure) — rather than a generic vista of the same world? Judge presence, not artistry. Answer true only when the moment's DEFINING features — every named thing, the action, the time of day — are clearly present together, large in the frame, each recognizable by its form and silhouette alone. Answer false when any defining feature is absent, or when the image could pass for a generic scene of the same world. Answer STRICT JSON only: {"moment_staged": true|false, "missing": "<the single most telling named thing you cannot find, or an empty string>"}.`;
+}
+
+export function parseMoment(text = '') {
+  try {
+    const raw = String(text);
+    const body = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+    return { moment_staged: body.moment_staged === true, missing: typeof body.missing === 'string' ? body.missing.slice(0, 160) : '' };
+  } catch { return { moment_staged: true, missing: '', floor: true }; }
+}
+
+export function momentRuling(verdict, { attempt = 1 } = {}) {
+  if (verdict.floor || verdict.moment_staged) {
+    return { action: 'accept', attest: { moment: verdict.floor ? 'floor' : 'staged' }, notes: [] };
+  }
+  if (attempt === 1) {
+    return { action: 'repaint', attest: { moment: 'missed', ...(verdict.missing ? { missing: verdict.missing } : {}) }, notes: [`THE MOMENT WAS MISSED — the previous take painted the world and ignored the telling. Stage the moment's own action, weather, light, and named things plainly in frame${verdict.missing ? `; above all, show plainly: ${verdict.missing}` : ''}. The moment outranks every canon. Show, never write — no words, letters, or signs.`] };
+  }
+  // A second miss SHIPS the better take with the miss sealed in the attest —
+  // the house labels dishonesty, it does not starve the shelf. A turn with no
+  // plate at all starves every consumer that waits on the easel (and the
+  // courts judge what ships either way).
+  return { action: 'accept', attest: { moment: 'missed', ...(verdict.missing ? { missing: verdict.missing } : {}) }, notes: [] };
+}

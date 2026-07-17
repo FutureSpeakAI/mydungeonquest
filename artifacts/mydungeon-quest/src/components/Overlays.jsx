@@ -182,10 +182,16 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
       {wordsLine(openCard) && <p className="voice-italic">{wordsLine(openCard)}</p>}
       {/* THE PRESENCE CUT (Directive VII.12) — last known ground, replayed
           pure from the sealed record; a soul with no lawful sighting is
-          said plainly to be unplaced. Cites are journal rows. */}
-      {(() => { const entry = presenceOf(campaign).find((soul) => soul.name === openCard.name); return entry?.ground
-        ? <p className="cite ground-line">Last seen standing in {entry.ground} — turn {entry.cite}.</p>
-        : <p className="cite ground-line">Whereabouts unknown.</p>; })()}
+          said plainly to be unplaced. Cites are journal rows. The catch is
+          the panel's own oath (architect's cut, 56.6): if the replay ever
+          falls, the page SAYS so — never a crash, never silence. */}
+      {(() => { let entry = null; let readable = true;
+        try { entry = presenceOf(campaign).find((soul) => soul.name === openCard.name); } catch { readable = false; }
+        return !readable
+          ? <p className="cite ground-line">The presence record cannot be read.</p>
+          : entry?.ground
+            ? <p className="cite ground-line">Last seen standing in {entry.ground} — turn {entry.cite}.</p>
+            : <p className="cite ground-line">Whereabouts unknown.</p>; })()}
       {openCard.ties.length > 0 && <div className="tie-chips">{openCard.ties.map((tie, i) =>
         <button key={i} className="tie-chip" onClick={() => wiki[tie.to.toLowerCase()] && setOpenSoul(tie.to)}>{tieLine(tie)}</button>)}</div>}
       <h4 className="eyebrow">Appearances</h4>
@@ -248,8 +254,14 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
       {sworn.length > 0 && <div className="sworn-chips">{sworn.map((edge, i) => <button key={i} onClick={() => { setOpenPlace(null); setOpenSoul(edge.name); }}>{edge.name} — sworn of {edge.of}</button>)}</div>}
       {/* THE PRESENCE CUT (Directive VII.12) — who stands here now, and who
           has stood here and moved on. Replayed pure from the sealed record;
-          every entry cites the journal row that staged it. */}
-      {(() => { const visitors = visitorsOf(campaign, place.name); return <>
+          every entry cites the journal row that staged it. The catch is the
+          panel's own oath (architect's cut, 56.6): if the replay ever falls,
+          the page SAYS so — never a crash, never silence. */}
+      {(() => { let visitors = null;
+        try { visitors = visitorsOf(campaign, place.name); } catch { visitors = null; }
+        return visitors === null
+          ? <p className="cite">The presence record cannot be read.</p>
+          : <>
         {visitors.standing.length > 0 && <><h4 className="eyebrow">Standing here</h4>
           <ul className="presence-list">{visitors.standing.map((entry, i) => <li key={i}><b>{entry.name}</b><span className="cite">turn {entry.cite}</span></li>)}</ul></>}
         {visitors.former.length > 0 && <><h4 className="eyebrow">Have stood here</h4>

@@ -94,4 +94,29 @@ assert.ok(visitorsOf(twins, 'The Fen').standing.some((soul) => soul.name === 'Ve
 const rogue = { hero: { name: 'Nel' }, logs: [{ player: 'Step.', dm: { narration_blocks: [], story: { scene_set: { region: 'Uncharted Deep' } } } }] };
 assert.equal(presenceOf(rogue).find((soul) => soul.name === 'Nel').ground, null, 'the replay refuses an unrecorded stage exactly as the fold refuses it');
 
-console.log('PASS — the presence gate: the door\'s three scene courts, the fold\'s three answers, scene_state on the block, the closed tick op set, and the pure replay with journal-row cites.');
+// --- FAIL-CLOSED (the architect's cut): malformed shapes prove nothing and
+// never throw. A list that is not an array, a name that is not a string, a
+// story that is a string, a row that is null — the replay skips them whole
+// and answers, deterministically, with what the record lawfully proves.
+const mangled = { hero: { name: 'Maren Kest' }, logs: [
+  { player: 'I arrive.', dm: { narration_blocks: [{ speaker: null, text: 'Dawn.' }], story: { cast_add: [{ name: 'Edda Thornwake' }], world: { region_add: { name: 'Larkspur Vale' } }, scene_set: { region: 'Larkspur Vale' } } } },
+  { player: 'Bad row.', dm: { narration_blocks: { speaker: 'Ghost' }, dialogue_cue: { speaker: 7 }, story: { cast_add: { name: 'Intruder' }, cast_update: 'nonsense', item_add: 42, item_transfer: { from: 'A', to: 'B' }, item_remove: null, purse: { holder: 'C' }, scene_set: { region: { name: 'Objectville' } }, world: { region_add: { name: 9 } } } } },
+  { player: 'String story.', dm: { narration_blocks: [], story: 'gibberish' } },
+  null,
+  { player: 'Named number.', dm: { narration_blocks: [{ speaker: 12, text: 'Hm.' }], story: { cast_add: [{ name: 4 }, { name: '  ' }, 'bare'] } } }
+] };
+let mangledAnswer = null;
+assert.doesNotThrow(() => { mangledAnswer = presenceOf(mangled); }, 'a malformed record never throws the replay');
+assert.deepEqual(mangledAnswer, [
+  { name: 'Edda Thornwake', ground: 'Larkspur Vale', cite: 0 },
+  { name: 'Maren Kest', ground: 'Larkspur Vale', cite: 4 }
+], 'malformed substructures are skipped whole, lawful rows in the same record still count — no Ghost, no Intruder, no [object Object] — and a null row proves nothing, not even the hero');
+let mangledVisitors = null;
+assert.doesNotThrow(() => { mangledVisitors = visitorsOf(mangled, 'Larkspur Vale'); }, 'visitorsOf never throws on a malformed record');
+assert.deepEqual(mangledVisitors.standing.map((soul) => soul.name), ['Edda Thornwake', 'Maren Kest'], 'the standing answer holds under mangling');
+assert.equal(JSON.stringify(presenceOf(mangled)), JSON.stringify(mangledAnswer), 'the mangled replay is deterministic — byte-equal on a second pass');
+assert.deepEqual(visitorsOf({ hero: null, logs: { length: 2 } }, 'Anywhere'), { standing: [], former: [] }, 'logs that are not an array prove nothing — an empty, honest answer');
+assert.doesNotThrow(() => presenceOf(null), 'even a null campaign answers');
+assert.deepEqual(presenceOf(null), [], 'with the empty truth');
+
+console.log('PASS — the presence gate: the door\'s three scene courts, the fold\'s three answers, scene_state on the block, the closed tick op set, the pure replay with journal-row cites, and the fail-closed answer to a mangled record.');

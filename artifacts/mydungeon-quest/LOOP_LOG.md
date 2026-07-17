@@ -1354,3 +1354,48 @@ they always meant:
   A sweep of every dom spec found no other bare h4/.cite locator
   touching the place or soul pages (harvest's is class-scoped; g15
   only waits on the selectors; g20 was written scoped from birth).
+
+Iterations 56.3, 56.4, 56.5 — GREEN, GREEN, GREEN. 66 courts each,
+zero unexpected, zero skipped, every needle executed. Three
+consecutive greens at five iterations of the ceiling of eight.
+
+### The architect's round — FAIL: one blocking finding, accepted
+
+The architect walked the full diff after the three greens and returned
+FAIL: alignment clean on the lockstep, the two clocks, the redaction
+supremacy, the tick door, the media doors, and the honest refusals —
+but the presence replay TRUSTED ROW SHAPES ON FAITH. Its walks assumed
+arrays and strings; a malformed or imported legacy row (an object
+where a list belongs, a number where a name belongs) made presenceOf /
+visitorsOf throw — and the codex reads both bare during render, so one
+bad row could fell the whole panel. The architect proved the throw
+against a mangled cast_add. Accepted, not refuted — the Vault's own
+fail-closed law applied to the witness stand.
+
+The cure (rides iteration 56.6):
+- packages/engine/src/presence.js — every list now walks behind
+  Array.isArray (a list that is not an array proves nothing); every
+  name must be a string or it sights nobody; hero, logs, story, and
+  region names guarded the same; a row that is not even an object
+  proves nothing — not even the hero. The replay never throws.
+- evals/presence.test.mjs — a new fail-closed section: mangled lists,
+  numbered names, a string story, a null row, logs-as-object, a null
+  campaign — never a throw, byte-deterministic on a second pass,
+  lawful rows in the same record still counted, the null row sighting
+  nobody. Same one PASS line; the pin holds at 98.
+- src/components/Overlays.jsx — the last door before render holds a
+  catch that renders an EXPLICIT line — "The presence record cannot
+  be read." — never a crash, never silence. With the replay hardened
+  it should never fire; it stands as the panel's oath.
+
+The fix touches runtime code, so the greens that stand at close must
+be the tree that ships: iterations 56.6–56.8 re-prove the final tree.
+
+Iterations 56.6, 56.7, 56.8 — GREEN, GREEN, GREEN on the hardened
+tree. 66 courts each, zero unexpected, zero skipped, zero flakes,
+every needle executed; the keyless floor held at 98 with the
+mangled-record section seated inside the presence gate. THE LOOP
+CLOSES at exactly the ceiling of eight: three consecutive greens on
+the reviewed cut (56.3–56.5), the architect's blocking finding cured
+and proven, and three consecutive greens re-proving the tree that
+ships (56.6–56.8).

@@ -15,7 +15,7 @@ import { GAME_ROOT } from './lib/vision';
 // 92 → 93 (TASK 54B §3): the warden-eye gate — the magnified look's
 // byte-stable pipeline and its refusal/attestation notes — joins the
 // keyless check in the same commit that changes the warden.
-const PINNED_PASS_COUNT = 93;
+const PINNED_PASS_COUNT = 94;
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

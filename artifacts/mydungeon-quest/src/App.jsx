@@ -18,6 +18,7 @@ import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
 import { sealLegacy, openNextVolume } from './lib/saga.js';
+import { beginGenesis } from './lib/genesis.js';
 import { chronicleActClose, memoryLadder } from './lib/memoir.js';
 import { greetReturning } from './lib/ravens.js';
 import { fetchSeasons, skyNoteFor } from './lib/sky.js';
@@ -483,11 +484,12 @@ export default function App() {
     // Array order alone once let a turn's first scene start painting before
     // the very faces it was meant to hold existed; the lane then honored the
     // queue, but the scene was already on the easel.
+    const settlements = [];
     for (const job of jobs.filter((entry) => tollAllows(entry.kind)).sort((a, b) => (a.priority ?? 5) - (b.priority ?? 5))) {
       // The scene plate is painting: show a shimmer over the procedural stand-in
       // until the illuminated image lands (or the job resolves without one).
       if (job.logId && job.kind === 'paint') setPaintingImages((prev) => ({ ...prev, [job.logId]: true }));
-      foundry.enqueue({ ...job, originTurnHash: turnRecord.recordHash }).then(async (asset) => {
+      settlements.push(foundry.enqueue({ ...job, originTurnHash: turnRecord.recordHash }).then(async (asset) => {
         if (job.logId && job.kind === 'paint') clearPainting(job.logId);
         if (!asset) return;
         if (job.logId && job.kind === 'paint' && asset.mime.startsWith('image/')) {
@@ -495,7 +497,7 @@ export default function App() {
           setCurrent((prev) => {
             if (!prev || prev.id !== campaign.id) return prev;
             const logs = prev.logs.map((log) => log.id === job.logId ? { ...log, imageUrl: dataUrl, imageAssetHash: asset.assetHash } : log);
-            const next = { ...prev, logs, spend: foundry.spend };
+            const next = { ...prev, logs };
             saveCampaign(next); return next;
           });
         }
@@ -503,11 +505,33 @@ export default function App() {
         // A paint rejection must clear the shimmer, or the turn's plate is stuck
         // "painting…" forever with no image ever arriving.
         if (job.logId && job.kind === 'paint') clearPainting(job.logId);
-      });
+      }));
     }
+    // THE METER SETTLES ONCE (54C) — after every lane in this batch lands or
+    // falls, ONE delta over this foundry's construction base merges into the
+    // live row. Riding the scene landing lost counts two ways: a cache-hit
+    // scene resolving before uncached siblings froze the delta early, and a
+    // refused or fallen scene skipped the merge entirely while siblings had
+    // minted. Two foundries can count in parallel lanes at genesis, so the
+    // merge is a delta, never an absolute — an absolute write here clobbered
+    // the prologue easel's tally (this foundry is seeded from the sealed
+    // campaign arg, BEFORE the prologue merge landed).
+    Promise.allSettled(settlements).then(() => {
+      const delta = {
+        images: (foundry.spend?.images || 0) - (campaign.spend?.images || 0),
+        music: (foundry.spend?.music || 0) - (campaign.spend?.music || 0)
+      };
+      if (!delta.images && !delta.music) return;
+      setCurrent((prev) => {
+        if (!prev || prev.id !== campaign.id) return prev;
+        const next = { ...prev, spend: { images: (prev.spend?.images || 0) + delta.images, music: (prev.spend?.music || 0) + delta.music } };
+        saveCampaign(next);
+        return next;
+      });
+    });
   }, []);
 
-  const playTurn = useCallback(async (base, player, resolution = null, visiblePlayer = player) => {
+  const playTurn = useCallback(async (base, player, resolution = null, visiblePlayer = player, hooks = null) => {
     if (!base || base.readOnly || base.completed) return base;
     setBusy(true); setStatus('The Dungeon Master is reading the road…');
     try {
@@ -560,7 +584,13 @@ export default function App() {
         history, hero: base.hero, state: { hero: base.hero, combat: base.combat },
         story, memory, entropy, player, resolution, turn: base.turnNumber || 0, genesis: (base.turnNumber || 0) === 0
       };
-      const response = await fetch('/api/dm?stream=1', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      // THE FIRST WORD (Task 54C §1): the request is initiated first, the
+      // signal fires the instant it is on the wire, and only then is the
+      // response awaited — so a genesis easel kicked on this signal can
+      // never put paint on the wire ahead of the pour.
+      const dmRequest = fetch('/api/dm?stream=1', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      hooks?.onPourDispatched?.();
+      const response = await dmRequest;
       if (response.status === 402) {
         // THE INNKEEPER at the table's edge — the refusal arrives in the
         // house's own voice, shown as a receipt (tally, page-turn, the raised
@@ -727,7 +757,14 @@ export default function App() {
         playNarration(next, sealedLog);
       }
       if (hero.level > heroBeforeLevel) setOverlay('level');
-      queueMedia(next, record, dm, log.id);
+      // THE BENCH HOLDS FOR THE ANCHORS (54C): at genesis the turn's own
+      // media waits for the prologue easel to settle — the hero's bust
+      // exists before the scene that would cite it, and the act's key art
+      // is already minted under its cache key rather than raced by a second
+      // identical ask in a parallel lane. Only the easel queues behind the
+      // easel: text, narration, and the sealed turn never wait.
+      if (hooks?.mediaGate) Promise.resolve(hooks.mediaGate).then(() => queueMedia(next, record, dm, log.id));
+      else queueMedia(next, record, dm, log.id);
       // THE CHRONICLER at the chapter's close — when this turn advanced the
       // beat (or the tale completed), the closed chapter is retold from its
       // sealed turns, fire-and-forget: the table never waits on the reteller.
@@ -797,7 +834,6 @@ export default function App() {
   // impression at the table is a painted world, not a gradient.
   const prologueRender = async (campaign) => {
     if (campaign.mediaTier === 'parchment') return campaign;
-    setStatus('Painting your world…');
     const foundry = new Foundry({
       campaignId: campaign.id, tier: campaign.mediaTier, spend: campaign.spend,
       onAttestation: async (payload) => seal(campaign.id, 'media_attestation', payload)
@@ -810,11 +846,28 @@ export default function App() {
     // the campaign itself (exactly like the key art), so the original
     // portrait is found by identity ever after. A display-name label would
     // orphan it the day the hero is renamed.
-    if (keyArt || heroBust) {
-      const next = { ...campaign, spend: foundry.spend };
-      if (keyArt) next.keyArtHash = keyArt.assetHash;
-      if (heroBust) next.heroBustHash = heroBust.assetHash;
-      setCurrent(next); await saveCampaign(next); return next;
+    // THE LATE ANCHOR LANDS SOFTLY (54C) — the pour owns the campaign row
+    // while this easel works, so the anchors merge into the LATEST telling
+    // by functional update (the queueMedia landing's own proven pattern): a
+    // stale pre-pour copy written here would clobber the sealed turn. Spend
+    // merges as a delta over this easel's own base for the same reason —
+    // two foundries now count in parallel lanes.
+    // THE METER NEVER NEEDS A TROPHY (54C) — a refused or fallen anchor can
+    // still have cost a mint, so the spend delta merges even when both
+    // anchors came home null. Hashes, though, only land with an asset.
+    const spent = {
+      images: (foundry.spend?.images || 0) - (campaign.spend?.images || 0),
+      music: (foundry.spend?.music || 0) - (campaign.spend?.music || 0)
+    };
+    if (keyArt || heroBust || spent.images || spent.music) {
+      setCurrent((prev) => {
+        if (!prev || prev.id !== campaign.id) return prev;
+        const next = { ...prev, spend: { images: (prev.spend?.images || 0) + spent.images, music: (prev.spend?.music || 0) + spent.music } };
+        if (keyArt) next.keyArtHash = keyArt.assetHash;
+        if (heroBust) next.heroBustHash = heroBust.assetHash;
+        saveCampaign(next);
+        return next;
+      });
     }
     return campaign;
   };
@@ -842,8 +895,16 @@ export default function App() {
     };
     clearForgeDrafts(); // the chronicle has begun; the sitting's draft burns
     await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
-    const started = await prologueRender(campaign);
-    await playTurn(started, 'Begin the chronicle.', null, null);
+    // THE FIRST WORD (Task 54C §1): the pour is dispatched first; the
+    // genesis easel kicks the moment the request is on the wire and takes
+    // as long as it takes. Narration streams while the world is still being
+    // painted, and late plates slot below their text (LogEntry's order
+    // law). The sealed record is untouched — attestations bind by content;
+    // arrival time is presentation, never record order.
+    await beginGenesis({
+      pour: (hooks) => playTurn(campaign, 'Begin the chronicle.', null, null, hooks),
+      paint: () => prologueRender(campaign)
+    });
   };
 
   const submit = async (text) => {
@@ -1010,8 +1071,13 @@ export default function App() {
       setCurrent(nextVolume); setFlow('table');
       setStatus(`✦ ${span} ${nextVolume.saga.worldTitle} turns a new page.`);
       await refreshShelf();
-      const started = await prologueRender(nextVolume);
-      await playTurn(started, 'Begin the chronicle.', null, null);
+      // THE FIRST WORD (Task 54C §1) — a next volume's opening is a genesis
+      // too: the pour is dispatched first, the volume's easel kicks on the
+      // wire signal, and late anchors merge softly.
+      await beginGenesis({
+        pour: (hooks) => playTurn(nextVolume, 'Begin the chronicle.', null, null, hooks),
+        paint: () => prologueRender(nextVolume)
+      });
     } finally {
       openingVolumeRef.current = false;
     }

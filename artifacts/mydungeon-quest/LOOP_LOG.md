@@ -1117,3 +1117,29 @@ times. G5's game-side sequencing finding (pour queued behind genesis
 media, ~21s solo, over the bar only under full-repaint contention) is
 REPORTED in test-results/report-54B.md and deliberately not fixed —
 outside 54B's sanction. Full §9 report: test-results/report-54B.md.
+
+### TASK 54C — LOOP AT CEILING, OWNER'S RULING REQUIRED (2026-07-17)
+The cure: genesis pours dispatch BEFORE any paint (src/lib/genesis.js
+sequencer at both doors — beginCampaign and openNext); the easel kicks
+on the wire signal; late anchors merge softly; the turn's own media
+gates on the settled easel. Solo first byte fell 21.5s → ~250ms (the
+sampler's floor); dm on the wire at +90–203ms across four solo runs.
+54C.1 GREEN (61/61). 54C.2 GREEN (61/61). 54C.3 RED — the COURT, not
+the cure: the new wire assertion read a forge preview straggler
+(initiated +77ms after the tap, dm at +348ms) as a genesis paint; the
+stream itself was lawful (~250ms first byte). The forge's ephemeral
+previews carry the same lane marks (keyart, portrait) as foundry
+paints, so payload cannot pardon them; the court now DRAINS the forge
+lane before the tap (initiated == settled, held quiet 900ms) and the
+first-word law is asserted absolutely — NO paint of any lane between
+tap and dm, violators named with lane marks. 54C.4 GREEN (61/61) under
+the amended, stricter court. Greens .1, .2, .4 of four: the three-
+consecutive close was NOT met inside the ceiling — this ledger says so
+plainly and the loop does not close itself. Post-.4, unbanked by any
+iteration, under architect review (FAIL → three cures): the queueMedia
+meter settles ONCE per call as a delta over its foundry's construction
+base after every lane lands or falls; the prologue easel merges its
+delta unconditionally (a refused anchor still cost its mint); the
+sequencer contains a pour that throws at the very door (the firstWord
+gate grew that case). Validated by firstWord + arrival + a solo G5.
+Full report: test-results/report-54C.md.

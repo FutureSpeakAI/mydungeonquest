@@ -33,7 +33,7 @@ export default defineConfig({
     { name: 'check', testMatch: /g13-check\.spec\.ts/ },
     { name: 'preflight', testMatch: /g00-preflight\.spec\.ts/, dependencies: ['check'] },
     { name: 'harvest', testMatch: /harvest\.spec\.ts/, dependencies: ['preflight'] },
-    { name: 'dom', testMatch: /(g01|g02|g04|g05|g07|g12|g14|g15|g19)-.*\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'dom', testMatch: /(g01|g02|g04|g05|g07|g12|g14|g15|g19|g20)-.*\.spec\.ts/, dependencies: ['harvest'] },
     // (54B §2/§7) THE CALIBRATION PROBE (tooth 11) and THE MAGNIFIER TOOTH
     // (tooth 12) sit BEFORE the courts they license: G16 may not sit until
     // the binary instrument proved perfect separation on sealed pairs, and

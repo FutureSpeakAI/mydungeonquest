@@ -100,6 +100,17 @@ test('G15 copy law across title, forge, feed, codex, and sheet', async ({ page }
   await openCodex(page);
   problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'codex'));
   problems.push(...await sweepDomMechanics(page, 'codex'));
+  // (56.1 logged edit — Directive VII.12) The copy law now walks one place
+  // page and one soul page: the presence sections and the last-known-ground
+  // line are player-reachable copy, so the sweeps must reach them too.
+  await page.locator('.region-gallery article').first().click();
+  await page.waitForSelector('.place-page');
+  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'codex:place'));
+  problems.push(...await sweepDomMechanics(page, 'codex:place'));
+  await page.locator('.soul-card').first().click();
+  await page.waitForSelector('.soul-page');
+  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'codex:soul'));
+  problems.push(...await sweepDomMechanics(page, 'codex:soul'));
   await closeModal(page);
 
   await openSheet(page);

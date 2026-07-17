@@ -46,39 +46,47 @@ export async function seedFixture(page: Page, { sealed = false, boot: doBoot = t
 
 // ---------- database readers (through the app's own modules) ----------
 
+// (56.1 logged edit — Directive VII.14 THE ROUND-TRIP RIDER) The read-back
+// mapper used to rebuild rows field-by-field, and twice a silently dropped
+// key made a court judge a journal thinner than the real one (iteration-4:
+// `kind`; 55.1: `dm.story`). The law is now structural: the row rides
+// WHOLE — a verbatim spread — with derived conveniences layered BESIDE the
+// record, never in place of it. Mapping happens node-side and is exported
+// so G00-RT can prove the rider on a maximal row without a browser.
+// Directive reading, logged as VII.14 asks: `scene_state` lives on the
+// codex/state block, not on journal rows, so the rider governs rows and
+// the state block is already carried whole by readCampaign.
+export function mapLogRow(log: any): any {
+  return {
+    ...log,
+    kind: log.kind ?? null,
+    redacted: !!log.redacted,
+    recordHash: log.recordHash ?? null,
+    imageAssetHash: log.imageAssetHash ?? null,
+    beatIndex: log.beatIndex ?? null,
+    hasImage: !!log.imageUrl,
+    narrations: (log.dm?.narration_blocks || []).map((block: any) => ({ speaker: block.speaker ?? null, text: block.text || '' })),
+    suggestions: log.dm?.suggestions || null,
+    timeAdvance: log.dm?.time_advance || null,
+    imageCue: log.dm?.image_cue ? { subjects: log.dm.image_cue.subjects || [], region: log.dm.image_cue.region || null } : null
+  };
+}
+
 export async function readCampaign(page: Page, campaignId: string): Promise<any> {
-  return page.evaluate(async (id) => {
+  const raw = await page.evaluate(async (id) => {
     const { db } = await import('/src/lib/db.js');
     const campaign = await db.campaigns.get(id);
     if (!campaign) return null;
-    const logs = (campaign.logs || []).map((log: any) => ({
-      // (iteration-4 logged edit) The mapping silently dropped `kind`, so
-      // tick rows were indistinguishable from sealed turns downstream and
-      // g14's turn filter counted dividers as turns. The field is carried
-      // verbatim; no assertion changed.
-      kind: log.kind ?? null,
-      id: log.id, player: log.player, deed: log.deed, redacted: !!log.redacted,
-      // (55.1 logged edit) The mapping silently dropped `dm.story`, so the
-      // pure replays (troveOf, purseOf, threadsOf) saw an empty journal on
-      // read-back while the page courts saw the real one — G19a red on the
-      // court's own instrumentation. The story rides verbatim under the
-      // same key the replays read; every other mapped field is unchanged.
-      dm: log.dm ? { story: log.dm.story ?? null } : null,
-      recordHash: log.recordHash || null, imageAssetHash: log.imageAssetHash || null,
-      hasImage: !!log.imageUrl, beatIndex: log.beatIndex ?? null,
-      narrations: (log.dm?.narration_blocks || []).map((block: any) => ({ speaker: block.speaker ?? null, text: block.text || '' })),
-      suggestions: log.dm?.suggestions || null,
-      timeAdvance: log.dm?.time_advance || null,
-      imageCue: log.dm?.image_cue ? { subjects: log.dm.image_cue.subjects || [], region: log.dm.image_cue.region || null } : null
-    }));
     return JSON.parse(JSON.stringify({
       id: campaign.id, title: campaign.title, styleBible: campaign.styleBible,
       headHash: campaign.headHash, turnCount: campaign.turnCount, turnNumber: campaign.turnNumber,
       signatureStatus: campaign.signatureStatus, sealedAt: campaign.sealedAt || null, completed: !!campaign.completed,
-      hero: campaign.hero, codex: campaign.codex, logs,
+      hero: campaign.hero, codex: campaign.codex, logs: campaign.logs || [],
       keyArtHash: campaign.keyArtHash || null, heroBustHash: campaign.heroBustHash || null, mediaTier: campaign.mediaTier
     }));
   }, campaignId);
+  if (!raw) return null;
+  return { ...raw, logs: (raw.logs || []).map(mapLogRow) };
 }
 
 export async function readJournal(page: Page, campaignId: string): Promise<any[]> {

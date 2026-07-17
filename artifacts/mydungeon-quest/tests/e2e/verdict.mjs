@@ -36,6 +36,9 @@ const REQUIRED_EXECUTED = [
   'tooth 11:', 'tooth 12:',
   // (Directive VI) G19 THE TROVE — both courts demanded by name.
   'G19a', 'G19b',
+  // (Directive VII) G20 THE GROUND — both courts demanded by name, and the
+  // round-trip rider that keeps every future court's instruments honest.
+  'G20a', 'G20b', 'G00-RT',
 ];
 
 let verdict;

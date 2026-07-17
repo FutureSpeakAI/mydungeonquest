@@ -633,8 +633,10 @@ export default function App() {
       const dm = body.turn;
       // The cast snapshot is taken BEFORE this turn's updates apply, so a
       // soul may speak its dying words in the very turn that kills it — and
-      // the dead of earlier turns cannot be given dialogue at all.
-      const validation = validateDmTurn(dm, entropy, { cast: base.codex.cast, threads: base.codex.threads || [], trove: base.codex.trove || [], purses: base.codex.purses || [] });
+      // the dead of earlier turns cannot be given dialogue at all. The
+      // ground courts (Directive VII) seat from the same pre-turn record:
+      // scene ?? null attests honestly that no scene stands yet.
+      const validation = validateDmTurn(dm, entropy, { cast: base.codex.cast, threads: base.codex.threads || [], trove: base.codex.trove || [], purses: base.codex.purses || [], regions: base.codex.regions || [], scene: base.codex.scene ?? null });
       // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
       // the door ran, run once more where the turn becomes record, on the
       // same pre-turn snapshot. A stranger who survived the road is refused
@@ -687,7 +689,7 @@ export default function App() {
           const updates = tickUpdates(next.codex, next.turnNumber - 1);
           if (updates) {
             const tickLog = tickLogEntry(updates, next.turnNumber - 1, next.codex.beatIndex);
-            const ticked = applyStoryUpdates(next.codex, updates, { turn: next.turnNumber - 1 });
+            const ticked = applyStoryUpdates(next.codex, updates, { turn: next.turnNumber - 1, tick: true });
             next = { ...next, codex: ticked, logs: [...next.logs, tickLog] };
             await saveCampaign(next);
             const tickRecord = await seal(base.id, 'tick', { story: updates, storyAfter: ticked });

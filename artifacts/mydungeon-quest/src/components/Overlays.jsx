@@ -15,6 +15,7 @@ import { chapterCard, downloadCard } from '../lib/shareCard.js';
 import { heroPurse } from '../lib/ledger.js';
 import { regionSlate } from '../lib/market.js';
 import { chartRibbon, placesOf, soulsSwornTo } from '../lib/atlas.js';
+import { presenceOf, visitorsOf } from '../lib/presence.js';
 import { threadsOf } from 'fatescript/threads';
 import { troveOf, purseOf } from 'fatescript/trove';
 import { calendarOf } from 'fatescript/calendar';
@@ -179,6 +180,12 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
       </div>
       <p>{openCard.identity.canon.visual}</p>
       {wordsLine(openCard) && <p className="voice-italic">{wordsLine(openCard)}</p>}
+      {/* THE PRESENCE CUT (Directive VII.12) — last known ground, replayed
+          pure from the sealed record; a soul with no lawful sighting is
+          said plainly to be unplaced. Cites are journal rows. */}
+      {(() => { const entry = presenceOf(campaign).find((soul) => soul.name === openCard.name); return entry?.ground
+        ? <p className="cite ground-line">Last seen standing in {entry.ground} — turn {entry.cite}.</p>
+        : <p className="cite ground-line">Whereabouts unknown.</p>; })()}
       {openCard.ties.length > 0 && <div className="tie-chips">{openCard.ties.map((tie, i) =>
         <button key={i} className="tie-chip" onClick={() => wiki[tie.to.toLowerCase()] && setOpenSoul(tie.to)}>{tieLine(tie)}</button>)}</div>}
       <h4 className="eyebrow">Appearances</h4>
@@ -239,6 +246,15 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
       <p>{place.visual}</p>
       {place.discoveredTurn !== null && <p className="cite">Entered the tale on turn {place.discoveredTurn}{place.gloss ? ` — “${place.gloss}”` : ''}.</p>}
       {sworn.length > 0 && <div className="sworn-chips">{sworn.map((edge, i) => <button key={i} onClick={() => { setOpenPlace(null); setOpenSoul(edge.name); }}>{edge.name} — sworn of {edge.of}</button>)}</div>}
+      {/* THE PRESENCE CUT (Directive VII.12) — who stands here now, and who
+          has stood here and moved on. Replayed pure from the sealed record;
+          every entry cites the journal row that staged it. */}
+      {(() => { const visitors = visitorsOf(campaign, place.name); return <>
+        {visitors.standing.length > 0 && <><h4 className="eyebrow">Standing here</h4>
+          <ul className="presence-list">{visitors.standing.map((entry, i) => <li key={i}><b>{entry.name}</b><span className="cite">turn {entry.cite}</span></li>)}</ul></>}
+        {visitors.former.length > 0 && <><h4 className="eyebrow">Have stood here</h4>
+          <ul className="presence-list">{visitors.former.map((entry, i) => <li key={i}><b>{entry.name}</b><span className="cite">turn {entry.cite}</span></li>)}</ul></>}
+      </>; })()}
     </article>; })()}
     <h3>Cinematic archive</h3><div className="replay-list">{campaign.logs.filter((l)=>l.dm.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm)}><Film/> {log.dm.cinematic.title}</button>)}</div>
     <h3>Memoir</h3>{c.memoir.length ? c.memoir.map((m,i)=><p key={i}>{m}</p>) : <p className="muted">The Chronicler has not yet needed to compress the road behind you.</p>}

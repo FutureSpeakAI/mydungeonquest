@@ -68,9 +68,13 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
   ];
 
   // 4. Regions: the recently-touched region rides full; the others slim.
+  //    THE GROUND LINE (Directive VII.10b): the standing scene's region
+  //    rides FULL regardless of the recent-text heuristic — the stage is
+  //    never a rumor.
+  const sceneRegion = canon(codex.scene?.region || '');
   const recentText = logs.slice(-recentTurns).flatMap((e) => (e.dm?.narration_blocks || []).map((b) => b.text || '')).join(' ').toLowerCase();
   let regionsOut = codex.regions.map((region, index) => {
-    const touched = index === 0 || recentText.includes(canon(region.name));
+    const touched = index === 0 || (sceneRegion && canon(region.name) === sceneRegion) || recentText.includes(canon(region.name));
     return touched ? region : { name: region.name, state: region.state };
   });
 
@@ -94,7 +98,9 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
   if (size() > budget) {
     castOut = castOut.map((soul) => (inScene(soul) || soul.role === 'villain' ? soul : (soul.visual ? SLIM(soul) : soul))); out = pack();
   }
-  if (size() > budget) { regionsOut = regionsOut.map((region, i) => (i === 0 ? region : { name: region.name, state: region.state })); out = pack(); }
+  // The standing scene's region joins the index-0 immunity: the budget's
+  // slim-trim may never slim the ground the tale stands on (VII.10b).
+  if (size() > budget) { regionsOut = regionsOut.map((region, i) => (i === 0 || (sceneRegion && canon(region.name) === sceneRegion) ? region : { name: region.name, state: region.state })); out = pack(); }
   return out;
 }
 
@@ -119,7 +125,20 @@ export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {})
     .sort((a, b) => (b.moved ?? -1) - (a.moved ?? -1))
     .slice(0, 4).map((item) => item.name);
   let wealth = `${campaign.hero?.name || 'The hero'} carries ${purse?.coin ?? 0} coin.${holdings.length ? ` Holds: ${holdings.join(', ')}.` : ''}`;
-  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...pack, ...(wealth ? { hero_wealth: wealth } : {}), stated_allegiances: allegiances });
+  // THE GROUND LINE (Directive VII.10) — the briefing names the ground by
+  // law, not by heuristic: byte-exact, the briefing's SECOND key, right
+  // after the calendar; ABSENT when no scene stands — an honest omission,
+  // never an empty string. A scene naming a region the codex no longer
+  // holds rides name-only. Famine order is unchanged and the ground is
+  // above it: allegiances fall first, then the wealth line; scene_ground
+  // and calendar never fall.
+  const scene = campaign.codex?.scene || null;
+  let ground = null;
+  if (scene && scene.region) {
+    const held = (campaign.codex?.regions || []).find((region) => canon(region.name) === canon(scene.region));
+    ground = held ? `The scene stands in ${held.name} — ${held.visual}` : `The scene stands in ${scene.region}.`;
+  }
+  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...(ground ? { scene_ground: ground } : {}), ...pack, ...(wealth ? { hero_wealth: wealth } : {}), stated_allegiances: allegiances });
   let out = brief();
   while (JSON.stringify(out).length > budget && allegiances.length) { allegiances = allegiances.slice(0, -1); out = brief(); }
   if (JSON.stringify(out).length > budget && wealth) { wealth = null; out = brief(); }

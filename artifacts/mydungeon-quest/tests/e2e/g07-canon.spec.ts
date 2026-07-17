@@ -35,12 +35,14 @@ test('G7 the struck turn leaves only its marker', async ({ page }) => {
   expect(await bodyText(page), 'the recap carries no struck sentence').not.toContain(STRUCK);
 });
 
-test('G8 codex: Day 3, threads with citations, tappable atlas, souls with ties', async ({ page }) => {
+test('G8 codex: Day 4, threads with citations, tappable atlas, souls with ties', async ({ page }) => {
   await seedFixture(page);
   await openCodex(page);
 
-  // The day chip.
-  await expect(page.locator('.day-chip').first()).toHaveText(/Day 3/);
+  // The day chip. (56.2 logged edit) Day 3 → Day 4: the appended t5
+  // travel turn advances a third day, so the sealed record's calendar
+  // reads Day 4 — same exact-match law, recalibrated to the record.
+  await expect(page.locator('.day-chip').first()).toHaveText(/Day 4/);
 
   // The open debt — kind badge, holder, sworn-turn citation.
   const debtRow = page.locator('.thread-row', { hasText: 'Corin owes Edda restitution' }).first();
@@ -66,7 +68,10 @@ test('G8 codex: Day 3, threads with citations, tappable atlas, souls with ties',
   await vale.click();
   const place = page.locator('.place-page').first();
   await expect(place).toBeVisible();
-  await expect(place.locator('h4')).toContainText('Larkspur Vale');
+  // (56.3 logged edit) The place page now carries presence eyebrows —
+  // three h4s where one stood. The selector re-aims at its original
+  // target, the header's name; the assertion itself is unchanged.
+  await expect(place.locator('header h4')).toContainText('Larkspur Vale');
   expect(((await place.locator('.place-state').first().textContent()) || '').trim().length, 'state badge').toBeGreaterThan(0);
   // (iteration-2 logged edit) The plate IS the .region-plate img element —
   // the old selector looked for an img nested inside it and matched nothing.
@@ -78,7 +83,9 @@ test('G8 codex: Day 3, threads with citations, tappable atlas, souls with ties',
     // criterion: the canon prose stands in for the unpainted plate.
     expect(prose, 'canon text stands in for the unpainted plate').toContain('watchtower');
   }
-  await expect(place.locator('.cite')).toContainText(/turn 0/);
+  // (56.3 logged edit) Same re-aim: the presence lists added span.cite
+  // entries; the discovered-turn line is the p.cite this always meant.
+  await expect(place.locator('p.cite')).toContainText(/turn 0/);
 
   // The Duchy's sworn chip walks to Corin's soul page.
   await closeModal(page);

@@ -10,7 +10,11 @@ import { censusNote, unrecordedSouls } from 'fatescript/census';
 // either declares the stranger (cast_add, voice_card and all) or unclaims
 // the line. Exported for the bench; the door is the only live caller.
 export function judgeTurn(turn, input) {
-  const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [], threads: input.story?.threads_state || [], trove: input.story?.trove_state || [], purses: input.story?.purse_state || [] });
+  // The ground courts (Directive VII) seat from the same briefing: regions
+  // from the pack, the standing scene from [STORY].scene_state — null there
+  // attests no scene stands, so genesis rides free. (The briefing's own
+  // `scene` key is cast presence, a different beast — never read it here.)
+  const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [], threads: input.story?.threads_state || [], trove: input.story?.trove_state || [], purses: input.story?.purse_state || [], regions: input.story?.regions || [], scene: input.story?.scene_state ? { region: input.story.scene_state.region } : null });
   const errors = validation.ok ? [] : [...validation.errors];
   const strangers = unrecordedSouls(turn, input.story?.cast || [], { hero: input.hero || null });
   if (strangers.length) errors.push(censusNote(strangers));
@@ -125,7 +129,13 @@ const storySchema = {
           holder: { type: 'string', maxLength: 60 },
           delta: { type: 'integer', minimum: -999, maximum: 999, description: 'Non-zero. Never spend below the [STORY].purse_state balance.' },
           reason: { type: 'string', minLength: 3, maxLength: 90 }
-        } } }
+        } } },
+        // THE PRESENCE CUT (Directive VII): declared because the strict
+        // validator enforces the shape — a schema the model cannot see is
+        // a trap. Exactly one key, and never an array.
+        scene_set: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['region'], properties: {
+          region: { type: 'string', minLength: 3, maxLength: 100, description: 'The region the scene now stands in — one the record already holds, or one created by this same turn\'s world.region_add. A change of ground must ride with time_advance in the same turn.' }
+        } } ] }
       }
     }
   ]

@@ -49,7 +49,9 @@ test('G14f the Day chip never decreases across a live advance', async ({ page })
   await seedFixture(page); // unsealed — the composer still lives
 
   await openCodex(page);
-  await expect(page.locator('.day-chip').first()).toHaveText(/Day 3/);
+  // (56.2 logged edit) Day 3 → Day 4: the t5 travel turn seals a third
+  // advance; the baseline follows the record.
+  await expect(page.locator('.day-chip').first()).toHaveText(/Day 4/);
   await closeModal(page);
 
   const before = await turnCount(page);
@@ -64,5 +66,7 @@ test('G14f the Day chip never decreases across a live advance', async ({ page })
   await openCodex(page);
   const text = (await page.locator('.day-chip').first().textContent()) || '';
   const day = Number(/\d+/.exec(text)?.[0] || 0);
-  expect(day, `Day chip after the advance reads "${text}"`).toBeGreaterThanOrEqual(3);
+  // (56.2 logged edit) Floor TIGHTENED 3 → 4 with the sealed baseline:
+  // the chip may never read less than the day it started from.
+  expect(day, `Day chip after the advance reads "${text}"`).toBeGreaterThanOrEqual(4);
 });

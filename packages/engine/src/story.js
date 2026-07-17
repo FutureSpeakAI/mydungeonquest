@@ -96,6 +96,7 @@ export function initCodex(spineId, seed = {}) {
     threads: [],
     trove: keepsake,
     purses: [],
+    scene: null,
     completed: false
   };
 }
@@ -325,6 +326,26 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     }
   }
 
+  // THE PRESENCE CUT (Directive VII) — the ground folds AFTER the world,
+  // so a region added this turn stands before the scene is set upon it.
+  // Old codexes backfill scene: null. The offscreen world may act, never
+  // relocate the stage: a tick fold refuses scene_set with a note. An
+  // unknown region is refused with a note. Restating the standing region
+  // no-ops — the ground did not change, so sinceTurn holds.
+  next.scene = next.scene ?? null;
+  const sceneSet = updates.scene_set;
+  if (sceneSet && typeof sceneSet === 'object' && !Array.isArray(sceneSet)) {
+    const regionName = clean(sceneSet.region, 100);
+    const held = regionName ? next.regions.find((entry) => canonName(entry.name) === canonName(regionName)) : null;
+    if (meta.tick) {
+      next.notes.push('The offscreen world may not move the stage: scene_set refused on a tick.');
+    } else if (!held) {
+      next.notes.push(`Unlawful scene_set blocked: ${regionName || 'an unnamed region'} is not a region the record knows.`);
+    } else if (!next.scene || canonName(next.scene.region) !== canonName(held.name)) {
+      next.scene = { region: held.name, sinceTurn: Number.isInteger(meta.turn) ? meta.turn : null };
+    }
+  }
+
   if (updates.beat_advance && !next.completed) {
     // The final beat must PLAY, not merely arrive: advancing while already on
     // the last beat is what closes the tale. (Before the Experience Cut,
@@ -366,6 +387,9 @@ export function storyBlock(codex) {
     threads_state: (codex.threads || []).map(({ label, status }) => ({ label, status })),
     trove_state: (codex.trove || []).filter((item) => item.status === 'held').map(({ name, holder }) => ({ name, holder })),
     purse_state: (codex.purses || []).map(({ holder, coin }) => ({ holder, coin })),
+    // THE PRESENCE CUT (Directive VII.7): the standing ground rides to the
+    // server court exactly as threads_state and trove_state do.
+    scene_state: codex.scene ? { region: codex.scene.region, sinceTurn: codex.scene.sinceTurn ?? null } : null,
     directives: [
       ...(codex.completed ? ['The tale is sealed. Write nothing new; if asked, speak only a closing line.'] : []),
       ...(sealing ? ['SEAL THE TALE — the player has chosen to end with honor. These are denouement turns: quiet and combat-free; no new cast, no new threads; resolve what stands, let farewells be spoken, and bring the road home. If a cinematic is due, let it be the ending the tale has earned (victory, death, or bittersweet).'] : []),

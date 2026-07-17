@@ -133,6 +133,40 @@ function validatePurse(story, context, errors) {
   }
 }
 
+// THE PRESENCE CUT (Directive VII) — the ground as one additive story
+// operation: scene_set { region }, an object and never an array — one
+// stage per turn by shape, exactly one key. The courts are PRESENCE-based
+// like the possessions courts: context.regions being an array seats the
+// atlas court (empty = attested empty; the record consulted is the
+// pre-turn record, except the stage may be built and stood upon in one
+// breath by this turn's own world.region_add); the context CARRYING the
+// scene key seats the travel court (scene: null attests no scene stands —
+// genesis is free). A bare context gets shape law only. A seated change
+// of ground must ride with time_advance in the same turn — free
+// teleportation is refused by name; restating the standing region is
+// lawful and costs nothing.
+function validateScene(story, context, errors, payload) {
+  if (!story || typeof story !== 'object') return;
+  const set = story.scene_set;
+  if (set === undefined || set === null) return;
+  if (Array.isArray(set)) { errors.push('scene_set must be an object, not an array'); return; }
+  if (typeof set !== 'object') { errors.push('scene_set must be an object with exactly region'); return; }
+  for (const key of Object.keys(set)) if (key !== 'region') { errors.push('scene_set must be an object with exactly region'); return; }
+  if (!(cleanText(set.region, 100) && String(set.region).trim().length >= 3)) { errors.push('scene_set.region must be 3-100 chars'); return; }
+  const target = canonKey(set.region);
+  if (Array.isArray(context.regions)) {
+    const known = new Set(context.regions.map((region) => canonKey(typeof region === 'string' ? region : region?.name)));
+    const built = canonKey(story.world?.region_add?.name || '');
+    if (!known.has(target) && built !== target) errors.push(`scene_set names a region the record does not hold: ${String(set.region).trim()}`);
+  }
+  if ('scene' in context) {
+    const standing = context.scene && typeof context.scene === 'object' ? String(context.scene.region || '').trim() : '';
+    if (standing && canonKey(standing) !== target && (payload?.time_advance === undefined || payload?.time_advance === null)) {
+      errors.push(`scene_set changes the ground from ${standing} to ${String(set.region).trim()} without time_advance — travel costs time`);
+    }
+  }
+}
+
 // context — the codex snapshot the turn is judged against, threaded by every
 // caller (client turn path, server repair-retry path, evals). Taken BEFORE
 // this turn's story updates apply, so a soul may speak its dying words in the
@@ -144,6 +178,7 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     validateThreads(payload.story, context, errors);
     validateTrove(payload.story, context, errors);
     validatePurse(payload.story, context, errors);
+    validateScene(payload.story, context, errors, payload);
   }
   assert(payload && typeof payload === 'object' && !Array.isArray(payload), 'payload must be an object', errors);
   if (!payload || typeof payload !== 'object') return { ok: false, errors };

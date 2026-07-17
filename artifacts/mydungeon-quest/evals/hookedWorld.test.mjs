@@ -1,8 +1,9 @@
-// THE HOOKED-WORLD GATE — the capstone. Six laws, one sealed record, no
+// THE HOOKED-WORLD GATE — the capstone. Seven laws, one sealed record, no
 // contradictions: the same operations that move the codex are the ones
 // the calendar folds, the atlas cites, the thread ledger replays, the
-// briefing carries, and the visual bible paints. If any two derivations
-// disagree about the record, this gate fails.
+// briefing carries, the presence replay stands upon, and the visual bible
+// paints. If any two derivations disagree about the record, this gate
+// fails.
 import assert from 'node:assert/strict';
 import { applyStoryUpdates, initCodex } from '../src/lib/story.js';
 import { buildBriefing } from '../src/lib/graph.js';
@@ -11,9 +12,10 @@ import { threadsOf, openThreadsOf } from '../src/lib/threads.js';
 import { placesOf, allegiancesOf } from '../src/lib/atlas.js';
 import { scenePrompt, identityClause } from '../src/lib/cinema/prompts.js';
 import { troveOf, purseOf } from '../src/lib/trove.js';
+import { presenceOf, visitorsOf } from '../src/lib/presence.js';
 
 let codex = initCodex('classic-epic');
-const op1 = { cast_add: [{ name: 'Corin Voss', role: 'envoy of the Duchy', visual: 'a narrow face and clipped grey coat', goal: 'press the claim', voice_card: { gender: 'masculine', age: 'adult', timbre: 'clipped' } }], thread_add: [{ label: 'The Whitespan treaty must be read', kind: 'goal', holder: 'Maren' }], world: { region_add: { name: 'Larkspur Vale', visual: 'terraced orchards under chalk' } }, item_add: [{ name: 'The ferry ledger', kind: 'document', holder: 'Maren' }], purse: [{ holder: 'Maren', delta: 30, reason: 'Back pay counted at the waystation' }] };
+const op1 = { cast_add: [{ name: 'Corin Voss', role: 'envoy of the Duchy', visual: 'a narrow face and clipped grey coat', goal: 'press the claim', voice_card: { gender: 'masculine', age: 'adult', timbre: 'clipped' } }], thread_add: [{ label: 'The Whitespan treaty must be read', kind: 'goal', holder: 'Maren' }], world: { region_add: { name: 'Larkspur Vale', visual: 'terraced orchards under chalk' } }, scene_set: { region: 'Larkspur Vale' }, item_add: [{ name: 'The ferry ledger', kind: 'document', holder: 'Maren' }], purse: [{ holder: 'Maren', delta: 30, reason: 'Back pay counted at the waystation' }] };
 const op2 = { thread_resolve: [{ label: 'the whitespan treaty must be read', outcome: 'kept' }], thread_add: [{ label: 'Corin owes Edda restitution', kind: 'debt', holder: 'Corin Voss' }], item_transfer: [{ name: 'the ferry ledger', from: 'Maren', to: 'Edda' }], purse: [{ holder: 'Maren', delta: -12, reason: 'Paid the road toll' }] };
 codex = applyStoryUpdates(codex, op1);
 codex = applyStoryUpdates(codex, op2);
@@ -51,9 +53,17 @@ assert.equal(placesOf(campaign)[0].discoveredTurn, 0);
 assert.equal(allegiancesOf(codex.cast)[0].of, 'the Duchy');
 assert.ok(briefing.stated_allegiances[0].includes('sworn of the Duchy (stated)'));
 
+// One ground (Directive VII). The fold's standing scene, the briefing's
+// ground line, and the presence replay stand on the same region.
+assert.equal(codex.scene.region, 'Larkspur Vale', 'the fold seats the scene the genesis op set');
+assert.equal(briefing.scene_ground, 'The scene stands in Larkspur Vale — terraced orchards under chalk', 'the briefing names the same ground byte-exact');
+assert.equal(Object.keys(briefing)[1], 'scene_ground', 'and names it second, right after the calendar');
+assert.deepEqual(visitorsOf(campaign, 'Larkspur Vale').standing.map((soul) => soul.name), ['Corin Voss', 'Edda', 'Maren'], 'the replay stands the whole table on the sealed ground');
+assert.ok(presenceOf(campaign).every((soul) => soul.ground === 'Larkspur Vale'), 'nobody has left the vale');
+
 // One face. The scene paints the card the codex sealed.
 const soul = codex.cast.find((entry) => entry.name === 'Corin Voss');
 const scene = scenePrompt({ ...campaign, styleBible: 'BIBLE' }, { subjects: ['Corin Voss'], region: 'Larkspur Vale', mood: 'dusk' });
 assert.ok(scene.includes(identityClause(soul)), 'the prompt carries the exact clause of the sealed card');
 assert.ok(scene.includes('a man;') && scene.includes('clipped grey coat'));
-console.log('PASS — the hooked-world gate: one record, six laws, no contradictions between the calendar, the ledger, the atlas, the briefing, and the paint.');
+console.log('PASS — the hooked-world gate: one record, seven laws, no contradictions between the calendar, the ledger, the atlas, the briefing, the ground, and the paint.');

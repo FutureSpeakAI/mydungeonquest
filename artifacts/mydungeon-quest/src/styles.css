@@ -496,5 +496,9 @@
 .sworn-chips button:hover{border-color:var(--gold);color:var(--vellum)}
 .region-gallery article.tappable{cursor:pointer}
 .region-gallery article.tappable:hover .region-copy b{color:var(--gold)}
+.soul-page .cite{font-size:.7rem;color:#9d849a;font-style:italic}
+.presence-list{list-style:none;padding:0;margin:.35rem 0 .75rem;display:flex;flex-direction:column;gap:.3rem}
+.presence-list li{display:flex;align-items:baseline;gap:.5rem}
+.presence-list li .cite{font-size:.7rem;color:#9d849a;font-style:italic}
 
 .codex-meta{display:flex;align-items:center;gap:.7rem}

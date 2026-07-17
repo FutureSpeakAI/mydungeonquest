@@ -89,7 +89,8 @@
               "name": "Larkspur Vale",
               "visual": "A terraced river vale of slate-roofed hearth-houses, larkspur meadows climbing to a ruined watchtower, and a gold-leafed old road stitching the terraces together under soft northern light."
             }
-          }
+          },
+          "scene_set": { "region": "Larkspur Vale" }
         },
         "image_cue": null,
         "dialogue_cue": null,
@@ -198,6 +199,32 @@
         "image_cue": null,
         "dialogue_cue": null,
         "time_advance": null,
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "We take the Duchy road at last.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "The toll gates rise out of morning haze, slate-blue banners snapping over paved stone, and the road that lied in the Vale runs honest and hard beneath the horses now." },
+          { "speaker": "Corin Voss", "text": "“Welcome to the Duchy, ranger. Mind the counting-houses — here even the wind pays toll.”" }
+        ],
+        "suggestions": ["Pay the gate toll", "Ask after the ledgers", "Watch the banners"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "scene_set": { "region": "The Duchy" },
+          "world": null
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": { "unit": "days", "n": 1 },
         "entropy_use": []
       }
     }

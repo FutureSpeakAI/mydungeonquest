@@ -1254,3 +1254,103 @@ two suggested next actions (full loop, full keyless check) were
 already executed before the round convened: three consecutive greens
 55.2–55.4 and a 96-PASS keyless tail. Nothing to fix; nothing to
 refute.
+
+## TASK 56 — THE PRESENCE CUT (2026-07-17)
+
+Directive VII (EXPERIENCE-DIRECTIVE-VII.md) — the scene as sealed
+record. Every test edit, logged as the series law demands:
+
+- evals/presence.test.mjs (NEW GATE, +1 keyless PASS): the scene_set
+  door's three courts (shape always; presence-seated atlas and travel
+  courts; genesis free; bare context judges shape only), the reducer's
+  three answers (fold after world, unknown region refused with a note,
+  the tick door), the sinceTurn hold on restatement, the legacy-codex
+  backfill, storyBlock's scene_state, the CLOSED tick op set, and the
+  pure presence replay (every sighting class, the strike law, the tick
+  skip, the hero law, no-ground sightings, unique-bare-first-name
+  resolution, ambiguous names kept verbatim, cites as journal row
+  indices).
+- evals/ground.test.mjs (NEW GATE, +1 keyless PASS): the briefing's
+  ground line byte-exact as the SECOND key; honest omission when no
+  scene stands; name-only when the region left the codex; famine
+  immunity (allegiances fall, wealth falls, the ground and calendar
+  never); the pack's full-ride past the recent-text heuristic and the
+  budget slim-trim immunity for the standing region.
+- package.json: both new gates enrolled in the eval chain directly
+  after coinPurse.test.mjs.
+- evals/hookedWorld.test.mjs: the capstone grows its sanctioned ground
+  leg — genesis scene_set in op1, and the fold, the briefing, and the
+  presence replay must agree on the standing region. Still exactly one
+  PASS line; message updated honestly (six laws → seven).
+- tests/e2e/fixtures/proving-campaign.json: t0's story gains the
+  genesis scene_set (Larkspur Vale — the region t0 itself creates,
+  lawful in one breath); appended t5 — the lawful travel to The Duchy
+  (scene_set + time_advance days:1). No new plates: t5's image_cue and
+  cinematic stay null, and the harvest's scene-plate positions (1 and
+  3 in the turn list) are untouched by an appended tail. t3/t4
+  narration bytes untouched, so every vision caption cache key stands.
+  Tick rows shift late journal indices; no assertion anywhere pins an
+  exact late index (pattern cites only; index 0 is the one exact cite,
+  it can never shift).
+- tests/e2e/g20-ground.spec.ts (NEW, G20a + G20b): the protocol court
+  (free teleportation refused by name, unrecorded stage refused by
+  name, paid travel clean; fold/replay parity on REGION ONLY —
+  codex.scene.sinceTurn is a turn-number stamp, replay cites are
+  journal ROW indices, the two clocks are never cross-asserted) and
+  the DOM court (the Duchy's STANDING HERE with cites and an honestly
+  absent former section, the Vale's HAVE STOOD HERE, the soul page's
+  last-known-ground line).
+- playwright.config.ts: the dom project's regex admits g20.
+- tests/e2e/verdict.mjs: 'G20a', 'G20b', 'G00-RT' demanded by name
+  among EXECUTED.
+- tests/e2e/g13-check.spec.ts: PINNED_PASS_COUNT 96 → 98 with the
+  reconciliation comment (Directive VII: the presence and ground gates
+  join the keyless check in the same commit that seats the scene law).
+- tests/e2e/lib/harness.ts (VII.14 THE ROUND-TRIP RIDER): readCampaign's
+  row mapper rebuilt — the row now rides WHOLE (verbatim spread) with
+  the derived conveniences (kind, redacted, hashes, narrations,
+  suggestions, timeAdvance, imageCue, hasImage, beatIndex) layered
+  BESIDE the record, never in place of it; mapping moved node-side and
+  exported as mapLogRow so the rider is provable without a browser.
+  Directive reading, logged as VII.14 asks: scene_state lives on the
+  codex/state block, not on journal rows — the rider governs rows, and
+  the state block was already carried whole.
+- tests/e2e/g00-preflight.spec.ts: G00-RT — a maximal journal row
+  (every writer field, a full dm with story, scene_set, redaction and
+  hash fields) survives mapLogRow with per-key byte equality.
+  Instrument law only; no pin grows for it.
+- tests/e2e/g15-copy.spec.ts: the codex walk now enters one place page
+  and one soul page and sweeps both (labels codex:place, codex:soul) —
+  the presence sections and the ground line are player-reachable copy
+  (VII.12).
+
+### Iteration 56.1 — RED (2 unexpected): the day recalibration
+
+66 tests, 0 skipped, and both new courts (G20a, G20b) plus G00-RT
+EXECUTED and green on first seating. The two reds were the calendar
+speaking truth: the appended t5 travel turn seals a third day, so the
+fixture now stands at Day 4 (1 + days:1 + days:1 + days:1), and two
+courts still expected the old Day 3 record:
+
+- g07-canon.spec.ts (G8): title and day-chip assertion Day 3 → Day 4.
+  Not a weakening — the same exact-match law, recalibrated to the
+  sealed record the calendar law derives.
+- g14-order.spec.ts (G14f): the pre-advance baseline Day 3 → Day 4,
+  and the post-advance floor TIGHTENED from >= 3 to >= 4 — the chip
+  may never read less than the sealed day it started from.
+
+### Iteration 56.2 — RED (1 unexpected): the strict-mode re-aim
+
+G14f green at Day 4. G8 red for a new reason, unmasked by the day fix:
+the place page now carries the presence eyebrows, so two of G8's bare
+locators resolve to several elements and trip Playwright's strict
+mode. Neither assertion changed — the selectors re-aim at the elements
+they always meant:
+
+- g07-canon.spec.ts: place.locator('h4') → place.locator('header h4')
+  (the place NAME, not the new 'Standing here' / 'Have stood here'
+  eyebrows); place.locator('.cite') → place.locator('p.cite') (the
+  discovered-turn line, not the presence lists' span.cite entries).
+  A sweep of every dom spec found no other bare h4/.cite locator
+  touching the place or soul pages (harvest's is class-scoped; g15
+  only waits on the selectors; g20 was written scoped from birth).

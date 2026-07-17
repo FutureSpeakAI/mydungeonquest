@@ -17,7 +17,9 @@ import { GAME_ROOT } from './lib/vision';
 // keyless check in the same commit that changes the warden.
 // 94 → 96 (Directive VI): the trove gate and the coin-purse gate join the
 // keyless check in the same commit that seats the possessions law.
-const PINNED_PASS_COUNT = 96;
+// 96 → 98 (Directive VII): the presence gate and the ground gate join the
+// keyless check in the same commit that seats the scene law.
+const PINNED_PASS_COUNT = 98;
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

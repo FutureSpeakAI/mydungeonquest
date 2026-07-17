@@ -80,7 +80,7 @@ export async function seedProvingCampaign(fixture) {
       const updates = tickUpdates(codex, i);
       if (updates) {
         const tickLog = tickLogEntry(updates, i, codex.beatIndex);
-        codex = applyStoryUpdates(codex, updates, { turn: i });
+        codex = applyStoryUpdates(codex, updates, { turn: i, tick: true });
         logs = [...logs, tickLog];
         await saveCampaign({ ...campaign, hero, codex, logs, turnNumber });
         const tickRecord = await appendEvent(id, 'tick', { story: updates, storyAfter: codex });

@@ -5,10 +5,14 @@ import path from 'node:path';
 import { GAME_ROOT } from './lib/vision';
 
 // G13 THE REGRESSION FLOOR — the whole existing eval keeps passing,
-// keyless, at every iteration that touched game source. The letter names
-// 65 PASS lines; the suite pins the count MEASURED at iteration one
-// (the eval has grown since the letter was written — the honest number is
-// the current one, recorded before any Task 52 game fix; see LOOP_LOG.md).
+// keyless, at every iteration. (TASK 54 §1) The count is PINNED as a
+// LITERAL in this law, not a baseline file a red run could rewrite.
+// The reconciliation (LOOP_LOG.md, TASK 54): 65/66 was the donor cut's
+// native trunk count; 101→102 was the changelog's cumulative
+// "gates enrolled" prose ledger (a different basis, abandoned by 0.6.2);
+// 91 is the MEASURED keyless PASS-line tail at Task 53's close — the
+// only auditable basis — and Task 54's poison-sweep gate is the +1.
+const PINNED_PASS_COUNT = 92;
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 
@@ -34,15 +38,12 @@ test('G13 npm run check exits 0 keyless with the pinned PASS count', async () =>
   const passCount = (result.stdout.match(/\bPASS\b/g) || []).length;
   const failCount = (result.stdout.match(/\bFAIL\b/g) || []).length;
   expect(failCount, `check reported failures; tail:\n${tail}`).toBe(0);
-  expect(passCount, 'the eval actually ran').toBeGreaterThan(0);
+  expect(passCount, `the keyless check must print exactly the pinned ${PINNED_PASS_COUNT} PASS lines (Task 54 §1) — saw ${passCount}; a shrink is a lost gate, a growth is an unpinned gate; tail:\n${tail}`).toBe(PINNED_PASS_COUNT);
 
+  // The baseline file remains as EVIDENCE of what this run measured —
+  // the law above no longer reads it, so no red run can bend the floor.
   fs.mkdirSync(path.dirname(BASELINE), { recursive: true });
-  if (!fs.existsSync(BASELINE)) {
-    fs.writeFileSync(BASELINE, JSON.stringify({ passCount, recordedAt: new Date().toISOString(), letterExpected: 65 }, null, 2));
-  } else {
-    const baseline = JSON.parse(fs.readFileSync(BASELINE, 'utf8'));
-    expect(passCount, `PASS count drifted from the iteration-one floor of ${baseline.passCount}`).toBe(baseline.passCount);
-  }
+  fs.writeFileSync(BASELINE, JSON.stringify({ passCount, pinned: PINNED_PASS_COUNT, recordedAt: new Date().toISOString() }, null, 2));
 
   // Keep the tail for the Section 7 report.
   fs.writeFileSync(path.join(GAME_ROOT, 'test-results', 'check-tail.txt'), tail);

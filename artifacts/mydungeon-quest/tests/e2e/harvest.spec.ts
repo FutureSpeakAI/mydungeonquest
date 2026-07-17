@@ -8,6 +8,8 @@ import {
 } from './lib/harness';
 import type { PlateEntry } from './lib/harness';
 import { buildTopManifest, ensureFreshStore } from './lib/harvestManifest';
+import { classifyAttestations, waitForResolutions } from './lib/terminality';
+import type { PaintResolution } from './lib/terminality';
 
 // ============================================================
 // THE HARVEST — the ONE project that touches the app (Move Three). It
@@ -29,16 +31,29 @@ function req(manifest: PlateEntry[], predicate: (entry: PlateEntry) => boolean, 
 }
 const isScene = (entry: PlateEntry) => entry.klass === 'scene';
 
-async function waitForPlates(page: any, campaignId: string, ready: (rows: any[]) => boolean, timeout: number) {
-  const deadline = Date.now() + timeout;
-  let rows: any[] = [];
-  while (Date.now() < deadline) {
-    rows = (await mediaIndex(page, campaignId)).filter((row) => row.kind === 'paint');
-    if (ready(rows)) return rows;
-    await page.waitForTimeout(5000);
-  }
-  throw new Error(`plates never arrived; store holds: ${JSON.stringify(rows.map((r) => ({ label: r.label, variant: r.variant, cacheKey: r.cacheKey })))}`);
+// THE TERMINAL ANSWER (Task 54 Move One) — the harvest reads the SEALED
+// RECORD, never the shelf. The journal's media attestations are the ask's
+// terminal answers: FULFILLED (bytes on the shelf under the attested hash)
+// or REFUSED (no media row, by law). Task 53 closed red because the old
+// shelf-poll read a lawful refusal's silence as eternal pending.
+async function readResolutions(page: any, campaignId: string): Promise<PaintResolution[]> {
+  const journalRows = await readJournal(page, campaignId);
+  const shelf = new Set<string>((await mediaIndex(page, campaignId))
+    .filter((row) => row.kind === 'paint' && (row.bytes ?? 0) > 0)
+    .map((row) => String(row.assetHash)));
+  return classifyAttestations(journalRows, shelf);
 }
+
+// THE MEASURED CAP (§2.3; arithmetic logged in LOOP_LOG.md, TASK 54) —
+// across the 35 prior run logs: worst observed take 52.8s (run-iter12),
+// worst observed warden judgment 6.6s → one terminal ask costs at most
+// take + retake + four judgments ≈ 132s. The image lane is SERIAL: the
+// first sitting queues ≈9 asks ahead of these needs (typical ≈25s each,
+// plus one worst-case allowance ≈ 357s) → cap 480s. The act sitting
+// queues ≤4 asks → cap 300s. These caps bound only true SILENCE — a
+// sealed refusal fails in the same poll that reads it.
+const WAIT1_CAP_MS = 480_000;
+const WAIT2_CAP_MS = 300_000;
 
 /** Exports the chronicle through the app's own door and writes it beside
  * the plates. The courts read the JOURNAL — the sealed truth. Presentation
@@ -80,19 +95,33 @@ test('harvest A: live session paints hero anchor, villain, and scenes', async ({
     });
     expect(campaignId, 'a campaign was born').toBeTruthy();
 
-    await waitForPlates(page, campaignId, (rows) =>
-      rows.some((r) => r.label === 'keyart')
-      && rows.some((r) => r.variant === 'bust' && r.label === HERO.name)
-      && rows.some((r) => r.label === VILLAIN && r.variant === 'bust')
-      && rows.some((r) => r.label === VILLAIN && r.variant === 'dramatic')
-      && rows.filter((r) => String(r.cacheKey || '').startsWith('scene:')).length >= 1,
-    480_000);
+    try {
+      await waitForResolutions(() => readResolutions(page, campaignId), [
+        { what: 'the key art', matches: (r) => r.label === 'keyart' },
+        { what: `the hero anchor (${HERO.name}, bust)`, matches: (r) => r.label === HERO.name && r.variant === 'bust' },
+        { what: `the villain intro (${VILLAIN}, bust)`, matches: (r) => r.label === VILLAIN && r.variant === 'bust' },
+        { what: `the villain later plate (${VILLAIN}, dramatic)`, matches: (r) => r.label === VILLAIN && r.variant === 'dramatic' },
+        { what: 'a scene plate on a sealed turn', matches: (r) => r.subtype === 'scene' || String(r.cacheKey || '').startsWith('scene:') },
+      ], { capMs: WAIT1_CAP_MS });
 
-    const before = await turnCount(page);
-    await act(page, 'I follow the gold-thread mark deeper toward the vault.');
-    await page.waitForFunction((count: number) => document.querySelectorAll('main.adventure-log .turn-entry').length > count, before, { timeout: 120_000 });
-    await rollIfAsked(page);
-    await waitForPlates(page, campaignId, (rows) => rows.filter((r) => String(r.cacheKey || '').startsWith('scene:')).length >= 2, 300_000);
+      const before = await turnCount(page);
+      await act(page, 'I follow the gold-thread mark deeper toward the vault.');
+      await page.waitForFunction((count: number) => document.querySelectorAll('main.adventure-log .turn-entry').length > count, before, { timeout: 120_000 });
+      await rollIfAsked(page);
+      await waitForResolutions(() => readResolutions(page, campaignId), [
+        { what: 'two scene plates across the sat turns', min: 2, matches: (r) => r.subtype === 'scene' || String(r.cacheKey || '').startsWith('scene:') },
+      ], { capMs: WAIT2_CAP_MS });
+    } catch (err) {
+      // THE POST-MORTEM EXPORT (iteration 54.1 logged edit): a refusal or a
+      // starvation must leave the sealed record on disk for the §4 probe —
+      // otherwise the evidence dies with the page's IndexedDB. Best-effort:
+      // the wait's own error stays the verdict; a failed export never masks it.
+      try {
+        fs.mkdirSync(path.join(PLATES_DIR, 'live'), { recursive: true });
+        await exportRecord(page, campaignId, 'live');
+      } catch { /* the refusal speaks for itself */ }
+      throw err;
+    }
 
     manifest = await harvestPlates(page, campaignId, 'live');
     const campaign = await readCampaign(page, campaignId);
@@ -129,7 +158,18 @@ test('harvest B: fixture paints through the app foundry, then seals into the boo
   const anchorSeed = anchorEntry
     ? { dataUrl: `data:${anchorEntry.mime};base64,${fs.readFileSync(path.join(PLATES_DIR, anchorEntry.file)).toString('base64')}`, assetHash: anchorEntry.assetHash, mime: anchorEntry.mime }
     : null;
-  const { prompts } = await paintFixtureExtras(page, campaignId, anchorSeed);
+  let prompts: any;
+  try {
+    ({ prompts } = await paintFixtureExtras(page, campaignId, anchorSeed));
+  } catch (err) {
+    // THE POST-MORTEM EXPORT — fixture arm (iteration 54.1 logged edit):
+    // same law as the live arm; the sealed record outlives the failure.
+    try {
+      fs.mkdirSync(path.join(PLATES_DIR, 'fixture'), { recursive: true });
+      await exportRecord(page, campaignId, 'fixture');
+    } catch { /* the paint error speaks for itself */ }
+    throw err;
+  }
 
   // THE REVEAL LAW — the book retells only dealt art. Re-seat the campaign
   // so the freshly landed plates actually render (and are seen), and visit

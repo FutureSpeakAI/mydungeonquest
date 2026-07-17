@@ -85,10 +85,25 @@ export function portraitPrompt(campaign, soul, variant = 'bust') {
   const clause = identityClause(soul);
   const identity = bearing ? `${bearing} Painted as ${clause}.` : `Painted as ${clause}.`;
   // THE MARK AT PORTRAIT DISTANCE — a portrait is testimony at arm's length;
-  // a mark the scene law renders "large and distinct" must be unmistakable
-  // here, where the camera is closest of all (Likeness Law, Directive VI).
-  const markClause = soul.mark ? ` The mark — ${soul.mark} — is plainly visible at this distance: rendered large, sharp, and unmistakable, framed whole, never cropped away and never turned from the viewer.` : '';
-  return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. ${identity} Expression and posture reveal this goal: ${soul.goal}.${markClause} No frame.`, campaign);
+  // the mark carries most weight here, where the camera is closest of all
+  // (Likeness Law, Directive VI). (0.6.3, Move Two) Prominence is demanded
+  // through size, sharpness, and framing alone — recognition-demand words
+  // invite the very lettering THE UNLETTERED WORLD refuses.
+  // (iteration 54.3's cure) THE PLACEMENT RIDER — the painter restyled a
+  // burn-scar mark into a decorative emblem on a pauldron; the judge
+  // rightly called the mark absent. The mark's own words say where it
+  // lives; the painter does not get to relocate it.
+  const markClause = soul.mark ? ` The mark — ${soul.mark} — sits large, sharp, and whole at this distance: framed entire, holding a commanding share of the frame, never cropped away and never turned from the viewer. It appears exactly where and how its own words place it, never relocated and never redrawn as ornament.` : '';
+  // (0.6.3, iteration 54.3's cure — replacing 54.2's) THE COVERING LAW,
+  // LISTLESS: 54.2's clause enumerated coverings ("a helm, mask, hood,
+  // veil, or visor") and the painter took the list as an ORDER — it
+  // helmed the bare-faced hero and closed the visor over her eyes. Twice
+  // proven now (54.1's letter, 54.3's helm): every concrete noun in a
+  // prompt is a command to paint that noun. The law binds to the identity
+  // line alone and names nothing itself. THE FRAME LAW rides with it —
+  // a bust's whole head inside the frame, framing only, no face claims
+  // (a lawfully helmed soul keeps its helm).
+  return scrubPrompt(`${campaign.codex?.arc?.style_bible || campaign.styleBible}. ${variant} portrait of ${soul.name}. ${identity} Expression and posture reveal this goal: ${soul.goal}.${markClause} Dress and gear follow the identity line exactly — nothing added that it does not state, nothing it states removed, opened, or undone; the face shows exactly as much as the identity shows. The whole head sits well inside the frame with air on every side — nothing cropped at crown, chin, or shoulder. No frame.`, campaign);
 }
 
 // THE STATE GRAMMAR — a region's state must read at a glance, not as a
@@ -97,9 +112,9 @@ export function portraitPrompt(campaign, soul, variant = 'bust') {
 // full visual sentence — palette, light, and the condition of roofs, fields,
 // and roads — so thriving and blighted can never wear the same picture.
 const REGION_STATE_GRAMMAR = {
-  thriving: 'State — THRIVING: the land is alive and generous. Green meadows in full color, hearth-smoke rising from whole roofs, blossom in the hedgerows, bright water, warm golden light across the whole frame. Dominant colors of this frame: living spring green, warm harvest gold, clear blue sky and bright water; no grey pall, no ash, no mud — the palette itself must say abundance at a glance.',
-  wounded: 'State — WOUNDED: the hurt shows everywhere. Scorched fence-lines and broken carts, trampled fields gone brown, a smoke-pall thinning the light, patched roofs and gaps in the hedgerows, a flat grey overcast palette. The region canon above describes this place in kinder days — keep its bones, never its colors. Dominant colors of this frame: flat grey, mud-brown, smoke-white; green survives only in bruised trampled patches; nothing glows. If a reference image anchors this place, it shows kinder days — keep only its landforms and landmarks, and repaint palette, sky, light, and vegetation entirely; the change of fortune must be unmistakable at a glance.',
-  blighted: 'State — BLIGHTED: the land is dying. Ashen dead fields, black leafless trees, collapsed roofs and abandoned lanes, standing water gone dark and still, a cold violet-grey gloom pressing down on everything, the whole frame low-key and DARK — deep shadows over most of the canvas, a heavy lightless sky, never a pale or bright blight. The region canon above describes this place in kinder days — keep its bones, never its colors. Dominant colors of this frame: ash-grey, charcoal-black, cold violet; no green and no warm gold anywhere in the image; the sky is dead slate; every field lies under ash. If a reference image anchors this place, it shows kinder days — keep only its landforms and landmarks, and repaint palette, sky, light, and vegetation entirely; the change of fortune must be unmistakable at a glance.'
+  thriving: 'State — THRIVING: the land is alive and generous. Green meadows in full color, hearth-smoke rising from whole roofs, blossom in the hedgerows, bright water, warm golden light across the whole frame. Dominant colors of this frame: living spring green, warm harvest gold, clear blue sky and bright water; no grey pall, no ash, no mud — the palette itself says abundance across the whole frame.',
+  wounded: 'State — WOUNDED: the hurt shows everywhere. Scorched fence-lines and broken carts, trampled fields gone brown, a smoke-pall thinning the light, patched roofs and gaps in the hedgerows, a flat grey overcast palette. The region canon above describes this place in kinder days — keep its bones, never its colors. Dominant colors of this frame: flat grey, mud-brown, smoke-white; green survives only in bruised trampled patches; nothing glows. If a reference image anchors this place, it shows kinder days — keep only its landforms and landmarks, and repaint palette, sky, light, and vegetation entirely; the change of fortune owns every corner of the frame — palette, sky, and light all speak it at once.',
+  blighted: 'State — BLIGHTED: the land is dying. Ashen dead fields, black leafless trees, collapsed roofs and abandoned lanes, standing water gone dark and still, a cold violet-grey gloom pressing down on everything, the whole frame low-key and DARK — deep shadows over most of the canvas, a heavy lightless sky, never a pale or bright blight. The region canon above describes this place in kinder days — keep its bones, never its colors. Dominant colors of this frame: ash-grey, charcoal-black, cold violet; no green and no warm gold anywhere in the image; the sky is dead slate; every field lies under ash. If a reference image anchors this place, it shows kinder days — keep only its landforms and landmarks, and repaint palette, sky, light, and vegetation entirely; the change of fortune owns every corner of the frame — palette, sky, and light all speak it at once.'
 };
 
 export function regionPrompt(campaign, region) {
@@ -168,21 +183,33 @@ export function scenePrompt(campaign, cue, moment = null) {
   // weights the opening cannot drown the moment in eight hundred characters
   // of contradicting canon (a dawn beat was painted dusk because "soft
   // northern light" spoke first). The words say the moment wins; now the
-  // order says it with them.
-  const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 480)}". Depict this beat literally — its action, props, weather, geography, time of day, and light — and stage every thing the telling names (a road, a fork, a bell, a glow, a letter) plainly in the foreground of the frame — large, filling a commanding share of it, each named thing carried by its form and silhouette alone — so this moment could be no other and never a generic vista of the same place. Where the beat and the region canon below disagree, the beat wins — time of day, weather, light, and the count of named features come from the moment alone, never from the canon. The telling's words are stage directions only — never painted as visible writing.` : '';
+  // order says it with them. (Iteration 54.4 completed this cure: the
+  // MOOD had still been speaking before the beat — "Dawn, then." painted
+  // dusk again through that one leading clause. The beat now rides FIRST
+  // and the mood follows it, subordinated by name to the beat's hour.)
+  // (0.6.3, iteration 54.1's cure) The example list once named A LETTER to
+  // be staged "plainly in the foreground — large" — a direct order to paint
+  // a written page frontal and huge whenever the telling names one; the
+  // warden then lawfully refused the plate twice. The list now carries only
+  // unwritten things, the staging demand speaks size (never "plainly"), and
+  // written matter gets its LOCAL law right beside the command that once
+  // overrode it: closed, turned, or shadowed — the shape tells, never the
+  // surface.
+  const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 480)}". Depict this beat literally — its action, props, weather, geography, time of day, and light — and stage every thing the telling names (a road, a fork, a bell, a glow, a lantern) large in the foreground of the frame, filling a commanding share of it, each named thing carried by its form and silhouette alone — so this moment could be no other and never a generic vista of the same place. Anything the telling names as WRITTEN — a letter, seal, sign, map, page, or book — appears only as a closed or turned object: its face away from the viewer, folded shut, or lost in shadow, its shape telling the story its surface never does. Where the beat and the region canon below disagree, the beat wins — time of day, weather, light, and the count of named features come from the moment alone, never from the canon. The telling's words are stage directions only — never painted as visible writing.` : '';
   const framing = moment ? ` Composition: ${sceneFraming(moment.seed)}.` : '';
   // THE CAMERA LAW — a mark that lives on a face is testimony; a back view
   // silences it. When a painted soul carries a named mark, the framing wheel
   // still deals variety, but the marked face must stay toward the viewer.
   const marked = souls.filter((soul) => soul.mark);
-  const markLaw = marked.length ? ` The camera keeps ${marked.map((soul) => soul.name).join(' and ')} facing the viewer — the marked face never turns fully away, and the mark stays plainly in frame, rendered large and distinct enough to recognize at this plate's distance. If the dealt composition is too wide for the mark to read, pull the camera closer until it does.` : '';
+  const markLaw = marked.length ? ` The camera keeps ${marked.map((soul) => soul.name).join(' and ')} facing the viewer — the marked face never turns fully away, and the mark stays in frame, rendered large and distinct at this plate's distance. If the dealt composition is too wide for the mark to hold that size, pull the camera closer until it does.` : '';
   const soulLines = souls.map((soul) => {
     const bearing = bearingLineFrom(cards, campaign, soul.name);
     const clause = `${soul.name} — ${identityClause(soul)}.`;
     return bearing ? `${clause} ${bearing}` : clause;
   }).join(' ');
   const stagedLine = staged.length ? ` Present but unpainted, staged in the scene's prose: ${staged.join(', ')}.` : '';
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}. Scene mood: ${cue.mood}.${beat} ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul must be recognizably the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line must be plainly visible on them.${markLaw}`, campaign);
+  const moodLine = ` Scene mood${moment?.prose ? ", subordinate to the beat's stated hour and light" : ''}: ${cue.mood}.`;
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}.${beat}${moodLine} ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul is the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line rides on them in frame, large and whole. Named souls are the PRINCIPAL figures of this frame — never demoted to the background, never displaced by an invented figure. Each named soul's dress, gear, and worn covering follow their identity line exactly — nothing added it does not state, nothing it states removed or undone.${markLaw}`, campaign);
 }
 
 // The roster, exported for the job bench: the same painted-first seating
@@ -242,7 +269,7 @@ export function plateMood(dm, max = 90) {
 // sealed in its attest — the house labels dishonesty rather than starve
 // the shelf. The judge's own stumbles never count against a render.
 export function momentBrief(prose) {
-  return `You are judging ONE image against the story moment it was painted to depict: "${String(prose).replace(/"/g, '\u2019').slice(0, 480)}". Does the image stage THIS moment — its action, its time of day and weather, and the specific things the text names (a road, a fork, a mechanism, a hearth, a threshold, a figure) — rather than a generic vista of the same world? Judge presence, not artistry. Answer true only when the moment's DEFINING features — every named thing, the action, the time of day — are clearly present together, large in the frame, each recognizable by its form and silhouette alone. Answer false when any defining feature is absent, or when the image could pass for a generic scene of the same world. Answer STRICT JSON only: {"moment_staged": true|false, "missing": "<the single most telling named thing you cannot find, or an empty string>"}.`;
+  return `You are judging ONE image against the story moment it was painted to depict: "${String(prose).replace(/"/g, '\u2019').slice(0, 480)}". Does the image stage THIS moment — its action, its time of day and weather, and the specific things the text names (a road, a fork, a mechanism, a hearth, a threshold, a figure) — rather than a generic vista of the same world? Judge presence, not artistry. Answer true only when the moment's DEFINING features — every named thing, the action, the time of day — are present together, large in the frame, each carried by its form and silhouette alone. Answer false when any defining feature is absent, or when the image could pass for a generic scene of the same world. Answer STRICT JSON only: {"moment_staged": true|false, "missing": "<the single most telling named thing you cannot find, or an empty string>"}.`;
 }
 
 export function parseMoment(text = '') {
@@ -258,7 +285,7 @@ export function momentRuling(verdict, { attempt = 1 } = {}) {
     return { action: 'accept', attest: { moment: verdict.floor ? 'floor' : 'staged' }, notes: [] };
   }
   if (attempt === 1) {
-    return { action: 'repaint', attest: { moment: 'missed', ...(verdict.missing ? { missing: verdict.missing } : {}) }, notes: [`THE MOMENT WAS MISSED — the previous take painted the world and ignored the telling. Stage the moment's own action, weather, light, and named things plainly in frame${verdict.missing ? `; above all, show plainly: ${verdict.missing}` : ''}. The moment outranks every canon. Show, never write — no words, letters, or signs.`] };
+    return { action: 'repaint', attest: { moment: 'missed', ...(verdict.missing ? { missing: verdict.missing } : {}) }, notes: [`THE MOMENT WAS MISSED — the previous take painted the world and ignored the telling. Stage the moment's own action, weather, light, and named things large in the frame${verdict.missing ? `; above all, stage: ${verdict.missing}` : ''}. The moment outranks every canon. Show, never write — no words, letters, or signs.`] };
   }
   // A second miss SHIPS the better take with the miss sealed in the attest —
   // the house labels dishonesty, it does not starve the shelf. A turn with no

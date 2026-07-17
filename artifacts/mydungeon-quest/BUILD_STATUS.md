@@ -1,5 +1,39 @@
 # Build status
 
+## 0.6.3 — The Terminal Answer (2026-07-17, Task 54)
+- TERMINAL: the proving loop spent its ceiling 6/6 RED — zero greens;
+  the closing bar (three consecutive) was unreachable after 54.4's
+  red. Full ledger, the needle discovery (the verdict was
+  false-negative from birth), and the two named residual classes ride
+  LOOP_LOG.md. The 92 keyless gates held every iteration; no court,
+  threshold, or assertion weakened anywhere.
+- (Bookkeeping: 0.6.2 — The Spent Ceiling — shipped between these
+  entries without a status note; its full account rides CHANGELOG.md —
+  prompt ceiling 4000 → 12000, route-scoped paint body headroom, the
+  beat brief's recognition cure, the refusalTerminal gate. Its loop
+  closed red at the ceiling; this task answers that red.)
+- The harvest reads TERMINALITY from the sealed record: paint
+  attestations now carry the ask's name (cacheKey/label/variant/subtype
+  — foundry.js, all three attestation sites), and the e2e wait reads
+  FULFILLED or REFUSED from the journal — a refused required plate
+  fails the run by name in the poll that reads it; only true silence
+  runs to the measured caps (480s/300s, arithmetic in LOOP_LOG.md).
+  Never a marker row, never synthetic media.
+- The top manifest binds every plate to its minting attestation
+  (provenance holes fail the build by file name) and carries a role-
+  classified refusals ledger; judge preflights answer REFUSED by name,
+  never "missing", never a skip.
+- The recognition poison swept from prompts.js whole — eight clauses
+  restated as size/framing/form/silhouette (the 0.6.2 beat cure's
+  register); new keyless gate poisonSweep builds every prompt and reds
+  on recognition demands, biting eight retired relics to prove its
+  teeth first. Keyless floor PINNED at 92 PASS lines as a literal in
+  G13 (the reconciliation of 65/66 vs 101/102 vs 91 rides LOOP_LOG.md).
+- Teeth 8b (the REFUSED court door) and 9 (the terminality wait, real
+  code against a record copy) join — nine teeth bite every run. Ladder:
+  check → preflight → harvest → courts at 4 workers; every iteration
+  writes an auditable verdict (zero skips, every named court executed).
+
 ## 0.6.1 — The Unlettered World (2026-07-16, Task 53)
 - The text law is ONE engine-owned clause now (`fatescript/unlettered`),
   riding every builder exactly once via `scrubPrompt`; the noun-pile that

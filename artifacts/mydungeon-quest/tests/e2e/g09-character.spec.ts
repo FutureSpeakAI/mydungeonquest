@@ -16,7 +16,12 @@ import { markLaw } from './lib/markLaw';
 //   a3  at scene distance the mark may hide only on the sealed record's
 //       say-so (the attested lack, bound by assetHash); judge-sees-mark
 //       AND attested-lack together = YELLOW warden disagreement (pass);
-//   a4  markless with NO attestation fails NAMING the attestation path.
+//       markless AND attested-SEEN is the MIRROR disagreement (54.5) —
+//       the record spoke and was CONTRADICTED: it FAILS, named as a
+//       warden–judge contradiction (the review round refused the first
+//       draft's yellow here — widening acceptance is weakening);
+//   a4  markless with NO signature-bearing attestation at all fails
+//       NAMING the attestation path — that red is reserved for silence.
 // This court reads only the harvest store. One judge call per hero scene
 // serves a2 and a3 — the vision cache binds them to the same verdict.
 // ============================================================
@@ -35,6 +40,13 @@ function attestedLackFor(m: TopManifest, hash: string): boolean {
   const record = JSON.parse(fs.readFileSync(path.join(HARVEST_DIR, m.files.recordLive), 'utf8'));
   const rows = (record.journal || []).filter((row: any) => row.type === 'media_attestation');
   return rows.some((row: any) => row.payload?.assetHash === hash && row.payload?.warden && row.payload.warden.signature === false);
+}
+
+/** (54.5) The mirror scan: an attestation claiming the mark SEEN. */
+function attestedSeenFor(m: TopManifest, hash: string): boolean {
+  const record = JSON.parse(fs.readFileSync(path.join(HARVEST_DIR, m.files.recordLive), 'utf8'));
+  const rows = (record.journal || []).filter((row: any) => row.type === 'media_attestation');
+  return rows.some((row: any) => row.payload?.assetHash === hash && row.payload?.warden && row.payload.warden.signature === true);
 }
 
 /** ONE call per hero-bearing plate, shared by a2 and a3 through the
@@ -93,6 +105,12 @@ test('G9 a3/a4: at scene distance the mark is visible OR its lack is attested �
   const rulings: any[] = [];
   const failures: any[] = [];
   for (const plate of heroScenes(m)) {
+    // The attestation scans read recordLive ONLY. A fixture hero-bearing
+    // scene would be routed silently wrong — fail loud instead (review
+    // round): source-aware routing must land before fixture heroes sit here.
+    if (!String(plate.file).startsWith('live/')) {
+      throw new Error(`G9 a3/a4: ${plate.file} — attestation scan is recordLive-only; a fixture hero-bearing scene cannot sit this court until the scan routes by source`);
+    }
     const bytes = topBytes(plate);
     const hash = sha256Hex(bytes);
     expect(hash, `content address holds for ${plate.file}`).toBe(plate.assetHash);
@@ -102,6 +120,7 @@ test('G9 a3/a4: at scene distance the mark is visible OR its lack is attested �
       assetHash: hash,
       markVisible: verdict.mark_visible === true,
       attestedLack: attestedLackFor(m, hash),
+      attestedSeen: attestedSeenFor(m, hash),
     });
     rulings.push({ plate: plate.file, mark_visible: verdict.mark_visible, ruling: ruling.verdict });
     if (ruling.verdict === 'yellow') {

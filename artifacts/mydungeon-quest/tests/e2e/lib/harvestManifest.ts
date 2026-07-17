@@ -59,12 +59,36 @@ export function ensureFreshStore(): { reused: boolean; hash: string } {
 
 // ---------- the top manifest ----------
 
+export interface AttestationRef { i: number; recordHash: string | null }
+
+/** (0.6.3 §2.4) A plate's terminal answer, read from the sealed record.
+ * Every plate on disk is FULFILLED, bound to the attestation that minted
+ * it; the test-planted anchor seed alone is SEEDED — its minting
+ * attestation lives in the LIVE record it crossed from. */
+export type PlateResolution =
+  | { state: 'fulfilled'; assetHash: string; attestation: AttestationRef }
+  | { state: 'seeded'; assetHash: string; attestation: null; note: string };
+
+/** (0.6.3 §2.4) A paint ask the sealed record REFUSED. No media row
+ * exists, by law — the record alone testifies. Role-classified so the
+ * courts' door law can refuse BY NAME when a required class was refused. */
+export interface Refusal {
+  tag: 'live' | 'fixture'; role: string;
+  cacheKey: string | null; label: string | null; variant: string | null; subtype: string | null;
+  assetHash: string | null; originTurnHash: string | null;
+  /** 'refused' — text sighted twice, bytes dropped; 'anchored' — likeness
+   * fell twice, the blessed anchor stood in and no distinct row minted. */
+  terminal: 'refused' | 'anchored';
+  reason: string | null; attestation: AttestationRef;
+}
+
 export interface TopPlate {
   file: string; tag: 'live' | 'fixture'; role: string;
   klass: string; label: string | null; variant: string | null;
   assetHash: string | null; cacheKey: string | null; sha256: string;
   subjects: string[]; heroBearing: boolean;
   prose: string | null; region: string | null; state: string | null;
+  resolution: PlateResolution;
 }
 
 export interface TopManifest {
@@ -72,12 +96,15 @@ export interface TopManifest {
   hero: { name: string; mark: string; presentation: string };
   villain: string;
   plates: TopPlate[];
+  /** (0.6.3 §2.4) Every refusal the two sealed records hold — the honest
+   * history of asks that died, beside the plates that lived. */
+  refusals: Refusal[];
   files: {
     sessionLive: string; recordLive: string;
     sessionFixture: string; recordFixture: string;
     storybook: string; captions: string; cover: string;
   };
-  counts: { plates: number; scenes: number; heroBearingScenes: number; portraits: number; keyarts: number };
+  counts: { plates: number; scenes: number; heroBearingScenes: number; portraits: number; keyarts: number; refusals: number; anchored: number };
 }
 
 const FILES: TopManifest['files'] = {
@@ -109,6 +136,15 @@ export function buildTopManifest(): TopManifest {
 
   const sessionLive = readJson(FILES.sessionLive);
   const sessionFixture = readJson(FILES.sessionFixture);
+  // (0.6.3 §2.4) THE SEALED RECORDS SPEAK — every plate binds to the
+  // attestation that minted it, and every refusal the records hold rides
+  // into the manifest, role-classified, for the courts' door law.
+  const recordJournals: Record<'live' | 'fixture', any[]> = {
+    live: readJson(FILES.recordLive).journal || [],
+    fixture: readJson(FILES.recordFixture).journal || [],
+  };
+  const paintAttestations = (tag: 'live' | 'fixture') => recordJournals[tag]
+    .filter((row: any) => row?.type === 'media_attestation' && row.payload?.kind === 'paint');
   const hero = sessionLive.hero;
   const villain: string = sessionLive.villain;
   const lc = (value: unknown) => String(value || '').toLowerCase();
@@ -157,6 +193,15 @@ export function buildTopManifest(): TopManifest {
         throw new Error(`top manifest build: plate bytes do not match their content address — ${entry.file} (sha256 ${digest.slice(0, 12)}… vs assetHash ${String(entry.assetHash).slice(0, 12)}…)`);
       }
       const role = roleOf(tag, entry);
+      const minted = paintAttestations(tag).find((row: any) =>
+        row.payload?.assetHash === entry.assetHash && row.payload?.warden?.warden !== 'refused');
+      const isSeed = String(entry.cacheKey || '').endsWith(':anchor-seed');
+      if (!minted && !isSeed) {
+        throw new Error(`top manifest build: plate ${entry.file} carries no paint attestation in the ${tag} sealed record — a provenance hole, not a plate`);
+      }
+      const resolution: PlateResolution = minted
+        ? { state: 'fulfilled', assetHash: String(entry.assetHash), attestation: { i: minted.i, recordHash: minted.recordHash ?? null } }
+        : { state: 'seeded', assetHash: String(entry.assetHash), attestation: null, note: 'seeded across the mirror from the live store — its minting attestation lives in the live record' };
       const log = (session.logs || []).find((row: any) =>
         (row.imageAssetHash && row.imageAssetHash === entry.assetHash)
         || (row.recordHash && String(entry.cacheKey || '').endsWith(`:${row.recordHash}`)));
@@ -175,6 +220,7 @@ export function buildTopManifest(): TopManifest {
         prose: role === 'scene' ? (log?.narrations?.[0]?.text || null) : null,
         region: entry.klass === 'region' ? (entry.label ?? null) : (log?.imageCue?.region ?? null),
         state: stateOf(role),
+        resolution,
       });
     }
   }
@@ -190,12 +236,45 @@ export function buildTopManifest(): TopManifest {
     if (seeded) seeded.role = 'hero-bust-fixture';
   }
 
+  // (0.6.3 §2.4) The refusals ledger — role-classified from the payload's
+  // own identity (the attestation carries the ask's name since 0.6.3).
+  const refusalKlass = (payload: any): string => {
+    if (payload?.subtype === 'scene' || String(payload?.cacheKey || '').startsWith('scene:') || String(payload?.cacheKey || '').startsWith('proving-scene:')) return 'scene';
+    if (payload?.subtype === 'keyart' || payload?.label === 'keyart') return 'keyart';
+    if (payload?.subtype === 'portrait' || ['bust', 'full-figure', 'dramatic'].includes(String(payload?.variant))) return 'portrait';
+    if (payload?.subtype === 'region' || payload?.label) return 'region';
+    return 'unknown';
+  };
+  const refusals: Refusal[] = [];
+  for (const tag of ['live', 'fixture'] as const) {
+    for (const row of paintAttestations(tag)) {
+      // (iteration 54.2 logged edit) The ledger carries BOTH terminal
+      // non-deliveries: REFUSED (text sighted twice — bytes dropped) and
+      // ANCHORED (likeness fell twice — the blessed anchor stood in, no
+      // distinct row minted). The courts' door law names each honestly.
+      const wardenState = row.payload?.warden?.warden;
+      const terminal: 'refused' | 'anchored' | null =
+        wardenState === 'refused' ? 'refused' : wardenState === 'fallback' ? 'anchored' : null;
+      if (!terminal) continue;
+      const payload = row.payload;
+      const pseudo = { cacheKey: payload.cacheKey ?? null, label: payload.label ?? null, variant: payload.variant ?? null, klass: refusalKlass(payload) };
+      refusals.push({
+        tag, role: roleOf(tag, pseudo), terminal,
+        cacheKey: payload.cacheKey ?? null, label: payload.label ?? null, variant: payload.variant ?? null, subtype: payload.subtype ?? null,
+        assetHash: payload.assetHash ?? null, originTurnHash: payload.originTurnHash ?? null,
+        reason: payload.warden?.reason ?? null,
+        attestation: { i: row.i, recordHash: row.recordHash ?? null },
+      });
+    }
+  }
+
   const manifest: TopManifest = {
     builtAt: new Date().toISOString(),
     paintLawHash: paintLawHash(),
     hero: { name: hero.name, mark: hero.mark, presentation: hero.presentation },
     villain,
     plates,
+    refusals,
     files: FILES,
     counts: {
       plates: plates.length,
@@ -203,6 +282,8 @@ export function buildTopManifest(): TopManifest {
       heroBearingScenes: plates.filter((p) => p.role === 'scene' && p.heroBearing).length,
       portraits: plates.filter((p) => p.klass === 'portrait').length,
       keyarts: plates.filter((p) => p.role === 'keyart').length,
+      refusals: refusals.filter((r) => r.terminal === 'refused').length,
+      anchored: refusals.filter((r) => r.terminal === 'anchored').length,
     },
   };
   fs.writeFileSync(TOP_MANIFEST, JSON.stringify(manifest, null, 2));
@@ -238,7 +319,27 @@ interface Need {
   what: string;
   ok(manifest: TopManifest): boolean;
   doctor(manifest: TopManifest): void;
+  /** (0.6.3 §2.5) The refused paint class that starves this need — needs
+   * with no paint dependency (pure captures) carry none. */
+  paint?: { role?: string; subtype?: 'scene' | 'portrait' | 'keyart' | 'region' | 'any'; tag?: 'live' | 'fixture' };
 }
+
+/** Does a sealed refusal starve this need? Role beats subtype; subtype
+ * 'any' means any refused paint ask starves it. */
+const refusalHits = (need: Need, refusal: Refusal): boolean => {
+  const paint = need.paint;
+  if (!paint) return false;
+  if (paint.tag && refusal.tag !== paint.tag) return false;
+  if (paint.role && refusal.role !== paint.role) return false;
+  if (paint.subtype && paint.subtype !== 'any') {
+    const klass = refusal.subtype === 'scene' || String(refusal.cacheKey || '').startsWith('scene:') ? 'scene'
+      : refusal.subtype === 'keyart' || refusal.label === 'keyart' ? 'keyart'
+        : refusal.subtype === 'portrait' || ['bust', 'full-figure', 'dramatic'].includes(String(refusal.variant)) ? 'portrait'
+          : refusal.subtype === 'region' ? 'region' : 'unknown';
+    if (klass !== paint.subtype) return false;
+  }
+  return true;
+};
 
 const onDisk = (plate: TopPlate) => fs.existsSync(path.join(HARVEST_DIR, plate.file));
 
@@ -246,6 +347,7 @@ const roleNeed = (role: string): Need => ({
   what: `role "${role}"`,
   ok: (m) => m.plates.some((p) => p.role === role && onDisk(p)),
   doctor: (m) => { m.plates = m.plates.filter((p) => p.role !== role); },
+  paint: { role },
 });
 
 const fileNeed = (key: keyof TopManifest['files'], label: string): Need => ({
@@ -265,6 +367,7 @@ const NEEDS: Record<JudgeProject, Need[]> = {
       what: 'a hero-bearing scene plate',
       ok: (m) => m.plates.some((p) => p.role === 'scene' && p.heroBearing && onDisk(p)),
       doctor: (m) => { for (const p of m.plates) p.heroBearing = false; },
+      paint: { subtype: 'scene', tag: 'live' },
     },
     fileNeed('recordLive', 'the exported live record'),
   ],
@@ -280,12 +383,14 @@ const NEEDS: Record<JudgeProject, Need[]> = {
       what: 'a fixture scene plate',
       ok: (m) => m.plates.some((p) => p.tag === 'fixture' && p.role === 'scene' && onDisk(p)),
       doctor: (m) => { m.plates = m.plates.filter((p) => !(p.tag === 'fixture' && p.role === 'scene')); },
+      paint: { subtype: 'scene', tag: 'fixture' },
     },
     fileNeed('sessionFixture', 'the fixture session (the style bible)'),
     {
       what: 'ten plates in the store',
       ok: (m) => m.plates.filter(onDisk).length >= 10,
       doctor: (m) => { m.plates = m.plates.slice(0, 3); },
+      paint: { subtype: 'any' },
     },
   ],
   'g16-captions': [
@@ -295,6 +400,7 @@ const NEEDS: Record<JudgeProject, Need[]> = {
       what: 'three scene plates bound to their moments',
       ok: (m) => m.plates.filter((p) => p.role === 'scene' && p.prose && onDisk(p)).length >= 3,
       doctor: (m) => { for (const p of m.plates) p.prose = null; },
+      paint: { subtype: 'scene' },
     },
   ],
   'g17-framing': [
@@ -302,16 +408,19 @@ const NEEDS: Record<JudgeProject, Need[]> = {
       what: 'four portraits',
       ok: (m) => m.plates.filter((p) => p.klass === 'portrait' && onDisk(p)).length >= 4,
       doctor: (m) => { m.plates = m.plates.filter((p) => p.klass !== 'portrait'); },
+      paint: { subtype: 'portrait' },
     },
     {
       what: 'two key arts',
       ok: (m) => m.plates.filter((p) => p.role === 'keyart' && onDisk(p)).length >= 2,
       doctor: (m) => { m.plates = m.plates.filter((p) => p.role !== 'keyart'); },
+      paint: { subtype: 'keyart' },
     },
     {
       what: 'two subject-bearing scenes',
       ok: (m) => m.plates.filter((p) => p.role === 'scene' && p.subjects.length > 0 && onDisk(p)).length >= 2,
       doctor: (m) => { for (const p of m.plates) p.subjects = []; },
+      paint: { subtype: 'scene' },
     },
   ],
   'g18-storybook': [
@@ -329,9 +438,22 @@ export function preflightManifest(project: JudgeProject, manifest?: TopManifest)
     throw new Error(`${project} preflight: harvest artifact missing — the top manifest (test-results/harvest/manifest.json); the harvest project must run first`);
   }
   for (const need of NEEDS[project]) {
-    if (!need.ok(m)) {
-      throw new Error(`${project} preflight: harvest artifact missing — ${need.what}; the harvest project must mint it before this court sits`);
+    if (need.ok(m)) continue;
+    // (0.6.3 §2.5) When the need is short AND the sealed records hold a
+    // refusal of its paint class, the court says REFUSED — the honest
+    // name for an ask that died — never "missing", never a skip.
+    const refusal = (m.refusals || []).find((r) => refusalHits(need, r));
+    if (refusal) {
+      // (iteration 54.2 logged edit) The door law names the terminal honestly:
+      // REFUSED (text sighted twice) and ANCHORED (likeness fell twice — the
+      // anchor stood in, no distinct plate minted) are different deaths, and
+      // calling an anchored ask "refused" would be a lie at the door.
+      if (refusal.terminal === 'anchored') {
+        throw new Error(`${project} preflight: harvest artifact ANCHORED — ${need.what}; the sealed ${refusal.tag} record shows this ask fell to its blessed anchor (${refusal.subtype || refusal.role}, label=${refusal.label ?? '—'}, variant=${refusal.variant ?? '—'}, cacheKey=${refusal.cacheKey ?? '—'}, attestation #${refusal.attestation.i}${refusal.reason ? `; reason: ${refusal.reason}` : ''}) — no distinct plate was minted; a required plate that ships its anchor is a game defect; this court will not paper it over`);
+      }
+      throw new Error(`${project} preflight: harvest artifact REFUSED — ${need.what}; the sealed ${refusal.tag} record refused this ask (${refusal.subtype || refusal.role}, label=${refusal.label ?? '—'}, variant=${refusal.variant ?? '—'}, cacheKey=${refusal.cacheKey ?? '—'}, attestation #${refusal.attestation.i}${refusal.reason ? `; reason: ${refusal.reason}` : ''}) — a refused required plate is a game defect; this court will not paper it over`);
     }
+    throw new Error(`${project} preflight: harvest artifact missing — ${need.what}; the harvest project must mint it before this court sits`);
   }
   return m;
 }
@@ -342,5 +464,36 @@ export function doctorFirstNeed(project: JudgeProject, manifest: TopManifest): {
   const clone: TopManifest = JSON.parse(JSON.stringify(manifest));
   const need = NEEDS[project][0];
   need.doctor(clone);
+  return { manifest: clone, what: need.what };
+}
+
+/** Tooth 8b's scalpel (0.6.3 §5): for a project with a paint-dependent
+ * need, break that need in a deep clone AND plant a matching refusal in
+ * the clone's ledger — the preflight must then refuse with the REFUSED
+ * message, BY NAME, never the missing one. Returns null for capture-only
+ * projects (their bite is proven by the missing pass). */
+export function doctorRefusedNeed(project: JudgeProject, manifest: TopManifest): { manifest: TopManifest; what: string } | null {
+  const need = NEEDS[project].find((n) => n.paint);
+  if (!need) return null;
+  const clone: TopManifest = JSON.parse(JSON.stringify(manifest));
+  need.doctor(clone);
+  const paint = need.paint!;
+  const subtype = paint.subtype && paint.subtype !== 'any' ? paint.subtype
+    : paint.role === 'keyart' ? 'keyart'
+      : paint.role === 'scene' ? 'scene'
+        : paint.role && paint.role.startsWith('vale-') ? 'region' : 'portrait';
+  clone.refusals = [...(clone.refusals || []), {
+    tag: paint.tag ?? 'fixture',
+    role: paint.role ?? subtype,
+    cacheKey: `doctored:${project}:${paint.role ?? subtype}`,
+    label: subtype === 'keyart' ? 'keyart' : 'Doctored Ask',
+    variant: subtype === 'portrait' ? 'bust' : null,
+    subtype,
+    assetHash: 'doctored-refused-bytes',
+    originTurnHash: null,
+    terminal: 'refused',
+    reason: 'tooth 8b — a doctored refusal planted in a manifest clone',
+    attestation: { i: -1, recordHash: 'doctored' },
+  }];
   return { manifest: clone, what: need.what };
 }

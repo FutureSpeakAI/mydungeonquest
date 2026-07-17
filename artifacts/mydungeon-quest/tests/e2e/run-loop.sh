@@ -18,6 +18,10 @@ if [ -f "$FLAG" ]; then
   echo "[proving] iteration ${ITER} begins"
   ./node_modules/.bin/playwright test > "$LOG" 2>&1
   EXIT=$?
+  # THE VERDICT (Task 54 §6.2) — parse report.json into an auditable
+  # green/red verdict (zero skips, every project sat, named courts
+  # EXECUTED) before the exit flag lands, so pollers read both together.
+  node tests/e2e/verdict.mjs "$ITER" "$EXIT" >> "$LOG" 2>&1 || true
   echo "$EXIT" > "test-results/run-iter${ITER}.exit"
   echo "[proving] iteration ${ITER} complete exit=${EXIT}"
 else

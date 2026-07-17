@@ -133,14 +133,20 @@ export class Foundry {
         // textless fallback where one exists (its bytes passed this same
         // law when they were minted); silence — null — everywhere else.
         const refusedHash = await sha256(new Uint8Array(await blob.arrayBuffer()));
-        await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: refusedHash, mime: blob.type, byteLength: blob.size, referenceAssetHashes, warden: ruling.attest });
+        // THE TERMINAL ANSWER (0.6.3) — the attestation IS the ask's terminal
+        // answer in the sealed record. A refusal leaves no media row, by law,
+        // so the attestation carries the ask's own name (cacheKey, label,
+        // variant, subtype): any reader of the record — the harvest, the
+        // courts — binds the refusal to the ask it answers. Never a marker
+        // row; the record itself learns to speak.
+        await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, cacheKey: job.cacheKey, label: job.options?.label ?? null, variant: job.options?.variant ?? null, subtype: job.options?.kind ?? null, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: refusedHash, mime: blob.type, byteLength: blob.size, referenceAssetHashes, warden: ruling.attest });
         return anchors.length ? anchors[0] : null;
       }
       if (ruling.action === 'anchor') {
         // The anchor stands in — no new bytes are minted (the anchor row
         // already holds these very bytes under its own name); the sealed
         // attestation carries the fallback verdict for provenance.
-        await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: anchors[0].assetHash, mime: anchors[0].mime, byteLength: anchors[0].blob?.size ?? 0, referenceAssetHashes, warden: ruling.attest });
+        await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, cacheKey: job.cacheKey, label: job.options?.label ?? null, variant: job.options?.variant ?? null, subtype: job.options?.kind ?? null, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: anchors[0].assetHash, mime: anchors[0].mime, byteLength: anchors[0].blob?.size ?? 0, referenceAssetHashes, warden: ruling.attest });
         return anchors[0];
       }
       // THE MOMENT LAW (0.6.1) — one more question at the same door for
@@ -181,7 +187,7 @@ export class Foundry {
     const { spineBurned } = await import('../db.js');
     if (spineBurned(this.campaignId)) return row;
     await db.media.put(row);
-    await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size, referenceAssetHashes, ...(wardenAttest ? { warden: wardenAttest } : {}) });
+    await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, cacheKey: job.cacheKey, label: row.label, variant: row.variant, subtype: row.subtype, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size, referenceAssetHashes, ...(wardenAttest ? { warden: wardenAttest } : {}) });
     return row;
   }
 

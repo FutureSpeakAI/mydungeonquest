@@ -75,20 +75,40 @@ async function callAnthropic(images: Buffer[], question: string, schema: object,
     type: 'text',
     text: `${question}\n\nAnswer ONLY with a single JSON object matching this schema (no prose, no markdown):\n${JSON.stringify(schema)}${strict ? '\n\nYour previous answer was not valid JSON. Emit exactly one JSON object and nothing else.' : ''}`,
   });
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 400,
-      temperature: 0,
-      system: 'You are a strict visual judge for an automated test suite. You answer ONLY with a single JSON object matching the schema you are given. Never include prose, preambles, or markdown fences.',
-      messages: [{ role: 'user', content }],
-    }),
-  });
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Anthropic ${response.status} for model ${MODEL}: ${body.slice(0, 300)}`);
+  // (TASK 54 logged test edit) Transport backoff at the shared judge door:
+  // four workers now sit courts in parallel, so rate-limit and overload
+  // answers (429/5xx/529) get three retries with growing backoff before
+  // the loud failure. Assertions are untouched — only transport patience.
+  let response: Response | null = null;
+  let failureNote = '';
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 400,
+          temperature: 0,
+          system: 'You are a strict visual judge for an automated test suite. You answer ONLY with a single JSON object matching the schema you are given. Never include prose, preambles, or markdown fences.',
+          messages: [{ role: 'user', content }],
+        }),
+      });
+    } catch (error: any) {
+      response = null;
+      failureNote = `network failure calling the judge (model ${MODEL}): ${error?.message || error}`;
+    }
+    if (response?.ok) break;
+    if (response) {
+      const retryable = [429, 500, 502, 503, 504, 529].includes(response.status);
+      failureNote = `Anthropic ${response.status} for model ${MODEL}: ${(await response.text()).slice(0, 300)}`;
+      if (!retryable) break;
+      response = null; // body consumed — never reuse a spent response
+    }
+    if (attempt < 4) await new Promise((tick) => setTimeout(tick, attempt * 2_000));
+  }
+  if (!response?.ok) {
+    throw new Error(failureNote || `the judge door never answered (model ${MODEL})`);
   }
   const data: any = await response.json();
   const text = (data.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n');

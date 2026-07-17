@@ -58,6 +58,12 @@ export async function readCampaign(page: Page, campaignId: string): Promise<any>
       // verbatim; no assertion changed.
       kind: log.kind ?? null,
       id: log.id, player: log.player, deed: log.deed, redacted: !!log.redacted,
+      // (55.1 logged edit) The mapping silently dropped `dm.story`, so the
+      // pure replays (troveOf, purseOf, threadsOf) saw an empty journal on
+      // read-back while the page courts saw the real one — G19a red on the
+      // court's own instrumentation. The story rides verbatim under the
+      // same key the replays read; every other mapped field is unchanged.
+      dm: log.dm ? { story: log.dm.story ?? null } : null,
       recordHash: log.recordHash || null, imageAssetHash: log.imageAssetHash || null,
       hasImage: !!log.imageUrl, beatIndex: log.beatIndex ?? null,
       narrations: (log.dm?.narration_blocks || []).map((block: any) => ({ speaker: block.speaker ?? null, text: block.text || '' })),

@@ -34,6 +34,8 @@ const REQUIRED_EXECUTED = [
   'tooth 8:', 'tooth 8b:', 'tooth 9:',
   // (54B §7) the two new teeth are demanded by name like every other.
   'tooth 11:', 'tooth 12:',
+  // (Directive VI) G19 THE TROVE — both courts demanded by name.
+  'G19a', 'G19b',
 ];
 
 let verdict;

@@ -10,7 +10,7 @@ import { censusNote, unrecordedSouls } from 'fatescript/census';
 // either declares the stranger (cast_add, voice_card and all) or unclaims
 // the line. Exported for the bench; the door is the only live caller.
 export function judgeTurn(turn, input) {
-  const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [], threads: input.story?.threads_state || [] });
+  const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [], threads: input.story?.threads_state || [], trove: input.story?.trove_state || [], purses: input.story?.purse_state || [] });
   const errors = validation.ok ? [] : [...validation.errors];
   const strangers = unrecordedSouls(turn, input.story?.cast || [], { hero: input.hero || null });
   if (strangers.length) errors.push(censusNote(strangers));
@@ -95,6 +95,41 @@ const timeAdvanceSchema = {
     { type: 'object', additionalProperties: false, required: ['unit','n'], properties: { unit: { type: 'string', enum: ['hours','days'] }, n: { type: 'integer', minimum: 1, maximum: 30 } } }
   ]
 };
+// THE POSSESSIONS CUT (Directive VI): the four item/coin operations are
+// declared structurally because the strict validator enforces their enums
+// and bounds — a schema the model cannot see is a trap. Established story
+// keys keep their reducer-side guardianship, so the object stays open.
+const storySchema = {
+  anyOf: [
+    { type: 'null' },
+    {
+      type: 'object',
+      properties: {
+        item_add: { type: 'array', maxItems: 3, items: { type: 'object', additionalProperties: false, required: ['name','kind','holder','note'], properties: {
+          name: { type: 'string', minLength: 3, maxLength: 60 },
+          kind: { type: 'string', enum: ['weapon','tool','keepsake','treasure','document'] },
+          holder: { type: 'string', maxLength: 60, description: 'Exact name of the soul now holding it.' },
+          note: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 90 }] }
+        } } },
+        item_transfer: { type: 'array', maxItems: 3, items: { type: 'object', additionalProperties: false, required: ['name','from','to'], properties: {
+          name: { type: 'string', minLength: 3, maxLength: 60 },
+          from: { type: 'string', maxLength: 60, description: 'The hand [STORY].trove_state currently shows holding it.' },
+          to: { type: 'string', maxLength: 60 }
+        } } },
+        item_remove: { type: 'array', maxItems: 3, items: { type: 'object', additionalProperties: false, required: ['name','holder','reason'], properties: {
+          name: { type: 'string', minLength: 3, maxLength: 60 },
+          holder: { type: 'string', maxLength: 60 },
+          reason: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 90 }] }
+        } } },
+        purse: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['holder','delta','reason'], properties: {
+          holder: { type: 'string', maxLength: 60 },
+          delta: { type: 'integer', minimum: -999, maximum: 999, description: 'Non-zero. Never spend below the [STORY].purse_state balance.' },
+          reason: { type: 'string', minLength: 3, maxLength: 90 }
+        } } }
+      }
+    }
+  ]
+};
 
 const toolSchema = {
   type: 'object', additionalProperties: false,
@@ -104,7 +139,7 @@ const toolSchema = {
     suggestions: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: 60, description: 'At most 6 words.' } },
     roll_request: rollRequestSchema, state_updates: { anyOf: [{ type: 'null' }, { type: 'object' }] },
     combat: combatSchema, cinematic: cinematicSchema,
-    story: { anyOf: [{ type: 'null' }, { type: 'object' }] }, image_cue: imageCueSchema,
+    story: storySchema, image_cue: imageCueSchema,
     dialogue_cue: dialogueCueSchema, time_advance: timeAdvanceSchema,
     entropy_use: { type: 'array', items: { type: 'object', required: ['index','die','purpose'], properties: { index: { type: 'integer' }, die: { type: 'string' }, purpose: { type: 'string' } } } }
   }

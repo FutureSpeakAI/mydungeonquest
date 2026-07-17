@@ -121,7 +121,10 @@ export function rollHero(seed = 0) {
     background: BACKGROUNDS[cls.className],
     presentation: pick(['feminine', 'masculine', 'neutral'], seed, 'presentation'),
     pronouns: '',
-    mark: rollMark(seed)
+    mark: rollMark(seed),
+    // THE POSSESSIONS CUT: every thrown soul carries a keepsake, so the
+    // trove is seeded on the fast path with no extra tap.
+    keepsake: pick(ORACLE_HERO.keepsakes, seed, 'keepsake')
   };
 }
 
@@ -140,6 +143,9 @@ export function oracleHero({ path, virtue, keepsake }) {
     abilities: rollAbilities(className, hash(`${path}:${virtue}`)),
     bearing: BEARINGS[className],
     background: `Walks the way of ${path || 'the wild'}, carried by ${virtue || 'stubborn kindness'}; keeps ${keepsake || 'a key with no known door'}.`,
-    mark: pick(MARKS, hash(`${virtue}:${keepsake}`), 'oracle-mark')
+    mark: pick(MARKS, hash(`${virtue}:${keepsake}`), 'oracle-mark'),
+    // The keepsake rides as a FIELD as well as a sentence, so the forge
+    // can seed the trove from the same truth the background speaks.
+    keepsake: keepsake || 'a key with no known door'
   };
 }

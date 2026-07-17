@@ -10,10 +10,11 @@ import { calendarOf } from '../src/lib/calendar.js';
 import { threadsOf, openThreadsOf } from '../src/lib/threads.js';
 import { placesOf, allegiancesOf } from '../src/lib/atlas.js';
 import { scenePrompt, identityClause } from '../src/lib/cinema/prompts.js';
+import { troveOf, purseOf } from '../src/lib/trove.js';
 
 let codex = initCodex('classic-epic');
-const op1 = { cast_add: [{ name: 'Corin Voss', role: 'envoy of the Duchy', visual: 'a narrow face and clipped grey coat', goal: 'press the claim', voice_card: { gender: 'masculine', age: 'adult', timbre: 'clipped' } }], thread_add: [{ label: 'The Whitespan treaty must be read', kind: 'goal', holder: 'Maren' }], world: { region_add: { name: 'Larkspur Vale', visual: 'terraced orchards under chalk' } } };
-const op2 = { thread_resolve: [{ label: 'the whitespan treaty must be read', outcome: 'kept' }], thread_add: [{ label: 'Corin owes Edda restitution', kind: 'debt', holder: 'Corin Voss' }] };
+const op1 = { cast_add: [{ name: 'Corin Voss', role: 'envoy of the Duchy', visual: 'a narrow face and clipped grey coat', goal: 'press the claim', voice_card: { gender: 'masculine', age: 'adult', timbre: 'clipped' } }], thread_add: [{ label: 'The Whitespan treaty must be read', kind: 'goal', holder: 'Maren' }], world: { region_add: { name: 'Larkspur Vale', visual: 'terraced orchards under chalk' } }, item_add: [{ name: 'The ferry ledger', kind: 'document', holder: 'Maren' }], purse: [{ holder: 'Maren', delta: 30, reason: 'Back pay counted at the waystation' }] };
+const op2 = { thread_resolve: [{ label: 'the whitespan treaty must be read', outcome: 'kept' }], thread_add: [{ label: 'Corin owes Edda restitution', kind: 'debt', holder: 'Corin Voss' }], item_transfer: [{ name: 'the ferry ledger', from: 'Maren', to: 'Edda' }], purse: [{ holder: 'Maren', delta: -12, reason: 'Paid the road toll' }] };
 codex = applyStoryUpdates(codex, op1);
 codex = applyStoryUpdates(codex, op2);
 const campaign = { hero: { name: 'Maren' }, codex, logs: [
@@ -33,6 +34,17 @@ assert.equal(open[0].label, 'Corin owes Edda restitution');
 assert.equal(codex.threads.filter((t) => t.status === 'open').length, 1);
 assert.ok(briefing.open_threads[0].includes('Corin owes Edda restitution (debt, held by Corin Voss)'));
 assert.equal(threadsOf(campaign).find((t) => t.status === 'kept').closedTurn, 1, 'the kept promise cites its closing turn');
+
+// One trove. The codex's fold, the journal's replay, and the briefing's
+// wealth line agree on the same coin and the same hands.
+const items = troveOf(campaign);
+assert.equal(items.length, 1);
+assert.equal(items[0].holder, 'Edda');
+assert.deepEqual(items[0].chain.map((hand) => hand.holder), ['Maren', 'Edda'], 'the chain remembers both hands');
+assert.equal(codex.trove[0].holder, 'Edda', 'fold and replay agree on the hand');
+assert.equal(purseOf(campaign, 'Maren').coin, 18);
+assert.equal(codex.purses.find((entry) => entry.holder === 'Maren').coin, 18, 'fold and replay agree on the coin');
+assert.equal(briefing.hero_wealth, 'Maren carries 18 coin.', 'the briefing speaks the same purse, empty-handed after the gift');
 
 // One atlas. The place cites its sealing turn; the sworn edge rides the briefing.
 assert.equal(placesOf(campaign)[0].discoveredTurn, 0);

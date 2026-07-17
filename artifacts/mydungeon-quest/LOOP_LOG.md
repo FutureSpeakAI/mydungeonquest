@@ -1189,3 +1189,68 @@ ceiling was four and was not met (.1 ✓ .2 ✓ .3 ✗ .4 ✓); the extension
 was granted by ruling; the streak stands inside .5–.7. The architect
 round's cures are BANKED — they ran under all three extension
 iterations. Full report: test-results/report-54C.md.
+
+## TASK 55 — THE POSSESSIONS CUT (2026-07-17)
+
+### Test edits, logged as made
+- G13 pin raised 94 → 96 in the same commit that seats the possessions
+  law: the trove gate (evals/trove.test.mjs) and the coin-purse gate
+  (evals/coinPurse.test.mjs) join the keyless chain beside the thread
+  gate. The reconciliation comment sits on the pin itself.
+- The hooked-world capstone grows a trove leg — the codex fold, the
+  journal replay, and the briefing's wealth line must agree on the same
+  coin and the same hands. One PASS line still; the capstone does not
+  inflate the count.
+- The proving fixture gains the possessions record, additive only:
+  t0 seals THE FERRY LEDGER to Maren (+30 coin, back pay); t1 passes
+  the ledger to Edda (−12 coin, road toll). The struck t2 is untouched —
+  the strike law rides G19 for free. Final standing: 18 coin, the
+  ledger in Edda's hand.
+- G19 THE TROVE seated: tests/e2e/g19-trove.spec.ts. G19a (protocol)
+  reads the campaign back from the shelf and proves fold and pure
+  replay agree — hands, cites, note, coin, clamp flags. G19b (DOM)
+  proves the Codex trove page speaks that record — the coin figure,
+  each movement with reason and turn cite, the kind chip, and a chain
+  showing both hands in order. Enrolled in the dom project regex and
+  demanded BY NAME in verdict.mjs REQUIRED_EXECUTED ('G19a', 'G19b') —
+  execution is part of the verdict, per the 54.4 lesson.
+- The engine import in G19 walks the relative path into
+  packages/engine/src/trove.js rather than the package door: Playwright
+  transforms first-party files, but bare specifiers resolve into
+  node_modules as untransformed ESM.
+
+### 55.1 RED — root cause named, court instrumentation amended
+55.1: 63 tests, 62 green, zero skips, zero flaky, every project sat,
+G19a/G19b both EXECUTED. The one red is G19a, and the root cause is
+the court's own reader: harness readCampaign rewrites campaign.logs
+into a summary shape and silently dropped dm.story — the same family
+as the iteration-4 lesson annotated in that very function (it once
+dropped `kind`). The Node-side replay saw an empty journal; the page
+court G19b proved the real record replays sound in the app itself. No
+game defect. Amended additively: the mapped log rows now carry
+dm.story verbatim under the key the pure replays read; no other field
+changed, no assertion weakened. 55.2 requested.
+
+### 55.2–55.4 — LOOP CLOSED GREEN
+55.2 GREEN (63/63, zero skips, zero flaky, all twelve projects sat,
+G19a/G19b EXECUTED by name). 55.3 GREEN (63/63, same shape). 55.4
+GREEN (63/63, same shape). Three consecutive fully green runs,
+iterations 4 of a ceiling of 8. The sole red (55.1) carries its named
+root cause — the court's own read-back mapper — and its cure was
+additive instrumentation, never a weakened assertion. Architect round
+follows; findings land here, fixed or refuted, before the closing
+commit.
+
+### ARCHITECT ROUND — PASS, nothing to fix
+The architect reviewed the full diff against the thirteen laws and
+returned PASS: validator, reducer, and replay internally consistent;
+context threading correct at both doors (app pre-turn snapshot, server
+judge from the story block states); seed parity complete across forge,
+both genesis doors, and the proving shelf; prompt, tool schema,
+briefing, and Codex page seated where the laws expect them; test
+enrollment material. It ran the two new keyless gates and the grown
+capstone itself — all passed — and found no security violations. Its
+two suggested next actions (full loop, full keyless check) were
+already executed before the round convened: three consecutive greens
+55.2–55.4 and a 96-PASS keyless tail. Nothing to fix; nothing to
+refute.

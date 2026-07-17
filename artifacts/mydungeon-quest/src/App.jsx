@@ -634,7 +634,7 @@ export default function App() {
       // The cast snapshot is taken BEFORE this turn's updates apply, so a
       // soul may speak its dying words in the very turn that kills it — and
       // the dead of earlier turns cannot be given dialogue at all.
-      const validation = validateDmTurn(dm, entropy, { cast: base.codex.cast, threads: base.codex.threads || [] });
+      const validation = validateDmTurn(dm, entropy, { cast: base.codex.cast, threads: base.codex.threads || [], trove: base.codex.trove || [], purses: base.codex.purses || [] });
       // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
       // the door ran, run once more where the turn becomes record, on the
       // same pre-turn snapshot. A stranger who survived the road is refused
@@ -880,12 +880,17 @@ export default function App() {
       // THE TENOR LAW: stated identity travels with the hero forever.
       presentation: ['feminine', 'masculine', 'neutral'].includes(heroInput.presentation) ? heroInput.presentation : null,
       pronouns: (heroInput.pronouns || '').slice(0, 30) || null,
-      mark: (heroInput.mark || '').slice(0, 80) || null
+      mark: (heroInput.mark || '').slice(0, 80) || null,
+      // THE POSSESSIONS CUT (Directive VI): the forge keepsake rides the
+      // sheet, so the trove's journal replay and the codex seed agree.
+      keepsake: (heroInput.keepsake || '').slice(0, 60) || null
     };
     // A voice blessed at the audition is kept; otherwise the casting session
     // reads the finished forge card — presentation included.
     hero.voiceId = heroInput.voiceId || castHeroVoice(hero);
-    const codex = initCodex(worldDraft.spineId);
+    // The lawful init path seeds the trove from the forge keepsake,
+    // cited to turn zero (Directive VI).
+    const codex = initCodex(worldDraft.spineId, hero.keepsake ? { keepsake: { name: hero.keepsake, holder: hero.name } } : {});
     const campaign = {
       id, title: worldDraft.title, covenant: worldDraft.covenant, tone: worldDraft.tone,
       lines: worldDraft.lines, veils: worldDraft.veils, styleBible: worldDraft.styleBible, homeRegion: worldDraft.homeRegion,

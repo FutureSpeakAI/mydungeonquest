@@ -78,6 +78,12 @@
             { "label": "Corin owes Edda restitution", "kind": "debt", "holder": "Corin Voss" },
             { "label": "The lantern oath", "kind": "promise", "holder": "Maren" }
           ],
+          "item_add": [
+            { "name": "The ferry ledger", "kind": "document", "holder": "Maren", "note": "Every crossing the Vale still owes, in Edda's tight hand." }
+          ],
+          "purse": [
+            { "holder": "Maren", "delta": 30, "reason": "Road-warden's back pay counted out at the waystation" }
+          ],
           "world": {
             "region_add": {
               "name": "Larkspur Vale",
@@ -110,6 +116,12 @@
           "cast_update": [],
           "thread_resolve": [
             { "label": "The lantern oath", "outcome": "kept" }
+          ],
+          "item_transfer": [
+            { "name": "The ferry ledger", "from": "Maren", "to": "Edda" }
+          ],
+          "purse": [
+            { "holder": "Maren", "delta": -12, "reason": "Paid the road toll at the north gate" }
           ],
           "world": {
             "region_add": {

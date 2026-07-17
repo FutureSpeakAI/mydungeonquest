@@ -31,11 +31,14 @@ export async function seedProvingCampaign(fixture) {
     bearing: (fixture.hero.bearing || '').slice(0, 200),
     presentation: ['feminine', 'masculine', 'neutral'].includes(fixture.hero.presentation) ? fixture.hero.presentation : null,
     pronouns: (fixture.hero.pronouns || '').slice(0, 30) || null,
-    mark: (fixture.hero.mark || '').slice(0, 80) || null
+    mark: (fixture.hero.mark || '').slice(0, 80) || null,
+    // THE POSSESSIONS CUT: the fixture hero may carry a forge keepsake;
+    // the proving table honors the same seed law as the live table.
+    keepsake: (fixture.hero.keepsake || '').slice(0, 60) || null
   };
   hero.voiceId = castHeroVoice(hero);
 
-  let codex = initCodex(fixture.spineId);
+  let codex = initCodex(fixture.spineId, hero.keepsake ? { keepsake: { name: hero.keepsake, holder: hero.name } } : {});
   const campaign = {
     id, title: fixture.title, covenant: fixture.covenant, tone: fixture.tone,
     lines: fixture.lines || [], veils: fixture.veils || [], styleBible: fixture.styleBible, homeRegion: fixture.homeRegion,

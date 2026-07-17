@@ -107,8 +107,21 @@ export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {})
   const pack = buildContextPack(campaign, { budget: Math.max(2000, budget - 500), recentTurns });
   let allegiances = allegiancesOf(campaign.codex?.cast || []).slice(0, 6)
     .map((edge) => `${edge.name} — sworn of ${edge.of} (stated)`);
-  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...pack, stated_allegiances: allegiances });
+  // THE WEALTH LINE (Directive VI) — the hero's narrative-lane coin and up
+  // to four notable holdings (most recently moved first), deterministic,
+  // present even empty-handed. Trim order is law: it may never fall before
+  // the allegiances; only after the last allegiance is gone may it fall,
+  // and the floors above it never move.
+  const heroName = canon(campaign.hero?.name);
+  const purse = (campaign.codex?.purses || []).find((entry) => canon(entry.holder) === heroName);
+  const holdings = (campaign.codex?.trove || [])
+    .filter((item) => item.status === 'held' && canon(item.holder) === heroName)
+    .sort((a, b) => (b.moved ?? -1) - (a.moved ?? -1))
+    .slice(0, 4).map((item) => item.name);
+  let wealth = `${campaign.hero?.name || 'The hero'} carries ${purse?.coin ?? 0} coin.${holdings.length ? ` Holds: ${holdings.join(', ')}.` : ''}`;
+  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...pack, ...(wealth ? { hero_wealth: wealth } : {}), stated_allegiances: allegiances });
   let out = brief();
   while (JSON.stringify(out).length > budget && allegiances.length) { allegiances = allegiances.slice(0, -1); out = brief(); }
+  if (JSON.stringify(out).length > budget && wealth) { wealth = null; out = brief(); }
   return out;
 }

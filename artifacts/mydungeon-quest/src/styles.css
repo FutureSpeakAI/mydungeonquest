@@ -474,6 +474,18 @@
 .thread-row b{font-weight:600;font-size:.82rem}
 .thread-row small{color:var(--vellum-dim);font-size:.7rem}
 .thread-row .outcome{margin-left:auto;font-size:.66rem;font-style:italic;color:#9d849a}
+/* THE TROVE (Directive VI) — coin and holdings, seated beside the threads. */
+.purse-line{margin:.2rem 0 .5rem;font-size:.85rem}
+.purse-line b{color:var(--gold);font-size:1rem}
+.purse-list{display:grid;gap:.4rem;margin:0 0 .9rem}
+.purse-row{display:flex;gap:.55rem;align-items:baseline;border:1px solid #322a3a;border-radius:12px;padding:.45rem .7rem;background:#151019}
+.purse-row b{font-weight:500;font-size:.78rem}
+.purse-row small{color:var(--vellum-dim);font-size:.7rem;margin-left:auto;white-space:nowrap}
+.purse-delta{flex:none;min-width:2.4rem;text-align:right;font-variant-numeric:tabular-nums;color:var(--gold);font-size:.82rem}
+.purse-delta.spent{color:#9d849a}
+.trove-row{flex-wrap:wrap}
+.trove-row .trove-chain{flex:1 1 auto}
+.trove-note{font-style:italic;color:var(--vellum-dim)}
 .place-page{border:1px solid rgba(212,162,78,.35);border-radius:16px;background:#141019;padding:1rem;margin:.6rem 0 1.2rem;display:grid;gap:.6rem}
 .place-page header{display:flex;align-items:center;gap:.6rem}
 .place-page header h4{margin:0;font-family:Cinzel,serif}

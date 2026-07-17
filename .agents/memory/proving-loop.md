@@ -60,3 +60,16 @@ still means three CONSECUTIVE fully green runs — now inside the
 window. A 3-of-4 record is an honest red, never a discounted green.
 The record must name the original ceiling, the ruling, and the streak.
 Authoritative text: THE EXTENSION LAW entry in the repo's LOOP_LOG.md.
+
+## Read-back mappers must carry what pure replays consume (July 2026)
+The harness's DB read-back helper rewrites campaign log rows into a
+summary shape. Twice now a silently dropped field broke a court while
+the app itself was lawful: first `kind` (tick rows became turns
+downstream), then `dm.story` (troveOf/purseOf replayed an empty
+journal on read-back while the DOM court proved the real record
+sound). **Why:** a mapper is instrumentation; when a new pure replay
+(threadsOf/troveOf/purseOf-style) grows a new field dependency, the
+mapper lags unless checked. **How to apply:** when adding any
+journal-replaying derivation, grep the e2e read-back mappers for every
+field it reads and carry them verbatim; a red that only reproduces on
+read-back (page courts green) is almost certainly the mapper.

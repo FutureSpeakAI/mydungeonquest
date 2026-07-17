@@ -16,6 +16,7 @@ import { heroPurse } from '../lib/ledger.js';
 import { regionSlate } from '../lib/market.js';
 import { chartRibbon, placesOf, soulsSwornTo } from '../lib/atlas.js';
 import { threadsOf } from 'fatescript/threads';
+import { troveOf, purseOf } from 'fatescript/trove';
 import { calendarOf } from 'fatescript/calendar';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
@@ -211,6 +212,26 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
             <small>{thread.holder ? `held by ${thread.holder} — ` : ''}sworn turn {thread.openedTurn}</small>
             {thread.status !== 'open' && <span className="outcome">{thread.outcome}, turn {thread.closedTurn}</span>}
           </div>)}</div>; })()}
+    <h3>The Trove</h3>
+    {(() => { const heroName = campaign.hero?.name || 'The hero'; const purse = purseOf(campaign, heroName); const items = troveOf(campaign); return <>
+      <p className="purse-line"><b>{purse.coin}</b> coin held by {heroName}.</p>
+      {purse.entries.length > 0 && <div className="purse-list">{purse.entries.map((entry, i) =>
+        <div key={i} className="purse-row">
+          <span className={`purse-delta${entry.delta < 0 ? ' spent' : ''}`}>{entry.delta > 0 ? `+${entry.delta}` : entry.delta}</span>
+          <b>{entry.reason}</b>
+          <small>turn {entry.turn}{entry.clamped ? ' — held at zero' : ''}</small>
+        </div>)}</div>}
+      {items.length === 0
+        ? <p className="muted">Nothing registered yet — when a named thing enters the tale and matters, it is recorded here with every hand it passes through.</p>
+        : <div className="thread-list trove-list">{items.map((item, i) =>
+          <div key={i} className={`thread-row trove-row${item.status === 'held' ? '' : ' settled'}`}>
+            <span className="thread-kind">{item.kind}</span>
+            <b>{item.name}</b>
+            <small className="trove-chain">{item.chain.map((hand) => `${hand.holder} (turn ${hand.since})`).join(' → ')}</small>
+            {item.note && <small className="trove-note">“{item.note}”</small>}
+            {item.status === 'gone' && <span className="outcome">gone{item.removedReason ? ` — ${item.removedReason}` : ''}, turn {item.removedTurn}</span>}
+          </div>)}</div>}
+    </>; })()}
     <h3>Regions</h3><div className="region-gallery">{c.regions.map((region)=><article key={region.id} className="tappable" role="button" tabIndex={0} onClick={() => setOpenPlace(openPlace === region.name ? null : region.name)}>{gallery[region.name] && <img className="region-plate" src={gallery[region.name]} alt={region.name}/>}<div className="region-copy"><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></div></article>)}</div>
     {openPlace && (() => { const place = placesOf(campaign).find((entry) => entry.name === openPlace); const sworn = soulsSwornTo(c.cast, openPlace); return place && <article className="place-page">
       <header><h4>{place.name}</h4><span className="place-state">{place.state}</span><button className="text-button" style={{marginLeft:'auto'}} onClick={() => setOpenPlace(null)}>close</button></header>

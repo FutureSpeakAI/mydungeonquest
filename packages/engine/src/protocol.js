@@ -47,6 +47,92 @@ function noUnknown(object, allowed, path, errors) {
   for (const key of Object.keys(object)) if (!allowed.has(key)) errors.push(`${path}.${key} is not allowed`);
 }
 
+// THE POSSESSIONS CUT (Directive VI) — additive checks for the four item
+// and coin operations only; every older story key keeps its reducer-side
+// guardianship untouched. Context may carry trove: [{name, holder}] and
+// purses: [{holder, coin}]. These courts are PRESENCE-based: an empty
+// array is the caller attesting the ledger is empty, so legality binds;
+// an absent key (bare-context callers) leaves shape and counting law
+// only. The record consulted is the PRE-TURN record: a thing added this
+// turn may not also be transferred this turn through the door.
+const ITEM_KINDS = new Set(['weapon','tool','keepsake','treasure','document']);
+const canonKey = (value) => String(value ?? '').trim().toLowerCase();
+function validateTrove(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const adds = story.item_add, moves = story.item_transfer, drops = story.item_remove;
+  if ((adds === undefined || adds === null) && (moves === undefined || moves === null) && (drops === undefined || drops === null)) return;
+  const carried = Array.isArray(context.trove);
+  const heldNames = new Map();
+  if (carried) for (const item of context.trove) {
+    if ((item?.status ?? 'held') === 'held') heldNames.set(canonKey(item?.name), canonKey(item?.holder));
+  }
+  if (adds !== undefined && adds !== null) {
+    assert(Array.isArray(adds), 'item_add must be an array', errors);
+    const seen = new Set();
+    for (const add of Array.isArray(adds) ? adds : []) {
+      assert(cleanText(add?.name, 60) && String(add.name).trim().length >= 3, 'item_add.name must be 3-60 chars', errors);
+      assert(ITEM_KINDS.has(add?.kind), 'item_add.kind invalid', errors);
+      assert(cleanText(add?.holder, 60), 'item_add.holder invalid', errors);
+      if (add?.note !== undefined && add?.note !== null) assert(cleanText(add.note, 90), 'item_add.note invalid', errors);
+      noUnknown(add, new Set(['name','kind','holder','note']), 'story.item_add', errors);
+      const key = canonKey(add?.name);
+      assert(!heldNames.has(key), `item_add duplicates a held thing: ${add?.name}`, errors);
+      assert(!seen.has(key), 'item_add repeats a name within the turn', errors);
+      seen.add(key);
+    }
+  }
+  if (moves !== undefined && moves !== null) {
+    assert(Array.isArray(moves), 'item_transfer must be an array', errors);
+    for (const move of Array.isArray(moves) ? moves : []) {
+      assert(cleanText(move?.name, 60) && String(move.name).trim().length >= 3, 'item_transfer.name must be 3-60 chars', errors);
+      assert(cleanText(move?.from, 60), 'item_transfer.from invalid', errors);
+      assert(cleanText(move?.to, 60), 'item_transfer.to invalid', errors);
+      assert(canonKey(move?.from) !== canonKey(move?.to), 'item_transfer.from and .to must differ', errors);
+      noUnknown(move, new Set(['name','from','to']), 'story.item_transfer', errors);
+      if (carried) assert(heldNames.get(canonKey(move?.name)) === canonKey(move?.from), `item_transfer moves a thing the record does not place in ${move?.from}'s hand: ${move?.name}`, errors);
+    }
+  }
+  if (drops !== undefined && drops !== null) {
+    assert(Array.isArray(drops), 'item_remove must be an array', errors);
+    for (const drop of Array.isArray(drops) ? drops : []) {
+      assert(cleanText(drop?.name, 60) && String(drop.name).trim().length >= 3, 'item_remove.name must be 3-60 chars', errors);
+      assert(cleanText(drop?.holder, 60), 'item_remove.holder invalid', errors);
+      if (drop?.reason !== undefined && drop?.reason !== null) assert(cleanText(drop.reason, 90), 'item_remove.reason invalid', errors);
+      noUnknown(drop, new Set(['name','holder','reason']), 'story.item_remove', errors);
+      if (carried) assert(heldNames.get(canonKey(drop?.name)) === canonKey(drop?.holder), `item_remove takes a thing the record does not place in ${drop?.holder}'s hand: ${drop?.name}`, errors);
+    }
+  }
+  const total = (Array.isArray(adds) ? adds.length : 0) + (Array.isArray(moves) ? moves.length : 0) + (Array.isArray(drops) ? drops.length : 0);
+  assert(total <= 3, `at most three item operations per turn across add, transfer, and remove (received ${total})`, errors);
+}
+// THE OVERDRAFT LAW: the Dungeon Master may not spend coin a soul does
+// not hold. When the context carries purse state the court folds the
+// turn's own movements sequentially — the second is judged against the
+// balance the first left — and any dip below zero is refused by name.
+// The reducer clamps at zero regardless (story.js), so even a turn that
+// reached the fold purse-blind cannot mint negative coin.
+function validatePurse(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const moves = story.purse;
+  if (moves === undefined || moves === null) return;
+  assert(Array.isArray(moves) && moves.length <= 2, 'purse must be an array of at most 2', errors);
+  const carried = Array.isArray(context.purses);
+  const balances = new Map();
+  if (carried) for (const entry of context.purses) balances.set(canonKey(entry?.holder), Math.trunc(Number(entry?.coin) || 0));
+  for (const move of Array.isArray(moves) ? moves : []) {
+    assert(cleanText(move?.holder, 60), 'purse.holder invalid', errors);
+    assert(Number.isInteger(move?.delta) && move.delta !== 0 && move.delta >= -999 && move.delta <= 999, 'purse.delta must be a non-zero integer between -999 and 999', errors);
+    assert(cleanText(move?.reason, 90) && String(move.reason).trim().length >= 3, 'purse.reason must be 3-90 chars', errors);
+    noUnknown(move, new Set(['holder','delta','reason']), 'story.purse', errors);
+    if (carried && Number.isInteger(move?.delta)) {
+      const key = canonKey(move?.holder);
+      const held = balances.get(key) ?? 0;
+      assert(held + move.delta >= 0, `purse would overdraw ${move?.holder}: holds ${held}, delta ${move.delta}`, errors);
+      balances.set(key, Math.max(0, held + move.delta));
+    }
+  }
+}
+
 // context — the codex snapshot the turn is judged against, threaded by every
 // caller (client turn path, server repair-retry path, evals). Taken BEFORE
 // this turn's story updates apply, so a soul may speak its dying words in the
@@ -54,7 +140,11 @@ function noUnknown(object, allowed, path, errors) {
 //   context.cast: [{ name, status }] — the sealed cast at the turn's start.
 export function validateDmTurn(payload, entropyPool = [], context = {}) {
   const errors = [];
-  if (payload && typeof payload === 'object') validateThreads(payload.story, context, errors);
+  if (payload && typeof payload === 'object') {
+    validateThreads(payload.story, context, errors);
+    validateTrove(payload.story, context, errors);
+    validatePurse(payload.story, context, errors);
+  }
   assert(payload && typeof payload === 'object' && !Array.isArray(payload), 'payload must be an object', errors);
   if (!payload || typeof payload !== 'object') return { ok: false, errors };
   noUnknown(payload, ALLOWED_KEYS, 'dm_turn', errors);

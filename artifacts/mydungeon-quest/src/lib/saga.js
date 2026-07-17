@@ -61,7 +61,11 @@ export async function openNextVolume(campaign, { years = 3, spineId = null, seal
   const sealedPacket = [...journal].reverse().find((row) => row.type === 'legacy')?.payload || null;
   const packet = sealedPacket || legacyPacketOf(campaign);
   const spine = spineId || campaign.spineId || 'classic-epic';
-  const { codex: opened, saga } = openNextTale({ packet, spineId: spine });
+  // THE POSSESSIONS CUT: the hero walks on carrying the forge keepsake, so
+  // the next volume's codex seeds the same trove row the journal will
+  // replay — working memory and record agree at the first word of every
+  // volume, not only the first.
+  const { codex: opened, saga } = openNextTale({ packet, spineId: spine, seed: campaign.hero?.keepsake ? { keepsake: { name: campaign.hero.keepsake, holder: campaign.hero.name } } : {} });
 
   const next = {
     id: crypto.randomUUID(),

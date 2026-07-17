@@ -74,6 +74,14 @@ function pushFact(list, fact) {
 
 export function initCodex(spineId, seed = {}) {
   const spine = getSpine(spineId);
+  // THE POSSESSIONS CUT (Directive VI): the forge keepsake is the lawful
+  // trove seed — cited to turn zero, carried from the forge. troveOf reads
+  // the same truth from the hero sheet, so journal and working memory
+  // agree from the first word. No keepsake, no seed: an empty trove is an
+  // absence honestly recorded, never a defect.
+  const keepsake = seed.keepsake && String(seed.keepsake.name || '').trim()
+    ? [{ name: clean(seed.keepsake.name, 60), kind: 'keepsake', holder: clean(seed.keepsake.holder, 60), note: null, status: 'held', since: 0, moved: 0 }]
+    : [];
   return {
     version: 1,
     spine: structuredClone(spine),
@@ -86,6 +94,8 @@ export function initCodex(spineId, seed = {}) {
     blight: 0,
     notes: [],
     threads: [],
+    trove: keepsake,
+    purses: [],
     completed: false
   };
 }
@@ -227,6 +237,79 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     open.status = close.outcome; open.outcome = close.outcome;
   }
 
+  // THE POSSESSIONS CUT (Directive VI) — named things and per-holder coin
+  // as sealed operations. The reducer is the canon guard: at most three
+  // item operations a turn (adds, then transfers, then removes), at most
+  // two purse movements; a duplicate held name, a movement from a hand the
+  // record does not show, and an overdraft are refused with notes — and
+  // the clamp holds even for a turn that reached this fold purse-blind.
+  const ITEM_KINDS = ['weapon', 'tool', 'keepsake', 'treasure', 'document'];
+  next.trove = next.trove || [];
+  next.purses = next.purses || [];
+  const heldThing = (name) => next.trove.find((item) => canonName(item.name) === canonName(name) && item.status === 'held');
+  const stamp = Number.isInteger(meta.turn) ? meta.turn : null;
+  let itemBudget = 3;
+  for (const add of updates.item_add || []) {
+    if (itemBudget <= 0) break;
+    itemBudget -= 1;
+    const name = clean(add?.name, 60);
+    if (!name) continue;
+    if (heldThing(name)) {
+      next.notes.push(`Duplicate held thing blocked: ${name}.`);
+      continue;
+    }
+    next.trove.push({
+      name, kind: ITEM_KINDS.includes(add?.kind) ? add.kind : 'keepsake',
+      holder: clean(add?.holder, 60), note: add?.note ? clean(add.note, 90) : null,
+      status: 'held', since: stamp, moved: stamp
+    });
+  }
+  for (const move of updates.item_transfer || []) {
+    if (itemBudget <= 0) break;
+    itemBudget -= 1;
+    const item = heldThing(move?.name);
+    const to = clean(move?.to, 60);
+    if (!item || !to || canonName(item.holder) !== canonName(move?.from) || canonName(move?.from) === canonName(to)) {
+      next.notes.push(`Unlawful transfer blocked: ${clean(move?.name, 60) || 'an unnamed thing'} does not sit in the stated hand.`);
+      continue;
+    }
+    item.holder = to;
+    item.moved = stamp;
+  }
+  for (const drop of updates.item_remove || []) {
+    if (itemBudget <= 0) break;
+    itemBudget -= 1;
+    const item = heldThing(drop?.name);
+    if (!item || canonName(item.holder) !== canonName(drop?.holder)) {
+      next.notes.push(`Unlawful remove blocked: ${clean(drop?.name, 60) || 'an unnamed thing'} does not sit in the stated hand.`);
+      continue;
+    }
+    item.status = 'gone';
+    item.moved = stamp;
+    item.reason = drop?.reason ? clean(drop.reason, 90) : null;
+  }
+  for (const move of (updates.purse || []).slice(0, 2)) {
+    const holder = clean(move?.holder, 60);
+    const delta = Math.trunc(Number(move?.delta) || 0);
+    const reason = clean(move?.reason, 90);
+    if (!holder || !delta || !reason) {
+      next.notes.push('Unlawful purse movement blocked: holder, delta, and reason are all required.');
+      continue;
+    }
+    let purse = next.purses.find((entry) => canonName(entry.holder) === canonName(holder));
+    if (!purse) {
+      purse = { holder, coin: 0 };
+      next.purses.push(purse);
+    }
+    const target = purse.coin + delta;
+    if (target < 0) {
+      next.notes.push(`The purse of ${holder} cannot fall below zero — clamped (held ${purse.coin}, asked ${delta}) at "${reason}".`);
+      purse.coin = 0;
+    } else {
+      purse.coin = target;
+    }
+  }
+
   const world = updates.world;
   if (world) {
     next.blight = clamp(next.blight + (world.blight_delta || 0), 0, 5);
@@ -281,6 +364,8 @@ export function storyBlock(codex) {
     open_threads: (codex.threads || []).filter((thread) => thread.status === 'open').slice(0, 6)
       .map((thread) => `${thread.label} (${thread.kind}${thread.holder ? `, held by ${thread.holder}` : ''})`),
     threads_state: (codex.threads || []).map(({ label, status }) => ({ label, status })),
+    trove_state: (codex.trove || []).filter((item) => item.status === 'held').map(({ name, holder }) => ({ name, holder })),
+    purse_state: (codex.purses || []).map(({ holder, coin }) => ({ holder, coin })),
     directives: [
       ...(codex.completed ? ['The tale is sealed. Write nothing new; if asked, speak only a closing line.'] : []),
       ...(sealing ? ['SEAL THE TALE — the player has chosen to end with honor. These are denouement turns: quiet and combat-free; no new cast, no new threads; resolve what stands, let farewells be spoken, and bring the road home. If a cinematic is due, let it be the ending the tale has earned (victory, death, or bittersweet).'] : []),

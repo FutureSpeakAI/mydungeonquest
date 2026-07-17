@@ -8,11 +8,13 @@
 
 **One new keyless gate, one stricter court.** `firstWord` (gates 93 → 94) drives the real sequencer through 25 deterministically-jittered rounds against an ordered request ledger — the pour leads every one — plus snagged, silent, and fallen lanes, and renders the app's own turn group mid-paint to prove a late plate slots BELOW its words, byte-for-byte untouched, wearing no entrance animation. G5 gained the wire ledger (every /api/dm and /api/paint at initiation), a forge-lane drain before the tap (iteration 54C.3 caught a preview straggler reading as a false paint — the court's defect, not the cure's), the ABSOLUTE first-word law (no paint of any lane between tap and dm), a pinned first-byte bound (12s ≈ 48× the solo median, 2.5× tighter than the 30s window it always owned), and an easel-settled re-read of the order law over the live feed.
 
-*Gates 93 → 94 as enrolled here. The loop ran .1 ✓ .2 ✓ .3 ✗ .4 ✓ at a
-ceiling of four — three greens, not three CONSECUTIVE; the sole red was
-the court instrumentation amended above. LOOP_LOG.md and
-test-results/report-54C.md say so plainly; the closing ruling is the
-owner's.*
+*Gates 93 → 94 as enrolled here. The original ceiling was four and ran
+.1 ✓ .2 ✓ .3 ✗ .4 ✓ (the sole red: the court's own instrumentation,
+amended stricter); the house granted .5–.7 by ruling under THE
+EXTENSION LAW — verification window, code freeze, one strike — and the
+loop CLOSED GREEN on three consecutive fully green runs inside it,
+61/61 courts each. LOOP_LOG.md and test-results/report-54C.md carry
+the whole record.*
 
 ## 0.6.4 — The Honest Instrument
 

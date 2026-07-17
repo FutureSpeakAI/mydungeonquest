@@ -1,25 +1,26 @@
 # Build status
 
 ## 0.6.5 — The First Word (2026-07-17, Task 54C)
-- AT CEILING, NOT SELF-CLOSED: iterations ran .1 GREEN, .2 GREEN,
-  .3 RED, .4 GREEN (61/61 courts each green run, zero skips) at the
-  four-iteration ceiling. Three greens of four; the three-CONSECUTIVE
-  close was not met. The sole red was the court's own new wire
-  assertion misreading a forge preview straggler as a genesis paint —
-  the cure was never implicated (that run's first byte was ~250ms).
-  The court was amended stricter: forge lane drained before the tap,
-  the first-word law absolute, violators named by lane.
+- CLOSED GREEN under THE EXTENSION LAW (first application): the
+  original ceiling of four ran .1 ✓ .2 ✓ .3 ✗ .4 ✓ — the sole red was
+  the court's own wire assertion misreading a forge preview straggler
+  as a genesis paint (the cure was never implicated; that run's first
+  byte was ~250ms), amended stricter: forge lane drained before the
+  tap, the first-word law absolute, violators named by lane. The house
+  granted .5–.7 by ruling; all three ran GREEN, 61/61 courts, zero
+  skips — three consecutive fully green runs inside the window, under
+  code freeze, one strike never invoked.
 - The cure holds at both genesis doors: dm on the wire +90–203ms after
   Begin across four solo runs (+288–535ms contended), first genesis
   paint trailing the pour by ~10–15ms, first narration byte at the
   250ms sampling floor every run, against 21.5s solo / >30s contended
   before. 94 keyless gates (firstWord is the +1); pinned first-byte
   bound 12s with stated headroom.
-- UNBANKED BY THE LOOP (architect round: FAIL → three cures applied;
-  validated by firstWord + arrival + solo G5; awaiting an owner-granted
-  iteration): the queueMedia meter settles once per call as a delta
-  after all lanes settle; the prologue delta merges unconditionally;
-  the sequencer contains synchronously-falling pours.
+- The architect round (FAIL → three cures: the queueMedia meter
+  settles once per call as a delta after all lanes settle; the
+  prologue delta merges unconditionally; the sequencer contains
+  synchronously-falling pours) is BANKED — the cures ran under all
+  three extension iterations.
 
 ## 0.6.4 — The Honest Instrument (2026-07-17, Task 54B)
 - CLOSED GREEN: iterations 54B.3–54B.5 ran three consecutive greens,

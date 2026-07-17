@@ -44,3 +44,19 @@ description: What a 25-iteration vision-judged e2e loop taught about paint-promp
 - **PASS-count pins must be measured with the gate's own regex.** The gate counted `\bPASS\b` tokens in stdout; table cells like `canonIntegrity 'PASS'` count too, so `grep -c '^PASS'` undercounts by six and the pin looks wrong when it's true. Reproduce the gate's exact count (regex AND stream AND env-strip) before touching a pin.
 - **A door gaining a stage breaks every eval that scripts the old door's answers.** Fail-closed two-stage looks drain old single-answer pass scripts to the floor — they now stumble at stage one. After changing a door contract, sweep evals for SCRIPTED PROVIDER ANSWERS (not just pins) and teach the scripts the new stage.
 - **Threshold-straddling latency bars flip with suite load — split transport from source before blaming either.** A first-byte bar at 30s over a ~21s path passes cached-store suites and fails full-repaint suites. The named-phase assertion split (first byte vs growth) plus an out-of-band probe of the server pipe convicted the in-page leg in one iteration: the game queues the pour behind genesis media. A flapping latency bar is evidence about LOAD, not honesty — measure solo and contended before moving anything.
+
+## The extension law (standing, series-wide — granted first on 54C)
+A ceiling extension may be requested AT MOST ONCE per task, and only
+when the ledger qualifies: zero undiagnosed reds (every red carries a
+named root cause), zero open game defects, and the only unbanked work
+is verification of already-validated cures. It is a VERIFICATION
+window, never a cure window: code freeze for the whole span (game
+code, test code, question texts, fixtures — any needed edit voids the
+extension and the loop closes red as of the last pre-extension
+iteration), ONE STRIKE (any red closes the loop red immediately; no
+second extension, that task or any future one), replay/fresh law
+unchanged with REPLAY named in the run log, and the closing sentence
+still means three CONSECUTIVE fully green runs — now inside the
+window. A 3-of-4 record is an honest red, never a discounted green.
+The record must name the original ceiling, the ruling, and the streak.
+Authoritative text: THE EXTENSION LAW entry in the repo's LOOP_LOG.md.

@@ -1143,3 +1143,49 @@ delta unconditionally (a refused anchor still cost its mint); the
 sequencer contains a pour that throws at the very door (the firstWord
 gate grew that case). Validated by firstWord + arrival + a solo G5.
 Full report: test-results/report-54C.md.
+
+### THE EXTENSION LAW — standing ruling of the house (2026-07-17)
+Granted first on 54C and pinned as precedent for the series: a ceiling
+extension may be requested AT MOST ONCE per task, and is lawful only
+when the ledger qualifies — zero undiagnosed reds (every red carries a
+named root cause), zero open game defects, and the only unbanked work
+is verification of cures already validated. An extension is a
+VERIFICATION window, never a cure window. Its terms, always:
+- CODE FREEZE for the whole span — no game code, no test code, no
+  question texts, no fixtures. If any edit proves necessary, the
+  extension is void and the loop closes red as of its last
+  pre-extension iteration.
+- ONE STRIKE — any extension iteration red, for any reason: stop
+  immediately, close red, report. No second extension, that task or
+  any future one.
+- The cache-freshness law governs unchanged: replay where law is
+  unchanged, fresh where it moved, REPLAY named in the run log.
+- The closing sentence keeps its meaning: three CONSECUTIVE fully
+  green runs are the only definition of closed; a 3-of-4 record is an
+  honest red, never a discounted green.
+- The record tells it straight: the report names the original ceiling,
+  names the extension as granted by ruling, and shows the streak
+  inside the extension window; the changelog coda carries the same in
+  one line.
+
+### TASK 54C — EXTENSION GRANTED BY RULING (2026-07-17)
+The house granted 54C.5–.7 under THE EXTENSION LAW, first application.
+The ledger qualified: the sole red (.3) carries its named root cause
+(the court's own instrumentation, amended stricter), no open game
+defect remains, and the only unbanked work is the architect round's
+already-validated cures (the meter finalizer, the unconditional
+prologue delta, the at-the-door containment). THE FREEZE BEGINS AT
+THIS ENTRY — the shipped architect cures are the final bytes. Verdicts
+follow.
+
+### TASK 54C — LOOP CLOSED GREEN under THE EXTENSION LAW (2026-07-17)
+54C.5 GREEN (61/61, zero skips; REPLAY named in the run log). 54C.6
+GREEN (61/61). 54C.7 GREEN (61/61, all twelve projects, zero skips,
+zero flaky). Three consecutive fully green runs inside the granted
+window. The freeze held to the byte — the only file touched during
+the extension was this ledger, as the ruling itself ordered; one
+strike never invoked. The record tells it straight: the ORIGINAL
+ceiling was four and was not met (.1 ✓ .2 ✓ .3 ✗ .4 ✓); the extension
+was granted by ruling; the streak stands inside .5–.7. The architect
+round's cures are BANKED — they ran under all three extension
+iterations. Full report: test-results/report-54C.md.

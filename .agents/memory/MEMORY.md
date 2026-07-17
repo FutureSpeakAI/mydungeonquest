@@ -24,5 +24,5 @@
 - [Expo shell around the web house](expo-webview-shell.md) — WebView shell laws: door law fails OUTWARD by hostname (backslash trick!); no web arm (iframe preview); never a spinner.
 - [JSX text ignores \u escapes](jsx-unicode-escapes.md) — \u2019 etc. render literally in JSX text nodes; paste real characters there; only JS string contexts unescape.
 - [Engine folds resolve queues backwards](engine-backward-queues.md) — tail-first queue drains make same-pass duplicates resolve later-card-first; gate outcomes (one winner + named refusal + determinism), never intra-pass order.
-- [Proving-loop lessons](proving-loop.md) — poison words & listed nouns are paint orders; verdict needles must match real titles; replays are verbatim; probe plates with eyes; calibrate judge binaries to perfect separation, never drop a true pair.
+- [Proving-loop lessons](proving-loop.md) — poison words are paint orders; needles match real titles; replays verbatim; probe plates with eyes; calibrate to perfect separation; extensions once, frozen, one-strike.
 - [MyDungeon genesis first-word](mydungeon-first-word.md) — pours dispatch before ANY paint; parallel foundries merge meters as deltas, never absolutes; wire-order courts drain pre-genesis lanes first.

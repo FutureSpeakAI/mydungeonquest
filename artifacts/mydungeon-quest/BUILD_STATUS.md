@@ -1,5 +1,24 @@
 # Build status
 
+## 0.6.4 — The Honest Instrument (2026-07-17, Task 54B)
+- CLOSED GREEN: iterations 54B.3–54B.5 ran three consecutive greens,
+  61/61 courts each, at exactly the five-iteration ceiling. 93 keyless
+  gates held throughout (the magnifierEye gate is the +1). No floor,
+  threshold, or bar moved except through §2 calibration, ledgered in
+  LOOP_LOG.md (p2→p3→p4, perfect 13/13 separation at p4).
+- The magnified look is law at both doors (server warden and court
+  judge share `fatescript/magnifier` verbatim); G16 verdicts are three
+  forced binaries with scalar confidence demoted to a yellow-ledger
+  diagnostic; warden–judge mark agreement ran 5/5 with zero
+  contradictions across the loop.
+- NAMED RESIDUAL (game-side, reported not fixed — outside 54B's
+  sanction): the prologue pour queues behind genesis media (~21s solo,
+  over the 30s bar only under full-repaint contention) while the
+  out-of-band probe proves the server's first byte ≤417ms every
+  iteration. Evidence: test-results/report-54B.md §4. The cure belongs
+  to the game (pour first — the ratified presentation order already
+  says text → Listen → plate) under its own future sanction.
+
 ## 0.6.3 — The Terminal Answer (2026-07-17, Task 54)
 - TERMINAL: the proving loop spent its ceiling 6/6 RED — zero greens;
   the closing bar (three consecutive) was unreachable after 54.4's

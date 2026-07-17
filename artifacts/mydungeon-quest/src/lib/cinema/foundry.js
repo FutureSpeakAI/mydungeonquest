@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import { generationSpec, momentBrief, parseMoment, momentRuling } from './prompts.js';
 import { sha256 } from 'fatescript/canonical';
 import { wardenBrief, parseVerdict, mockWarden, wardenRuling } from 'fatescript/warden';
+import { parseMark } from 'fatescript/magnifier';
 import { unletteredBrief, parseUnlettered, unletteredRuling } from 'fatescript/unlettered';
 import { tollRefusal } from '../../patron/tollNotice.js';
 
@@ -202,14 +203,32 @@ export class Foundry {
         toDataUrl(anchorRow.blob, anchorRow.mime),
         toDataUrl(renderBlob, renderBlob.type),
       ]);
+      const kind = plan.kind || 'soul';
       const response = await fetch('/api/warden', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief: wardenBrief({ kind: plan.kind || 'soul', bearingText: plan.bearingText }), anchor, render }),
+        body: JSON.stringify({
+          brief: wardenBrief({ kind, bearingText: plan.bearingText }),
+          anchor, render,
+          // THE MAGNIFIED LOOK (TASK 54B §3): souls get the two-stage mark
+          // examination — head-and-shoulders box, sharp crop at the stated
+          // padding, one mark question on the crop alone. Places keep the
+          // single-look landmark clause in the brief itself.
+          ...(kind === 'soul' ? { magnify: true, mark: String(plan.bearingText || '').slice(0, 1200) } : {}),
+        }),
       });
       if (!response.ok) return mockWarden();
       const body = await response.json();
       if (body.floor) return mockWarden();
-      return parseVerdict(body.text || '');
+      const verdict = parseVerdict(body.text || '');
+      if (kind === 'soul') {
+        // The magnifier owns signature_present for souls. A missing, boxless,
+        // or stumbled magnifier answer is an honest not-proven — never a
+        // sighting (fail-closed at both doors alike).
+        const mag = body.magnifier;
+        verdict.signature_present = !!mag && mag.found === true && parseMark(mag.markText || '').mark_visible === true;
+        verdict.magnifier = { found: !!mag && mag.found === true, box: (mag && mag.box) || null };
+      }
+      return verdict;
     } catch { return mockWarden(); }
   }
 

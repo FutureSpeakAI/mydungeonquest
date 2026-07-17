@@ -30,6 +30,9 @@ const LAW_SOURCES = [
   path.join(GAME_ROOT, 'src', 'lib', 'cinema', 'foundry.js'),
   path.resolve(GAME_ROOT, '..', '..', 'packages', 'engine', 'src', 'unlettered.js'),
   path.resolve(GAME_ROOT, '..', '..', 'packages', 'engine', 'src', 'warden.js'),
+  // (54B §3) The magnifier IS the warden's eye now — its texts, padding,
+  // and clamp math are paint law; changing the instrument razes the store.
+  path.resolve(GAME_ROOT, '..', '..', 'packages', 'engine', 'src', 'magnifier.js'),
   // The book court reads captures OF the book — layout law changes must
   // raze them too, or a stale storybook.json testifies about old code.
   path.join(GAME_ROOT, 'src', 'lib', 'storybook.js'),

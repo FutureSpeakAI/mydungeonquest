@@ -34,10 +34,16 @@ export default defineConfig({
     { name: 'preflight', testMatch: /g00-preflight\.spec\.ts/, dependencies: ['check'] },
     { name: 'harvest', testMatch: /harvest\.spec\.ts/, dependencies: ['preflight'] },
     { name: 'dom', testMatch: /(g01|g02|g04|g05|g07|g12|g14|g15)-.*\.spec\.ts/, dependencies: ['harvest'] },
-    { name: 'g09-character', testMatch: /g09-character\.spec\.ts/, dependencies: ['harvest'] },
+    // (54B §2/§7) THE CALIBRATION PROBE (tooth 11) and THE MAGNIFIER TOOTH
+    // (tooth 12) sit BEFORE the courts they license: G16 may not sit until
+    // the binary instrument proved perfect separation on sealed pairs, and
+    // G9 may not sit until the magnifier told a markless control from the
+    // hero anchor. The ladder enforces the letter's order.
+    { name: 'calibration', testMatch: /calibration\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'g09-character', testMatch: /g09-character\.spec\.ts/, dependencies: ['calibration'] },
     { name: 'g10-environment', testMatch: /g10-environment\.spec\.ts/, dependencies: ['harvest'] },
     { name: 'g11-style', testMatch: /g11-style\.spec\.ts/, dependencies: ['harvest'] },
-    { name: 'g16-captions', testMatch: /g16-captions\.spec\.ts/, dependencies: ['harvest'] },
+    { name: 'g16-captions', testMatch: /g16-captions\.spec\.ts/, dependencies: ['calibration'] },
     { name: 'g17-framing', testMatch: /g17-framing\.spec\.ts/, dependencies: ['harvest'] },
     { name: 'g18-storybook', testMatch: /g18-storybook\.spec\.ts/, dependencies: ['harvest'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },

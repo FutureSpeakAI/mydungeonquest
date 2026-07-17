@@ -7,6 +7,7 @@ import {
 } from './lib/harvestManifest';
 import type { TopManifest, TopPlate } from './lib/harvestManifest';
 import { markLaw } from './lib/markLaw';
+import { magnifiedMark } from './lib/magnifier';
 
 // ============================================================
 // G9 — CHARACTER CONSTANCY, restated by TASK 53 Move One as a1–a4 (the
@@ -23,7 +24,13 @@ import { markLaw } from './lib/markLaw';
 //   a4  markless with NO signature-bearing attestation at all fails
 //       NAMING the attestation path — that red is reserved for silence.
 // This court reads only the harvest store. One judge call per hero scene
-// serves a2 and a3 — the vision cache binds them to the same verdict.
+// serves a2 — identity and presentation. (TASK 54B §3) The MARK is no
+// longer asked at full-plate distance anywhere: every mark examination
+// is THE MAGNIFIED LOOK — the same two-stage instrument the production
+// repaint warden holds (head-and-shoulders box, sharp crop at stated
+// padding, one mark question on the crop alone). Tooth 12 proves the
+// magnifier can tell a markless control from the hero anchor before
+// this court sits — the ladder enforces the order.
 // ============================================================
 
 const YELLOW_FILE = path.join(GAME_ROOT, 'test-results', 'yellow.ndjson');
@@ -49,34 +56,41 @@ function attestedSeenFor(m: TopManifest, hash: string): boolean {
   return rows.some((row: any) => row.payload?.assetHash === hash && row.payload?.warden && row.payload.warden.signature === true);
 }
 
-/** ONE call per hero-bearing plate, shared by a2 and a3 through the
- * deterministic judge cache (same id + same bytes = same verdict). */
+/** ONE call per hero-bearing plate for a2 — identity and presentation.
+ * (54B §3) mark_visible left this look for the magnified instrument;
+ * the protocol bump re-keys the cache lawfully (§4). */
 async function heroPlateVerdict(m: TopManifest, plate: TopPlate) {
   return judge({
     id: `g09-a2a3-${String(plate.assetHash).slice(0, 16)}`,
+    protocol: 'p2',
     criterion: 'g09-a2a3-hero-constancy',
     images: [topBytes(rolePlate(m, 'hero-anchor')), topBytes(plate)],
-    question: `Image 1 is the portrait anchor of the hero: a ${m.hero.presentation}-presenting figure whose distinguishing mark is "${m.hero.mark}" (a key-shaped burn scar). Image 2 is another plate of the same story. Answer: same_character — is the anchor's character present in image 2 (same face, hair, build, wardrobe language)? mark_visible — is the key-shaped burn mark visible on that character in image 2? presentation_matches — does the character's gender presentation in image 2 match image 1?`,
-    schema: { same_character: 'boolean', mark_visible: 'boolean', presentation_matches: 'boolean', confidence: 'number 0..1' }
+    question: `Image 1 is the portrait anchor of the hero: a ${m.hero.presentation}-presenting figure. Image 2 is another plate of the same story. Answer: same_character — is the anchor's character present in image 2 (same face, hair, build, wardrobe language)? presentation_matches — does the character's gender presentation in image 2 match image 1?`,
+    schema: { same_character: 'boolean', presentation_matches: 'boolean', confidence: 'number 0..1' }
   });
 }
 
-test('G9 a1: the mark is HARD law at portrait distance', async () => {
+/** The one mark text, quoted identically at every distance. */
+function heroMarkText(m: TopManifest): string {
+  return `"${m.hero.mark}" (a burn scar in the shape of a key)`;
+}
+
+test('G9 a1: the mark is HARD law at portrait distance — under the magnified look', async () => {
   test.setTimeout(300_000);
   const m = preflightManifest('g09-character');
   for (const role of ['hero-anchor', 'hero-bust-fixture']) {
     const plate = rolePlate(m, role);
-    const verdict = await judge({
-      id: `g09-a1-${role}-${String(plate.assetHash).slice(0, 12)}`,
+    const look = await magnifiedMark({
+      bytes: topBytes(plate),
+      markText: heroMarkText(m),
+      idSeed: `g09-a1-${role}-${String(plate.assetHash).slice(0, 12)}`,
       criterion: 'g09-a1-mark-at-portrait-distance',
-      images: [topBytes(plate)],
-      question: `This is a bust portrait of a hero whose distinguishing mark is "${m.hero.mark}" (a burn scar in the shape of a key). Is that mark clearly visible on the figure?`,
-      schema: { mark_visible: 'boolean', confidence: 'number 0..1' }
     });
-    expect(verdict.mark_visible, `${role} must wear the mark at portrait distance: ${JSON.stringify(verdict)}`).toBe(true);
-    expect(Number(verdict.confidence), `${role} mark confidence`).toBeGreaterThanOrEqual(0.75);
-    noteNear(`g09-a1-${role}`, Number(verdict.confidence), 0.75, 'min');
-    noteLowConfidence(`g09-a1-${role}`, Number(verdict.confidence));
+    expect(look.found, `${role}: the magnifier must box a head and shoulders on a bust portrait`).toBe(true);
+    expect(look.mark_visible, `${role} must wear the mark under the magnified look: ${JSON.stringify(look)}`).toBe(true);
+    expect(look.confidence, `${role} mark confidence (stage two)`).toBeGreaterThanOrEqual(0.75);
+    noteNear(`g09-a1-${role}`, look.confidence, 0.75, 'min');
+    noteLowConfidence(`g09-a1-${role}`, look.confidence);
   }
 });
 
@@ -114,15 +128,23 @@ test('G9 a3/a4: at scene distance the mark is visible OR its lack is attested �
     const bytes = topBytes(plate);
     const hash = sha256Hex(bytes);
     expect(hash, `content address holds for ${plate.file}`).toBe(plate.assetHash);
-    const verdict = await heroPlateVerdict(m, plate);
+    // (54B §3) The court's mark examination is THE MAGNIFIED LOOK — the
+    // same two-stage instrument the production warden holds. The identity
+    // look (a2's call) no longer answers for the mark.
+    const look = await magnifiedMark({
+      bytes,
+      markText: heroMarkText(m),
+      idSeed: `g09-a3-mag-${String(plate.assetHash).slice(0, 12)}`,
+      criterion: 'g09-a3-magnified-mark',
+    });
     const ruling = markLaw({
       plate: plate.file,
       assetHash: hash,
-      markVisible: verdict.mark_visible === true,
+      markVisible: look.mark_visible === true,
       attestedLack: attestedLackFor(m, hash),
       attestedSeen: attestedSeenFor(m, hash),
     });
-    rulings.push({ plate: plate.file, mark_visible: verdict.mark_visible, ruling: ruling.verdict });
+    rulings.push({ plate: plate.file, boxed: look.found, mark_visible: look.mark_visible, ruling: ruling.verdict });
     if (ruling.verdict === 'yellow') {
       fs.appendFileSync(YELLOW_FILE, JSON.stringify({
         at: new Date().toISOString(), criterion: 'g09-a3-warden-disagreement', plate: plate.file, note: ruling.note

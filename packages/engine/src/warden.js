@@ -31,17 +31,30 @@ const clean = (value, cap = 80) => String(value ?? '').replace(/\s+/g, ' ').trim
 
 // The brief the vision judge receives, beside two images: the blessed
 // anchor first, the new render second. Identity travels verbatim.
+// (TASK 54B §3) For SOULS the distinguishing feature is no longer asked
+// at full-scene distance: THE MAGNIFIED LOOK owns it — stage one boxes
+// the head and shoulders, stage two asks the mark question on a sharp
+// crop alone (see magnifier.js; the proving court holds the identical
+// instrument). Places keep the single-look landmark clause: geography
+// has no head and shoulders to box.
 export function wardenBrief({ kind = 'soul', bearingText = '' } = {}) {
   const subject = kind === 'soul' ? 'person — exact facial features, age band, and build' : 'place — exact geography, structures, and landmarks';
-  return [
+  const lines = [
     'You are the Warden. IMAGE 1 is the blessed anchor. IMAGE 2 is a new render.',
     `Judge whether they show the same ${subject}.`,
     `The locked identity, verbatim: ${String(bearingText || '').trim()}`,
-    '"signature_present" means: the specific distinguishing feature named in the locked identity (a mark, scar, device, or landmark) is CLEARLY visible in IMAGE 2 at this render\u2019s distance — unmistakable, not merely hinted. If you are not certain it is visible, answer false. It does NOT mean an artist\u2019s signature, lettering, or any text — painted text is a defect, never a signature.',
+  ];
+  if (kind !== 'soul') {
+    lines.push('"signature_present" means: the specific distinguishing feature named in the locked identity (a mark, scar, device, or landmark) is CLEARLY visible in IMAGE 2 at this render\u2019s distance — unmistakable, not merely hinted. If you are not certain it is visible, answer false. It does NOT mean an artist\u2019s signature, lettering, or any text — painted text is a defect, never a signature.');
+  }
+  lines.push(
     '"contains_text_or_watermark" means: any rendered lettering, words, numerals, calligraphy, runes, rows of glyphs, an inscription, an artist\u2019s signature or monogram, a watermark, or a logo is visible anywhere in IMAGE 2 — decorative or legible alike (THE UNLETTERED WORLD).',
     'Answer with ONLY this JSON, nothing else:',
-    '{"same": true|false, "confidence": 0.0-1.0, "signature_present": true|false, "contains_text_or_watermark": true|false, "drift": ["short notes on what differs, if anything"]}'
-  ].join(' ');
+    kind !== 'soul'
+      ? '{"same": true|false, "confidence": 0.0-1.0, "signature_present": true|false, "contains_text_or_watermark": true|false, "drift": ["short notes on what differs, if anything"]}'
+      : '{"same": true|false, "confidence": 0.0-1.0, "contains_text_or_watermark": true|false, "drift": ["short notes on what differs, if anything"]}'
+  );
+  return lines.join(' ');
 }
 
 // A tolerant reader for an intolerant world: fenced, chattered-around,
@@ -104,7 +117,9 @@ export function wardenRuling(verdict, { attempt = 1 } = {}) {
   if (!verdict.signature_present) {
     return attempt < 2
       ? { action: 'repaint', notes: ['same soul, but the distinguishing feature named in the locked identity is not visible — make that feature clearly visible. Never add lettering, an artist\u2019s signature, or text of any kind. Change nothing else: hold the blessed anchor\u2019s exact face, age, hair, and build — the feature returns, the person does not change.'], attest: null }
-      : { action: 'pass', notes: [], attest: { warden: 'passed', confidence: verdict.confidence, signature: false } };
+      : { action: 'pass', notes: [], attest: { warden: 'passed', confidence: verdict.confidence, signature: false, ...(verdict.magnifier ? { magnifier: verdict.magnifier } : {}) } };
   }
-  return { action: 'pass', notes: [], attest: { warden: 'passed', confidence: verdict.confidence, signature: true } };
+  // (TASK 54B §3) When the magnified look answered, its box rides the
+  // attestation — the sealed record shows WHERE the warden looked.
+  return { action: 'pass', notes: [], attest: { warden: 'passed', confidence: verdict.confidence, signature: true, ...(verdict.magnifier ? { magnifier: verdict.magnifier } : {}) } };
 }

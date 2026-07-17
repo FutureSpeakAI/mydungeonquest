@@ -7,6 +7,7 @@ import type { PlateEntry } from './lib/harness';
 import { GAME_ROOT, histogramDelta, judge } from './lib/vision';
 import { checkFeedOrder } from './lib/feedOrder';
 import { JUDGE_PROJECTS, doctorFirstNeed, doctorRefusedNeed, loadTopManifest, preflightManifest } from './lib/harvestManifest';
+import { binaryVerdict } from './lib/binaryVerdict';
 import { markLaw } from './lib/markLaw';
 import { classifyAttestations, waitForResolutions } from './lib/terminality';
 
@@ -71,14 +72,17 @@ test('tooth 3: a text-bearing page is seen as text-bearing', async ({ page }) =>
 
 test('tooth 4: the false caption is refused', async () => {
   test.setTimeout(180_000);
+  // (54B §1) The caption court speaks the binary protocol now; its tooth
+  // bites in the same tongue — the false caption must fail the conjunction.
   const plate = need('fixture', (e) => e.klass === 'region' && !String(e.cacheKey || '').startsWith('proving:'), 'Vale establishing plate');
-  const verdict = await judge({
-    id: 'sabotage-4-false-caption', criterion: 'sabotage-4',
-    images: [plate],
-    question: 'Does this caption plausibly describe this image: "Corin Voss duels atop a burning bell tower at midnight"?',
-    schema: { caption_plausible: 'boolean', confidence: 'number 0..1' }
+  const outcome = await binaryVerdict({
+    kind: 'caption',
+    prose: 'Corin Voss duels atop a burning bell tower at midnight',
+    bytes: plate,
+    idSeed: 'sabotage-4-false-caption',
+    criterion: 'sabotage-4',
   });
-  expect(verdict.caption_plausible, `the tooth must bite: ${JSON.stringify(verdict)}`).toBe(false);
+  expect(outcome.pass, `the tooth must bite — a false caption cannot pass the three binaries: ${JSON.stringify(outcome)}`).toBe(false);
 });
 
 test('tooth 5: the beheaded portrait is seen as cropped', async () => {

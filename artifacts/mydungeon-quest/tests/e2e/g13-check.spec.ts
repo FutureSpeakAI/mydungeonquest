@@ -12,7 +12,10 @@ import { GAME_ROOT } from './lib/vision';
 // "gates enrolled" prose ledger (a different basis, abandoned by 0.6.2);
 // 91 is the MEASURED keyless PASS-line tail at Task 53's close — the
 // only auditable basis — and Task 54's poison-sweep gate is the +1.
-const PINNED_PASS_COUNT = 92;
+// 92 → 93 (TASK 54B §3): the warden-eye gate — the magnified look's
+// byte-stable pipeline and its refusal/attestation notes — joins the
+// keyless check in the same commit that changes the warden.
+const PINNED_PASS_COUNT = 93;
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

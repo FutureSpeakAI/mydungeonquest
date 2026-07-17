@@ -36,9 +36,17 @@ test('G5 the prologue streams and the loop turns', async ({ page }) => {
     await page.waitForTimeout(250);
   }
   await page.waitForSelector('main.adventure-log .turn-entry .narration', { timeout: 60_000 });
+  // (54B §5) The 54.6 stall — twelve all-zero samples — could not say
+  // WHICH half died: transport (no first byte) or growth (a stream that
+  // starts and freezes). The assertion is SPLIT so a red names its phase.
+  // The bound is the window the criterion always owned (120 × 250ms);
+  // neither half is softer than the old law — together they imply it.
+  const firstByteIndex = samples.findIndex((length) => length > 0);
+  console.log(`[g05] first narration byte at sample ${firstByteIndex} (~${firstByteIndex * 250}ms of ${samples.length * 250}ms sampled)`);
+  expect(firstByteIndex, `§5 first byte: narration must begin inside the sampling window (head=${samples.slice(0, 12).join(',')})`).toBeGreaterThanOrEqual(0);
   let rises = 0;
   for (let i = 1; i < samples.length; i += 1) if (samples[i] > samples[i - 1]) rises += 1;
-  expect(rises, `narration length rose across samples (saw ${rises} rises; head=${samples.slice(0, 12).join(',')})`).toBeGreaterThanOrEqual(3);
+  expect(rises, `§5 growth: narration length rose across samples (saw ${rises} rises; head=${samples.slice(0, 12).join(',')})`).toBeGreaterThanOrEqual(3);
 
   // Suggestions — at least three roads offered.
   await page.waitForSelector('.suggestions button', { timeout: 120_000 });

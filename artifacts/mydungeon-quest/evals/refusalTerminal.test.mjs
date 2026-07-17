@@ -86,7 +86,13 @@ const textSighting = { text: '{"same": true, "confidence": 0.9, "signature_prese
 // 4. THE LANE ADVANCES — refusal is terminal, not a wedge: the next
 // queued job paints, passes, and lands on the shelf.
 {
-  wardenScript = [{ text: '{"same": true, "confidence": 0.92, "signature_present": true, "contains_text_or_watermark": false, "drift": []}' }];
+  // (54B §3) A soul's mark is proven by the magnified look now — the
+  // scripted door answers stage one and stage two, or the pass would
+  // lawfully spend its repaint chasing the unproven mark.
+  wardenScript = [{
+    text: '{"same": true, "confidence": 0.92, "contains_text_or_watermark": false, "drift": []}',
+    magnifier: { found: true, box: { left: 10, top: 10, width: 56, height: 70 }, markText: '{"mark_visible": true, "confidence": 0.9}' },
+  }];
   const row = await forge.enqueue(job('k-after'));
   assert.equal(row?.warden?.warden, 'passed', 'the very next job ships judged');
   assert.equal(await db.media.where('cacheKey').equals('k-after').count(), 1, 'and its row lands on the shelf');

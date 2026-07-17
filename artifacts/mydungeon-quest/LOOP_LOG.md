@@ -998,3 +998,122 @@ dispositions:
 No re-run follows: the ceiling is spent (6/6), and the restored law
 makes the final state STRICTER than the law 54.6 ran under — the
 terminal verdict (RED, loop not closed) only deepens.
+
+## TASK 54B — THE HONEST INSTRUMENT (2026-07-17)
+
+Mandate: fix the proving INSTRUMENTS; Task 54's restored law is
+RATIFIED — no lane widens, no floor moves except by sanctioned
+calibration. Store note: warden.js changed and magnifier.js joined
+LAW_SOURCES, so the paint-law hash turns — iteration 54B.1 razes the
+harvest and repaints in full, lawfully.
+
+Test-law edits, each named (standing rule):
+1. §4 lib/vision.ts — judge() carries a question `protocol` in its
+   cache signature (default p1); REPLAY/FRESH announced per look and
+   tallied per criterion into the verdict JSON. Amending a question is
+   now ONE lawful re-judge, never a silent cache bypass.
+2. §1 fixtures/binary-questions.json — the three binary questions
+   (moment/page/caption), protocol p2, sealed at sha256 3ee3c48e….
+   lib/binaryVerdict.ts asks them; the echo law (the named element must
+   come from the text) is a validity component of element_present.
+3. §1 g16-captions.spec.ts — G16a/b/c verdicts are now the conjunction
+   of three forced binaries; scalar confidence is a yellow-ledger
+   diagnostic and DECIDES NOTHING; misses name the false binary.
+   Sanctioned REPLACEMENT of the scalar floors (§1), not a weakening —
+   and the 0.62 stock hedge that decided 54.6's G16a red is out of the
+   courtroom.
+4. §1 sabotage tooth 4 — the false caption must now FAIL the binary
+   conjunction (the same instrument as the court it tests).
+5. §3 packages/engine/src/magnifier.js NEW + warden.js soul/place brief
+   split + server /api/warden two-stage look (box → sharp crop at the
+   stated 0.25 padding → one mark question on the crop alone; every
+   real look debited) + foundry composition fail-closed (boxless,
+   stumbled, or absent is never a sighting; the box rides the attest).
+6. §3 g09-character.spec.ts — a1 and a3 mark examinations moved to the
+   MAGNIFIED LOOK via lib/magnifier.ts (the identical instrument); the
+   a2 identity look no longer asks the mark; markLaw itself UNTOUCHED
+   (inputs, verdicts, and the ratified contradiction lane).
+7. §2/§7 calibration.spec.ts NEW — tooth 11 (pinned question texts;
+   perfect separation on ≥6 known-good / ≥6 known-bad sealed pairs;
+   table written to test-results/calibration.json) and tooth 12 (the
+   Edda bust is the markless head-and-shoulders control and must fail
+   stage two; the crown band can never sight; the anchor must pass).
+   playwright.config: new `calibration` project after harvest;
+   g09-character and g16-captions now DEPEND on it — no court sits
+   before its instrument is proven.
+8. §7 verdict.mjs — `calibration` joins REQUIRED_PROJECTS; 'tooth 11:'
+   and 'tooth 12:' join the colon-anchored REQUIRED_EXECUTED needles;
+   REPLAY-vs-FRESH per criterion parsed from the iteration's own log.
+9. §5 g05-loop.spec.ts — the loop assertion SPLITS: first byte inside
+   the window (named "§5 first byte") and ≥3 rises ("§5 growth");
+   window unchanged (120×250ms); together they imply the old law.
+   g05-probe.mjs NEW + run-loop.sh fires it once per iteration beside
+   the suite (transport evidence only; it never decides).
+10. §3 gate 93 — evals/magnifierEye.test.mjs joins `npm run check`;
+    G13's PINNED_PASS_COUNT 92 → 93 in this same commit.
+
+§2 phrasing ledger: p2 initial texts sealed (sha 3ee3c48e…). Iterations,
+if the probe demands them, land here with their separation tables.
+11. §3 evals/wardenEyes.test.mjs — the gate's scripted soul passes now
+    answer the magnified look (box + crop sighting rows); a seen pass
+    additionally asserts signature:true and the box on the attest. The
+    old single-look scripts drained to the floor under the fail-closed
+    composition — the gate now speaks the law it guards.
+
+### Iteration 54B.1 — RED at harvest A (2026-07-17)
+The store razed lawfully (warden law changed) and the full repaint ran.
+HARVEST-ANCHORED: one required scene plate (a Mara Vey turn) fell to its
+blessed anchor — the warden refused the likeness twice ("monocle lens is
+positioned on the opposite eye" / "slightly different profile angle in a
+wider scene"). The ratified bar fired as written: a required distinct
+plate that ships its anchor is a game defect, never a timeout. 58 courts
+did not sit; no law touched. Disposition: a mirrored-feature render on
+fresh paint dice — the likeness law's refusal was HONEST (a mirrored
+monocle is not the anchor). Re-arm 54B.2 with fresh dice; if the same
+class repeats, report it as the blocker it is rather than bend a bar.
+
+### §2 phrasing ledger — p2 → p3 (2026-07-17, after 54B.2)
+p2 table (protocol p2, pin 3ee3c48e…): 13 pairs sat. All 6 known-bads
+refused correctly. 4 of 7 known-goods FELL, every one on
+action_matches+no_contradiction together — the judge read a still
+tableau like a filmed deed (a moment's scene sitting beside its own
+prose was ruled "wrong action, contradicted") and counted omissions as
+contradictions. element_present separated cleanly on both sides and is
+untouched. p3 rewrites the two fallen binaries only: action_matches now
+fails only for a DIFFERENT DEED (an instant or framing of the told deed
+is the same deed); no_contradiction now fails only for a visible
+OPPOSITE (place swapped, day for told night, a dwelt-on face cropped
+out, ruin for whole, cast replaced) and states that an omission NEVER
+contradicts. The beheaded-crop control remains a denial BY NAME (face
+dwelt on, head out of frame). New pin: ed15d066560e8c8e4677743d4f8a00d4b4b862eb8fa01fa15e7b58d94b564aaa
+
+### §2 phrasing ledger — p3 → p4 (2026-07-17)
+p3 table: 12 of 13 separated. One TRUE caption pair fell on
+no_contradiction alone — the plate (packs on the horse, dusk-blue
+meadows, a departing rider) was ruled to DENY its own caption because a
+wayside blaze burns in frame while the words tell "the hearth is
+banked." A lookalike elsewhere in the scene was read as the named thing
+shown opposite. Probed the plate with eyes: the pair is true; the
+instrument, not the probe set, owed the fix (dropping a true pair the
+judge dislikes would be selection bias). p4 amends no_contradiction
+only: the opposite must be shown of the VERY THING the words name — a
+fire elsewhere does not deny a told banked hearth. All six bads held at
+p3, three now rejecting through no_contradiction; the p4 table must
+re-prove every one. New pin: 35dc7b3657c132c0a00bfedf8208166500cbf32bc87a221382faa2d4e9efed8d
+
+### TASK 54B — LOOP CLOSED (2026-07-17)
+54B.1 RED (harvest A: mirrored-monocle scene fell to its anchor under
+fresh full-repaint dice; ratified bar fired as written; no law touched).
+54B.2 RED (tooth 11 at p2 — literalism, four true pairs fell; G5 §5
+first byte — in-page stall behind genesis media while the out-of-band
+probe put the server's first byte at 165ms). §2 calibration moved the
+phrasing p2→p3→p4 with the pinned fixture re-hashed and this ledger
+carrying each table; p4 separated PERFECTLY (13/13). 54B.3, 54B.4,
+54B.5 — three consecutive greens, 61/61 courts, at the ceiling of five.
+REPLAY law held: protocol bumps re-judged affected plates exactly once;
+54B.4/54B.5 replayed verbatim. Warden–judge mark agreement 5/5 with all
+three control crops refused; the tooth-7 contradiction class fired zero
+times. G5's game-side sequencing finding (pour queued behind genesis
+media, ~21s solo, over the bar only under full-repaint contention) is
+REPORTED in test-results/report-54B.md and deliberately not fixed —
+outside 54B's sanction. Full §9 report: test-results/report-54B.md.

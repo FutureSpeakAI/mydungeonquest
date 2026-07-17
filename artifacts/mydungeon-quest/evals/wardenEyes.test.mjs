@@ -90,19 +90,31 @@ const wardenJob = (cacheKey) => ({
 }
 
 // 2. A SEEN PASS — the verdict rides the attestation with its confidence.
+//    (54B §3) Souls prove the mark through the MAGNIFIED LOOK now: the
+//    scripted door answers stage one (the box) and stage two (the crop's
+//    own sighting). A signature_present in the text verdict is IGNORED
+//    for souls — the magnifier owns that answer, fail-closed.
 {
-  wardenScript = [{ text: '{"same": true, "confidence": 0.91, "signature_present": true, "drift": []}' }];
+  wardenScript = [{
+    text: '{"same": true, "confidence": 0.91, "drift": []}',
+    magnifier: { found: true, box: { left: 12, top: 10, width: 64, height: 80 }, markText: '{"mark_visible": true, "confidence": 0.9}' },
+  }];
   const row = await forge.enqueue(wardenJob('k-pass'));
   assert.equal(row.warden?.warden, 'passed');
   assert.equal(row.warden?.confidence, 0.91, 'the verdict is attested, not discarded');
+  assert.equal(row.warden?.signature, true, 'the magnified sighting is the mark\u2019s only door');
+  assert.deepEqual(row.warden?.magnifier?.box, { left: 12, top: 10, width: 64, height: 80 }, 'the attest shows WHERE the warden looked');
 }
 
 // 3. DRIFT → REPAINT ONCE, notes appended — then the second take passes.
 {
   const before = paintCalls.length;
   wardenScript = [
-    { text: '{"same": false, "confidence": 0.9, "signature_present": true, "drift": ["the chin is wrong"]}' },
-    { text: '{"same": true, "confidence": 0.8, "signature_present": true, "drift": []}' },
+    { text: '{"same": false, "confidence": 0.9, "drift": ["the chin is wrong"]}' },
+    {
+      text: '{"same": true, "confidence": 0.8, "drift": []}',
+      magnifier: { found: true, box: { left: 8, top: 8, width: 60, height: 72 }, markText: '{"mark_visible": true, "confidence": 0.85}' },
+    },
   ];
   const row = await forge.enqueue(wardenJob('k-drift'));
   assert.equal(paintCalls.length, before + 2, 'one drift buys exactly one repaint');

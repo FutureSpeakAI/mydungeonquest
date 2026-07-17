@@ -15,6 +15,8 @@ import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
 import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport, testHerald, ownersBell } from './watchtower.js';
 import { assetlinksFor } from './dowry.js';
+import sharp from 'sharp';
+import { boxBrief, markBrief, parseBox, clampBox } from 'fatescript/magnifier';
 
 // THE WATCHTOWER's tripwires: a crash is never silent.
 installAlarms();
@@ -130,13 +132,13 @@ app.use(
 // ceiling — the image ceiling counts the warden's calls.
 const WARDEN_IMAGE = /^data:image\/(?:png|jpe?g|webp|svg\+xml);base64,([A-Za-z0-9+/=]+)$/;
 app.post('/api/warden', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)), abuseCaps('warden'), async (req, res) => {
-  const { brief = '', anchor = '', render = '' } = req.body || {};
+  const { brief = '', anchor = '', render = '', magnify = false, mark = '' } = req.body || {};
   // (0.6.1, THE UNLETTERED WORLD) The anchor is optional now: plates with
   // no likeness anchor are judged alone on the text question. A present
   // anchor must still be lawful; the render always must be.
   const anchorMatch = anchor ? WARDEN_IMAGE.exec(String(anchor)) : null;
   const renderMatch = WARDEN_IMAGE.exec(String(render));
-  if (!renderMatch || (anchor && !anchorMatch) || typeof brief !== 'string' || brief.length > 4000) {
+  if (!renderMatch || (anchor && !anchorMatch) || typeof brief !== 'string' || brief.length > 4000 || typeof mark !== 'string' || mark.length > 1600) {
     return res.status(400).json({ error: 'The warden judges one or two lawful images beside one brief.' });
   }
   const eyes = adapters().paint;
@@ -147,7 +149,37 @@ app.post('/api/warden', rateLimit(Number(process.env.RATE_LIMIT_MEDIA_MAX || 30)
     const part = (match) => ({ mime: match[0].slice(5, match[0].indexOf(';')), data: match[1] });
     const verdict = await eyes.see({ brief, anchor: anchorMatch ? part(anchorMatch) : null, render: part(renderMatch) });
     debit(req, 'warden', verdict.provider);
-    return res.json({ text: verdict.text, provider: verdict.provider, model: verdict.model });
+    // THE MAGNIFIED LOOK (TASK 54B §3) — soul renders get the two-stage
+    // mark examination: stage one boxes the head and shoulders (strict
+    // JSON); stage two cuts that box with sharp at the engine's stated
+    // padding and asks the mark question on the crop ALONE. A stumble or
+    // a boxless answer is an honest not-proven (found:false) — the
+    // likeness verdict stands, and the mark is never laundered into a
+    // sighting. Every real look is debited: the image ceiling counts the
+    // warden's calls.
+    let magnifier = null;
+    if (magnify === true) {
+      try {
+        const boxAnswer = await eyes.see({ brief: boxBrief(), anchor: null, render: part(renderMatch) });
+        debit(req, 'warden', boxAnswer.provider);
+        const stage1 = parseBox(boxAnswer.text || '');
+        if (!stage1.found) {
+          magnifier = { found: false, box: null, markText: '', boxText: String(boxAnswer.text || '').slice(0, 400) };
+        } else {
+          const renderBytes = Buffer.from(renderMatch[1], 'base64');
+          const meta = await sharp(renderBytes).metadata();
+          const rect = clampBox({ box: stage1.box, width: meta.width || 1, height: meta.height || 1 });
+          const crop = await sharp(renderBytes).extract(rect).png().toBuffer();
+          const markAnswer = await eyes.see({ brief: markBrief(mark), anchor: null, render: { mime: 'image/png', data: crop.toString('base64') } });
+          debit(req, 'warden', markAnswer.provider);
+          magnifier = { found: true, box: rect, markText: String(markAnswer.text || ''), boxText: String(boxAnswer.text || '').slice(0, 400) };
+        }
+      } catch (stumble) {
+        console.error(`[warden] the magnifier stumbled: ${String(stumble?.message || stumble).slice(0, 200)}`);
+        magnifier = { found: false, box: null, markText: '', boxText: '', stumbled: true };
+      }
+    }
+    return res.json({ text: verdict.text, magnifier, provider: verdict.provider, model: verdict.model });
   } catch (error) {
     console.error(`[warden] the judge stumbled: ${String(error?.message || error).slice(0, 200)}`);
     return res.json({ floor: true });

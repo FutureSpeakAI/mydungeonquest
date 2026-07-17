@@ -24,4 +24,4 @@
 - [Expo shell around the web house](expo-webview-shell.md) — WebView shell laws: door law fails OUTWARD by hostname (backslash trick!); no web arm (iframe preview); never a spinner.
 - [JSX text ignores \u escapes](jsx-unicode-escapes.md) — \u2019 etc. render literally in JSX text nodes; paste real characters there; only JS string contexts unescape.
 - [Engine folds resolve queues backwards](engine-backward-queues.md) — tail-first queue drains make same-pass duplicates resolve later-card-first; gate outcomes (one winner + named refusal + determinism), never intra-pass order.
-- [Proving-loop lessons](proving-loop.md) — poison words & listed nouns are paint orders; verdict needles must match real titles (else unwinnable, invisibly); no-change iterations replay cached evidence verbatim; probe plates with eyes.
+- [Proving-loop lessons](proving-loop.md) — poison words & listed nouns are paint orders; verdict needles must match real titles; replays are verbatim; probe plates with eyes; calibrate judge binaries to perfect separation, never drop a true pair.

@@ -123,6 +123,11 @@ export interface JudgeArgs {
   images: Buffer[];
   question: string;
   schema: object;
+  /** (TASK 54B §4) Question-protocol version — a cache-key ingredient.
+   * Amending a question's text bumps its protocol: ONE lawful re-judge of
+   * the affected plates; unchanged questions replay their sealed verdicts
+   * (reported as REPLAY in the run log). Default 'p1' = pre-54B texts. */
+  protocol?: string;
 }
 
 /** Schema-typed coercion at the transport seam: models sometimes hand back
@@ -145,11 +150,12 @@ function coerceBySchema(verdict: any, schema: any): any {
   return out;
 }
 
-export async function judge({ id, criterion, images, question, schema }: JudgeArgs): Promise<any> {
+export async function judge({ id, criterion, images, question, schema, protocol = 'p1' }: JudgeArgs): Promise<any> {
   if (!images.length) throw new Error(`judge(${id}) called with no images`);
   images.forEach(sniffMime); // SVG/mock tripwire fires even on cache hits
   const cacheKey = createHash('sha256')
     .update(Buffer.concat(images)).update('\u0000').update(id)
+    .update('\u0000').update(protocol)
     .digest('hex');
   const cachePath = path.join(CACHE_DIR, `${cacheKey}.json`);
   const evidenceDir = path.join(EVIDENCE_DIR, criterion, id.replace(/[^a-zA-Z0-9_-]+/g, '_'));
@@ -162,7 +168,10 @@ export async function judge({ id, criterion, images, question, schema }: JudgeAr
 
   if (fs.existsSync(cachePath)) {
     const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-    appendLine(STATS_FILE, { id, criterion, hit: true, at: Date.now() });
+    // (54B §4) A replayed verdict says so in the run log — never mistaken
+    // for a fresh look.
+    console.log(`[judge] REPLAY ${criterion}/${id}@${protocol}`);
+    appendLine(STATS_FILE, { id, criterion, protocol, hit: true, at: Date.now() });
     fs.writeFileSync(path.join(evidenceDir, 'verdict.json'), JSON.stringify({ question, verdict: cached.verdict, cached: true }, null, 2));
     return coerceBySchema(cached.verdict, schema);
   }
@@ -178,7 +187,8 @@ export async function judge({ id, criterion, images, question, schema }: JudgeAr
   verdict = coerceBySchema(verdict, schema);
   fs.writeFileSync(cachePath, JSON.stringify({ id, criterion, question, verdict, at: Date.now() }, null, 2));
   fs.writeFileSync(path.join(evidenceDir, 'verdict.json'), JSON.stringify({ question, verdict, cached: false }, null, 2));
-  appendLine(STATS_FILE, { id, criterion, hit: false, at: Date.now() });
+  console.log(`[judge] FRESH ${criterion}/${id}@${protocol}`);
+  appendLine(STATS_FILE, { id, criterion, protocol, hit: false, at: Date.now() });
   if (typeof verdict?.confidence === 'number') noteLowConfidence(`${criterion}/${id}`, verdict.confidence);
   return verdict;
 }

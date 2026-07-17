@@ -15,6 +15,8 @@ const reportPath = path.join(root, 'test-results', 'report.json');
 
 const REQUIRED_PROJECTS = [
   'check', 'preflight', 'harvest', 'dom',
+  // (54B §2/§7) the calibration probe licenses G16 and G9 — it must sit.
+  'calibration',
   'g09-character', 'g10-environment', 'g11-style',
   'g16-captions', 'g17-framing', 'g18-storybook', 'teeth',
 ];
@@ -30,6 +32,8 @@ const REQUIRED_EXECUTED = [
   // (Review round) Colon-anchored so 'tooth 8' can never be satisfied by
   // 'tooth 8b' alone — each tooth is demanded by its own exact name.
   'tooth 8:', 'tooth 8b:', 'tooth 9:',
+  // (54B §7) the two new teeth are demanded by name like every other.
+  'tooth 11:', 'tooth 12:',
 ];
 
 let verdict;
@@ -69,6 +73,21 @@ if (!fs.existsSync(reportPath)) {
     skippedTitles: skipped.map((t) => `${t.project}: ${t.title}`),
   };
 }
+// (54B §4/§9) REPLAY vs FRESH per criterion, read from this iteration's own
+// run log — the judge announces every look it takes or replays.
+try {
+  const logPath = path.join(root, 'test-results', `run-iter${iter}.log`);
+  const counts = {};
+  if (fs.existsSync(logPath)) {
+    for (const line of fs.readFileSync(logPath, 'utf8').split('\n')) {
+      const m = line.match(/\[judge\] (REPLAY|FRESH) ([^/\s]+)\//);
+      if (!m) continue;
+      counts[m[2]] = counts[m[2]] || { replay: 0, fresh: 0 };
+      counts[m[2]][m[1] === 'REPLAY' ? 'replay' : 'fresh'] += 1;
+    }
+  }
+  verdict.judgeCalls = counts;
+} catch { verdict.judgeCalls = null; }
 fs.writeFileSync(path.join(root, 'test-results', `run-iter${iter}.verdict.json`), JSON.stringify(verdict, null, 2));
 const why = verdict.green ? '' : ` — ${verdict.reason || `exit=${verdict.exitCode} unexpected=${verdict.totals?.unexpected} skipped=${verdict.totals?.skipped} flaky=${verdict.totals?.flaky} missingProjects=[${(verdict.missingProjects || []).join(',')}] missingExecuted=[${(verdict.missingExecuted || []).join(',')}]`}`;
 console.log(`[verdict] iter=${iter} green=${verdict.green}${why}`);

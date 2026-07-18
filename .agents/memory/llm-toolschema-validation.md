@@ -22,3 +22,11 @@ path swallows it.
 validator (mirror them, don't loosen the validator). When a real integration
 "works but ignores the model," check whether validation is failing and a fallback
 is masking it before assuming an API/model problem.
+
+## Addendum (TASK 58B, July 2026): bounds are advisory, and courts must read the lock
+
+- `maxLength` (and soft bounds generally) in tool schemas are ADVISORY to Anthropic models — they emit over-bound strings anyway. A bound the model reliably honors rides FOUR seats, all derived from the one fence table: schema `maxLength` + a per-property `description` ("At most N characters."), a system-law sentence binding all schema bounds (listless — names the contract, not values), and a hard-wall line in the ask.
+- Redraw/retry notes must carry the validator's refusals BY NAME as data — a fresh deal that cannot see why the last one fell keeps falling the same way. Feedback converges in 1–2 redraws where blind redraws burned the whole ceiling.
+- Valid-but-rejected has a LOCK-shaped variant: when a validator conditions on locked/settled context (e.g. rider fields must cohere with a LOCKED className), the schema must express the settled values (enum-of-one from the same table), and covariant tables the schema cannot express flatly should ride the user message as data ("copy the dealt calling's body exactly").
+- The dual failure: validators that condition on lock context must READ it — a court that only inspects candidate bytes is fail-open for exactly the deals where the lock carries the governing fact (candidate omits the locked key by law). Enforce from `candidate.value ?? locked.value`.
+- Cap `max_tokens` generously for multi-candidate tool calls: a truncated tool JSON parses to nothing and silent-fallback architectures eat the evidence.

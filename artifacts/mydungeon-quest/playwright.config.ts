@@ -46,6 +46,9 @@ export default defineConfig({
     { name: 'g16-captions', testMatch: /g16-captions\.spec\.ts/, dependencies: ['calibration'] },
     { name: 'g17-framing', testMatch: /g17-framing\.spec\.ts/, dependencies: ['harvest'] },
     { name: 'g18-storybook', testMatch: /g18-storybook\.spec\.ts/, dependencies: ['harvest'] },
+    // (56C) THE HONEST FRAME — its teeth sit in calibration first (13-15),
+    // so the project rides behind the calibration probe like G9 and G16.
+    { name: 'g22-frame', testMatch: /g22-frame\.spec\.ts/, dependencies: ['calibration'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

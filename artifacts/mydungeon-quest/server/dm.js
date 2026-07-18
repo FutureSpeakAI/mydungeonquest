@@ -92,7 +92,11 @@ const combatSchema = {
 const imageCueSchema = {
   anyOf: [
     { type: 'null' },
-    { type: 'object', additionalProperties: false, required: ['kind','subjects'], properties: { kind: { type: 'string', enum: ['portrait','scene'] }, subjects: { type: 'array', items: { type: 'string' } } } }
+    { type: 'object', additionalProperties: false, required: ['kind','subjects'], properties: {
+      kind: { type: 'string', enum: ['portrait','scene'] },
+      subjects: { type: 'array', items: { type: 'string', minLength: 2, maxLength: 80, description: 'Exact cast or hero name, LIVING AND PRESENT at the scene — never a dead soul, never a soul the record holds elsewhere, never a name outside the record. FIRST NAME FIRST: the first subject is the principal figure of the composition.' } },
+      crowd: { type: 'string', enum: ['none','background'], description: 'Whether an indistinct, unidentifiable background crowd may fill the frame. Omitted or none, the frame is closed to all but the named subjects.' }
+    } }
   ]
 };
 const dialogueCueSchema = {

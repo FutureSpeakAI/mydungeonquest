@@ -94,3 +94,25 @@ read-back (page courts green) is almost certainly the mapper.
   record's word, so doctoring it can never yield "missing". Probe needs
   in order and cut the first hole the record does NOT explain;
   fixed-index doctoring collides with real refusals sooner or later.
+
+## Ride mechanics and the ceiling (56C lessons)
+
+- **Win one full mint, then ride.** Sealed stores + cached verdicts make
+  subsequent iterations near-deterministic: strategy is always "spend
+  iterations hunting ONE clean mint, then let rides accumulate greens."
+- **Scoped raze:** deleting ONE store's directory (plus the top manifest)
+  while paint-law.json stands re-mints only that store — the other store
+  rides its sealed session. Full raze (paint-law.json deletion) re-rolls
+  every tollgate; never pay it to cure a single-store defect.
+- **Flake-on-ride is ceiling poison.** A single DOM-walk flake on a ride
+  iteration breaks a consecutive-greens chain irrecoverably once the
+  frozen ceiling leaves fewer spare iterations than the chain needs.
+  Harden every shared DOM walk helper (tap-retry: re-tap only when the
+  target is provably absent, final unguarded wait preserving the court's
+  timeout) BEFORE a series starts, not after the flake bites — observed:
+  one tap landing in a hydration gap (button [active], modal never
+  opened) cost the ritual at 2.3s-green-then-240s-timeout odds.
+- **Honest-red close is a real outcome.** When the ceiling can no longer
+  fit the chain, say so at the moment it becomes true, ride the remaining
+  iterations as closing evidence, and close red with the evidence named —
+  never re-adjudicate a recorded iteration, never invent accounting.

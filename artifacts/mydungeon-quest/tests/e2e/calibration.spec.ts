@@ -7,6 +7,10 @@ import { GAME_ROOT } from './lib/vision';
 import { HARVEST_DIR, preflightManifest, rolePlate, topBytes } from './lib/harvestManifest';
 import { loadManifest, plateBytes } from './lib/harness';
 import type { PlateEntry } from './lib/harness';
+import {
+  DUCHY_PAIR_SUBJECTS, PINNED_FRAME_QUESTIONS_SHA256,
+  closureVerdict, duchyFixture, frameQuestionsDigest, heroClause, heroFirstSubjects, pairVerdict, principalLook,
+} from './lib/frameLaw';
 import { BINARY_PROTOCOL, BINARY_QUESTIONS_PATH, binaryVerdict } from './lib/binaryVerdict';
 import type { BinaryKind } from './lib/binaryVerdict';
 import { magnifiedMark } from './lib/magnifier';
@@ -222,4 +226,77 @@ test('tooth 12: the magnifier tooth — a markless control fails stage two; the 
   });
   expect(anchor.found, `the magnifier boxes the hero anchor: ${JSON.stringify(anchor)}`).toBe(true);
   expect(anchor.mark_visible, `the anchor wears the mark under the magnified look: ${JSON.stringify(anchor)}`).toBe(true);
+});
+
+// ============================================================
+// TEETH 13-15 — THE FRAME INSTRUMENTS (56C). Three new judges sit for
+// Directive IX, so three new teeth prove them on sealed materials
+// before their courts convene: known-good seats the harness minted on
+// purpose, known-bad seats built as deterministic lies — briefs the
+// plates never answered, grounds the plates never held. Perfect
+// separation or the bench does not sit.
+// ============================================================
+
+test('tooth 13: the closure instrument separates honest counts from crowded lies', async () => {
+  test.setTimeout(600_000);
+  expect(frameQuestionsDigest(), 'the frame questions are sealed by their pin').toBe(PINNED_FRAME_QUESTIONS_SHA256);
+  const m = preflightManifest('g22-frame');
+  const pair1 = rolePlate(m, 'duchy-pair-1');
+  const pair2 = rolePlate(m, 'duchy-pair-2');
+  const heroFirst = rolePlate(m, 'hero-first-scene');
+  const rows: any[] = [];
+  const sit = async (label: string, plate: any, subjects: string[], allowance: 'none' | 'background') => {
+    const verdict = await closureVerdict({ bytes: topBytes(plate), subjects, allowance, idSeed: `tooth13-${label}`, criterion: 'tooth-13-closure' });
+    rows.push({ label, subjects, allowance, got: verdict.figures_match === true, counted: verdict.counted, unaccounted: verdict.unaccounted, confidence: verdict.confidence });
+    return verdict.figures_match === true;
+  };
+  // Known-good: the very briefs these plates were minted from.
+  expect(await sit('good-pair', pair1, DUCHY_PAIR_SUBJECTS, 'none'), 'good: the pair plate answers its own brief').toBe(true);
+  expect(await sit('good-hero-first', heroFirst, heroFirstSubjects(m.hero.name), 'none'), 'good: the hero-first plate answers its own brief').toBe(true);
+  expect(await sit('good-crowd-grant', pair2, DUCHY_PAIR_SUBJECTS, 'background'), 'good: a granted crowd never invents a false count').toBe(true);
+  // Known-bad: deterministic lies — briefs these plates cannot answer.
+  expect(await sit('bad-crowded-brief', pair1, [m.hero.name, ...DUCHY_PAIR_SUBJECTS], 'none'), 'bad: a three-name brief against a two-soul plate').toBe(false);
+  expect(await sit('bad-lone-brief', heroFirst, [m.hero.name], 'none'), 'bad: a one-name brief against a two-soul plate').toBe(false);
+  expect(await sit('bad-crowd-excuse', heroFirst, [m.hero.name], 'background'), 'bad: the crowd grant does not excuse a prominent named soul').toBe(false);
+  console.log(`[tooth 13] separation table:\n${JSON.stringify(rows, null, 2)}`);
+});
+
+test('tooth 14: the principal instrument matches the hero and refuses a stranger', async () => {
+  test.setTimeout(600_000);
+  const m = preflightManifest('g22-frame');
+  const clause = heroClause(m.hero);
+  const heroFirst = rolePlate(m, 'hero-first-scene');
+  const good = await principalLook({ bytes: topBytes(heroFirst), clause, idSeed: 'tooth14-good-hero', criterion: 'tooth-14-principal' });
+  console.log(`[tooth 14] good: ${JSON.stringify({ found: good.found, verdict: good.verdict })}`);
+  expect(good.found, 'good: the hero-first plate yields a foremost figure').toBe(true);
+  expect(good.matches, 'good: the foremost figure answers the hero clause').toBe(true);
+  const eddaBust = rolePlate(m, 'edda-bust');
+  const badSoul = await principalLook({ bytes: topBytes(eddaBust), clause, idSeed: 'tooth14-bad-edda', criterion: 'tooth-14-principal' });
+  console.log(`[tooth 14] bad-stranger: ${JSON.stringify({ found: badSoul.found, verdict: badSoul.verdict })}`);
+  expect(badSoul.matches, 'bad: an elder stranger does not answer the hero clause').toBe(false);
+  // Fail-closed: a figureless sliver must never call the principal honest.
+  const sliverSource = topBytes(rolePlate(m, 'vale-establishing'));
+  const meta = await sharp(sliverSource).metadata();
+  const sliver = await sharp(sliverSource).extract({ left: 0, top: 0, width: meta.width || 64, height: Math.max(24, Math.round((meta.height || 64) * 0.1)) }).png().toBuffer();
+  const badSliver = await principalLook({ bytes: sliver, clause, idSeed: 'tooth14-bad-sliver', criterion: 'tooth-14-principal' });
+  console.log(`[tooth 14] bad-sliver: ${JSON.stringify({ found: badSliver.found, matches: badSliver.matches })}`);
+  expect(badSliver.found && badSliver.matches, 'bad: a sky sliver yields no honest principal').toBe(false);
+});
+
+test('tooth 15: the constancy instrument sees the sealed fixture and refuses absent grounds', async () => {
+  test.setTimeout(600_000);
+  const m = preflightManifest('g22-frame');
+  const sealed = duchyFixture(path.join(HARVEST_DIR, 'fixture', 'session.json'));
+  const pair1 = rolePlate(m, 'duchy-pair-1');
+  const pair2 = rolePlate(m, 'duchy-pair-2');
+  const good = await pairVerdict({ aBytes: topBytes(pair1), bBytes: topBytes(pair2), visual: sealed.visual, idSeed: 'tooth15-good-pair', criterion: 'tooth-15-constancy' });
+  console.log(`[tooth 15] good: ${JSON.stringify(good)}`);
+  expect(good.fixture_present_in_both, 'good: the sealed fixture stands in both paints of its ground').toBe(true);
+  const vale = rolePlate(m, 'vale-establishing');
+  const badGround = await pairVerdict({ aBytes: topBytes(pair1), bBytes: topBytes(vale), visual: sealed.visual, idSeed: 'tooth15-bad-ground', criterion: 'tooth-15-constancy' });
+  console.log(`[tooth 15] bad-ground: ${JSON.stringify(badGround)}`);
+  expect(badGround.fixture_present_in_both, 'bad: the Vale holds no Duchy fixture — one absent ground fails the pair').toBe(false);
+  const badCanon = await pairVerdict({ aBytes: topBytes(pair1), bBytes: topBytes(pair2), visual: 'a white marble fountain crowned by three bronze herons, water threading their beaks', idSeed: 'tooth15-bad-canon', criterion: 'tooth-15-constancy' });
+  console.log(`[tooth 15] bad-canon: ${JSON.stringify(badCanon)}`);
+  expect(badCanon.fixture_present_in_both, 'bad: a canon neither plate holds is refused').toBe(false);
 });

@@ -310,6 +310,74 @@ function validateSpeakerGround(payload, context, errors) {
   judge(payload.dialogue_cue?.speaker, 'dialogue_cue');
 }
 
+// THE HONEST FRAME (Directive IX) — the image cue is a CLAIM about who
+// stands in the painting, and the claim is judged like any other line of
+// the record: the dead are not painted, the elsewhere is not painted, the
+// unrecorded are not painted. Seat law mirrors the speaker-ground court —
+// each sub-court binds only where the briefing can testify, so a bare
+// context keeps exactly the shape law it always had:
+//   dead court     — seats iff context.cast is an array;
+//   unnamed court  — seats iff context.cast AND context.hero are seated
+//                    (a court without the hero's name cannot call any
+//                    name unknown — the name might be hers);
+//   elsewhere court — seats iff presence AND party arrays ride AND a
+//                    scene stands (null scene = genesis rides free).
+// Exempt everywhere, same as the speaker court: the hero, every party
+// member, a soul introduced by this same turn's cast_add, and a soul
+// seated by this same turn's party_join.
+function validateImageCue(payload, context, errors) {
+  const cue = payload?.image_cue;
+  if (cue === undefined || cue === null) return;
+  if (typeof cue !== 'object' || Array.isArray(cue)) return; // the shape law below speaks
+  if (!['portrait', 'scene'].includes(cue.kind) || !Array.isArray(cue.subjects)) return; // ditto
+  if (cue.crowd !== undefined && cue.crowd !== null && !['none', 'background'].includes(cue.crowd)) {
+    errors.push(`image_cue.crowd holds a word the law does not know: ${String(cue.crowd).slice(0, 40)}`);
+  }
+  for (const raw of cue.subjects) {
+    if (!(typeof raw === 'string' && raw.trim().length >= 2 && raw.trim().length <= 80)) {
+      errors.push('image_cue.subjects entries must be 2-80 character names');
+      return;
+    }
+  }
+  const story = (payload.story && typeof payload.story === 'object' && !Array.isArray(payload.story)) ? payload.story : {};
+  const introduced = (Array.isArray(story.cast_add) ? story.cast_add : []).map((add) => (typeof add?.name === 'string' ? add.name : '')).filter(Boolean);
+  if (typeof story.party_join?.name === 'string') introduced.push(story.party_join.name);
+  const isSameTurn = (name) => introduced.some((fresh) => canonKey(fresh) === canonKey(name) || canonKey(fresh).split(/\s+/)[0] === canonKey(name));
+  const castSouls = (Array.isArray(context.cast) ? context.cast : [])
+    .map((soul) => ({ key: canonKey(soul?.name), first: canonKey(soul?.name).split(/\s+/)[0] || '', dead: canonKey(soul?.status) === 'dead' }))
+    .filter((soul) => soul.key);
+  const heroSeated = typeof context.hero === 'string' && context.hero.trim();
+  const partyNames = Array.isArray(context.party) ? context.party.filter((name) => typeof name === 'string') : null;
+  const sceneRegion = context.scene && typeof context.scene === 'object' ? String(context.scene.region || '').trim() : '';
+  const groundSeated = Array.isArray(context.presence) && partyNames && sceneRegion;
+  for (const raw of cue.subjects) {
+    const name = raw.trim();
+    if (namesTheHero(context, name)) continue;
+    if (isSameTurn(name)) continue;
+    if (Array.isArray(context.cast)) {
+      const matches = castSouls.filter((soul) => soul.key === canonKey(name) || soul.first === canonKey(name));
+      if (matches.length && matches.every((soul) => soul.dead)) {
+        errors.push(`image_cue paints the dead: ${name} is dead and is not painted`);
+        continue;
+      }
+      if (!matches.length && heroSeated) {
+        errors.push(`image_cue names a soul the record does not hold: ${name}`);
+        continue;
+      }
+    }
+    if (groundSeated) {
+      if (resolveAmong(partyNames, name)) continue;
+      const presenceNames = context.presence.map((entry) => (entry && typeof entry.name === 'string' ? entry.name : '')).filter(Boolean);
+      const resolved = resolveAmong(presenceNames, name);
+      if (resolved === null) continue; // whereabouts unknown — nothing to testify
+      const entry = context.presence.find((row) => row && row.name === resolved);
+      const ground = entry && typeof entry.ground === 'string' ? entry.ground.trim() : '';
+      if (!ground) continue;
+      if (canonKey(ground) !== canonKey(sceneRegion)) errors.push(`image_cue paints the elsewhere: ${name} last stood in ${ground}, not ${sceneRegion}`);
+    }
+  }
+}
+
 // context — the codex snapshot the turn is judged against, threaded by every
 // caller (client turn path, server repair-retry path, evals). Taken BEFORE
 // this turn's story updates apply, so a soul may speak its dying words in the
@@ -325,6 +393,7 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     validateParty(payload.story, context, errors);
     validateFixtures(payload.story, context, errors);
     validateSpeakerGround(payload, context, errors);
+    validateImageCue(payload, context, errors);
   }
   assert(payload && typeof payload === 'object' && !Array.isArray(payload), 'payload must be an object', errors);
   if (!payload || typeof payload !== 'object') return { ok: false, errors };

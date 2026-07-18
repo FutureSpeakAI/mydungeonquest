@@ -33,5 +33,15 @@ assert.ok(scene.includes('an elderly woman'), 'a cast soul is painted by her sta
 assert.ok(scene.includes('a grey shawl'), 'the appearance canon rides whole');
 assert.ok(scene.includes('terraced orchards') && scene.includes('wounded'), 'the region canon and state ride');
 assert.equal(scene, scenePrompt(campaign, cue, { prose: 'She waits by the water.', seed: 'turn-9' }), 'same turn, same brief');
+// (56C) THE HONEST FRAME rides the bible: the principal clause crowns the
+// cue's first subject by her identity clause, and the closure clause ends
+// every subject-bearing scene brief — byte-stable, like every law here.
+assert.ok(scene.includes(`Principal presence: Edda, ${identityClause(campaign.codex.cast[0])}`),
+  'the principal clause crowns the first subject by her identity clause');
+assert.ok(scene.includes('The frame is closed: the only figures in this frame are the named painted souls'),
+  'the closure clause ends the brief');
+assert.ok(scenePrompt(campaign, { ...cue, crowd: 'background' }, { prose: 'She waits by the water.', seed: 'turn-9' })
+  .includes('The frame is closed except its granted crowd'),
+  'a granted crowd rides its own closure clause');
 assert.ok(keyArtPrompt(campaign).startsWith('TESTBIBLE romantic oil'));
 console.log('PASS — the visual bible gate: identity is painted from the card (noun by stated presentation and age, mark verbatim, canon whole), the style bible opens every prompt, and the clause is byte-stable.');

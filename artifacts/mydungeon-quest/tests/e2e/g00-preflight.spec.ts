@@ -54,7 +54,9 @@ test('G00-RT: a maximal journal row survives the read-back mapper byte-complete'
         party_leave: { name: 'Corin Voss', remains_at: 'Larkspur Vale' },
         fixture_add: { place: 'The Held Line', name: 'The Shield Cairn', visual: 'a cairn of split shields raised where the line held' }
       },
-      image_cue: { kind: 'scene', subjects: ['Edda Thornwake'], region: 'The Held Line', mood: 'grim relief' },
+      // (56C) Directive IX rides the round-trip: the crowd allowance must
+      // survive the mapper byte-complete like every other cue key.
+      image_cue: { kind: 'scene', subjects: ['Edda Thornwake'], region: 'The Held Line', mood: 'grim relief', crowd: 'background' },
       dialogue_cue: { speaker: 'Edda Thornwake', line: 'It held.' },
       time_advance: { unit: 'hours', n: 6 },
       entropy_use: ['e1']

@@ -90,6 +90,12 @@ export interface TopPlate {
   klass: string; label: string | null; variant: string | null;
   assetHash: string | null; cacheKey: string | null; sha256: string;
   subjects: string[]; heroBearing: boolean;
+  /** (56C) THE HONEST FRAME — the painter's own cue, carried verbatim for
+   * the closure court: cueSubjects is the cue's subject list (null when the
+   * row has no cue), crowd its granted allowance, heroFirst whether the
+   * cue's FIRST subject is the hero. subjects/heroBearing keep their
+   * G17b-era meanings untouched. */
+  cueSubjects: string[] | null; crowd: string | null; heroFirst: boolean;
   prose: string | null; region: string | null; state: string | null;
   resolution: PlateResolution;
 }
@@ -155,7 +161,15 @@ export function buildTopManifest(): TopManifest {
   const roleOf = (tag: 'live' | 'fixture', entry: any): string => {
     const ck = String(entry.cacheKey || '');
     if (entry.klass === 'keyart') return 'keyart';
-    if (entry.klass === 'scene') return 'scene';
+    if (entry.klass === 'scene') {
+      // (56C) The frame courts' deterministic seats ride their own roles so
+      // the standing scene courts (G16a's moment law, the counts) see
+      // exactly the plates they always saw.
+      if (ck.endsWith(':duchy-pair-1')) return 'duchy-pair-1';
+      if (ck.endsWith(':duchy-pair-2')) return 'duchy-pair-2';
+      if (ck.endsWith(':hero-first-scene')) return 'hero-first-scene';
+      return 'scene';
+    }
     if (tag === 'live') {
       if (entry.klass === 'portrait' && entry.label === hero.name && entry.variant === 'bust') return 'hero-anchor';
       if (entry.label === villain && entry.variant === 'bust') return 'villain-intro';
@@ -215,11 +229,16 @@ export function buildTopManifest(): TopManifest {
       // painter's brief alone — the cue is what the foundry was told.
       const subjects = role === 'scene' ? (tag === 'fixture' ? [...new Set(speakers)] : cueSubjects) : [];
       const heroBearing = role === 'scene' && cueSubjects.some((name) => lc(name).includes(lc(hero.name)));
+      // (56C) The cue carried verbatim for the frame courts — null when the
+      // row holds no cue (fixture scene-log plates, portraits, regions).
+      const cueList: string[] | null = log?.imageCue?.subjects ? cueSubjects : null;
+      const heroFirst = !!cueList && cueList.length > 0 && lc(cueList[0]).includes(lc(hero.name));
       plates.push({
         file: entry.file, tag, role,
         klass: entry.klass, label: entry.label ?? null, variant: entry.variant ?? null,
         assetHash: entry.assetHash ?? null, cacheKey: entry.cacheKey ?? null, sha256: digest,
         subjects, heroBearing,
+        cueSubjects: cueList, crowd: log?.imageCue?.crowd ?? null, heroFirst,
         prose: role === 'scene' ? (log?.narrations?.[0]?.text || null) : null,
         region: entry.klass === 'region' ? (entry.label ?? null) : (log?.imageCue?.region ?? null),
         state: stateOf(role),
@@ -311,11 +330,11 @@ export function topBytes(plate: TopPlate): Buffer {
 
 export type JudgeProject =
   | 'g09-character' | 'g10-environment' | 'g11-style'
-  | 'g16-captions' | 'g17-framing' | 'g18-storybook';
+  | 'g16-captions' | 'g17-framing' | 'g18-storybook' | 'g22-frame';
 
 export const JUDGE_PROJECTS: JudgeProject[] = [
   'g09-character', 'g10-environment', 'g11-style',
-  'g16-captions', 'g17-framing', 'g18-storybook',
+  'g16-captions', 'g17-framing', 'g18-storybook', 'g22-frame',
 ];
 
 interface Need {
@@ -353,6 +372,17 @@ const roleNeed = (role: string): Need => ({
   paint: { role },
 });
 
+// (56C) The frame courts' deterministic seats — scene-klass paints minted
+// into the fixture store by the harness; any refused fixture-tag scene ask
+// starves them honestly (their roles are cacheKey-derived, so the refusal
+// ledger knows them only by their class).
+const harnessSceneNeed = (role: string): Need => ({
+  what: `role "${role}"`,
+  ok: (m) => m.plates.some((p) => p.role === role && onDisk(p)),
+  doctor: (m) => { m.plates = m.plates.filter((p) => p.role !== role); },
+  paint: { subtype: 'scene', tag: 'fixture' },
+});
+
 const fileNeed = (key: keyof TopManifest['files'], label: string): Need => ({
   what: `${label} (${key})`,
   ok: (m) => !!m.files[key] && fs.existsSync(path.join(HARVEST_DIR, m.files[key])),
@@ -379,6 +409,13 @@ const NEEDS: Record<JudgeProject, Need[]> = {
     roleNeed('vale-second'),
     roleNeed('vale-wounded'),
     roleNeed('vale-blighted'),
+  ],
+  'g22-frame': [
+    harnessSceneNeed('duchy-pair-1'),
+    harnessSceneNeed('duchy-pair-2'),
+    harnessSceneNeed('hero-first-scene'),
+    fileNeed('sessionLive', 'the live session (the hero card)'),
+    fileNeed('sessionFixture', 'the fixture session (the sealed fixture canon and the painted briefs)'),
   ],
   'g11-style': [
     roleNeed('vale-establishing'),

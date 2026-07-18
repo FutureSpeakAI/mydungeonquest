@@ -18,7 +18,7 @@ const REQUIRED_PROJECTS = [
   // (54B §2/§7) the calibration probe licenses G16 and G9 — it must sit.
   'calibration',
   'g09-character', 'g10-environment', 'g11-style',
-  'g16-captions', 'g17-framing', 'g18-storybook', 'teeth',
+  'g16-captions', 'g17-framing', 'g18-storybook', 'g22-frame', 'teeth',
 ];
 // Test-title needles that must appear among EXECUTED (non-skipped) tests.
 const REQUIRED_EXECUTED = [
@@ -34,6 +34,8 @@ const REQUIRED_EXECUTED = [
   'tooth 8:', 'tooth 8b:', 'tooth 9:',
   // (54B §7) the two new teeth are demanded by name like every other.
   'tooth 11:', 'tooth 12:',
+  // (56C) THE HONEST FRAME — four courts and three teeth, by name.
+  'G22a', 'G22b', 'G22c', 'G22d', 'tooth 13:', 'tooth 14:', 'tooth 15:',
   // (Directive VI) G19 THE TROVE — both courts demanded by name.
   'G19a', 'G19b',
   // (Directive VII) G20 THE GROUND — both courts demanded by name, and the

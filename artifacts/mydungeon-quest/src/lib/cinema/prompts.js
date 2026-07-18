@@ -223,7 +223,27 @@ export function scenePrompt(campaign, cue, moment = null) {
     .sort((a, b) => ((b.since ?? -1) - (a.since ?? -1)))
     .slice(0, 3);
   const fixtureLine = placeFixtures.length ? ` Standing fixtures of ${cue.region}, sealed canon each: ${placeFixtures.map((entry) => `${entry.name} — ${entry.visual}`).join('; ')}.` : '';
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}.${beat}${moodLine}${watchLine} ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''}${fixtureLine} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul is the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line rides on them in frame, large and whole. Named souls are the PRINCIPAL figures of this frame — never demoted to the background, never displaced by an invented figure. Each named soul's dress, gear, and worn covering follow their identity line exactly — nothing added it does not state, nothing it states removed or undone.${markLaw}`, campaign);
+  // THE HONEST FRAME (Directive IX) — two byte-stable riders. THE PRINCIPAL
+  // CLAUSE crowns the cue's FIRST subject the composition's foremost figure,
+  // spoken only when the roster paints that soul — a staged soul cannot be
+  // foremost in a frame it never enters. THE CLOSURE CLAUSE ends every
+  // subject-bearing scene brief: the frame holds the painted souls and no
+  // one else — except, when the cue grants it, an indistinct background
+  // crowd with no readable face.
+  const firstSubject = (cue.subjects || [])[0];
+  const principalSoul = firstSubject ? souls.find((soul) => soul.name === firstSubject) : null;
+  // (56C amendment 6) The principal LEADS without demoting anyone: the old
+  // zero-sum wording ("no other figure outranks this presence in prominence")
+  // taught the painter to shrink the other named souls into the background,
+  // where the likeness warden rightly refused them. Leadership and likeness
+  // must pull the same direction.
+  const principalLaw = principalSoul ? ` Principal presence: ${principalSoul.name}, ${identityClause(principalSoul)} — this figure leads the composition, foremost in position and focus; any other named soul stands near enough that face and mark read true, never reduced to a distant background figure.` : '';
+  const closureLaw = souls.length
+    ? (cue.crowd === 'background'
+      ? ' The frame is closed except its granted crowd: beyond the named painted souls, only an indistinct distant background crowd may stand — unidentifiable figures, no readable face, no named soul among them.'
+      : ' The frame is closed: the only figures in this frame are the named painted souls — no other person, figure, or silhouette of any kind stands in frame.')
+    : '';
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}.${beat}${moodLine}${watchLine} ${soulLines}${stagedLine}${principalLaw} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''}${fixtureLine} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul is the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line rides on them in frame, large and whole. Named souls are the PRINCIPAL figures of this frame — never demoted to the background, never displaced by an invented figure. Each named soul's dress, gear, and worn covering follow their identity line exactly — nothing added it does not state, nothing it states removed or undone.${markLaw}${closureLaw}`, campaign);
 }
 
 // The roster, exported for the job bench: the same painted-first seating

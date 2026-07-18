@@ -1571,3 +1571,275 @@ convene identical courts or identically none. Nothing weakened; a
 court that was silent now sits. Keyless check re-run after the cut:
 green at the measured pin. Iteration 56B.8 (the ceiling's last seat)
 fires next to prove the cut under the full ladder.
+
+## Task 56C — The Honest Frame (Directive IX)
+
+Test edits and interpreting design choices, logged for the notary:
+
+- **g13 pin 101 → 102** — the keyless gate grew by exactly one (`frameLaw`),
+  per the directive's GATES section; the pin moves in the same commit.
+- **g00 maximal row grew `crowd: 'background'`** — Directive IX rides the
+  round-trip: the new cue key must survive the mapper byte-complete like
+  every other key. No assertion weakened; the row got richer.
+- **harness `mapLogRow` grew `crowd`** — the read-back carried subjects and
+  region only; a lossy mapper would judge every granted crowd as `none`
+  (amendment 5). The manifest's closure allowance reads through it.
+- **`paintFixtureExtras` mints the frame courts' seats** — the Duchy pair is
+  ONE byte-stable brief painted twice under distinct cache keys
+  (`duchy-pair-1/2`), post-seal so the Brass Toll-Scale rider stands in both
+  (amendment 1); `hero-first-scene` guarantees G22b a seat (amendment 3).
+  All three cues are living-and-present under the replayed record: Corin
+  remains at The Duchy after his t8 leave, Edda rides in the party, the
+  hero is the root. The proving campaign itself is UNTOUCHED — its nine
+  dm.image_cue fields are null, so the landing replay never meets the new
+  court (zero replay risk, verified by direct read).
+- **manifest roles `duchy-pair-1/2`, `hero-first-scene`** — cacheKey-derived
+  roles keep the harness seats OUT of the standing scene courts (G16a's
+  moment law, the counts law): those courts see exactly the plates they
+  always saw. TopPlate grew `cueSubjects`/`crowd`/`heroFirst` (additive);
+  `subjects`/`heroBearing` keep their G17b meanings untouched.
+- **NEEDS['g22-frame'] + JUDGE_PROJECTS enrollment** — three harness-seat
+  needs (starved honestly by any refused fixture scene ask) plus both
+  session files; enrollment auto-covers the new project under teeth 8/8b
+  (sabotage and refusal-doctor) with no new tooth code.
+- **`frame-questions.json` (protocol f1, pinned)** — the four instruments in
+  a NEW sealed fixture; `binary-questions.json` and tooth 11's pin untouched,
+  per the instrument law. Pin: sha256 2a09e328…a761, asserted in tooth 13
+  and again in G22d.
+- **Teeth 13-15** — known-goods are the very briefs the harness minted;
+  known-bads are deterministic lies, never crossings: a three-name brief
+  against a one-soul plate, a one-name brief against a two-soul plate, the
+  crowd grant refused as an excuse for a prominent named soul, a stranger's
+  bust against the hero clause, a sky sliver that must fail closed, the
+  Vale against the Duchy's canon, a fountain canon nobody sealed.
+- **LAW-SOURCE EDIT (expected raze):** `scenePrompt` grew the principal and
+  closure clauses — `paintLawHash` turns, the harvest store is RAZED, and
+  iteration 1 is a full repaint. Expected classes: villain-likeness flake
+  yellows (standing), plus first sittings of the three new instruments.
+- **G22d beyond the ratified three courts** — the painted-briefs court
+  (amendment 4): byte law on the store's own recorded briefs plus the door
+  walked at the e2e bench; joins REQUIRED_EXECUTED beside G22a-c.
+
+### 56C.1 — red (standing class, no edit)
+
+Harvest A died on `painted text twice` — the unlettered warden refusing a
+live scene plate after its one lawful repaint. History proves the class
+predates this task (54.1 and 56B.3 each took exactly one such hit; the frame
+clauses did not exist in either), so this is the standing repaint roulette,
+not a 56C defect: no law is changed in response. The three frame instruments
+never sat (harvest B never ran). Iteration 2 requested verbatim.
+
+### 56C.2 — red (anchored class; principal clause harmonized, pins moved in lockstep)
+
+Harvest A died on HARVEST-ANCHORED — a live scene fell to its blessed anchor,
+drift: "target character positioned in the background, less detailed face."
+The anchored class predates this task (54B.1, 56B.1, varied drift reasons),
+but THIS drift is the exact tension the ratified principal wording invites:
+"no other figure outranks this presence in prominence" is a zero-sum order
+the painter can obey by backgrounding the other named souls — which the
+likeness law then rightly refuses. Directive amended (amendment 6): the
+principal now LEADS in position and focus while any other named soul stands
+near enough that face and mark read true. TEST EDIT under the letter's law:
+the frameLaw eval's full-clause pin moved in lockstep with the law source
+(same bytes, one sitting); the visualBible prefix pin and G22d's prefix
+greps hold unchanged. No assertion weakened — the pin is byte-for-byte the
+new law. Neither harvest store survived 56C.1/2, so the re-raze costs
+iteration 3 nothing it was not already paying.
+
+### 56C.3 — red (one real defect fixed at the mint; two standing classes ledgered)
+
+Harvest finally survived and both stores built; five reds, three causes:
+
+- **Teeth 13/14/15 (real defect, cured):** all three died at preflight —
+  role "duchy-pair-1" missing. The three 56C harness seats were minted under
+  bare `proving:` cache keys, which the store classifier reads as klass
+  `unknown` (no label, no variant), so roleOf's scene branch — where the 56C
+  suffix roles live — never saw them. The sanctioned harness-scene prefix is
+  `proving-scene:` (whitelisted in BOTH classifiers: store klass and
+  attestation subtype). TEST EDIT: the three cache keys moved to
+  `proving-scene:${id}:…`; suffix role mapping, slot names, prompts keys,
+  and pair distinctness all unchanged. No assertion touched.
+- **Tooth 11 (standing class, no edit):** a good-moment fixture pair failed
+  one binary. History: 54B.2, 56B.2, 56B.3, 56B.4 — the known repaint
+  roulette of the sealed instrument; re-rolls on the next mint.
+- **G17a (standing class, no edit):** the villain's live portrait painted a
+  second figure (single_subject=false) — the court is right to refuse it.
+  History: 54.3. Portrait prompts carry no 56C law; fresh live session
+  re-rolls next iteration.
+
+Iteration 4 requested: same law, three cache keys corrected.
+
+### 56C.4 — red (the sealed stores rode; raze forced through the store's own gate)
+
+All five reds returned byte-identical — same plate hashes, same verdicts,
+teeth in milliseconds — because the paint-law hash covers the LAW files
+alone (prompts, foundry, unlettered, warden), so 56C.3's sealed stores rode
+into 56C.4 verbatim: the mis-keyed seats, the two-figure villain portrait,
+and the failing good-moment pair were FROZEN defects, not re-rolling
+roulette. The harness cache-key cure is invisible to that hash by design.
+Cure: `paint-law.json` removed so `ensureFreshStore` razes and repaints
+from zero under the corrected keys — the store's own destructor, no manual
+surgery on sealed records. Iteration 5 is a full fresh mint: the three 56C
+seats land their roles, and every standing roulette class re-rolls.
+
+### 56C.5 — red (anchored at the same beat; mechanics decoded, no edit)
+
+Harvest A died anchored at attestation #9 again — the FIRST scene of the
+live walk (The Antler Hills, hero-first cue [Maren, Mara Vey], dusk). Two
+findings, both evidence, neither a defect of the frame law:
+
+- `warden: "fallback"` in the attest is the ANCHOR-STANDS-IN label minted
+  when likeness fails twice (engine wardenRuling) — the primary magnified
+  judge sat both times; no bench degraded. The drift text is the judge's
+  own truncated sentence; cosmetic.
+- The beat is HISTORICALLY hostile: 54.1 and 54B.1 both died at
+  attestation #9 before any 56C law existed (56B.1 died at #14). 56C.3
+  proved the beat winnable under the frame law. This is the standing
+  first-scene likeness roulette, concentrated where every fresh mint
+  starts.
+
+No law or harness change: the store state forces a true fresh roll at
+iteration 6 (partial live record, no session.json, empty fixture store,
+paint-law hash standing). Under the ride mechanic (deterministic vision
+cache re-litigates sealed evidence verbatim), one fully green mint makes
+the two following rides deterministic — iteration 6 is the winning-mint
+attempt, 7 and 8 its rides.
+
+### 56C.6 — red (the first-scene tollgate again; ceiling extension invoked)
+
+Anchored at attestation #9 for the fourth fresh mint out of five. Drift
+this run: "Lens swapped from right to left eye" / "Slight facial variation
+due to scale" — the five-pixel mark-at-scene-distance class the series
+ledger already names (wording plateaus ~50%; enforcement beats eloquence;
+the warden is RIGHT to refuse). Failed-attempt bytes are lawfully dropped
+on anchor-fall, so there are no plates to eye — drift text is the whole
+record. The tollgate is standing design, not frame law: 54.1 and 54B.1
+died at this same attestation before Directive IX existed; 56C.3 proved
+the beat winnable under the new law. No edit — the dice are the painter's.
+
+RITUAL DEVIATION, LEDGERED: three consecutive greens cannot fit in the
+two iterations remaining under ceiling 8. Per series law — extensions
+ONCE, then frozen — the ceiling moves 8 → 12 and is FROZEN there. The
+winning mint must land by iteration 10 (rides at +1, +2); if no mint wins
+by 10, the loop closes red and the owner gets the honest report. No
+second extension exists.
+
+### 56C.7 — red (harvest GREEN both stores; three fixture-brief defects, briefs cured, fixture-only raze)
+
+The mint won the first-scene tollgate — live store sealed clean (G17a
+green, tooth 14 green). Three reds, every one a CORRECT verdict by a 56C
+instrument against a defective FIXTURE paint, and eyes on the plates
+proved the briefs were the liars:
+
+- **Tooth 13** (closure known-good): both duchy mints added a prominent
+  second figure to the one-soul brief — "dusk trade weighed" begs a
+  counterparty and the principal clause's companionship sentence invites
+  one. The count court refused rightly. TEST EDIT: the pair brief now
+  names TWO souls (Corin Voss, Edda) — the painter's counterparty habit
+  becomes lawful; DUCHY_PAIR_SUBJECTS moves in lockstep; the two
+  known-bad count-lies recomposed to stay deterministic ([hero, Corin,
+  Edda] = three names vs the two-soul plate; [hero] alone vs the
+  two-soul hero-first plate). Count lies, never identity crossings.
+- **Tooth 15** (constancy known-good): sealed canon demands "bolted to
+  the gate arch … pans polished to mirrors"; both mints painted
+  freestanding dull-panned scales. The constancy court refused rightly.
+  TEST EDIT: the pair MOOD now orders the canon attributes themselves
+  (gate arch, bolted, mirror-polished pans) — the mood rides first and
+  every concrete noun is a paint order; the judge's bar is unchanged.
+- **Tooth 11**: standing moment-pair roulette (element_present +
+  no_contradiction on one fixture moment plate); re-rolls with the mint.
+
+RAZE, scoped: fixture store + top manifest deleted; paint-law.json and
+the LIVE store stand — harvest A rides its sealed session, harvest B
+re-mints under the cured briefs. No app law touched; no pin moved
+('Principal presence: Corin Voss' is subjects[0], standing).
+
+### 56C.8 — red (tooth 15 alone; the constancy question amended to identity-grade, re-pinned)
+
+Teeth 11, 13, 14 GREEN — the two-soul pair brief and recomposed count-lies
+cured closure calibration on the first fresh mint. One red: tooth 15's
+known-good, again refused SOLELY on staging — wall-bracket-beside-arch vs
+pedestal-near-arch, dull pans, a sack in one pan — with the fixture's
+identity (man-high brass twin-pan toll-scale at the gate) rendered
+plainly in both paints. Across FOUR independent mints the pipeline
+rendered the fixture's identity 4/4 and its arch-bolting 0/4; the pair's
+own sealed design (independent cache keys) guarantees staging variance
+between mints. As written, the question demanded letter-exact staging
+convergence that independent mints structurally cannot deliver — a court
+that cannot pass honest work is decoration in the mirror.
+
+TEST EDIT (amendment 9): questions.fixture_pair in frame-questions.json
+now judges identity-grade constancy — canon kind, material, scale,
+distinctive form, recognizably the sealed fixture in BOTH paints;
+staging (mounting, angle, position, finish as lit, incidental dressing)
+is lawful variance; refusal reserved for a missing, different, or
+unrecognizable fixture. The known-bad stays a deterministic lie (the
+crossed ground holds no such fixture at all). JSON schema unchanged.
+Protocol tag bumped — every frame-instrument verdict re-judges FRESH at
+56C.9 (54B cache law: protocol is a key ingredient); the sha pin in
+frameLaw.ts moved in lockstep. Stores STAND — no re-mint; same evidence,
+honest question.
+
+### 56C.9 — red (one lockstep pin, mine; the amended constancy instrument separates perfectly)
+
+The amended fixture question judged true law on first sitting: known-good
+TRUE (0.85, empty inconsistency), crossed-ground FALSE (0.97), crossed-
+canon FALSE (0.98) — perfect separation, and every court in the house sat
+for the first time: zero skips, zero missing needles, 75 of 76 green.
+The one red never reached judgment — G22d's protocol-tag pin still read
+'f1' after the amendment bumped the file to 'f2'. My own miss, the exact
+class the turn-law ledger names: EVERY call-site pin moves in lockstep or
+the court refuses honest work. TEST EDIT: the G22d pin moves 'f1'→'f2'.
+Stores stand; all f2 verdicts cached; 56C.10 rides.
+
+### 56C.10 — red (G8 codex tap-race flake; the ceiling verdict falls)
+
+The ride that should have been the first green of three: 75 of 76, zero
+skips, zero missing needles — and the one red never reached a single
+assertion. openCodex tapped the nav button, the button took focus
+(page snapshot: alive, feed rendered, button [active]), and the modal
+never opened; 240s burned on the selector. G8 ran 2.3s / 2.4s / 2.8s
+green at 7 / 8 / 9 on these same bytes. Flake class, not frozen: a
+one-tap hydration race in the shared walk helper.
+
+TEST EDIT: openCodex now re-taps (three attempts, 15s each, re-tap only
+when the modal is provably absent; final unguarded wait keeps the
+court's timeout as law). No assertion weakened — every codex law still
+sits. harness.ts is outside the paint-law hash; stores stand.
+
+THE CEILING VERDICT, stated plainly: with 10 red, iterations 11 and 12
+can yield at most TWO consecutive greens. Three-consecutive cannot fit
+inside the frozen ceiling of 12, and the one extension is spent. The
+task closes RED by the ritual's letter regardless of what 11 and 12
+show. They ride anyway — as closing evidence of what stands: the mint
+that won the tollgate, the instruments that separate perfectly, the
+courts that all sat. Honest evidence, honest red.
+
+### 56C.11 — GREEN (76/76; the first fully green sitting of the series)
+
+Zero unexpected, zero skips, zero missing needles, exit 0. Every court
+sat: the live walk with its tollgate-winning first scene, all four G22
+frame courts under the f2 instruments, teeth 11-15 with perfect
+separation, the hardened codex walk. No edits.
+
+### 56C.12 — GREEN (76/76; ceiling exhausted)
+
+The second consecutive fully green sitting, byte-for-byte the same laws.
+No edits. The ceiling of 12 (frozen, extension spent at 56C.6) is
+exhausted.
+
+## TASK 56C CLOSING VERDICT — RED BY THE RITUAL'S LETTER
+
+The chain at close: 7 red, 8 red, 9 red (75/76), 10 red (75/76, tap-race
+flake), 11 GREEN, 12 GREEN. Two consecutive fully green sittings stand
+at ceiling exhaustion; the ritual demands three; no second extension
+exists. The task closes RED, honestly, with this evidence standing:
+
+- The winning mint: live store sealed at 56C.7 through the first-scene
+  tollgate; fixture store sealed at 56C.8 under cured briefs.
+- The three frame instruments separate perfectly on sealed materials
+  (teeth 13, 14, 15 — every known-good passes, every known-bad refused).
+- All four G22 frame courts sat and passed twice on the sealed stores.
+- Every ledgered edit is a brief cure, an instrument-law amendment
+  (9, ledgered), a lockstep pin move, or a walk hardening — no assertion
+  weakened anywhere, no skip introduced, no dependency added.

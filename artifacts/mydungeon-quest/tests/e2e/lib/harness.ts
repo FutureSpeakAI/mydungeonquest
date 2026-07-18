@@ -68,7 +68,9 @@ export function mapLogRow(log: any): any {
     narrations: (log.dm?.narration_blocks || []).map((block: any) => ({ speaker: block.speaker ?? null, text: block.text || '' })),
     suggestions: log.dm?.suggestions || null,
     timeAdvance: log.dm?.time_advance || null,
-    imageCue: log.dm?.image_cue ? { subjects: log.dm.image_cue.subjects || [], region: log.dm.image_cue.region || null } : null
+    // (56C) crowd rides the read-back — the closure court's allowance must
+    // reach the manifest, or every granted crowd is judged as 'none'.
+    imageCue: log.dm?.image_cue ? { subjects: log.dm.image_cue.subjects || [], region: log.dm.image_cue.region || null, crowd: log.dm.image_cue.crowd ?? null } : null
   };
 }
 
@@ -267,6 +269,29 @@ export async function paintFixtureExtras(page: Page, campaignId: string, anchorS
       });
     }
 
+    // (Task 56C logged edit) THE FRAME COURTS' SEATS — three deterministic
+    // scene paints for Directive IX. The Duchy pair: the SAME sealed ground
+    // painted twice, independently (distinct cache keys force two mints of
+    // one brief), both post-seal so the Brass Toll-Scale rider rides both —
+    // the constancy court's pair. The hero-first plate: a cue that names the
+    // hero FIRST beside Edda, the principal court's guaranteed seat. All
+    // three cues are living-and-present under the replayed record: Corin
+    // remains at The Duchy after his leave, Edda rides in the party, the
+    // hero is the root. No assertion changed.
+    const duchy = regions.find((region: any) => region.name === 'The Duchy');
+    const toll = (campaign.codex.fixtures || []).find((fixture: any) => fixture.place === 'The Duchy');
+    if (!duchy || !toll) throw new Error(`fixture codex incomplete for the frame courts: duchy=${!!duchy} toll=${!!toll}`);
+    // (56C.7 logged edit) Two souls, and the mood orders the sealed fixture's
+    // own attributes — a lone figure "weighing trade" begged a painted
+    // counterparty (2/2 mints added one), and a mood that never named the
+    // arch-bolting got freestanding scales (0/2 rendered canon). The
+    // instruments were right both times; the brief was the liar.
+    const pairCue = { kind: 'scene', region: 'The Duchy', subjects: ['Corin Voss', 'Edda'], mood: 'dusk trade weighed at the gate arch, the man-high brass toll-scale bolted there catching lantern light in its mirror-polished pans', crowd: 'none' };
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, pairCue, null), options: { kind: 'scene' }, priority: 5, originTurnHash: null, cacheKey: `proving-scene:${id}:duchy-pair-1`, slot: 'duchy-pair-1' });
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, pairCue, null), options: { kind: 'scene' }, priority: 5, originTurnHash: null, cacheKey: `proving-scene:${id}:duchy-pair-2`, slot: 'duchy-pair-2' });
+    const heroFirstCue = { kind: 'scene', region: vale.name, subjects: [campaign.hero.name, 'Edda'], mood: 'the hearth-light holds the road-reader and the fire-keeper', crowd: 'none' };
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, heroFirstCue, null), options: { kind: 'scene', referenceLabels: [campaign.hero.name, 'Edda'] }, priority: 5, originTurnHash: null, cacheKey: `proving-scene:${id}:hero-first-scene`, slot: 'hero-first-scene' });
+
     const prompts: Record<string, string> = {};
     for (const job of jobs) prompts[job.slot] = job.prompt;
 
@@ -366,7 +391,18 @@ export async function waitForTurn(page: Page, above: number, timeout = 120_000):
 // ---------- overlays ----------
 
 export async function openCodex(page: Page): Promise<void> {
-  await page.click('nav button:has-text("Codex")');
+  // (56C.10 logged edit) One tap can land in a hydration gap — observed once
+  // in four rides: page alive, button [active], modal never opened, 240s
+  // burned. A patron taps again; so does the walk. Re-tap only when the
+  // modal is provably absent; the final unguarded wait keeps the court's
+  // own timeout as the law. No assertion weakened — the codex must still
+  // open and answer everything the court demands.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await page.locator('.modal .codex-head').isVisible().catch(() => false)) return;
+    await page.click('nav button:has-text("Codex")');
+    const head = await page.waitForSelector('.modal .codex-head', { timeout: 15_000 }).catch(() => null);
+    if (head) return;
+  }
   await page.waitForSelector('.modal .codex-head');
 }
 

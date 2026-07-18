@@ -36,6 +36,14 @@ const LAW_SOURCES = [
   // The book court reads captures OF the book — layout law changes must
   // raze them too, or a stale storybook.json testifies about old code.
   path.join(GAME_ROOT, 'src', 'lib', 'storybook.js'),
+  // (0.9.0 review round, amended after 58.4/58.5) The paint law covers the
+  // PLATES and their captures — nothing else. Prose freshness is the PROSE
+  // store's law (proseLawHash below): widening THIS hash to prose sources
+  // razed the standing store on every writer's-room change, and each full
+  // repaint re-rolled every judge sitting fresh — two sittings, two
+  // different courts crossed, tooth 13's own bench included. The standing
+  // store IS the stability mechanism; prose honesty is bought with a
+  // cheap fresh mock walk (G24w), never with fresh paint dice.
 ];
 
 export function paintLawHash(): string {
@@ -55,7 +63,52 @@ export function ensureFreshStore(): { reused: boolean; hash: string } {
   fs.mkdirSync(HARVEST_DIR, { recursive: true });
   fs.writeFileSync(lawFile, JSON.stringify({
     hash, at: new Date().toISOString(),
-    note: 'sha256 over prompts.js + foundry.js + unlettered.js + warden.js — the paint law. A changed law kills the store; the next harvest repaints from zero.'
+    note: 'sha256 over the paint law (prompts, foundry, unlettered, warden, magnifier, storybook). A changed paint law kills the plate store; the next harvest repaints from zero. Prose freshness is the prose store\u2019s own law \u2014 see proseLawHash.'
+  }, null, 2));
+  return { reused: false, hash };
+}
+
+// ---------- the prose law (0.9.0, THE WRITER'S ROOM — review round) ----------
+// The architect's catch was real: G24 judging sessions frozen under old
+// prose law is a stale court. But the answer is NOT razing the plate
+// store — it is a SECOND store with its own law. The prose store holds
+// one cheap mock walk's session record; it razes when any writer's-room
+// law changes and costs seconds to reseed, because mock prose is
+// deterministic and the walk never waits on paint. Paint dice and prose
+// freshness never touch each other again.
+
+export const PROSE_STORE_DIR = path.join(GAME_ROOT, 'test-results', 'prose-store');
+
+const PROSE_LAW_SOURCES = [
+  path.join(GAME_ROOT, 'server', 'room.js'),
+  path.join(GAME_ROOT, 'server', 'artDirector.js'),
+  path.join(GAME_ROOT, 'server', 'dm.js'),
+  path.join(GAME_ROOT, 'src', 'lib', 'systemPrompt.js'),
+  path.resolve(GAME_ROOT, '..', '..', 'packages', 'engine', 'src', 'mockDm.js'),
+  path.resolve(GAME_ROOT, '..', '..', 'packages', 'engine', 'src', 'protocol.js'),
+];
+
+export function proseLawHash(): string {
+  return sha256Hex(Buffer.concat(PROSE_LAW_SOURCES.map((p) => fs.readFileSync(p))));
+}
+
+/** Razes the prose store when the writer's-room law changed; keeps it
+ * when it holds. Call at the top of G24w — the walk reseeds only when
+ * the law moved, and the court always judges sessions born under the
+ * law it enforces. */
+export function ensureFreshProse(): { reused: boolean; hash: string } {
+  const hash = proseLawHash();
+  const lawFile = path.join(PROSE_STORE_DIR, 'prose-law.json');
+  const sessionFile = path.join(PROSE_STORE_DIR, 'session.json');
+  const stored = fs.existsSync(lawFile)
+    ? (JSON.parse(fs.readFileSync(lawFile, 'utf8')).hash as string)
+    : null;
+  if (stored === hash && fs.existsSync(sessionFile)) return { reused: true, hash };
+  fs.rmSync(PROSE_STORE_DIR, { recursive: true, force: true });
+  fs.mkdirSync(PROSE_STORE_DIR, { recursive: true });
+  fs.writeFileSync(lawFile, JSON.stringify({
+    hash, at: new Date().toISOString(),
+    note: 'sha256 over the writer\u2019s-room law (room, artDirector, dm, systemPrompt, mockDm, protocol). A changed law kills the prose store; G24w reseeds it with one fresh mock walk \u2014 no paint waits, no judge dice.'
   }, null, 2));
   return { reused: false, hash };
 }

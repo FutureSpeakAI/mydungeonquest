@@ -1,22 +1,25 @@
 import { expect, test } from '@playwright/test';
 import { act, boot, closeModal, openSheet, rollIfAsked, seedFixture, turnCount } from './lib/harness';
 
-// (54C §3.2) THE FIRST WORD BOUND — measured AFTER the cure and pinned with
-// stated headroom. Post-cure solo measurements (two runs): dm on the wire
-// at +160ms and +203ms after the Begin tap, first narration byte at sample
-// 1 (~250ms) both times — against 21.5s solo / >30s contended before the
-// cure. Pin: 12s ≈ 48× the solo median, 2.5× tighter than the 30s window
-// the criterion always owned, sized so full-suite contention (fresh judge
-// calls sharing the server) can never flake a lawful run. The bar may only
-// tighten from here — never widen.
+// (54C §3.2, re-aimed by Directive XI Law III) THE FIRST SEALED WORD BOUND —
+// the curtain retired pre-seal streaming, so the first narration byte the
+// sampler can see is sealed prose pouring into its permanent seat. AFTER
+// medians at the mock door (measure-first-word.mjs, N=15): sealed 5ms
+// median / 323ms max — the retired theater was itself the latency (BEFORE:
+// sealed 731ms median / 1118ms max). The number holds at 12s (≈37× the
+// sealed max, sized so full-suite contention — fresh judge calls sharing
+// the server — can never flake a lawful run); its MEANING tightened from
+// first pre-seal byte to first SEALED word. The same figure bounding a
+// stricter event is a tightening. The bar may only tighten from here —
+// never widen.
 const FIRST_WORD_PINNED_MS = 12_000;
 
-// G5 THE TABLE LOOP — narration streams, suggestions offer roads, a custom
-// action lands, the roll shows its die and its deed, the sheet knows the
-// blood. G6 — ticks with phrases, at most four whispers, one recap per
-// sitting, stillness for those who ask.
+// G5 THE TABLE LOOP — the sealed page pours and only ever grows,
+// suggestions offer roads, a custom action lands, the roll shows its die
+// and its deed, the sheet knows the blood. G6 — ticks with phrases, at
+// most four whispers, one recap per sitting, stillness for those who ask.
 
-test('G5 the prologue streams and the loop turns', async ({ page }) => {
+test('G5 the prologue pours sealed and the loop turns', async ({ page }) => {
   test.setTimeout(300_000);
   // (54C §3.2) THE WIRE LEDGER — every /api/dm and /api/paint request is
   // recorded at initiation, live off the page itself, so the first-word law
@@ -39,6 +42,17 @@ test('G5 the prologue streams and the loop turns', async ({ page }) => {
   page.on('requestfinished', settle);
   page.on('requestfailed', settle);
   await boot(page);
+  // (Directive XI, Law I) THE RETRACTION DETECTOR — the pour may only ever
+  // GROW. From boot to the end of the sitting, any narration node removed,
+  // or any narration text rewritten to anything but a strict extension of
+  // what stood, is a retraction — the crime the curtain retired. The
+  // observer arms itself the moment the adventure log exists and holds the
+  // whole session. (X-Card redaction lawfully removes entries; this
+  // sitting never invokes it.)
+  // (0.9.0) The observer's law is hoisted to lib/retraction.ts — ONE
+  // instrument, proven by tooth 19 before this sitting trusts its silence.
+  const { armRetractionObserver } = await import('./lib/retraction');
+  await page.evaluate(armRetractionObserver);
   await page.click('.new-spine');
   await page.waitForSelector('.spark-card');
   await page.locator('.spark-card').nth(0).click();
@@ -67,11 +81,12 @@ test('G5 the prologue streams and the loop turns', async ({ page }) => {
   const begunAt = Date.now();
   await page.click('button:has-text("Begin the chronicle")');
 
-  // THE STREAM — sample from the Begin tap itself (iteration-1 logged edit:
-  // the old window opened only after the first narration PAINTED, mid-stream,
-  // and a fast mock could show <3 rises inside it). The criterion is
-  // unchanged — at least three observed rises — the window now simply covers
-  // the whole stream, 0 → first chunk included.
+  // THE POUR — sample from the Begin tap itself (iteration-1 logged edit:
+  // the old window opened only after the first narration PAINTED, mid-pour,
+  // and a fast arrival could show <3 rises inside it). The criterion is
+  // unchanged — at least three observed rises — the window covers the whole
+  // pour, 0 → first chunk included. Post-curtain the growth IS the pour at
+  // the seat: sealed prose walking into its permanent entry.
   const samples: number[] = [];
   for (let i = 0; i < 120; i += 1) {
     const length = await page.evaluate(() => {
@@ -81,13 +96,13 @@ test('G5 the prologue streams and the loop turns', async ({ page }) => {
       return total;
     });
     samples.push(length);
-    // The stream has settled: narration exists and hasn't grown for 12 samples.
+    // The pour has settled: narration exists and hasn't grown for 12 samples.
     if (length > 0 && samples.length >= 12 && samples[samples.length - 12] === length) break;
     await page.waitForTimeout(250);
   }
   await page.waitForSelector('main.adventure-log .turn-entry .narration', { timeout: 60_000 });
   // (54B §5) The 54.6 stall — twelve all-zero samples — could not say
-  // WHICH half died: transport (no first byte) or growth (a stream that
+  // WHICH half died: transport (no first byte) or growth (a pour that
   // starts and freezes). The assertion is SPLIT so a red names its phase.
   // The bound is the window the criterion always owned (120 × 250ms);
   // neither half is softer than the old law — together they imply it.
@@ -111,9 +126,10 @@ test('G5 the prologue streams and the loop turns', async ({ page }) => {
   expect(paintsBeforePour.length, `§(54C) no paint precedes the first word — saw [${paintsBeforePour.map((entry) => `${entry.lane}@+${entry.at - begunAt}ms`).join(', ')}] before dm@+${firstPour!.at - begunAt}ms`).toBe(0);
   console.log(`[g05][54C] wire: dm@+${firstPour!.at - begunAt}ms, first paint ${firstPaint!.lane}@+${firstPaint!.at - begunAt}ms, first byte ~${firstByteIndex * 250}ms`);
 
-  // (54C §3.2) The pinned first-byte bound — the stream must begin inside
-  // FIRST_WORD_PINNED_MS, under whatever contention the run carries.
-  expect(firstByteIndex * 250, `§(54C) the first word arrives inside the pinned ${FIRST_WORD_PINNED_MS}ms (saw ~${firstByteIndex * 250}ms)`).toBeLessThanOrEqual(FIRST_WORD_PINNED_MS);
+  // (54C §3.2, Directive XI Law III) The pinned bound — the first SEALED
+  // word must begin its pour inside FIRST_WORD_PINNED_MS, under whatever
+  // contention the run carries.
+  expect(firstByteIndex * 250, `§(54C/XI) the first sealed word arrives inside the pinned ${FIRST_WORD_PINNED_MS}ms (saw ~${firstByteIndex * 250}ms)`).toBeLessThanOrEqual(FIRST_WORD_PINNED_MS);
 
   // Suggestions — at least three roads offered.
   await page.waitForSelector('.suggestions button', { timeout: 120_000 });
@@ -178,6 +194,22 @@ test('G5 the prologue streams and the loop turns', async ({ page }) => {
         expect(seat('narrate-button'), `group ${index}: the plate sits below Listen too [${parts.join(', ')}]`).toBeLessThan(seat('illustration-panel'));
       }
     }
+  }
+
+  // (Directive XI, Law I) The sitting ends with an empty retraction ledger:
+  // across the prologue pour, a full player turn, a roll, sheet visits, and
+  // the easel settling, no narration node was ever removed or rewritten.
+  const retractions = await page.evaluate(() => (window as unknown as { __retractions: string[] }).__retractions || []);
+  expect(retractions, `§XI the pour only ever grows — the retraction ledger must be empty: [${retractions.join(' | ')}]`).toEqual([]);
+
+  // THE POUR WITNESS (0.9.0, G24a) — the sitting seals its retraction
+  // ledger to disk so the prose court reads the run's own evidence
+  // instead of taking the house's word. (A red sitting here reddens the
+  // whole run regardless — the witness only carries the ledger's bytes.)
+  {
+    const { writeFileSync, mkdirSync } = await import('node:fs');
+    mkdirSync('test-results', { recursive: true });
+    writeFileSync('test-results/g05-pour-witness.json', JSON.stringify({ retractions, sealedAt: new Date().toISOString() }, null, 2));
   }
 });
 

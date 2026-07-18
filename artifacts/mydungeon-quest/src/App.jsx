@@ -26,6 +26,7 @@ import { fetchSeasons, skyNoteFor } from './lib/sky.js';
 import { RavenNotice } from './components/RavenNotice.jsx';
 import { buildBriefing } from 'fatescript/graph';
 import { roomForTurn } from './lib/scriptorium.js';
+import { pourPlan, pourInterval } from './lib/pour.js';
 import { tellCourt } from './lib/tells.js';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
@@ -161,7 +162,10 @@ export default function App() {
   useEffect(() => { fetchSeasons().then((list) => { seasonsRef.current = list; }).catch(() => {}); }, []);
   const [diceResult, setDiceResult] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [weaving, setWeaving] = useState(null);
+  const [pouringId, setPouringId] = useState(null);
+  const [pourTick, setPourTick] = useState(0);
+  const bumpPourTick = useCallback(() => setPourTick((tick) => tick + 1), []);
+  const endPour = useCallback(() => setPouringId(null), []);
   const [paintingImages, setPaintingImages] = useState({});
   const [audioBusy, setAudioBusy] = useState(false);
   const [status, setStatus] = useState('✦ The table is set.');
@@ -242,7 +246,7 @@ export default function App() {
   // warmth. (The header disables this while the scribe is mid-stroke, so a
   // landing turn can never chase a player onto another table.)
   const closeBook = useCallback(async () => {
-    setOverlay(null); setCinematic(null); setDiceResult(null); setWeaving(null);
+    setOverlay(null); setCinematic(null); setDiceResult(null); setPouringId(null);
     pendingNarrationRef.current = null; pendingActRef.current = null;
     setPaintingImages({});
     setCurrent(null); setFlow('title');
@@ -344,10 +348,10 @@ export default function App() {
   // exactly like the Care toggle; either voice is enough.
   const stillness = settings.reduceMotion || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
   useEffect(() => { if (flow === 'table') logEndRef.current?.scrollIntoView({ behavior: stillness ? 'auto' : 'smooth' }); }, [current?.logs?.length, flow, stillness]);
-  // Follow the prose as it streams in: as each chunk of the weaving turn arrives,
-  // keep the newest text in view (instant, so rapid updates don't fight a smooth
+  // Follow the prose as it pours: each tick of the sealed page's pour keeps
+  // the newest text in view (instant, so rapid updates don't fight a smooth
   // animation) — older narration rises off the top like a live podcast transcript.
-  useEffect(() => { if (flow === 'table' && weaving != null) logEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }); }, [weaving, flow]);
+  useEffect(() => { if (flow === 'table' && pourTick > 0) logEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }); }, [pourTick, flow]);
   useEffect(() => { document.documentElement.style.setProperty('--text-scale', settings.textScale); }, [settings.textScale]);
   // Silence everything — narrator, music, effects — when leaving the table or
   // switching chronicles. The next screen begins in silence, as the Law demands.
@@ -408,7 +412,14 @@ export default function App() {
     // from composition — the subjects' appearance canon and reference
     // anchors stay wired in regardless.
     const sceneMoment = {
-      prose: (dm.narration_blocks || []).map((block) => block?.text || '').join(' ').slice(0, 480),
+      // LAW IX — the Art Director names the staged moment on the cue
+      // itself; the whole-page join serves replay only, for turns
+      // sealed before the chair opened. THIS LAW HAS A MIRROR: the
+      // mint-law re-lay door (fireMintLadder, harvest.spec.ts) rebuilds
+      // this exact object to prove fidelity — move this, move the mirror.
+      prose: (typeof dm.image_cue?.moment === 'string' && dm.image_cue.moment.trim()
+        ? dm.image_cue.moment
+        : (dm.narration_blocks || []).map((block) => block?.text || '').join(' ')).slice(0, 480),
       seed: turnRecord.recordHash || String(logId || ''),
       // The roster's first chair: the turn's first attributed voice. The
       // easel seats speaker → villain → bond, deterministic (bearing law).
@@ -559,11 +570,28 @@ export default function App() {
       let hand = { directives: [] };
       try { hand = tellCourt(base); } catch { hand = { directives: [] }; }
       if (hand.directives.length) story = { ...story, directives: [...(story.directives || []), ...hand.directives] };
+      // THE WRITERS' ROOM (Directive XI) — the standing beat's index rides
+      // the pack (additive, like the clock and the sky) so the server room
+      // can seat its Director cache; the carried intent rides home the same
+      // way, returning the Director's word for the beat it was spoken to.
+      story = { ...story, beat: { ...(story.beat || {}), index: base.codex.beatIndex } };
+      if (base.roomIntent && Number.isInteger(base.roomIntent.beat_index) && base.roomIntent.beat_index === base.codex.beatIndex) {
+        story = { ...story, beat_intent: base.roomIntent };
+      }
+      // THE EDITOR'S DOCKET (Directive XI, Law VI) — the prior turn's
+      // roads ride additively so the room's sameness court holds its
+      // cross-evidence; redacted pages surrender their roads with the rest.
+      const priorRoads = [...base.logs].reverse().find((entry) => !entry.redacted && Array.isArray(entry.dm?.suggestions) && entry.dm.suggestions.length);
+      if (priorRoads) story = { ...story, prior_suggestions: priorRoads.dm.suggestions.filter((road) => typeof road === 'string').slice(0, 6) };
       // The DM keeps its own memory now: prior turns ride along as a
       // real conversation, so prose has continuity — and the stable
       // prefix caches on the server side. Spans are the table's own clock
       // rows — sealed time, not speech — so the conversation skips them.
-      const history = base.logs.filter((entry) => !entry.redacted && entry.kind !== 'tick' && entry.kind !== 'span' && entry.kind !== 'annal').slice(-15).flatMap((entry) => [
+      // (0.9.0 review round) TWENTY ROWS, NOT FIFTEEN — the Editor's echo
+      // court reads a twenty-page window (Law VI); the client must furnish
+      // what the court is owed or pages sixteen-to-twenty back can never
+      // convict. The cached stable prefix keeps the wider brief cheap.
+      const history = base.logs.filter((entry) => !entry.redacted && entry.kind !== 'tick' && entry.kind !== 'span' && entry.kind !== 'annal').slice(-20).flatMap((entry) => [
         { role: 'user', content: entry.sent || entry.player || 'Continue.' },
         { role: 'assistant', content: (entry.dm?.narration_blocks || []).map((block) => block.text).join('\n\n') }
       ]).filter((message) => message.content);
@@ -608,9 +636,11 @@ export default function App() {
             else if (line.startsWith('data:')) {
               try {
                 const data = JSON.parse(line.slice(5));
-                if (eventName === 'narration' && typeof data.text === 'string') setWeaving(data.text);
-                else if (eventName === 'retract') setWeaving('✦ The Dungeon Master reconsiders the telling…');
-                else if (eventName === 'turn') body = data;
+                // THE CURTAIN (Directive XI, Law I): the door speaks one
+                // story event — the sealed turn. Heartbeat comment lines
+                // never match the event/data prefixes, so they fall away
+                // here without a handler.
+                if (eventName === 'turn') body = data;
               } catch { /* keep reading */ }
             }
           }
@@ -620,6 +650,13 @@ export default function App() {
       }
       if (!body?.turn) throw new Error('The stream ended before the turn arrived.');
       const dm = body.turn;
+      // THE ROOM'S WORD RIDES HOME (Directive XI) — the Director's intent
+      // and the room's ledger arrive beside the sealed turn: the intent is
+      // carried on the campaign row so the next pour returns it (the cache
+      // that costs nothing), the ledger lands on the row and in the seal —
+      // written as spent, never reconstructed.
+      const beatIntent = body.beat_intent ?? null;
+      const roomLedger = body.room_ledger ?? null;
       // The cast snapshot is taken BEFORE this turn's updates apply, so a
       // soul may speak its dying words in the very turn that kills it — and
       // the dead of earlier turns cannot be given dialogue at all. The
@@ -672,12 +709,16 @@ export default function App() {
       // duplicating sealed truth only) so the narrator can direct the line
       // — a dying friend sounds like one. Retellings still quote the deed,
       // never the die.
-      const log = { id: crypto.randomUUID(), player: visiblePlayer, deed, sent: player, dm, ts: Date.now(), resolution, redacted: false, beatIndex: codex.beatIndex };
+      const log = { id: crypto.randomUUID(), player: visiblePlayer, deed, sent: player, dm, ts: Date.now(), resolution, redacted: false, beatIndex: codex.beatIndex, room: roomLedger };
       // A completing turn strands no die: the tale that just ended has no
       // roll left to make.
-      let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: codex.completed ? null : dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed };
+      let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: codex.completed ? null : dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed, roomIntent: beatIntent };
       await saveCampaign(next);
-      const record = await seal(base.id, 'turn', { player, visiblePlayer, deed, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution });
+      // THE POUR — the sealed page pours into its permanent seat (never a
+      // provisional article): the entry is marked, the text grows in place,
+      // and no node is ever swapped out from under the reader.
+      setPouringId(log.id);
+      const record = await seal(base.id, 'turn', { player, visiblePlayer, deed, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution, room: roomLedger });
       const sealed = await db.campaigns.get(base.id);
       next = { ...next, headHash: sealed.headHash, turnCount: sealed.turnCount, signatureStatus: sealed.signatureStatus };
       next.logs[next.logs.length - 1].recordHash = record.recordHash;
@@ -779,7 +820,7 @@ export default function App() {
       return next;
     } catch (error) {
       console.error(error); setStatus(`The road snagged: ${error.message}`); return base;
-    } finally { setBusy(false); setWeaving(null); }
+    } finally { setBusy(false); }
   }, [queueMedia, refreshShelf]);
 
   // THE CHRONICLER'S COURT, client side — ask /api/retell for the chapter's
@@ -1260,12 +1301,10 @@ export default function App() {
           if (log.redacted) return <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div>;
           const showsPlate = Boolean(log.imageUrl || log.videoPosterUrl || log.dm?.image_cue || paintingImages[log.id]);
           const plateNumeral = showsPlate ? romanNumeral(++plateNo) : null;
-          return <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} plateNumeral={plateNumeral} />;
+          return <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} plateNumeral={plateNumeral} pour={log.id === pouringId} reduceMotion={stillness} onPourTick={bumpPourTick} onPourDone={endPour} />;
         });
       })()}
-      {busy && (weaving
-        ? <article className="turn-entry weaving"><div className="narration">{weaving.split('\n\n').filter(Boolean).map((paragraph, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}>{paragraph}</p>)}</div></article>
-        : <div className="streaming"><span/>The Dungeon Master considers…</div>)}
+      {busy && <div className="streaming"><span/>The Dungeon Master considers…</div>}
       <div ref={logEndRef}/>
     </main>
     {!current.readOnly && current.codex.sealing && !current.completed && <div className="near-end denouement"><span>✦ The denouement — the road turns home.</span></div>}
@@ -1459,12 +1498,42 @@ function NarrationButton({ campaign, log }) {
   </button>;
 }
 
-export function LogEntry({ log, campaign, painting, plateNumeral = null }) {
+// THE POUR AT THE SEAT (Directive XI, Law I) — a sealed page pours into
+// its permanent entry. The plan is pure (src/lib/pour.js); this hook only
+// walks it on a timer. Rows that are not pouring — history, reopened
+// books, the node eval harness — render the full page instantly and arm
+// nothing. Under reduced motion the pour is instant and done is spoken at
+// once. The DOM only ever GAINS characters and paragraphs: every step is
+// a strict prefix of the next, the final step IS the sealed narration,
+// and when the pour prop later drops, the render is identical bytes — no
+// node is ever replaced beneath the reader.
+function usePour(blocks, active, { still = false, onTick = null, onDone = null } = {}) {
+  const plan = useMemo(() => pourPlan(blocks), [blocks]);
+  const [step, setStep] = useState(active && !still ? 0 : plan.length);
+  const doneRef = useRef(!active);
+  useEffect(() => {
+    if (!active) return undefined;
+    if (still || step >= plan.length) {
+      if (!doneRef.current) { doneRef.current = true; onDone?.(); }
+      return undefined;
+    }
+    const timer = setTimeout(() => { setStep((current) => current + 1); onTick?.(); }, pourInterval(plan.length));
+    return () => clearTimeout(timer);
+  }, [active, still, step, plan, onTick, onDone]);
+  if (!active || still || step >= plan.length) return blocks;
+  return plan[step];
+}
+
+export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = false, reduceMotion = false, onPourTick = null, onPourDone = null }) {
   const cue = log.dm.image_cue;
+  const poured = usePour(log.dm.narration_blocks, pour, { still: reduceMotion, onTick: onPourTick, onDone: onPourDone });
   // Every turn shows a plate: the DM's cue mood when present, otherwise the
   // opening line of narration. The procedural plate stands in until (or unless)
   // the painted scene arrives.
-  const mood = cue?.mood || plateMood(log.dm, 90) || 'the scene';
+  // LAW X — a sealed caption rides the cue and is preferred whole; the
+  // legacy sliced caption (plateMood) serves REPLAY ONLY, for pages
+  // sealed before the Art Director's chair opened.
+  const mood = cue?.caption || cue?.mood || plateMood(log.dm, 90) || 'the scene';
   const art = proceduralArtDataUrl(`${campaign.id}:${log.id}`, mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
   // Chronicles sealed before films were retired may carry a painted keyframe
   // poster on their film turns. Sealed history is immutable, so render that
@@ -1511,7 +1580,7 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null }) {
     {/* Reading order is deliberate: the words land first, the Listen control is
         available immediately, and the painted plate slots in BELOW the text —
         so a paint that finishes mid-read never shoves the paragraph you're on. */}
-    <div className="narration">{log.dm.narration_blocks.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
+    <div className="narration">{poured.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
     <NarrationButton campaign={campaign} log={log} />
     {showScene && <figure className={`illustration-panel full-bleed ${!still && painting ? 'painting' : ''}`}>
       <button type="button" className="plate-zoom" onClick={() => setExpandedSrc(still || art)} aria-label="Expand the illustration"><img src={still || art} alt={mood}/></button>

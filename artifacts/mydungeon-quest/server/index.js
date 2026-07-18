@@ -246,8 +246,10 @@ async function dmBarred() {
 
 app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), abuseCaps('dm'), innkeeper('dm'), async (req, res) => {
   const barred = await dmBarred();
-  // Real streaming: narration text is forwarded to the player as it
-  // forms inside the tool call; the validated turn arrives last.
+  // THE CURTAIN (Directive XI, Law I): the door speaks exactly one story
+  // event — the sealed turn. Heartbeat comments hold the wire open while
+  // the room deliberates; no pre-seal word ever crosses it, so there is
+  // nothing a repair could ever need to retract.
   if (req.query.stream === '1') {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -257,13 +259,12 @@ app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), abus
     // res 'close' fires on client disconnect; req 'close' fires as soon
     // as the request body finishes in modern Node, which is not abort.
     res.on('close', () => { closed = true; });
-    const result = await getDmTurn(req.body || {}, {
-      barred,
-      onNarration: (text) => { if (!closed) res.write(`event: narration\ndata: ${JSON.stringify({ text })}\n\n`); },
-      // The stage goes dark before a repair: outlaw prose already streamed
-      // is retracted so the player never reads an unlawful telling.
-      onRetract: () => { if (!closed) res.write('event: retract\ndata: {}\n\n'); }
-    });
+    const heartbeat = setInterval(() => { if (!closed) res.write(': the room deliberates\n\n'); }, 10_000);
+    if (typeof heartbeat.unref === 'function') heartbeat.unref();
+    const { convene } = await import('./room.js');
+    let result;
+    try { result = await convene(req.body || {}, { barred }); }
+    finally { clearInterval(heartbeat); }
     if (!closed) { res.write(`event: turn\ndata: ${JSON.stringify(result)}\n\n`); res.end(); }
     // A turn told by a real voice is one line in the ledger of use;
     // stand-ins are never billed (debit itself keeps that law).
@@ -271,7 +272,8 @@ app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), abus
     recordSpend(result.provider === 'anthropic' || result.provider === 'openai' ? result.provider : null);
     return;
   }
-  const result = await getDmTurn(req.body || {}, { barred });
+  const { convene } = await import('./room.js');
+  const result = await convene(req.body || {}, { barred });
   debit(req, 'dm', result.provider);
   recordSpend(result.provider === 'anthropic' || result.provider === 'openai' ? result.provider : null);
   res.json(result);

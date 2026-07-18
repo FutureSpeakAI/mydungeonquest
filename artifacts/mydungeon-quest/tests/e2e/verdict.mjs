@@ -19,6 +19,8 @@ const REQUIRED_PROJECTS = [
   'calibration',
   'g09-character', 'g10-environment', 'g11-style',
   'g16-captions', 'g17-framing', 'g18-storybook', 'g22-frame', 'g23-battle', 'teeth',
+  // (0.9.0) the prose court sits every run.
+  'g24-prose',
 ];
 // Test-title needles that must appear among EXECUTED (non-skipped) tests.
 const REQUIRED_EXECUTED = [
@@ -45,6 +47,9 @@ const REQUIRED_EXECUTED = [
   'G20a', 'G20b', 'G00-RT',
   // (Directive VIII) G21 THE PARTY — both courts demanded by name.
   'G21a', 'G21b',
+  // (0.9.0) THE WRITER'S ROOM — the prose court's six criteria and its
+  // two instrument teeth, each demanded by its own exact name.
+  'G24w', 'G24a', 'G24b', 'G24c', 'G24d', 'G24e', 'G24f', 'tooth 10:', 'tooth 19:',
 ];
 
 let verdict;

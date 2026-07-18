@@ -1,12 +1,13 @@
 // THE FIRST WORD LAW — Task 54C §1.
 //
 // At genesis, the Dungeon Master's prologue request leaves the page before
-// any paint request is made, and narration streams to the player as soon as
-// the first byte arrives. Genesis media is kicked in parallel and may take
-// as long as it takes; a plate that arrives after its narration slots into
-// its lawful seat below the text (LogEntry's own order law) without
-// reordering, displacing, or interrupting a word. The player hears the
-// world speak first, always.
+// any paint request is made, and the sealed prologue pours into the
+// player's view the moment it lands (Directive XI: nothing is shown before
+// the seal; the pour is presentation, not arrival). Genesis media is kicked
+// in parallel and may take as long as it takes; a plate that arrives after
+// its narration slots into its lawful seat below the text (LogEntry's own
+// order law) without reordering, displacing, or interrupting a word. The
+// player hears the world speak first, always.
 //
 // This module is the whole of that law, as a pure sequencer with no React,
 // no fetch, and no game state — so the keyless first-word gate can prove

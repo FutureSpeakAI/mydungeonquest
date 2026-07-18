@@ -52,6 +52,10 @@ export default defineConfig({
     // (Task 57) THE BATTLE CUT — the species court sits only after tooth 16
     // proves the instrument, so the project rides behind calibration too.
     { name: 'g23-battle', testMatch: /g23-battle\.spec\.ts/, dependencies: ['calibration'] },
+    // (0.9.0) THE PROSE COURT — G24 reads the g05 pour witness (dom) and
+    // the harvest's session records through the server's own courts; teeth
+    // 10 and 19 (calibration) prove its instruments before it convenes.
+    { name: 'g24-prose', testMatch: /g24-prose\.spec\.ts/, dependencies: ['calibration', 'dom'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

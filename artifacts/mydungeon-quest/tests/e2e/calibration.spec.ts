@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
@@ -12,9 +13,11 @@ import {
   closureVerdict, duchyFixture, frameQuestionsDigest, heroClause, heroFirstSubjects, pairVerdict, principalLook,
 } from './lib/frameLaw';
 import { BINARY_PROTOCOL, BINARY_QUESTIONS_PATH, binaryVerdict } from './lib/binaryVerdict';
+import { boundaryKey, JUDGE_BOUNDARY } from './lib/judgeBoundary';
 import { PINNED_BATTLE_QUESTIONS_SHA256, battleCard, battleQuestionsDigest, crossedCard, speciesVerdict } from './lib/battleLaw';
 import type { BinaryKind } from './lib/binaryVerdict';
 import { magnifiedMark } from './lib/magnifier';
+import { armRetractionObserver } from './lib/retraction';
 
 // ============================================================
 // THE CALIBRATION PROBE & THE MAGNIFIER TOOTH (TASK 54B §2/§7).
@@ -96,13 +99,58 @@ test('tooth 11: the calibration probe — perfect separation of known-good from 
       if (plate.file && chapter.prose) pagePairs.push({ file: plate.file, prose: String(chapter.prose).slice(0, 200) });
     }
   }
-  for (const pair of pagePairs.slice(0, 3)) {
+  // THE QUARANTINE (58.8, LOOP_LOG) — a calibration control must be a
+  // deterministic truth for the judge, or it measures the model's
+  // perception limits instead of the instrument's honesty. A control
+  // earns quarantine ONLY by the two-sitting law: byte-identical wrong
+  // verdicts on two fresh rolls PLUS direct human inspection of the
+  // sealed evidence, both logged. Entries bind to PLATE BYTES, so a
+  // store raze self-expires them: a key matching no candidate is a
+  // STALE entry and fails the bench loudly. Never a silent skip.
+  // The boundary ledger lives in ONE seat (lib/judgeBoundary.ts) — the
+  // bench filters its seats through it, the G16 courts recuse through
+  // it, and the bench's stale-entry gate below remains the custodian
+  // that kills entries the store no longer carries.
+  const QUARANTINED_GOODS = JUDGE_BOUNDARY;
+  const quarantineSeen = new Set<string>();
+  const seatablePages = pagePairs.filter((pair) => {
+    const bytes = fs.readFileSync(path.join(HARVEST_DIR, 'fixture', pair.file));
+    const key = boundaryKey('page', bytes, pair.prose);
+    if (!QUARANTINED_GOODS[key]) return true;
+    quarantineSeen.add(key);
+    console.log(`[tooth 11] QUARANTINED good-page-${pair.file}: ${QUARANTINED_GOODS[key]}`);
+    return false;
+  });
+  for (const pair of seatablePages.slice(0, 3)) {
     good.push({ name: `good-page-${pair.file}`, kind: 'page', prose: pair.prose, bytes: fs.readFileSync(path.join(HARVEST_DIR, 'fixture', pair.file)) });
   }
   const captions: { file: string; text: string }[] = JSON.parse(fs.readFileSync(path.join(HARVEST_DIR, m.files.captions), 'utf8'));
-  for (const caption of captions.slice(0, 3)) {
+  const seatableCaptions = captions.filter((caption) => {
+    const bytes = fs.readFileSync(path.join(HARVEST_DIR, caption.file));
+    const key = boundaryKey('caption', bytes, caption.text);
+    if (!QUARANTINED_GOODS[key]) return true;
+    quarantineSeen.add(key);
+    console.log(`[tooth 11] QUARANTINED good-caption-${caption.file}: ${QUARANTINED_GOODS[key]}`);
+    return false;
+  });
+  // The stale-entry gate sits AFTER every set the quarantine filters.
+  for (const key of Object.keys(QUARANTINED_GOODS)) {
+    expect(quarantineSeen.has(key), `quarantine entry ${key.slice(0, 12)}… matched no candidate — the store moved; remove the stale entry`).toBe(true);
+  }
+  for (const caption of seatableCaptions.slice(0, 3)) {
     good.push({ name: `good-caption-${caption.file}`, kind: 'caption', prose: caption.text, bytes: fs.readFileSync(path.join(HARVEST_DIR, caption.file)) });
   }
+  // THE ATTESTED DUAL (58.10, LOOP_LOG) — the bad set already builds its
+  // crop texts ONLY from sealed identity fields; this seats the SAME
+  // claim over the UNCROPPED anchor, completing the pair: the judge must
+  // pass on whole pixels the very text it must refuse on beheaded ones.
+  // Seated by the probe ritual — measured decisive before it sat.
+  good.push({
+    name: 'good-anchor-attested', kind: 'caption',
+    prose: `The hero faces us, her whole face in view, her ${m.hero.mark} plainly visible.`,
+    bytes: topBytes(rolePlate(m, 'hero-anchor')),
+    note: 'attested dual of the beheaded/crown crops: same claim, whole pixels',
+  });
   expect(good.length, `the sealed stores must seat at least six known-good pairs (scenes=${scenes.length}, pages=${pagePairs.length}, captions=${captions.length})`).toBeGreaterThanOrEqual(6);
 
   // —— KNOWN-BAD: crossings chosen for MAXIMUM lexical distance (a
@@ -271,10 +319,19 @@ test('tooth 14: the principal instrument matches the hero and refuses a stranger
   console.log(`[tooth 14] good: ${JSON.stringify({ found: good.found, verdict: good.verdict })}`);
   expect(good.found, 'good: the hero-first plate yields a foremost figure').toBe(true);
   expect(good.matches, 'good: the foremost figure answers the hero clause').toBe(true);
-  const eddaBust = rolePlate(m, 'edda-bust');
-  const badSoul = await principalLook({ bytes: topBytes(eddaBust), clause, idSeed: 'tooth14-bad-edda', criterion: 'tooth-14-principal' });
+  // THE STRANGER SEAT (58.8 requalification, LOOP_LOG) — the control law
+  // demands a deterministic lie. The Edda bust hedged figure_matches=true
+  // at 0.62 TWICE on byte-identical rolls this store (58.7/58.8): the
+  // thin clause left her womanhood unopposed and the charitable wording
+  // let her bare unmarked cheek pass unweighed. The masked Regent draws
+  // a 0.92 refusal under the SAME pinned wording — probed through this
+  // exact path and sealed in the cache under this exact idSeed, so the
+  // sitting replays the measured verdict. Tooth 12 still holds the
+  // markless-Edda line where the magnifier's wording is mark-decisive.
+  const stranger = rolePlate(m, 'villain-intro');
+  const badSoul = await principalLook({ bytes: topBytes(stranger), clause, idSeed: 'tooth14-bad-regent', criterion: 'tooth-14-principal' });
   console.log(`[tooth 14] bad-stranger: ${JSON.stringify({ found: badSoul.found, verdict: badSoul.verdict })}`);
-  expect(badSoul.matches, 'bad: an elder stranger does not answer the hero clause').toBe(false);
+  expect(badSoul.matches, 'bad: the masked Regent does not answer the hero clause').toBe(false);
   // Fail-closed: a figureless sliver must never call the principal honest.
   const sliverSource = topBytes(rolePlate(m, 'vale-establishing'));
   const meta = await sharp(sliverSource).metadata();
@@ -322,4 +379,58 @@ test('tooth 16: the species instrument tells the sealed beast from a crossed car
   const beastless = await speciesVerdict({ bytes: topBytes(rolePlate(m, 'vale-establishing')), visual: battleCard().visual, idSeed: 'tooth16-bad-ground', criterion: 'tooth-16-species' });
   console.log(`[tooth 16] bad-ground: ${JSON.stringify(beastless)}`);
   expect(beastless.species_match, 'bad: a ground without the beast is refused').toBe(false);
+});
+
+// TOOTH 10 (0.9.0, THE WRITER'S ROOM) — the Editor's rubric, proven the
+// way tooth 11 proved the binary instrument: perfect separation on
+// planted material before the prose court trusts a single ship verdict.
+// The probe (tools/tooth10-probe.mjs) sits in the server's own module
+// world; the rubric text is sealed by its pin — the comment above
+// EDITOR_RUBRIC promises exactly this court. Two planted-awful pages
+// must each draw BOTH their flags, a revise verdict, and one pinned
+// reason PER flag; the clean control must ship untouched. Deterministic
+// lies, never crossings: every plant is sealed bytes in the probe.
+const PINNED_EDITOR_RUBRIC_SHA256 = 'b7af5050751e67ce34240baad86303ff03bea6ecd8663519026479056ac4ebe3';
+
+test('tooth 10: the Editor\'s rubric draws blood twice and ships the clean page', () => {
+  const out = execSync('node tests/e2e/tools/tooth10-probe.mjs', { cwd: GAME_ROOT, encoding: 'utf8' });
+  const probe = JSON.parse(out);
+  expect(probe.rubricSha256, 'the rubric is sealed by its pin — a drifted rubric must re-sit this tooth').toBe(PINNED_EDITOR_RUBRIC_SHA256);
+  for (const bite of probe.bites) {
+    console.log(`[tooth 10] ${bite.name}: flags=[${bite.flags.join(', ')}] verdict=${bite.verdict} reasons=${JSON.stringify(bite.reasons)}`);
+    expect(bite.flags.length, `${bite.name}: the plant draws at least two flags`).toBeGreaterThanOrEqual(2);
+    expect(bite.verdict, `${bite.name}: a flagged draft is judged revise`).toBe('revise');
+    expect(bite.reasons.length, `${bite.name}: one reason per flag — the rubric names each failure`).toBe(bite.flags.length);
+    expect(new Set(bite.reasons).size, `${bite.name}: the reasons are distinct`).toBe(bite.reasons.length);
+  }
+  expect(probe.bites[0].flags, 'bite one names echo and cliche, in the pinned order').toEqual(['echo', 'cliche']);
+  expect(probe.bites[1].flags, 'bite two names sameness and measure, in the pinned order').toEqual(['sameness', 'measure']);
+  console.log(`[tooth 10] clean: flags=[${probe.clean.flags.join(', ')}] verdict=${probe.clean.verdict}`);
+  expect(probe.clean.flags, 'the clean control draws no flag').toEqual([]);
+  expect(probe.clean.verdict, 'the clean control ships').toBe('ship');
+  expect(probe.clean.reasons, 'a shipped page carries no reasons').toEqual([]);
+});
+
+// TOOTH 19 (0.9.0) — the retraction instrument itself, bitten on a
+// synthetic bench before G5's live silence or G24a's witness mean a
+// thing. The bench is sealed bytes; the instrument is the SAME function
+// G5 arms (lib/retraction.ts). Growth must stay quiet; a mid-pour node
+// swap and a struck narration node must each be named a crime.
+test('tooth 19: the retraction instrument bites the swap and stays quiet for growth', async ({ page }) => {
+  await page.setContent('<main class="adventure-log"><div class="narration"><p id="pour">The road runs </p></div></main>');
+  await page.evaluate(armRetractionObserver);
+  await page.evaluate(() => { const p = document.getElementById('pour'); if (p && p.firstChild) p.firstChild.textContent += 'north past the waystation bell.'; });
+  await page.waitForTimeout(150);
+  const afterGrowth = await page.evaluate(() => (window as unknown as { __retractions: string[] }).__retractions);
+  expect(afterGrowth, 'growth is never a retraction — the instrument stays quiet').toEqual([]);
+  await page.evaluate(() => { const p = document.getElementById('pour'); if (p && p.firstChild) p.firstChild.textContent = 'A different road entirely, poured over the first.'; });
+  await page.waitForTimeout(150);
+  const afterSwap = await page.evaluate(() => (window as unknown as { __retractions: string[] }).__retractions);
+  expect(afterSwap.length, `the mid-pour swap trips the instrument: [${afterSwap.join(' | ')}]`).toBe(1);
+  expect(afterSwap[0], 'the crime is named a rewrite').toContain('rewrote');
+  await page.evaluate(() => { const struck = document.querySelector('.narration'); if (struck) struck.remove(); });
+  await page.waitForTimeout(150);
+  const afterStrike = await page.evaluate(() => (window as unknown as { __retractions: string[] }).__retractions);
+  expect(afterStrike.length, 'the struck node is the second crime').toBe(2);
+  expect(afterStrike[1], 'the crime is named a removal').toContain('removed');
 });

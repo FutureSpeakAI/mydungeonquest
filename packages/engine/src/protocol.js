@@ -400,6 +400,28 @@ function validateSpeakerGround(payload, context, errors) {
 // Exempt everywhere, same as the speaker court: the hero, every party
 // member, a soul introduced by this same turn's cast_add, and a soul
 // seated by this same turn's party_join.
+// LAW X — THE PLATE'S CAPTION (0.9.0), the court itself. ONE law, two
+// doors: validateImageCue seats it inside the one dm_turn seal, and the
+// prose court's probe (G24e) re-reads shipped session bytes through the
+// SAME function — no second copy to drift. Null/undefined means legacy
+// (sealed before the Art Director's chair opened): out of session.
+export function captionCourt(caption, pageText) {
+  if (caption === undefined || caption === null) return [];
+  if (typeof caption !== 'string') return ['image_cue.caption must be prose, not machinery'];
+  const errors = [];
+  const cap = caption.trim();
+  if (cap.length < 40 || cap.length > 220) errors.push(`image_cue.caption must run 40-220 characters, not ${cap.length}`);
+  if (!/^[A-Z]/.test(cap)) errors.push('image_cue.caption must open on a capital');
+  if (!/[.!?]$/.test(cap)) errors.push('image_cue.caption must close on terminal punctuation');
+  if (/\u2026/.test(cap) || /\.\.\./.test(cap)) errors.push('image_cue.caption carries a truncation mark');
+  const sentences = cap.split(/[.!?]+/).map((part) => part.trim()).filter(Boolean).length;
+  if (sentences > 2) errors.push('image_cue.caption must hold to one or two sentences');
+  const foldCap = cap.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const foldPage = String(pageText || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (foldCap && foldPage.includes(foldCap)) errors.push('image_cue.caption merely quotes the page — a caption describes the plate');
+  return errors;
+}
+
 function validateImageCue(payload, context, errors) {
   const cue = payload?.image_cue;
   if (cue === undefined || cue === null) return;
@@ -407,6 +429,24 @@ function validateImageCue(payload, context, errors) {
   if (!['portrait', 'scene'].includes(cue.kind) || !Array.isArray(cue.subjects)) return; // ditto
   if (cue.crowd !== undefined && cue.crowd !== null && !['none', 'background'].includes(cue.crowd)) {
     errors.push(`image_cue.crowd holds a word the law does not know: ${String(cue.crowd).slice(0, 40)}`);
+  }
+  // LAW X — a caption riding the cue answers to captionCourt (above):
+  // 40–220 characters, capital opening, terminal close, one or two
+  // sentences, no truncation marks, never a whitespace-folded substring
+  // of the folded narration — a caption DESCRIBES the plate; it does
+  // not quote the page. (A raw quote sliced mid-sentence once captioned
+  // a hearth interior — legacy sliced captions live on replay-only.)
+  {
+    const pageText = (Array.isArray(payload.narration_blocks) ? payload.narration_blocks : [])
+      .map((block) => String(block?.text || '')).join(' ');
+    for (const line of captionCourt(cue.caption, pageText)) errors.push(line);
+  }
+  // The moment is the page's own staged line — a substring by design,
+  // so it answers only for shape: prose, present, within the brief's cap.
+  if (cue.moment !== undefined && cue.moment !== null) {
+    if (typeof cue.moment !== 'string' || !cue.moment.trim() || cue.moment.length > 480) {
+      errors.push('image_cue.moment must be 1-480 characters of the page\'s own prose');
+    }
   }
   for (const raw of cue.subjects) {
     if (!(typeof raw === 'string' && raw.trim().length >= 2 && raw.trim().length <= 80)) {

@@ -2,6 +2,7 @@ import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
 import { mockDmTurn } from 'fatescript/mockDm';
 import { safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
+import { artDirectorSits } from './artDirector.js';
 
 // THE CENSUS AT THE DOOR — Directive VI, Phase 11. The validator rules the
 // shape; the census rules the roll: an attributed speaker the record does
@@ -244,15 +245,17 @@ function shapeMessages(input) {
   return [...history, { role: 'user', content: [{ type: 'text', text: dynamicBlocks(input) }] }];
 }
 
-function shapeRequest(input, stream) {
+function shapeRequest(input) {
   return {
     model: input.genesis ? GENESIS_MODEL() : MODEL(),
-    max_tokens: 2200,
+    // THE MEASURE LAW (Directive XI, Law V): the ceiling rises so a rich
+    // beat's 6-8 paragraphs are possible; the measure directs richness,
+    // the Editor's courts keep it honest.
+    max_tokens: 3200,
     system: [{ type: 'text', text: buildSystemPrompt(input), cache_control: { type: 'ephemeral' } }],
     messages: shapeMessages(input),
     tools: [{ name: 'dm_turn', description: 'The only valid Dungeon Master response.', input_schema: toolSchema }],
-    tool_choice: { type: 'tool', name: 'dm_turn' },
-    ...(stream ? { stream: true } : {})
+    tool_choice: { type: 'tool', name: 'dm_turn' }
   };
 }
 
@@ -263,7 +266,7 @@ const anthropicHeaders = () => ({ 'x-api-key': process.env.ANTHROPIC_API_KEY, 'a
 // violations so the model can correct itself instead of falling back to
 // generic narration. This tightens reliability without loosening the validator.
 async function anthropicTurn(input, repair = null) {
-  const request = shapeRequest(input, false);
+  const request = shapeRequest(input);
   if (repair) {
     request.messages = [
       ...request.messages,
@@ -279,70 +282,9 @@ async function anthropicTurn(input, repair = null) {
   return json.content?.find((item) => item.type === 'tool_use' && item.name === 'dm_turn')?.input;
 }
 
-// Walks a PARTIAL dm_turn JSON string and returns the narration
-// text seen so far — completed blocks plus the in-flight string —
-// so the client can render prose while the turn is still forming.
-export function extractNarration(partial) {
-  const key = '"narration_blocks"';
-  const at = partial.indexOf(key);
-  if (at < 0) return '';
-  let i = partial.indexOf('[', at + key.length);
-  if (i < 0) return '';
-  let depth = 0, out = [], cur = null, inStr = false, esc = false, capture = false;
-  for (; i < partial.length; i++) {
-    const c = partial[i];
-    if (inStr) {
-      if (esc) { if (capture) cur += ({ n: '\n', t: '\t', '"': '"', '\\': '\\', '/': '/' }[c] ?? c); esc = false; }
-      else if (c === '\\') esc = true;
-      else if (c === '"') { inStr = false; if (capture) { out.push(cur); cur = null; capture = false; } }
-      else if (capture) cur += c;
-      continue;
-    }
-    if (c === '"') {
-      inStr = true; esc = false;
-      capture = /"text"\s*:\s*$/.test(partial.slice(Math.max(0, i - 12), i));
-      if (capture) cur = '';
-      continue;
-    }
-    if (c === '[' || c === '{') depth++;
-    else if (c === ']' || c === '}') { depth--; if (depth <= 0) break; }
-  }
-  if (cur != null) out.push(cur);
-  return out.join('\n\n');
-}
-
-async function anthropicTurnStream(input, onNarration) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST', headers: anthropicHeaders(), body: JSON.stringify(shapeRequest(input, true))
-  });
-  if (!response.ok) throw new Error(`Anthropic ${response.status}: ${await response.text()}`);
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '', json = '', lastPaint = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let nl;
-    while ((nl = buffer.indexOf('\n')) >= 0) {
-      const line = buffer.slice(0, nl).trim(); buffer = buffer.slice(nl + 1);
-      if (!line.startsWith('data:')) continue;
-      const payload = line.slice(5).trim();
-      if (!payload || payload === '[DONE]') continue;
-      let event; try { event = JSON.parse(payload); } catch { continue; }
-      if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta' && typeof event.delta.partial_json === 'string') {
-        json += event.delta.partial_json;
-        const now = Date.now();
-        if (now - lastPaint > 90) { lastPaint = now; const text = extractNarration(json); if (text) onNarration?.(text); }
-      } else if (event.type === 'error') {
-        throw new Error(event.error?.message || 'stream error');
-      }
-    }
-  }
-  if (!json) throw new Error('empty stream');
-  try { return JSON.parse(json); }
-  catch { const a = json.indexOf('{'), b = json.lastIndexOf('}'); return JSON.parse(json.slice(a, b + 1)); }
-}
+// THE CURTAIN (Directive XI, Law I): the pre-seal stream is gone whole —
+// the partial-JSON narration walker and the streaming first call retired
+// with the door events they fed. No word leaves before the seal.
 
 // OpenAI fallback for the DM: same tool schema, system prompt, and strict
 // client validator as Anthropic, so a fallback turn is held to the identical
@@ -362,7 +304,8 @@ async function openaiTurn(input, repair = null) {
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: process.env.DM_MODEL_OPENAI || 'gpt-4o',
-      max_tokens: 2400,
+      // THE MEASURE LAW (Directive XI, Law V): risen with Anthropic's.
+      max_tokens: 3400,
       messages,
       tools: [{ type: 'function', function: { name: 'dm_turn', description: 'The only valid Dungeon Master response.', parameters: toolSchema } }],
       tool_choice: { type: 'function', function: { name: 'dm_turn' } }
@@ -373,23 +316,6 @@ async function openaiTurn(input, repair = null) {
   const call = json.choices?.[0]?.message?.tool_calls?.find((t) => t.function?.name === 'dm_turn');
   if (!call) throw new Error('OpenAI returned no dm_turn tool call');
   return JSON.parse(call.function.arguments);
-}
-
-// Mock mode paints the same experience: the canned narration
-// arrives in growing slices so the streaming UI is exercised
-// keylessly, end to end.
-async function mockWithNarration(input, onNarration) {
-  const turn = mockDmTurn(input);
-  if (onNarration) {
-    const full = (turn.narration_blocks || []).map((b) => b.text).join('\n\n');
-    const step = Math.max(24, Math.ceil(full.length / 9));
-    for (let end = step; end < full.length; end += step) {
-      onNarration(full.slice(0, end));
-      await new Promise((resolve) => setTimeout(resolve, 90));
-    }
-    onNarration(full);
-  }
-  return turn;
 }
 
 /**
@@ -408,38 +334,35 @@ export function dmPlan(barred = {}) {
   return plan;
 }
 
-export async function getDmTurn(input, { onNarration = null, onRetract = null, barred = {} } = {}) {
+export async function getDmTurn(input, { barred = {} } = {}) {
   const plan = dmPlan(barred);
   const useMock = plan[0] === 'mock';
 
   if (useMock) {
     try {
-      const turn = await mockWithNarration(input, onNarration);
+      // LAW IX — the Art Director sits between the draft and the ONE
+      // validator, at every door alike: the merged cue is judged in
+      // the same seal as the rest of the turn.
+      const turn = artDirectorSits(mockDmTurn(input));
       const validation = judgeTurn(turn, input);
       if (!validation.ok) throw new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
       return { turn, provider: 'mock' };
     } catch (error) {
       console.error(error);
-      if (onNarration) onRetract?.();
       return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', error: error.message };
     }
   }
 
-  // Up to two attempts: the second is a self-repair guided by the exact
-  // validator errors from the first. The first attempt streams narration to
-  // the client when requested; the repair pass is a plain (non-streamed) call.
+  // THE CURTAIN (Directive XI, Law I): both attempts are plain sealed
+  // calls — the second a self-repair guided by the exact validator errors
+  // from the first. No word leaves this function before the turn is
+  // sealed, so a repair has nothing it could ever need to retract.
   // Network/API errors get a plain retry.
   let lastError = new Error('no DM provider was allowed to speak');
   let repair = null;
-  let streamed = false;
   for (let attempt = 0; plan.includes('anthropic') && attempt < 2; attempt += 1) {
     try {
-      const streamingNarration = attempt === 0 && onNarration
-        ? (text) => { streamed = true; onNarration(text); }
-        : null;
-      const turn = streamingNarration
-        ? await anthropicTurnStream(input, streamingNarration).catch(() => anthropicTurn(input))
-        : await anthropicTurn(input, repair);
+      const turn = artDirectorSits(await anthropicTurn(input, repair));
       const validation = judgeTurn(turn, input);
       if (validation.ok) return { turn, provider: 'anthropic', repaired: attempt > 0 };
       lastError = new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
@@ -448,10 +371,6 @@ export async function getDmTurn(input, { onNarration = null, onRetract = null, b
       lastError = error;
       repair = null;
     }
-    // The stage goes dark before the repair: if unlawful (or interrupted)
-    // prose already streamed to the player, retract it so the weaving text
-    // never leaves outlaw words standing while the turn is remade.
-    if (streamed) { onRetract?.(); streamed = false; }
   }
 
   // Anthropic spent, barred, or exhausted — try OpenAI before the floor.
@@ -459,7 +378,7 @@ export async function getDmTurn(input, { onNarration = null, onRetract = null, b
     let repairO = null;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        const turn = await openaiTurn(input, repairO);
+        const turn = artDirectorSits(await openaiTurn(input, repairO));
         const validation = judgeTurn(turn, input);
         if (validation.ok) return { turn, provider: 'openai', repaired: attempt > 0, fellBackFrom: 'anthropic' };
         lastError = new Error(`Invalid DM turn (openai): ${validation.errors.join('; ')}`);

@@ -75,7 +75,7 @@ console.log('PASS — mock campaigns, reducers, protocol, media floor, scrubber,
 // ---- v0.2 engine-cut assertions: the brain and the stream ----
 {
   const { buildSystemPrompt } = await import('../src/lib/systemPrompt.js');
-  const { extractNarration, getDmTurn } = await import('../server/dm.js');
+  const { getDmTurn } = await import('../server/dm.js');
   const sys = buildSystemPrompt({
     campaign: { title: 'Eval Trial', covenant: 'PG-13 frontier.', tone: 'mythic', lines: [], veils: [] },
     hero: createHero({ name: 'Eval' }),
@@ -85,18 +85,17 @@ console.log('PASS — mock campaigns, reducers, protocol, media floor, scrubber,
   assert.ok(sys.includes('THE CRAFT'), 'system prompt must carry narrative craft');
   assert.ok(!sys.includes('[STATE]') && !sys.includes('"beatIndex"'), 'system prompt must stay static — no turn state inside');
 
-  const partial = '{"narration_blocks":[{"text":"The road turns.","speaker":null},{"text":"It knows your na';
-  assert.equal(extractNarration(partial), 'The road turns.\n\nIt knows your na', 'narration must extract from partial JSON');
-
-  let streamed = '';
+  // THE CURTAIN (Directive XI, Law I): the door's whole vocabulary is the
+  // sealed turn — no pre-seal narration callback exists, and the mock tier
+  // answers the same way: whole, validated, once.
   const { turn, provider } = await getDmTurn({
     campaign: { title: 'Stream Trial', homeRegion: 'Larkspur Vale' }, hero: createHero({ name: 'Streamer' }),
     story: { beat: { title: 'x' }, regions: [] }, state: {}, memory: [], history: [],
     entropy: makeEntropy(() => .5), player: 'Begin.', resolution: null, turn: 0, genesis: true
-  }, { onNarration: (text) => { streamed = text; } });
+  }, {});
   assert.equal(provider, 'mock');
-  assert.equal(streamed, turn.narration_blocks.map((b) => b.text).join('\n\n'), 'mock stream must deliver the full narration progressively');
-  console.log('PASS — static craft prompt, partial-JSON narration extraction, and streaming parity are green.');
+  assert.ok(Array.isArray(turn.narration_blocks) && turn.narration_blocks.length >= 1, 'the sealed turn arrives whole behind the curtain');
+  console.log('PASS — static craft prompt and the sealed-door curtain are green.');
 }
 
 // ---- v0.2.1 anchor-law assertions: reference conditioning ----

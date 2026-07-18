@@ -111,7 +111,16 @@ async function fireMintLadder(page: any, campaignId: string, seat: any): Promise
           ? { ...dm.image_cue, subjects: (dm.image_cue.subjects?.length ? dm.image_cue.subjects : presentCast) }
           : { kind: 'scene', mood: plateMood(dm, 140) || 'the unfolding scene', subjects: presentCast, region: campaign.codex.regions?.[0]?.name || campaign.homeRegion };
         const sceneMoment = {
-          prose: (dm.narration_blocks || []).map((block: any) => block?.text || '').join(' ').slice(0, 480),
+          // LAW IX (0.9.0) — the mirror walks the app's OWN law: the Art
+          // Director's composed moment on the cue wins; the whole-page
+          // join serves only turns sealed before the chair opened. 58.6
+          // fell exactly here: the app staged with the cue's moment, this
+          // mirror rebuilt with the join, and the fidelity proof refused
+          // every scene re-lay. If the easel's sceneMoment in App.jsx
+          // moves again, THIS SEAT MOVES WITH IT.
+          prose: (typeof dm.image_cue?.moment === 'string' && dm.image_cue.moment.trim()
+            ? dm.image_cue.moment
+            : (dm.narration_blocks || []).map((block: any) => block?.text || '').join(' ')).slice(0, 480),
           seed: log.recordHash || String(log.id || ''),
           speaker: (dm.narration_blocks || []).find((block: any) => block?.speaker)?.speaker || null
         };

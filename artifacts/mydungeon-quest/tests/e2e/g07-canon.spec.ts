@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { bodyText, closeModal, openCodex, openStorybook, seedFixture } from './lib/harness';
+import { bodyText, closeModal, openChapter, openCodex, openStorybook, seedFixture } from './lib/harness';
 
 // G7 THE X-CARD LAW — the struck sentence appears NOWHERE: not the feed,
 // not the Codex, not any recap, not any retelling surface. Only the marker
@@ -18,7 +18,13 @@ test('G7 the struck turn leaves only its marker', async ({ page }) => {
   expect(await bodyText(page), 'feed carries no struck sentence').not.toContain(STRUCK);
 
   await openCodex(page);
-  expect(await bodyText(page), 'codex carries no struck sentence').not.toContain(STRUCK);
+  // (58C logged edit — Directive XIV) The codex is the Book now: the body
+  // shows one chapter at a time, so the no-struck-sentence law walks all
+  // six pages. Same law, wider walk — nothing weakened.
+  for (const chapter of ['tale', 'people', 'places', 'things', 'debts', 'party']) {
+    await openChapter(page, chapter);
+    expect(await bodyText(page), `book:${chapter} carries no struck sentence`).not.toContain(STRUCK);
+  }
   await closeModal(page);
 
   // The retelling surface — the book itself.
@@ -46,6 +52,8 @@ test('G8 codex: Day 4, threads with citations, tappable atlas, souls with ties',
   // fourth day-advance; same exact-match law, recalibrated to the record.
   await expect(page.locator('.day-chip').first()).toHaveText(/Day 5/);
 
+  // (58C logged edit — Directive XIV) The threads live in Debts now.
+  await openChapter(page, 'debts');
   // The open debt — kind badge, holder, sworn-turn citation.
   const debtRow = page.locator('.thread-row', { hasText: 'Corin owes Edda restitution' }).first();
   await expect(debtRow).toBeVisible();
@@ -65,6 +73,8 @@ test('G8 codex: Day 4, threads with citations, tappable atlas, souls with ties',
   await expect(oathRow.locator('.outcome')).toContainText(/kept/i);
 
   // The atlas — Larkspur Vale's place page.
+  // (58C logged edit — Directive XIV) The gallery lives in Places now.
+  await openChapter(page, 'places');
   const vale = page.locator('.region-gallery article.tappable', { hasText: 'Larkspur Vale' }).first();
   await expect(vale).toBeVisible();
   await vale.click();
@@ -92,6 +102,9 @@ test('G8 codex: Day 4, threads with citations, tappable atlas, souls with ties',
   // The Duchy's sworn chip walks to Corin's soul page.
   await closeModal(page);
   await openCodex(page);
+  // (58C logged edit — Directive XIV) The reopened book must be turned
+  // back to Places — the ribbon held the last page.
+  await openChapter(page, 'places');
   const duchy = page.locator('.region-gallery article.tappable', { hasText: 'The Duchy' }).first();
   await expect(duchy).toBeVisible();
   await duchy.click();

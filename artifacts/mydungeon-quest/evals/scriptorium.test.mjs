@@ -94,8 +94,9 @@ const CAMPAIGN = {
   const app = read('src/App.jsx');
   assert.ok(app.includes('roomForTurn(base)'), 'the room convenes over the record at the table');
   assert.ok(app.includes('...room.directives'), 'only directives ride the pack, additively');
-  const overlays = read('src/components/Overlays.jsx');
-  assert.ok(overlays.includes('The scriptorium — the room plans, the door speaks'), 'the room is visible to the patron');
+  // Task 58C: the room's standing plan moved whole into the Book.
+  const book = read('src/components/Book.jsx');
+  assert.ok(book.includes('The scriptorium — the room plans, the door speaks'), 'the room is visible to the patron');
   const lib = read('src/lib/scriptorium.js');
   assert.ok(lib.includes('fatescript/scriptorium') && lib.includes('mockRoom') && lib.includes('assertRoomSilent'), 'the engine\u2019s room, the engine\u2019s court');
 }

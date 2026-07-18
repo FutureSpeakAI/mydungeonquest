@@ -61,6 +61,7 @@ export default defineConfig({
     // schema, so a valid-but-rejected drift can never hide behind the
     // mock floor.
     { name: 'g27-forge', testMatch: /g27-forge\.spec\.ts/, dependencies: ['dom'] },
+    { name: 'g28-book', testMatch: /g28-book\.spec\.ts/, dependencies: ['dom'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.9.2 — The Open Book
+
+**The codex dies; the Book opens (Experience-Directive XIV, ratified).** One door — the same seat in the table's header — opens a BOOK of six chapters and no more: the Tale, the People, the Places, the Things, the Debts, the Party. The closed set is law: a seventh chapter requires amending the directive. Chapter and page ride App-held nav, so the ribbon survives a close and reopen within a sitting and resets only when the campaign changes hands. Every page that speaks a fact cites the sealed turn it stands on — citeless pages are never used, and the redaction law rides along whole: struck turns fell their pages, journal strikes outrank snapshot flags.
+
+**The Traveler's Chart.** The Places chapter opens on vellum: region medallions and roads replayed PURE from the sealed journal by the engine's own fold — roads only from lawful crossings, never from wishes; each leg costed by the calendar fold it actually burned; struck, unknown, and restated crossings refused by name; a journal with no lawful crossing draws blank vellum honestly. Medallions are doors: a press opens the place page with its citations intact. Route cites speak THE TURN, never the array index — which forced the fidelity fix of the release: turn rows never carried their own turn stamp (tick rows always did); both writers now stamp it, seated AFTER the byte-pinned contiguous run so no sealed hash moves and no standing pin bends. Old rows without stamps cite nothing rather than lie.
+
+**The Table Law.** The table's header wears EXACTLY four chips — the calendar, the ground, the party, the health — and a fifth requires amending the directive. AC, gold, XP, and the blight prose left the table for the Book, where they sit cited. The combat tracker binds to the standing battle flag ALONE — no chip arithmetic, no inference. Under reduced motion the table and the Book both wear stillness attributes and the sweep law silences their animations.
+
+**The packs.** Things are filtered views of the ONE sealed trove per bearer — the hero's pack first, each companion's own; provenance chains one tap deep to the turn that gave the thing its life; the party strip carries a pack echo that doors through to the bearer's page. No second inventory truth: the trove remains the single seat, the packs are its lenses.
+
+*Gates 116 → 119 (the Book, the Traveler's Chart, the Table Law —
+keyless, component-court, zero fetches). The proving loop spent five of
+eight tags: 58C.1's red taught that moved surfaces keep their classes
+but not their pages — four courts retargeted through the chapter doors,
+navigation only, no assertion weakened — and put a fifth ghost on
+trial: the hearth walk froze once under parallel load with the click
+provably landed; a plain-chromium probe walked the same road clean, the
+court crossed clean every sitting after, and the one-crossing law held —
+a race under load, not a defect. 58C.2 taught the two new G28 asks
+their own surfaces (the place page's header h4; the party chip's titled
+faces). Three consecutive greens sealed 58C.3 through 58C.5 — 101 of
+101, zero skipped, zero flaky, exit 0 — the recusal ledger stable at
+the two standing recusals across all three sittings. The eval retargets
+of the release closed a family: four needles followed their seats from
+the trimmed codex into the Book under the one-seat law, byte-identical,
+found by the keyless tail.*
+
 ## 0.9.1 — The Two Hands
 
 **Every question wears both hands (Experience-Directive XIII, ratified).** Onboarding stops being a form and becomes a table: every asked question names where its answer lands — the FIELD MAP in the engine is the ONE seat of ask copy, and the doors, the evals, and the e2e courts all read their bytes from it (Law I). Every field owns a die AND a pen (Law II): the die deals three candidates from the smith, the pen writes sovereign ink, and typed ink survives whole-spins and neighbour dice untouched — the ONE consent to replace a player's words is that field's own die, pressed by the player's own hand. The calling moves as one body: a className respin carries its riders with it, sovereign riders dropped from the deal, never overwritten. The spine is DERIVED from the promise, never asked — no candidate may carry it.

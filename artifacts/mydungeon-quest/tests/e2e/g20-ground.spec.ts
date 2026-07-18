@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { closeModal, openCodex, readCampaign, seedFixture } from './lib/harness';
+import { closeModal, openChapter, openCodex, readCampaign, seedFixture } from './lib/harness';
 // The engine source is imported by relative path, not through the
 // package door: Playwright transforms first-party files it can see, but
 // a bare specifier would walk into node_modules untransformed ESM.
@@ -77,6 +77,8 @@ test('G20b: the ground page — who stands here with cites, who has stood here, 
   test.setTimeout(240_000);
   await seedFixture(page);
   await openCodex(page);
+  // (58C logged edit — Directive XIV) The region gallery lives in Places.
+  await openChapter(page, 'places');
 
   // (56B logged edit) The Duchy page re-aimed to the return ride: the
   // pinned envoy STANDS here alone now, and the hero HAS STOOD here —
@@ -119,6 +121,9 @@ test('G20b: the ground page — who stands here with cites, who has stood here, 
   await placePage.locator('header button', { hasText: 'close' }).click();
 
   // The soul page: the last known ground, said plainly with its cite.
+  // (58C.2 logged edit — Directive XIV) Souls stand in the People chapter
+  // now — the court turns the page before pressing Edda's card.
+  await openChapter(page, 'people');
   await page.locator('.soul-card', { hasText: 'Edda' }).first().click();
   const soulPage = page.locator('.soul-page');
   await expect(soulPage).toBeVisible();

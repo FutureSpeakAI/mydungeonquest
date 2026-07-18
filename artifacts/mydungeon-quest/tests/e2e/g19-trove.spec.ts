@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { closeModal, openCodex, readCampaign, seedFixture } from './lib/harness';
+import { closeModal, openChapter, openCodex, readCampaign, seedFixture } from './lib/harness';
 // The engine source is imported by relative path, not through the
 // package door: Playwright transforms first-party files it can see, but
 // a bare specifier would walk into node_modules untransformed ESM.
@@ -55,6 +55,8 @@ test('G19b: the trove page — coin with reasons and cites, and the passage show
   test.setTimeout(240_000);
   await seedFixture(page);
   await openCodex(page);
+  // (58C logged edit — Directive XIV) The trove lives in Things now.
+  await openChapter(page, 'things');
 
   await expect(page.locator('h3:has-text("The Trove")')).toBeVisible();
   await expect(page.locator('.purse-line b')).toHaveText('18');

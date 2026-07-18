@@ -18,16 +18,14 @@
 // protocol later grants region_add its own `place` field, that word
 // wins; these derivations only fill silence.
 // ------------------------------------------------------------
-import { parsePlacement, buildAtlas, chartModel, positionOf, distanceBetween } from 'fatescript/atlas';
+import { buildAtlas, chartModel, positionOf, distanceBetween } from 'fatescript/atlas';
+import { chartRegions } from 'fatescript/chart';
 
 // A card's placement phrase: its own `place` first (the future
 // protocol seam), else its visual when the fiction's words parse.
-export function placedRegions(campaign) {
-  return (campaign?.codex?.regions || []).map((region) => ({
-    ...region,
-    place: region.place || (parsePlacement(region.visual) ? region.visual : '')
-  }));
-}
+// THE ONE SEAT of this derivation is the engine's chart fold
+// (Directive XIV) — the ribbon re-speaks it, never re-states it.
+export const placedRegions = chartRegions;
 
 // Witness: the home region, plus every region the unstruck narration
 // has actually named. Struck rows witness nothing.

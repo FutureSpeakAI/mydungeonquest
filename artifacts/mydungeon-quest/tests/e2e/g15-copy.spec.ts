@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { boot, closeModal, doomFixture, openCodex, openSheet, openStorybook, seedFixture } from './lib/harness';
+import { boot, closeModal, doomFixture, openChapter, openCodex, openSheet, openStorybook, seedFixture } from './lib/harness';
 
 // G15 COPY AND CAPTION MECHANICS — no leaked values, no clipped headings,
 // no blind images, no stuttered paragraphs, no prompt language on stage.
@@ -98,8 +98,20 @@ test('G15 copy law across title, forge, feed, codex, and sheet', async ({ page }
   problems.push(...await sweepLeaks(page, 'feed'));
 
   await openCodex(page);
-  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'codex'));
-  problems.push(...await sweepDomMechanics(page, 'codex'));
+  // (58C logged edit — Directive XIV) The codex is the Book: the sweep
+  // walks all six chapters, every pack body, and the Traveler's Chart —
+  // new player-reachable copy joins the law, nothing leaves it.
+  for (const chapter of ['tale', 'people', 'places', 'things', 'debts', 'party']) {
+    await openChapter(page, chapter);
+    problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), `codex:${chapter}`));
+    problems.push(...await sweepDomMechanics(page, `codex:${chapter}`));
+  }
+  await openChapter(page, 'things');
+  for (const head of await page.locator('.pack-head').all()) {
+    await head.click();
+    problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'codex:pack'));
+  }
+  await openChapter(page, 'places');
   // (56.1 logged edit — Directive VII.12) The copy law now walks one place
   // page and one soul page: the presence sections and the last-known-ground
   // line are player-reachable copy, so the sweeps must reach them too.
@@ -107,6 +119,10 @@ test('G15 copy law across title, forge, feed, codex, and sheet', async ({ page }
   await page.waitForSelector('.place-page');
   problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'codex:place'));
   problems.push(...await sweepDomMechanics(page, 'codex:place'));
+  // (58C.2 logged edit — Directive XIV) Souls stand in the People chapter
+  // now: the sweep turns there before pressing a soul card — the same soul
+  // page, reached through its own chapter door.
+  await openChapter(page, 'people');
   await page.locator('.soul-card').first().click();
   await page.waitForSelector('.soul-page');
   problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'codex:soul'));
@@ -164,11 +180,23 @@ test('G15 copy law across the battle surfaces', async ({ page }) => {
   problems.push(...await sweepLeaks(page, 'battle feed'));
 
   await openCodex(page);
+  // (58C logged edit — Directive XIV) The grave stands in People, the
+  // fall note in Debts — same assertions, each on its own page now.
+  await openChapter(page, 'people');
   expect(await page.locator('.soul-card.memorial').count(), 'the pre-sealed grave stands for the sweep').toBeGreaterThanOrEqual(1);
-  expect(await page.locator('.thread-fall').count(), 'the fall note stands on the held thread for the sweep').toBeGreaterThanOrEqual(1);
+  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'battle codex:people'));
+  problems.push(...await sweepDomMechanics(page, 'battle codex:people'));
+  // (58C.2 logged edit — Directive XIV) The companion sheet-lines ride the
+  // party strip now — the count reads the Party page, and the sweep walks
+  // that page too, so the strip's copy joins the law.
+  await openChapter(page, 'party');
   const codexSheetLines = await page.locator('.sheet-line').count();
-  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'battle codex'));
-  problems.push(...await sweepDomMechanics(page, 'battle codex'));
+  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'battle codex:party'));
+  problems.push(...await sweepDomMechanics(page, 'battle codex:party'));
+  await openChapter(page, 'debts');
+  expect(await page.locator('.thread-fall').count(), 'the fall note stands on the held thread for the sweep').toBeGreaterThanOrEqual(1);
+  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'battle codex:debts'));
+  problems.push(...await sweepDomMechanics(page, 'battle codex:debts'));
   await closeModal(page);
 
   await openSheet(page);

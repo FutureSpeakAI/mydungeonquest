@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Page } from '@playwright/test';
 import { HARVEST_DIR, preflightManifest, rolePlate, topBytes } from './lib/harvestManifest';
-import { closeModal, doomFixture, openCodex, openSheet, readCampaign, seedFixture } from './lib/harness';
+import { closeModal, doomFixture, openChapter, openCodex, openSheet, readCampaign, seedFixture } from './lib/harness';
 import { BATTLE_PROTOCOL, PINNED_BATTLE_QUESTIONS_SHA256, battleCard, battleQuestionsDigest, speciesVerdict } from './lib/battleLaw';
 import { safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
 
@@ -181,9 +181,16 @@ test('G23d the doom walk: dying at zero, three saves on stage, the seal, the mem
   // The memorial and the fall note — permanent surfaces, immune to whatever
   // prose the post-fall turn brings, so no race with the table's scribe.
   await openCodex(page);
+  // (58C logged edit — Directive XIV) The grave stands in People, the fall
+  // note in Debts — the same assertions, each on its own page now. (58C.2
+  // logged edit) The seal-line rides the PARTY strip, not the People page —
+  // the count turns to the Party chapter where the sheet-lines live.
+  await openChapter(page, 'people');
   await expect(page.locator('.soul-card.memorial', { hasText: 'Brannoc' }), 'the memorial card stands').toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('.thread-fall', { hasText: 'Brannoc fell holding this.' }), 'the held thread carries the fall note').toBeVisible();
+  await openChapter(page, 'party');
   const codexSeal = await page.locator('.sheet-line', { hasText: 'fallen — the seal is permanent' }).count();
+  await openChapter(page, 'debts');
+  await expect(page.locator('.thread-fall', { hasText: 'Brannoc fell holding this.' }), 'the held thread carries the fall note').toBeVisible();
   await closeModal(page);
   let sealLines = codexSeal;
   if (sealLines === 0) {

@@ -68,8 +68,8 @@ const CAMPAIGN = {
   const app = read('src/App.jsx');
   assert.ok(app.includes('tellCourt(base)'), 'the sealed record is measured at the table');
   assert.ok(app.includes('...hand.directives'), 'the counter-directives ride the pack, additively');
-  const overlays = read('src/components/Overlays.jsx');
-  assert.ok(overlays.includes('The human hand — the tell court'), 'the finding is visible to the patron');
+  const book = read('src/components/Book.jsx'); // Task 58C: the tell court's face moved whole into the Book.
+  assert.ok(book.includes('The human hand — the tell court'), 'the finding is visible to the patron');
   const lib = read('src/lib/tells.js');
   assert.ok(lib.includes('fatescript/tells') && lib.includes('tellReport') && lib.includes('styleDirectives'), 'the engine\u2019s court, whole');
 }

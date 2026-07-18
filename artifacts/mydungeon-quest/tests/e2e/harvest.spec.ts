@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   act, boot, closeModal, forgeNewChronicle, harvestPlates, loadManifest, mediaIndex,
-  openCodex, paintFixtureExtras, PLATES_DIR, readCampaign, readJournal,
+  openChapter, openCodex, paintFixtureExtras, PLATES_DIR, readCampaign, readJournal,
   rollIfAsked, seedFixture, turnCount
 } from './lib/harness';
 import type { PlateEntry } from './lib/harness';
@@ -313,6 +313,8 @@ test('harvest B: fixture paints through the app foundry, then seals into the boo
   });
 
   await openCodex(page);
+  // (58C logged edit — Directive XIV) The gallery lives in Places now.
+  await openChapter(page, 'places');
   await page.locator('.region-gallery article.tappable', { hasText: 'Larkspur Vale' }).first().click();
   // (Task 52 iteration-2 logged edit, carried) The plate IS the
   // img.region-plate element — never an img nested inside it.
@@ -325,8 +327,12 @@ test('harvest B: fixture paints through the app foundry, then seals into the boo
     JSON.stringify({ campaignId, prompts, styleBible: campaign.styleBible, logs: campaign.logs }, null, 2));
   fs.writeFileSync(path.join(PLATES_DIR, 'fixture', 'captions.json'), JSON.stringify(captions, null, 2));
 
-  // SEAL through the app's own ritual (Codex → seal ask → the wax).
+  // SEAL through the app's own ritual (Book → seal ask → the wax).
+  // (58C logged edit — Directive XIV) The ribbon persists within the
+  // sitting, so the reopened book must be turned to the Tale, where the
+  // seal invitation lives.
   await openCodex(page);
+  await openChapter(page, 'tale');
   await page.locator('.modal button', { hasText: /seal/i }).first().click();
   const confirm = page.locator('button:has-text("Seal the Tale"), button:has-text("Seal the tale")').first();
   await confirm.click({ timeout: 15_000 });

@@ -79,7 +79,9 @@ export async function seedProvingCampaign(fixture) {
       wounded.sheet = { ...wounded.sheet, hp: Math.max(0, Math.min(wounded.sheet.maxHp, Math.trunc(Number(scripted.wound.hp) || 0))) };
     }
     const player = scripted.player;
-    const log = { id: crypto.randomUUID(), player, deed: null, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, beatIndex: codex.beatIndex };
+    // The row's own clock, stamped exactly as the live table stamps it
+    // (Task 58C): citations speak turns, never array indexes.
+    const log = { id: crypto.randomUUID(), player, deed: null, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, turn: i, beatIndex: codex.beatIndex };
     logs = [...logs, log];
     turnNumber += 1;
     await saveCampaign({ ...campaign, hero, codex, logs, turnNumber });

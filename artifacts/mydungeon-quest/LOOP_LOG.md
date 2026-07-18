@@ -2729,3 +2729,70 @@ demands keyless 116 and three consecutive loop greens.
   answered on redraw. Keyless tail re-run on final bytes: green at the
   116 pin. Iteration 58B.7 requested as the end-to-end certification of
   the review closure.
+
+## TASK 58C — THE OPEN BOOK (2026-07-18)
+
+EXPERIENCE-DIRECTIVE-XIV.md ratified before any code: the Book Law (six
+chapters behind one button, the surface map, nav state held by the
+table), the Chart Law (medallions from sealed plates, roads only where
+travel is sealed, day costs from the calendar fold, deterministic
+layout, blank vellum), the Pack Law (packs are filtered views of the
+sealed trove; equipped slots reserved for Task 59), the Table Law (the
+closed four-chip set, tracker bound to standing combat, stillness on
+every new surface). Ceiling: eight iterations, 58C.1–58C.8.
+
+### Task 58C test-instrument ledger (pre-build, every edit sanctioned by XIV §V)
+- harness.ts: openCodex re-aims at the one door's new label (Book); the
+  wait target (.modal .codex-head) is UNCHANGED; new openChapter()
+  helper navigates the six chapter doors. Navigation only — no
+  assertion touched.
+- g07/g19/g20/g21/g23(d)/g14 (where they walk the codex): gain
+  openChapter() navigation to reach their moved targets per XIV §V.3.
+  Every assertion stays byte-for-byte. The day chip stays in the book's
+  head — G8's and G14f's target does not even move.
+- g15-copy.spec.ts STRENGTHENED (XIV §V.4): the sweeps now walk all six
+  chapters, the Traveler's Chart, the packs, and the four chips.
+- NEW g28-book.spec.ts (project g28-book, after dom): G28a THE CHART,
+  G28b THE BOOK, G28c THE PACKS, G28d THE TABLE — the fixture court.
+- verdict.mjs STRENGTHENED: g28-book joins REQUIRED_PROJECTS; G28a–G28d
+  join REQUIRED_EXECUTED by name.
+- playwright.config.ts: g28-book project registered, dependencies: dom.
+- g13-check.spec.ts: PINNED_PASS_COUNT 116 → 119 — three new keyless
+  gates (evals/book.test.mjs, evals/travelersChart.test.mjs,
+  evals/tableLaw.test.mjs) join the chain in the same commit.
+- 58C build ledger (post-instruments): three gates seated — evals/tableLaw.test.mjs (four chips, closed set, honest words, tracker bound to the battle flag alone), evals/travelersChart.test.mjs (roads only from lawful crossings, calendar-fold costs, struck/unknown/restatement refusals, blank vellum), evals/book.test.mjs (component court: closed set of six chapters, CONTROLLED ribbon, cited soul/place/pack/thread pages, pack-echo door, data-stillness, recap without dismiss, zero fetches). scripts.eval chain +3; keyless pin already 119.
+- 58C spec: tests/e2e/g28-book.spec.ts written — G28a chart (medallions plate-or-plateless, one road, turn-cited route, medallion door), G28b six chapters + ribbon survival across close/reopen (page and soul), G28c packs (hero-first, law copy, one-tap provenance chain, party echo doors through), G28d table law (four chips exactly, tracker iff combat.active, stillness attributes under reduced motion).
+- 58C fidelity fix found by the chart court: turn rows never carried their own turn stamp (tick rows always did) — App.jsx and proving.js log rows now stamp turn; chart.js route carries stand.turn and TravelersChart cites THE TURN, never the array index (tick rows shift indexes; sealed payloads exclude the row object, so no hash moves). Stamp seated AFTER the direction gate’s pinned byte-run (ts/resolution/redacted) — the standing pin is untouched.
+- 58C eval surgery: book.test.mjs court 8 corrected — proving Edda holds no companion sheet, so the court asserts sheet-line ABSENCE (the strip invents no arithmetic); the sheet arithmetic court stays with the doom fixture (G23).
+- 58C eval retarget: shareCard.test.mjs court 7 — the wiring pin followed the share face from Overlays.jsx (Codex, trimmed this task) to Book.jsx (Tale chapter); the three needles are byte-identical, only the seat address moved. Uncovered by the first full keyless tail after the trim.
+- 58C eval retarget: chart.test.mjs court 6 - placedRegions became a re-export of the engine chart fold (one-seat law, Directive XIV), so the parsePlacement needle follows the parse to packages/engine/src/atlas.js and a NEW assertion pins the re-export itself; the original assertion message stands unweakened. Found by the keyless tail.
+- 58C eval retargets: scriptorium.test.mjs court 5 and humanHand.test.mjs — the room-plan panel and the tell court moved whole from the trimmed Codex overlay into the Book; needles byte-identical, seat address updated. A full audit of every read()-pinned needle across all evals was run to close this family.
+- 58C.1 verdict: RED — five courts, four of one family. The Book kept the
+  standing classes but four courts pressed them from the wrong page.
+  Retargets (XIV §V.3, navigation only, no assertion weakened): the g15
+  walk court turns to People before pressing a soul card; G20b turns to
+  People before Edda's card; the g15 battle court counts .sheet-line on
+  the Party page (and now sweeps that page's copy too — a strengthening);
+  G23d turns to Party for the permanent-seal count — the 58C comment had
+  mis-said People; the memorial assert stays on People and passed in the
+  run. The fifth, G6's hearth walk, does not reproduce in isolation: a
+  plain-chromium probe against the court's own webserver walks seed →
+  Hearth → title clean, zero page errors; the failure snapshot shows the
+  click landed (button focused, therefore enabled) with the table frozen
+  after — a re-render race under parallel load is the only mechanism left
+  standing. No app or court edit for G6; 58C.2 judges it, and a second
+  crossing is material.
+- 58C.2 verdict: RED->near — all five 58C.1 courts GREEN (G6 hearth walk
+  crossed clean on its second sitting: one crossing, a race under load,
+  not a defect; the retargeted four stand). Two remain, both first
+  sittings of the NEW G28 courts, both court-side repairs (G28 ledger,
+  no assertion weakened): G28a asked .place-page h4 while the page
+  carries eyebrow h4s beside the name — the ask now reads the header h4;
+  G28d asked the party chip for prose while the chip wears faces — the
+  ask now reads Edda's .party-face by its title, the same truth by its
+  own surface.
+- 58C.3 verdict: GREEN (exit 0; 101 tests, 0 unexpected, 0 skipped,
+  0 flaky). First green after the two G28 court repairs.
+- 58C.4 verdict: GREEN (exit 0; 101/0/0/0). Second consecutive.
+- 58C.5 verdict: GREEN (exit 0; 101/0/0/0). Third consecutive — the
+  ritual stands at five iterations of the eight-iteration ceiling.

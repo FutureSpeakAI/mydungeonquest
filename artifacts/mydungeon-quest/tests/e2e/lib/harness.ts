@@ -457,11 +457,27 @@ export async function openCodex(page: Page): Promise<void> {
   // open and answer everything the court demands.
   for (let attempt = 0; attempt < 3; attempt++) {
     if (await page.locator('.modal .codex-head').isVisible().catch(() => false)) return;
-    await page.click('nav button:has-text("Codex")');
+    // (58C logged edit — Directive XIV) The one door is relabeled Book;
+    // same seat, same waits, same law.
+    await page.click('nav button:has-text("Book")');
     const head = await page.waitForSelector('.modal .codex-head', { timeout: 15_000 }).catch(() => null);
     if (head) return;
   }
   await page.waitForSelector('.modal .codex-head');
+}
+
+// (58C logged edit — Directive XIV) The codex opens as THE BOOK: six
+// chapters behind the one door. openChapter turns to a named page and
+// waits for it to stand. The ribbon persists within a sitting, so a court
+// that needs a particular page must turn to it explicitly — reopening the
+// book lands wherever the last walk left it.
+export async function openChapter(page: Page, chapter: string): Promise<void> {
+  await openCodex(page);
+  const tab = page.locator(`.book-chapters button[data-chapter="${chapter}"]`);
+  if (!(await tab.evaluate((el) => el.classList.contains('open')).catch(() => false))) {
+    await tab.click();
+  }
+  await page.waitForSelector(`.book-page[data-page="${chapter}"]`, { timeout: 15_000 });
 }
 
 export async function openSheet(page: Page): Promise<void> {

@@ -9,7 +9,9 @@ import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components
 import { packClock, interludeRow, bandNotes } from './lib/clockAtTable.js';
 import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
-import { CharacterSheet, Codex, Settings, Storybook } from './components/Overlays.jsx';
+import { CharacterSheet, Settings, Storybook, useGallery } from './components/Overlays.jsx';
+import { Book } from './components/Book.jsx';
+import { tableOf } from 'fatescript/table';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
 import { applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll } from 'fatescript/rules';
 import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
@@ -154,6 +156,12 @@ export default function App() {
   const [flow, setFlow] = useState('title');
   const [worldDraft, setWorldDraft] = useState(null);
   const [overlay, setOverlay] = useState(null);
+  // THE BOOK'S RIBBON (Directive XIV) — where the book lies open: chapter,
+  // soul, place, pack. Held by the table so the book reopens to the same
+  // page within the sitting; reset when the tale changes; never sealed,
+  // never synced, never exported.
+  const [bookNav, setBookNav] = useState({ chapter: 'tale', soul: null, place: null, pack: null });
+  useEffect(() => { setBookNav({ chapter: 'tale', soul: null, place: null, pack: null }); }, [current?.id]);
   const [cinematic, setCinematic] = useState(null);
   const [ravenRecap, setRavenRecap] = useState(null);
   // THE SHARED SKY — the house's season feed, fetched once a sitting;
@@ -709,7 +717,12 @@ export default function App() {
       // duplicating sealed truth only) so the narrator can direct the line
       // — a dying friend sounds like one. Retellings still quote the deed,
       // never the die.
-      const log = { id: crypto.randomUUID(), player: visiblePlayer, deed, sent: player, dm, ts: Date.now(), resolution, redacted: false, beatIndex: codex.beatIndex, room: roomLedger };
+      // THE ROW'S OWN CLOCK (Task 58C) — every turn row carries its turn
+      // number, as tick rows always have: citations speak turns, and the
+      // log array's INDEX is not a turn once ticks ride between rows. The
+      // sealed payload never includes the row object, so the stamp moves
+      // no hashes; rows from before this law simply cite nothing.
+      const log = { id: crypto.randomUUID(), player: visiblePlayer, deed, sent: player, dm, ts: Date.now(), resolution, redacted: false, turn: base.turnNumber || 0, beatIndex: codex.beatIndex, room: roomLedger };
       // A completing turn strands no die: the tale that just ended has no
       // roll left to make.
       let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: codex.completed ? null : dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed, roomIntent: beatIntent };
@@ -1205,7 +1218,15 @@ export default function App() {
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
   }, [current?.id]);
-  const activeRegion = current?.codex?.regions?.[0];
+  // THE TABLE LAW (Directive XIV) — the four chips fold pure from the
+  // sealed record. The strip is the GROUND chip now: name and backdrop
+  // follow the STANDING scene (the presence replay's own ground), never
+  // the newest region card; before any scene stands, the chip says so and
+  // the home region's procedural art keeps the vellum warm.
+  const table = useMemo(() => current ? tableOf(current) : null, [current]);
+  const gallery = useGallery(current);
+  const groundChip = table ? table.chips[1] : null;
+  const activeRegion = (groundChip?.name && current?.codex?.regions?.find((region) => region.name === groundChip.name)) || null;
   const regionArt = useMemo(() => current ? proceduralArtDataUrl(`${current.id}:${activeRegion?.state || 'unknown'}`, activeRegion?.name || current.homeRegion, ['#0d0b14', current.codex.blight > 2 ? '#63352f' : '#35534b', '#d4a24e']) : '', [current, activeRegion]);
   const [regionPlate, setRegionPlate] = useState(null);
   useEffect(() => {
@@ -1264,13 +1285,21 @@ export default function App() {
     <TollNotice />
     <RavenNotice recap={ravenRecap} onClose={() => setRavenRecap(null)} />
     {pourBanner}
-    <div ref={regionStripRef} className="region-strip" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
-      <span>{activeRegion?.name || current.homeRegion}</span><small>{activeRegion?.state || 'unmapped'} · blight {current.codex.blight}/5</small>
+    <div ref={regionStripRef} className="region-strip" data-chip="ground" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
+      <span>{groundChip.words}</span>{groundChip.state && <small>{groundChip.state}</small>}
     </div>
     <header className="table-header">
       <button className="sigil-button" onClick={() => setOverlay('sheet')}><span>{current.hero.sigil}</span><div><b>{current.hero.name}</b><small>Level {current.hero.level} {current.hero.className}</small></div></button>
-      <div className="header-stats"><span><HeartPulse/> {current.hero.hp}/{current.hero.maxHp}</span><span><Shield/> {current.hero.ac}</span><span className="desktop-stat">{current.hero.gold} gold</span></div>
-      <nav><button onClick={closeBook} disabled={busy} title={busy ? 'The scribe is mid-stroke — the page must land first' : 'Close the book and return to the shelf'} aria-label="Close the book and return to the shelf"><DoorOpen/><span>Hearth</span></button><button onClick={() => setOverlay('codex')}><BookOpen/><span>Codex</span></button><button onClick={() => setOverlay('settings')}><SettingsIcon/><span>Care</span></button><button className="wax-seal" onClick={openStorybook} title="The bound chronicle and its seal" aria-label="Open the bound chronicle"><span key={sealPulse} className="wax-emboss">{current.hero.sigil}</span></button></nav>
+      <div className="header-chips" data-stillness={stillness ? 'true' : undefined}>
+        <span className="table-chip" data-chip="calendar">{table.chips[0].words}</span>
+        <span className="table-chip chip-party" data-chip="party">{table.chips[2].members.length
+          ? table.chips[2].members.map((member) => gallery[member.name]
+            ? <img key={member.name} className="party-face" src={gallery[member.name]} alt={member.name} title={member.name}/>
+            : <i key={member.name} className="party-face" title={member.name}>{member.name.split(' ').map((part) => part[0]).join('')}</i>)
+          : <em>The hero travels alone</em>}</span>
+        <span className="table-chip" data-chip="health"><HeartPulse/> {table.chips[3].words}</span>
+      </div>
+      <nav><button onClick={closeBook} disabled={busy} title={busy ? 'The scribe is mid-stroke — the page must land first' : 'Close the book and return to the shelf'} aria-label="Close the book and return to the shelf"><DoorOpen/><span>Hearth</span></button><button onClick={() => setOverlay('codex')}><BookOpen/><span>Book</span></button><button onClick={() => setOverlay('settings')}><SettingsIcon/><span>Care</span></button><button className="wax-seal" onClick={openStorybook} title="The bound chronicle and its seal" aria-label="Open the bound chronicle"><span key={sealPulse} className="wax-emboss">{current.hero.sigil}</span></button></nav>
     </header>
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
@@ -1324,7 +1353,7 @@ export default function App() {
         across any chained pair, so the key always turns. */}
     {cinematic && <Cinematic key={`${cinematic.cinematic?.type}:${cinematic.cinematic?.title}:${cinematic.beatIndex ?? 'b'}:${cinematic.replay ? 'replay' : 'live'}`} cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={stillness} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} replay={Boolean(cinematic.replay)} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
     {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
-    {overlay === 'codex' && <Codex campaign={current} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Codex replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} />}
+    {overlay === 'codex' && <Book campaign={current} nav={bookNav} onNav={(part) => setBookNav((held) => ({ ...held, ...part }))} recap={recap && recap.campaignId === current.id ? recap : null} reduceMotion={stillness} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Book replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} />}
     {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
     {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} />}
     {overlay === 'level' && <div className="ritual"><Sparkles/><span>Level {current.hero.level}</span><h2>The story has made you larger.</h2><button onClick={()=>setOverlay(null)}>Accept the new name fate gives you</button></div>}

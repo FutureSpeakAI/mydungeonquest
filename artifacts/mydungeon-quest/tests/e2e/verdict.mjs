@@ -23,6 +23,8 @@ const REQUIRED_PROJECTS = [
   'g24-prose',
   // (0.9.1, Directive XIII) the two-hands court sits every run.
   'g27-forge',
+  // (0.9.2, Directive XIV) the open-book court sits every run.
+  'g28-book',
 ];
 // Test-title needles that must appear among EXECUTED (non-skipped) tests.
 const REQUIRED_EXECUTED = [
@@ -55,6 +57,8 @@ const REQUIRED_EXECUTED = [
   // (0.9.1, Directive XIII) THE TWO HANDS — four courts demanded by name,
   // the live-smith round-trip among them so it can never silently skip.
   'G27a', 'G27b', 'G27c', 'G27d',
+  // (0.9.2, Directive XIV) THE OPEN BOOK — four courts demanded by name.
+  'G28a', 'G28b', 'G28c', 'G28d',
 ];
 
 let verdict;

@@ -56,6 +56,7 @@ function replay(campaign) {
   const souls = new Map(); // sealed name -> { name, last, stood }
   const party = new Map(); // canon name -> { name, index } cited to the joining row
   let ground = null; // the standing scene's region, or null before any stands
+  const stands = []; // every lawful CHANGE of ground, in sealed order (Directive XIV)
 
   // A sighting at an explicit ground — the leave pin's door. `turn` is the
   // row's own turn number when the row carries one, else null; it is a
@@ -89,6 +90,13 @@ function replay(campaign) {
       && typeof set.region === 'string' && regions.has(canon(set.region))) {
       const nextGround = set.region.trim();
       const moved = canon(nextGround) !== canon(ground ?? '');
+      // THE TRAVEL RECORD (Directive XIV, the Chart Law) — a lawful CHANGE
+      // of standing ground is the only travel the record knows; the chart
+      // fold reads these stands and re-derives nothing. A restatement of
+      // the standing ground records nothing here, exactly as it moves
+      // nobody below. `from` is null at the first stand: an arrival from
+      // nowhere is a beginning, never a road.
+      if (moved) stands.push({ from: ground, to: nextGround, index, turn: turnStamp });
       ground = nextGround;
       // The party travels as one (VIII.4): a lawful CHANGE of ground
       // sights every standing member on the new ground, cited to the
@@ -142,7 +150,19 @@ function replay(campaign) {
       }
     }
   });
-  return { souls, party, ground };
+  return { souls, party, ground, stands };
+}
+
+/** THE TRAVEL RECORD (Directive XIV, the Chart Law) — the standing ground
+ * and every lawful change of ground in sealed order: { from, to, index,
+ * turn }, `from` null at the first stand. This is the ONE seat of the
+ * scene law's travel reading; the chart fold consumes it and derives no
+ * ground of its own. Struck rows, tick rows, unknown regions, and
+ * restatements prove nothing — the same doors the presence replay already
+ * holds. */
+export function travelRecord(campaign) {
+  const { ground, stands } = replay(campaign);
+  return { ground, stands };
 }
 
 /** Every sighted soul's last known ground: { name, ground, cite } — ground

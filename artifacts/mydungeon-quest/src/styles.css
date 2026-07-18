@@ -524,3 +524,45 @@
 .xcard-card p{margin:0;font-size:.9rem;line-height:1.45;opacity:.88}
 .portrait-inscription{display:block;font-style:italic;font-size:.78rem;opacity:.75;margin-top:.15rem}
 .hero-sigil .dice-button{margin-left:.35rem}
+
+/* ---- THE OPEN BOOK & THE TABLE LAW (Directive XIV) ---- */
+.book-chapters{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 1rem;border-bottom:1px solid rgba(212,162,78,.22);padding-bottom:.6rem}
+.book-chapters button{border:1px solid transparent;border-radius:999px;background:none;color:var(--vellum-dim);padding:.42rem .8rem;font-family:Cinzel,Georgia,serif;font-size:.78rem;letter-spacing:.06em}
+.book-chapters button.open{border-color:var(--gold-soft);background:rgba(212,162,78,.1);color:var(--vellum)}
+.book-page{animation:page-in .3s ease both}
+.header-chips{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
+.table-chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid rgba(233,223,200,.14);border-radius:999px;background:rgba(233,223,200,.05);padding:.3rem .7rem;font-size:.78rem;color:var(--vellum-dim);white-space:nowrap}
+.table-chip svg{width:14px;height:14px;color:var(--gold)}
+.table-chip em{font-style:normal}
+.chip-party{gap:.25rem}
+.party-face{width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid var(--gold-soft);display:inline-grid;place-items:center;font-size:.6rem;font-style:normal;color:var(--gold);background:#1a1626}
+/* THE TRAVELER'S CHART (Directive XIV, the Chart Law) */
+.travelers-chart{margin:0 0 1.4rem;border:1px solid rgba(212,162,78,.25);border-radius:16px;background:radial-gradient(circle at 30% 20%,rgba(233,223,200,.06),rgba(0,0,0,.2));padding:.6rem}
+.travelers-chart svg{width:100%;height:auto;display:block}
+.chart-road{stroke:var(--gold-soft);stroke-width:2;stroke-dasharray:7 5;opacity:.85}
+.chart-road-label{fill:var(--vellum-dim);font-size:12px;font-family:Cinzel,Georgia,serif;letter-spacing:.04em}
+.chart-medallion{cursor:pointer}
+.chart-medallion:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.medallion-rim{fill:none;stroke:var(--gold-soft);stroke-width:2}
+.chart-medallion.current .medallion-rim{stroke:var(--gold);stroke-width:3}
+.medallion-plateless{fill:#1a1626;stroke:rgba(233,223,200,.2);stroke-width:1}
+.medallion-name{fill:var(--vellum);font-size:13px;font-family:Cinzel,Georgia,serif}
+.medallion-state{fill:var(--vellum-dim);font-size:10px}
+.chart-current{fill:none;stroke:var(--gold);stroke-width:1.5;stroke-dasharray:3 4;animation:chart-pulse 2.6s ease-in-out infinite}
+@keyframes chart-pulse{50%{opacity:.35}}
+.chart-route{font-size:.85rem;color:var(--vellum);margin:.6rem .4rem 0}
+.chart-route .cite{color:var(--vellum-dim);font-size:.72rem}
+.chart-vellum-note{margin:.25rem .4rem .3rem;font-size:.78rem}
+/* THE PACKS (Directive XIV, the Pack Law) */
+.pack-list{display:grid;gap:.7rem}
+.pack{border:1px solid rgba(212,162,78,.2);border-radius:12px;background:rgba(255,255,255,.02)}
+.pack-head{display:flex;gap:.7rem;align-items:center;width:100%;border:0;background:none;padding:.6rem .75rem;text-align:left}
+.pack-head small{color:var(--vellum-dim);display:block}
+.pack-body{padding:0 .85rem .8rem}
+.pack-law{font-size:.78rem;margin:.1rem 0 .5rem}
+.pack-coin{margin-bottom:.5rem}
+.pack-holding .text-button{color:var(--vellum);padding:.15rem 0}
+.pack-echo{display:block;color:var(--gold);font-size:.78rem;padding:.2rem 0 0}
+/* THE STILLNESS LAW (Directive XIV) — a surface wearing the mark holds
+   perfectly still; the setting and the patron's own preference both raise it. */
+[data-stillness="true"],[data-stillness="true"] *{animation:none!important;transition:none!important}

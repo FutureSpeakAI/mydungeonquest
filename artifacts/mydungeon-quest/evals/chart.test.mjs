@@ -97,7 +97,11 @@ const CAMPAIGN = {
 {
   const lib = read('src/lib/atlas.js');
   assert.ok(lib.includes('fatescript/atlas') && lib.includes('buildAtlas'), 'the engine\u2019s atlas is the only fold');
-  assert.ok(lib.includes('parsePlacement'), 'placement is parsed, never guessed');
+  // Task 58C seated the placement derivation at its ONE SEAT - the
+  // engine's chart fold (Directive XIV); the lib re-speaks that fold,
+  // never re-states it, and the parse stands at the seat itself.
+  assert.ok(lib.includes('placedRegions = chartRegions'), 'the lib re-speaks the one seat, never a second parse');
+  assert.ok(read('../../packages/engine/src/atlas.js').includes('parsePlacement'), 'placement is parsed, never guessed');
   const overlays = read('src/components/Overlays.jsx');
   assert.ok(overlays.includes('chartRibbon'), 'the folio draws the chart');
   assert.ok(overlays.includes('The chart —'), 'the ribbon is seated');

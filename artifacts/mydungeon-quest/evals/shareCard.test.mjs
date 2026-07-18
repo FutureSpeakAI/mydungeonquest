@@ -100,14 +100,15 @@ const CAMPAIGN = {
 }
 
 // 7. THE WIRING — the engine's commons under the lib, the public face at
-//    the Codex, the plate drawn through the strict door.
+//    the Book (the share face moved whole with the 58C Codex trim), the
+//    plate drawn through the strict door.
 {
   const lib = read('src/lib/shareCard.js');
   assert.ok(lib.includes('fatescript/shareCard'), 'the engine\u2019s commons is the only card law');
-  const overlays = read('src/components/Overlays.jsx');
-  assert.ok(overlays.includes("from '../lib/shareCard.js'"), 'the Codex draws from the seat');
-  assert.ok(overlays.includes('shareChapter('), 'a walked chapter offers its public face');
-  assert.ok(overlays.includes('readAsDataURL'), 'the plate walks the strict door as data, never an address');
+  const book = read('src/components/Book.jsx');
+  assert.ok(book.includes("from '../lib/shareCard.js'"), 'the Book draws from the seat');
+  assert.ok(book.includes('shareChapter('), 'a walked chapter offers its public face');
+  assert.ok(book.includes('readAsDataURL'), 'the plate walks the strict door as data, never an address');
 }
 
 console.log('PASS \u2014 the commons gate (game): a chapter\u2019s public face quotes the sealed turn verbatim or not at all, a struck row never leaves the table even holding the boldest deed, only attested data plates walk the strict door, a world named <script> renders inert at fragment and shell alike, files are named by the numeral alone, and a fork carries covenant and world-shape with no seat for another patron\u2019s journal.');

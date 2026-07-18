@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { closeModal, openCodex, readCampaign, seedFixture } from './lib/harness';
+import { closeModal, openChapter, openCodex, readCampaign, seedFixture } from './lib/harness';
 // The engine source is imported by relative path, not through the
 // package door: Playwright transforms first-party files it can see, but
 // a bare specifier would walk into node_modules untransformed ESM.
@@ -89,6 +89,8 @@ test('G21b: the party page — the roster with its joining turn, and the sealed 
   test.setTimeout(240_000);
   await seedFixture(page);
   await openCodex(page);
+  // (58C logged edit — Directive XIV) The party strip lives in Party now.
+  await openChapter(page, 'party');
 
   // The party strip: one companion, cited to her joining turn.
   // (56B.2 logged edit) '.codex-modal' was an invented selector — the
@@ -105,6 +107,8 @@ test('G21b: the party page — the roster with its joining turn, and the sealed 
 
   // The Duchy page: the pinned envoy stands, and the sealed fixture
   // shows with its sealing turn.
+  // (58C logged edit — Directive XIV) The gallery lives in Places now.
+  await openChapter(page, 'places');
   await page.locator('.region-gallery article').nth(1).click();
   const placePage = page.locator('.place-page');
   await expect(placePage).toBeVisible();

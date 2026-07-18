@@ -58,6 +58,8 @@ export function RecapCard({ recap, onDismiss }) {
     <span className="eyebrow">The tale so far</span>
     <p className="recap-mast"><b>{mast.arc}</b> · Act {mast.act} · {mast.chapter}{mast.goal ? ` — ${mast.goal}` : ''}</p>
     {recap.kind === 'page' && <ChroniclePage page={recap.page} />}
-    <button className="text-button" onClick={onDismiss}>Return to the road →</button>
+    {/* (Directive XIV) The Tale chapter re-reads this card as a page — a
+        reading has no dismiss; the feed's own card keeps its door. */}
+    {onDismiss && <button className="text-button" onClick={onDismiss}>Return to the road →</button>}
   </section>;
 }

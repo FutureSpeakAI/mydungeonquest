@@ -635,8 +635,17 @@ export default function App() {
       // soul may speak its dying words in the very turn that kills it — and
       // the dead of earlier turns cannot be given dialogue at all. The
       // ground courts (Directive VII) seat from the same pre-turn record:
-      // scene ?? null attests honestly that no scene stands yet.
-      const validation = validateDmTurn(dm, entropy, { cast: base.codex.cast, threads: base.codex.threads || [], trove: base.codex.trove || [], purses: base.codex.purses || [], regions: base.codex.regions || [], scene: base.codex.scene ?? null });
+      // scene ?? null attests honestly that no scene stands yet. The party,
+      // fixture, and speaker courts (Directive VIII) seat from `story` — the
+      // SAME briefing evidence the request itself carried — so the landing
+      // runs precisely the court the road ran: same turn, same entropy, the
+      // same seated record byte for byte. Absent evidence leaves a court out
+      // of session on BOTH benches alike, never on one.
+      const landingContext = { cast: base.codex.cast, threads: base.codex.threads || [], trove: base.codex.trove || [], purses: base.codex.purses || [], regions: base.codex.regions || [], scene: base.codex.scene ?? null, hero: base.hero?.name || null };
+      if (Array.isArray(story?.party_state)) landingContext.party = story.party_state.map((member) => member?.name).filter((memberName) => typeof memberName === 'string');
+      if (Array.isArray(story?.presence_state)) landingContext.presence = story.presence_state;
+      if (Array.isArray(story?.fixture_state)) landingContext.fixtures = story.fixture_state;
+      const validation = validateDmTurn(dm, entropy, landingContext);
       // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
       // the door ran, run once more where the turn becomes record, on the
       // same pre-turn snapshot. A stranger who survived the road is refused
@@ -648,7 +657,7 @@ export default function App() {
           ...(strangers.length ? [censusNote(strangers)] : []),
         ].join('; '));
       }
-      let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0 });
+      let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0, heroName: base.hero?.name });
       if (dm.state_updates?.chronicle_add) codex.chronicle = [...codex.chronicle, String(dm.state_updates.chronicle_add).slice(0, 260)];
       const heroBeforeLevel = base.hero.level;
       const hero = applyStateUpdates(base.hero, dm.state_updates);

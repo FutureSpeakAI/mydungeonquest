@@ -2,6 +2,7 @@ import { canonicalize, sha256 } from 'fatescript/canonical';
 import { bearingFor, bearingBlock, paintRoster } from 'fatescript/bearing';
 import { cardsForCampaign } from 'fatescript/cards';
 import { UNLETTERED_WORLD } from 'fatescript/unlettered';
+import { calendarOf, watchOf } from 'fatescript/calendar';
 import { yearsSinceTurn } from '../clockAtTable.js';
 
 // THE BEARING AT THE EASEL — Directive VI: the card IS the prompt. Every
@@ -209,7 +210,20 @@ export function scenePrompt(campaign, cue, moment = null) {
   }).join(' ');
   const stagedLine = staged.length ? ` Present but unpainted, staged in the scene's prose: ${staged.join(', ')}.` : '';
   const moodLine = ` Scene mood${moment?.prose ? ", subordinate to the beat's stated hour and light" : ''}: ${cue.mood}.`;
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}.${beat}${moodLine} ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul is the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line rides on them in frame, large and whole. Named souls are the PRINCIPAL figures of this frame — never demoted to the background, never displaced by an invented figure. Each named soul's dress, gear, and worn covering follow their identity line exactly — nothing added it does not state, nothing it states removed or undone.${markLaw}`, campaign);
+  // THE WATCH AND THE FIXTURES (Directive VIII.7–8) — two byte-stable
+  // riders. The watch word rides beneath the beat and the mood, so dusk
+  // cannot flip to noon between plates of the same day — and where the
+  // beat states its own hour, the beat still wins (beat supremacy above).
+  // The fixture rider stands beside the region canon: up to three sealed
+  // fixtures of the painted place, most recently sealed first, each
+  // visual clause verbatim — sealed once, painted forever.
+  const watchLine = ` The watch of the day is ${watchOf(calendarOf(campaign.logs || []).hours)}.`;
+  const placeFixtures = (campaign.codex.fixtures || [])
+    .filter((entry) => entry.place === cue.region)
+    .sort((a, b) => ((b.since ?? -1) - (a.since ?? -1)))
+    .slice(0, 3);
+  const fixtureLine = placeFixtures.length ? ` Standing fixtures of ${cue.region}, sealed canon each: ${placeFixtures.map((entry) => `${entry.name} — ${entry.visual}`).join('; ')}.` : '';
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}.${beat}${moodLine}${watchLine} ${soulLines}${stagedLine} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''}${fixtureLine} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul is the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line rides on them in frame, large and whole. Named souls are the PRINCIPAL figures of this frame — never demoted to the background, never displaced by an invented figure. Each named soul's dress, gear, and worn covering follow their identity line exactly — nothing added it does not state, nothing it states removed or undone.${markLaw}`, campaign);
 }
 
 // The roster, exported for the job bench: the same painted-first seating

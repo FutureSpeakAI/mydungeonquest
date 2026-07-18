@@ -19,7 +19,9 @@ import { GAME_ROOT } from './lib/vision';
 // keyless check in the same commit that seats the possessions law.
 // 96 → 98 (Directive VII): the presence gate and the ground gate join the
 // keyless check in the same commit that seats the scene law.
-const PINNED_PASS_COUNT = 98;
+// (56B) 98 → 101: Task 56B adds three gates — party.test.mjs,
+// fixture.test.mjs, watch.test.mjs (Directive VIII).
+const PINNED_PASS_COUNT = 101;
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

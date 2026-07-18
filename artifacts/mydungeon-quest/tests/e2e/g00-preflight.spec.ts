@@ -47,7 +47,12 @@ test('G00-RT: a maximal journal row survives the read-back mapper byte-complete'
         item_remove: [{ name: 'a spent torch', holder: 'Maren', reason: 'burned out' }],
         purse: [{ holder: 'Maren', delta: -5, reason: 'Paid the toll' }],
         world: { blight_delta: 1, region_add: { name: 'The Held Line', visual: 'a scarred ridge' }, region_update: { name: 'Larkspur Vale', state: 'troubled' } },
-        scene_set: { region: 'The Held Line' }
+        scene_set: { region: 'The Held Line' },
+        // (56B) Directive VIII rides the round-trip: the mapper must carry
+        // the party ops and the fixture seal byte-complete like every key.
+        party_join: { name: 'New Soul' },
+        party_leave: { name: 'Corin Voss', remains_at: 'Larkspur Vale' },
+        fixture_add: { place: 'The Held Line', name: 'The Shield Cairn', visual: 'a cairn of split shields raised where the line held' }
       },
       image_cue: { kind: 'scene', subjects: ['Edda Thornwake'], region: 'The Held Line', mood: 'grim relief' },
       dialogue_cue: { speaker: 'Edda Thornwake', line: 'It held.' },

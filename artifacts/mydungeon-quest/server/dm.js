@@ -14,7 +14,15 @@ export function judgeTurn(turn, input) {
   // from the pack, the standing scene from [STORY].scene_state — null there
   // attests no scene stands, so genesis rides free. (The briefing's own
   // `scene` key is cast presence, a different beast — never read it here.)
-  const validation = validateDmTurn(turn, input.entropy, { cast: input.story?.cast || [], threads: input.story?.threads_state || [], trove: input.story?.trove_state || [], purses: input.story?.purse_state || [], regions: input.story?.regions || [], scene: input.story?.scene_state ? { region: input.story.scene_state.region } : null });
+  // THE PARTY AND THE ELSEWHERE (Directive VIII): the party, presence, and
+  // fixture courts seat ONLY when the briefing carries their evidence — an
+  // older sealed input without these arrays leaves the courts unseated
+  // (bare-context law), never falsely attested empty.
+  const context = { cast: input.story?.cast || [], threads: input.story?.threads_state || [], trove: input.story?.trove_state || [], purses: input.story?.purse_state || [], regions: input.story?.regions || [], scene: input.story?.scene_state ? { region: input.story.scene_state.region } : null, hero: input.hero?.name || null };
+  if (Array.isArray(input.story?.party_state)) context.party = input.story.party_state.map((member) => member?.name).filter((memberName) => typeof memberName === 'string');
+  if (Array.isArray(input.story?.presence_state)) context.presence = input.story.presence_state;
+  if (Array.isArray(input.story?.fixture_state)) context.fixtures = input.story.fixture_state;
+  const validation = validateDmTurn(turn, input.entropy, context);
   const errors = validation.ok ? [] : [...validation.errors];
   const strangers = unrecordedSouls(turn, input.story?.cast || [], { hero: input.hero || null });
   if (strangers.length) errors.push(censusNote(strangers));
@@ -135,6 +143,22 @@ const storySchema = {
         // a trap. Exactly one key, and never an array.
         scene_set: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['region'], properties: {
           region: { type: 'string', minLength: 3, maxLength: 100, description: 'The region the scene now stands in — one the record already holds, or one created by this same turn\'s world.region_add. A change of ground must ride with time_advance in the same turn.' }
+        } } ] },
+        // THE PARTY AND THE ELSEWHERE (Directive VIII): declared because
+        // the strict validator enforces these exact shapes — a schema the
+        // model cannot see is a trap. Each is a single object, never an
+        // array.
+        party_join: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name'], properties: {
+          name: { type: 'string', minLength: 2, maxLength: 80, description: 'A living cast soul whose last lawful ground is the current scene, or one introduced by this same turn\'s cast_add. The party travels as one when the scene moves. The hero is never joined — the party is hers already.' }
+        } } ] },
+        party_leave: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name'], properties: {
+          name: { type: 'string', minLength: 2, maxLength: 80, description: 'A current party member, released from the party. The hero is never left.' },
+          remains_at: { anyOf: [ { type: 'null' }, { type: 'string', minLength: 3, maxLength: 100 } ], description: 'The region where the departing soul remains — one the record holds, or one created by this same turn\'s world.region_add. Omitted, the soul remains at the current scene.' }
+        } } ] },
+        fixture_add: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['place','name','visual'], properties: {
+          place: { type: 'string', minLength: 3, maxLength: 100, description: 'The region this fixture stands in — one the record holds, or one created by this same turn\'s world.region_add.' },
+          name: { type: 'string', minLength: 3, maxLength: 60 },
+          visual: { type: 'string', minLength: 8, maxLength: 160, description: 'The fixture\'s paintable visual truth. Fixture canon seals once — written once, never rewritten, and the painter reads it forever.' }
         } } ] }
       }
     }

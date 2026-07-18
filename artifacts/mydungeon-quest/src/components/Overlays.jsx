@@ -168,6 +168,13 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
     <ul className="scriptorium-plan">{SCRIBES.map((scribe) => <li key={scribe}><b>{scribe}</b> — <span className="muted">{roomPlan.scratchpad[scribe]}</span></li>)}</ul></>}
     {tells && tells.report.flagged.length > 0 && <><h3>The human hand — the tell court</h3>
     <ul className="scriptorium-plan">{tells.report.flagged.map((key) => <li key={key}><b>{TELL_FAMILIES[key].name}</b> — <span className="muted">{TELL_FAMILIES[key].finding}</span></li>)}</ul></>}
+    {/* THE PARTY STRIP (Directive VIII.9) — who travels with the hero,
+        from the codex fold; the hero is the permanent root and is never
+        listed. An empty roster is said plainly — the hero travels alone. */}
+    <h3>The party — who rides with the hero</h3>
+    {(c.party || []).length > 0
+      ? <ul className="presence-list party-strip">{(c.party || []).map((member, i) => <li key={i}><b>{member.name}</b><span className="cite">{Number.isInteger(member.joinedTurn) ? `joined turn ${member.joinedTurn}` : 'joined on the road'}</span></li>)}</ul>
+      : <p className="muted">The hero travels alone.</p>}
     <h3>The cast — what the world remembers</h3>
     {openCard && <article className="soul-page">
       <button className="text-button" onClick={() => setOpenSoul(null)}>← All souls</button>
@@ -267,6 +274,11 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
         {visitors.former.length > 0 && <><h4 className="eyebrow">Have stood here</h4>
           <ul className="presence-list">{visitors.former.map((entry, i) => <li key={i}><b>{entry.name}</b><span className="cite">turn {entry.cite}</span></li>)}</ul></>}
       </>; })()}
+      {/* THE FIXTURES (Directive VIII.9) — place-bound canon from the
+          fold, sealed once, each cited to the turn that sealed it. */}
+      {(() => { const placeFixtures = (c.fixtures || []).filter((entry) => entry.place === place.name);
+        return placeFixtures.length > 0 && <><h4 className="eyebrow">Fixtures</h4>
+          <ul className="presence-list fixture-list">{placeFixtures.map((entry, i) => <li key={i}><b>{entry.name}</b> — {entry.visual}{Number.isInteger(entry.since) && <span className="cite">sealed turn {entry.since}</span>}</li>)}</ul></>; })()}
     </article>; })()}
     <h3>Cinematic archive</h3><div className="replay-list">{campaign.logs.filter((l)=>l.dm.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm)}><Film/> {log.dm.cinematic.title}</button>)}</div>
     <h3>Memoir</h3>{c.memoir.length ? c.memoir.map((m,i)=><p key={i}>{m}</p>) : <p className="muted">The Chronicler has not yet needed to compress the road behind you.</p>}

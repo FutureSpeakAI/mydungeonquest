@@ -1399,3 +1399,175 @@ CLOSES at exactly the ceiling of eight: three consecutive greens on
 the reviewed cut (56.3–56.5), the architect's blocking finding cured
 and proven, and three consecutive greens re-proving the tree that
 ships (56.6–56.8).
+
+## Task 56B — The Party and the Elsewhere (Directive VIII)
+
+Every test edit of the series, logged before the loop rides:
+
+- evals/watch.test.mjs — NEW gate. The six-watch table hour by hour,
+  the boundaries exact, the mod-24 wrap, fractional and non-number
+  hours failing closed to the deep night; the calendar line wearing
+  the watch; the briefing's first key carrying it through total
+  famine; the plate flipping dawn to dusk on hours alone,
+  byte-deterministic; the keyless mock walking four sealed advances
+  through four watches of Day 1 and sealing the Waystation Bell on
+  the genesis turn only.
+- evals/party.test.mjs — NEW gate. Four door courts (join shape and
+  ground, leave membership, hero root, the dead); nobody-teleports
+  naming soul, ground, and scene; judgeTurn seating the courts when
+  the record rides and staying silent on bare input; the fold's
+  refusals on ticks and unknowns; the pure replay pinning the
+  departed; the roster that never trims; the elsewhere falling first
+  under famine; the server schema mirroring the validators as text.
+- evals/fixture.test.mjs — NEW gate. Shape and atlas courts at the
+  door, the seal refusing rewrites (first writer wins, byte-logged
+  note), ticks allowed to build, the old-codex backfill, and the
+  easel riding three sealed fixtures byte-stable.
+- evals/calendar.test.mjs — RE-AIMED, nothing weakened: every prior
+  assert kept; the line asserts re-aimed to the watch-bearing bytes
+  ('It is Day N of the tale, in the X watch.') and a dusk line added.
+- evals/briefing.test.mjs — RE-AIMED: the calendar byte assert now
+  expects the watch-bearing line ('…in the deep night watch.').
+- evals/hookedWorld.test.mjs — GROWN a third turn (region_add The
+  Duchy, scene_set, party_join Corin Voss, fixture_add The Brass
+  Toll-Scale; 2 hours ridden). Recalibrations, all logged: calendar
+  byte → 'Day 3 … dawn watch'; fold scene → The Duchy; scene_ground
+  byte → the Duchy's visual; Vale standing → ['Edda'] with the riders
+  as cited former; new asserts seat the party roster in fold, replay,
+  and briefing, the elsewhere naming Edda honestly without a
+  since-clause, the sealed fixture with its turn, and the plate
+  riding fixture and watch. The one-record law now proves eight laws.
+- package.json — the eval chain grows three gates: party, fixture,
+  watch, seated between briefing and visualBible.
+- tests/e2e/fixtures/proving-campaign.json — GROWN t6–t8: the envoy
+  joins at the Duchy gate and the Brass Toll-Scale seals (t6, no
+  time); the party rides home to the Vale (t7, one day); Edda joins
+  and the envoy is pinned at the Duchy by party_leave (t8, no time).
+  Corin stays silent in t8 so the strict cite-order law stays strict.
+  Final truths: Day 5 at zero hours, scene Larkspur Vale, party
+  [Edda, joined turn 8], fixture sealed turn 6.
+- tests/e2e/g20-ground.spec.ts — RECALIBRATED to the grown record,
+  nothing weakened: fold scene → Larkspur Vale; Duchy standing →
+  [Corin Voss] with Maren as its former; Vale standing →
+  [Vessarine, Edda, Maren] with Corin as its only former; the
+  traveler loop re-aimed to final-ground-cites-later (still strictly
+  greater); the Duchy DOM court trades honest absence for an honest
+  former section (one soul per list, counts exact); the Vale DOM
+  former count tightened to exactly one.
+- tests/e2e/g21-party.spec.ts — NEW court pair. G21a: the door's
+  party matrices by name and ground, the teleport rejection with
+  member and walk-on exemptions, bare-context silence, then the
+  sealed record — fold party/fixtures byte-equal, replay roster and
+  elsewhere, briefing traveling_with ['Edda — joined turn 8'],
+  elsewhere line naming the pinned envoy, calendar 'Day 5 … deep
+  night watch.' G21b: the party strip with its joining turn, the day
+  chip at Day 5, the Duchy page standing the envoy and showing the
+  Brass Toll-Scale sealed turn 6.
+- tests/e2e/g13-check.spec.ts — the keyless pin rises 98 → 101 with
+  the three new gates.
+- tests/e2e/verdict.mjs — REQUIRED_EXECUTED demands G21a and G21b by
+  name.
+- playwright.config.ts — the dom court's testMatch admits g21.
+- tests/e2e/g07-canon.spec.ts — Day 4 → Day 5 (the t7 return ride).
+- tests/e2e/g14-order.spec.ts — Day 4 → Day 5, and the floor
+  TIGHTENED 4 → 5.
+- tests/e2e/g00-preflight.spec.ts — the maximal row grows party_join,
+  party_leave, and fixture_add so the round-trip rider carries
+  Directive VIII byte-complete.
+
+Iteration 56B.1 — RED, honest. Harvest A: the villain's later plate
+(dramatic) fell to its blessed anchor — the live painter returned a
+near-copy ("identical character and composition, background stone
+markings cleaned") and the warden refused it as not-distinct. A
+live-tier likeness flake, not a court defect; 64 courts starved
+downstream. No test touched.
+
+Iteration 56B.2 — RED, two defects of evidence and one of mine.
+Harvest healed (the villain minted distinct). Fell: G21b on an
+INVENTED selector — '.codex-modal' does not exist; the house's one
+modal wrapper is '.modal'. Cured in g21-party.spec.ts, logged above
+the assert, nothing weakened. Teeth 8/8b fell on POISONED EVIDENCE:
+the store still carried 56B.1's aborted-run attestation (Mara Vey
+full-figure ANCHORED, attestation #11), so the doctored-manifest
+courts met a real defect before their own doctoring and read the
+wrong refusal. Tooth 12 magnified a hero anchor sealed during the
+same aborted run (mark_visible false at 0.85); tooth 11 and G17b
+fell on fresh-paint variance over plates whose prompt bytes the
+watch and fixture riders lawfully churned. THE CURE IS THE BROOM,
+not the law: the harvest store (test-results/harvest) is cleared so
+56B.3 harvests the whole book fresh on the shipping tree — no
+attestation from an aborted iteration may haunt the series. No
+assertion changed in any of those five courts.
+
+Iteration 56B.3 — RED, two instrument blind spots surfaced by honest
+evidence; G21b, tooth 8b, tooth 12, and G17b all healed on the fresh
+store. The two cures, both instrument re-aims, both logged, nothing
+weakened:
+- tooth 8 (sabotage) — the scalpel cut NEEDS[project][0] always. This
+  run's live record sealed a REAL refusal inside g17-framing's first
+  need (Mara Vey full-figure: painted text twice → REFUSED, attestation
+  #11; the surface kept its lawful textless fallback and the real
+  preflights stayed green). Deleting that artifact then makes the
+  preflight answer with the record's word — REFUSED — which is tooth
+  8b's own proven law; 'missing' was unreachable and the tooth failed
+  on truth. doctorFirstNeed (lib/harvestManifest.ts) now probes needs
+  IN ORDER and cuts the first whose hole the record does NOT explain,
+  proving missing-by-name on a clean wound; if every hole is explained
+  it falls back to the first need and fails honestly. The law itself —
+  refuse BY NAME, name the artifact — stands byte-identical.
+- tooth 11 (calibration) — two crossings passed at overlap 0.000:
+  quote-led and scene-mute proses crossed onto unanchored plates, made
+  look-alike by the fixture riders lawfully furnishing every ground.
+  The picker (calibration.spec.ts) now demands anchored plates on both
+  sides, disjoint soul-sets, distinct sealed regions when both known,
+  and narration donors (no leading quotation); lost slots refill with
+  synthetic sealed-canon lies in tooth 4's proven false-caption
+  pattern. Floor ≥6, pinned questions, three binaries, and the
+  perfect-separation law untouched.
+
+Iteration 56B.4 — RED by a single seat, and it settled the question.
+Tooth 8 healed under the clean-wound scalpel; tooth 12, G17b, 8b, and
+G21b held green; every synthetic lie and fixed control failed
+lawfully. The one bad pass was the last surviving crossing (overlap
+0.067) — AFTER anchoring, soul-disjointness, region-distinctness, and
+quote-stripping were all demanded. Three sittings, three different
+ways through: the pinned moment binaries ask element, action, and
+contradiction — never WHO or WHERE — so a same-genre crossing is
+inherently a dice roll against honestly lenient eyes, and sealed
+fixtures furnishing every ground only made the dice fairer. THE
+CROSSING CONTROL IS RETIRED (calibration.spec.ts): a control that
+flips on a fair judge is noise wearing a control's name. All three
+moment-bad seats are now the synthetic sealed-canon lies — the exact
+pattern tooth 4's false caption has refused on every green run, and
+synthetic-0 already proved its bite in 56B.4 itself. The three
+binaries, the pinned questions, the ≥6 floor, the perfect-separation
+law, and the whole good set stand untouched.
+
+Iterations 56B.5, 56B.6, 56B.7 — GREEN, GREEN, GREEN. Three
+consecutive full-suite greens at seven iterations of the ceiling's
+eight: 68 courts, zero unexpected, zero skipped, zero missing
+EXECUTED needles, three times running. The keyless check stands at
+its measured pin (101 PASS words in stdout by g13's own law, zero
+FAIL). Operational note for the next series: the loop consumes
+RUN_REQUESTED only at boot — a request written without a workflow
+restart sits unread; 56B.6 was delayed ~17 minutes learning that
+twice-over. Task 56B's proving closes here; the review round and
+the changelog seal follow.
+
+Review round (post-green, pre-seal) — the architect sat with the full
+diff and confirmed both instrument re-aims as honest, then raised one
+blocking finding, verified here by direct read before any cut: the
+client landing court (App.jsx) seated only the Directive VI/VII
+evidence — cast, threads, trove, purses, regions, scene — while the
+server court seats hero, party, presence, and fixtures besides
+(server/dm.js). The validator convenes a court iff its evidence is an
+array, so Directive VIII's party, fixture, and speaker-ground courts
+were IN SESSION on the server bench and SILENT at the landing — the
+last line of defense thinner than the road. CURE (App.jsx): the
+landing now seats hero from the pre-turn record and party, presence,
+and fixtures from `story` — the same briefing evidence the request
+itself carried, the same bytes the server court saw — so both benches
+convene identical courts or identically none. Nothing weakened; a
+court that was silent now sits. Keyless check re-run after the cut:
+green at the measured pin. Iteration 56B.8 (the ceiling's last seat)
+fires next to prove the cut under the full ladder.

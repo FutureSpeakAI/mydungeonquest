@@ -73,3 +73,24 @@ mapper lags unless checked. **How to apply:** when adding any
 journal-replaying derivation, grep the e2e read-back mappers for every
 field it reads and carry them verbatim; a red that only reproduces on
 read-back (page courts green) is almost certainly the mapper.
+
+## Task 56B lessons (July 2026)
+- The loop consumes `test-results/RUN_REQUESTED` only at BOOT. Writing a
+  request without restarting the `proving-loop` workflow does nothing —
+  always write the tag, THEN restart. (A request once sat unread ~17
+  minutes proving this.)
+- Crossing controls are retired from calibration's known-bad set. The
+  pinned moment binaries ask element/action/contradiction — never WHO or
+  WHERE — so crossing one plate's prose onto another same-genre plate is
+  a dice roll against honestly lenient eyes: three different crossings
+  passed in three sittings (overlap 0.000/0.000/0.067) even after
+  anchoring, soul-disjointness, region-distinctness, and quote-stripping
+  were all demanded. Known-bad moment seats must be DETERMINISTIC
+  impossibilities — synthetic sealed-canon lies in the false-caption
+  pattern (night fire / open sea / snowbound court against a pastoral
+  book), which have refused on every green run.
+- Harvest doctoring must probe for a CLEAN wound: a hole the sealed
+  record explains (REFUSED/ANCHORED attestation) is answered with the
+  record's word, so doctoring it can never yield "missing". Probe needs
+  in order and cut the first hole the record does NOT explain;
+  fixed-index doctoring collides with real refusals sooner or later.

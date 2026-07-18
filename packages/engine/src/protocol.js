@@ -167,6 +167,149 @@ function validateScene(story, context, errors, payload) {
   }
 }
 
+// THE PARTY AND THE ELSEWHERE (Directive VIII) — three additive story
+// operations, each an object and never an array, judged against the
+// PRE-TURN record like every court before them. PRESENCE-based seating:
+// the membership court seats iff context.party is an array (empty =
+// attested empty); the living court reads context.cast; the ground court
+// seats iff context carries a presence array AND a standing scene; the
+// hero-root court seats iff context carries hero. A bare context gets
+// shape law only.
+function resolveAmong(names, rawName) {
+  const key = canonKey(rawName);
+  if (!key) return null;
+  const exact = names.find((name) => canonKey(name) === key);
+  if (exact !== undefined) return exact;
+  const aliased = names.filter((name) => canonKey(name).split(/\s+/)[0] === key);
+  return aliased.length === 1 ? aliased[0] : null;
+}
+function namesTheHero(context, rawName) {
+  const hero = typeof context.hero === 'string' ? context.hero.trim() : '';
+  if (!hero) return false;
+  const c = canonKey(rawName), h = canonKey(hero);
+  return c === h || h.split(/\s+/)[0] === c || c.split(/\s+/)[0] === h;
+}
+function validateParty(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const partyNames = Array.isArray(context.party) ? context.party.filter((name) => typeof name === 'string') : null;
+  const sameTurnCast = (rawName) => (Array.isArray(story.cast_add) ? story.cast_add : []).some((add) => {
+    const c = canonKey(add?.name);
+    return c && (c === canonKey(rawName) || c.split(/\s+/)[0] === canonKey(rawName));
+  });
+  const join = story.party_join;
+  if (join !== undefined && join !== null) {
+    if (!join || typeof join !== 'object' || Array.isArray(join) || Object.keys(join).some((key) => key !== 'name')) {
+      errors.push('party_join must be an object with exactly name');
+    } else if (!(cleanText(join.name, 80) && String(join.name).trim().length >= 2)) {
+      errors.push('party_join.name must be 2-80 chars');
+    } else {
+      const name = String(join.name).trim();
+      if (namesTheHero(context, name)) errors.push(`party_join names the hero: ${name} is the party's permanent root and is never joined`);
+      if (partyNames && resolveAmong(partyNames, name)) errors.push(`party_join duplicates a standing member: ${name}`);
+      const souls = (context.cast || []).filter((soul) => {
+        const c = canonKey(soul?.name);
+        return c && (c === canonKey(name) || c.split(/\s+/)[0] === canonKey(name));
+      });
+      if (souls.length > 0 && souls.every((soul) => canonKey(soul?.status) === 'dead')) errors.push(`party_join seats the dead: ${name} is dead and cannot travel`);
+      // The ground court: lawful only for a soul whose last lawful ground
+      // is the current scene, or one introduced by this same turn's
+      // cast_add. Seats iff presence AND a standing scene are carried; a
+      // null scene stands no court — genesis is free.
+      if (Array.isArray(context.presence) && 'scene' in context && !sameTurnCast(name) && !namesTheHero(context, name)) {
+        const sceneRegion = context.scene && typeof context.scene === 'object' ? String(context.scene.region || '').trim() : '';
+        if (sceneRegion) {
+          const presenceNames = context.presence.map((entry) => (entry && typeof entry.name === 'string' ? entry.name : '')).filter(Boolean);
+          const resolved = resolveAmong(presenceNames, name);
+          const entry = resolved === null ? null : context.presence.find((row) => row && row.name === resolved);
+          const ground = entry && typeof entry.ground === 'string' ? entry.ground.trim() : '';
+          if (!ground) errors.push(`party_join seats a soul the record does not stand at the scene: ${name} — whereabouts unknown`);
+          else if (canonKey(ground) !== canonKey(sceneRegion)) errors.push(`party_join seats a soul the record does not stand at the scene: ${name} last stood in ${ground}`);
+        }
+      }
+    }
+  }
+  const leave = story.party_leave;
+  if (leave !== undefined && leave !== null) {
+    if (!leave || typeof leave !== 'object' || Array.isArray(leave) || Object.keys(leave).some((key) => key !== 'name' && key !== 'remains_at')) {
+      errors.push('party_leave must be an object with exactly name and an optional remains_at');
+    } else if (!(cleanText(leave.name, 80) && String(leave.name).trim().length >= 2)) {
+      errors.push('party_leave.name must be 2-80 chars');
+    } else {
+      const name = String(leave.name).trim();
+      if (namesTheHero(context, name)) errors.push(`party_leave names the hero: ${name} is the party's permanent root and is never left`);
+      else if (partyNames && !resolveAmong(partyNames, name)) errors.push(`party_leave names a soul outside the party: ${name}`);
+      if (leave.remains_at !== undefined && leave.remains_at !== null) {
+        if (!(cleanText(leave.remains_at, 100) && String(leave.remains_at).trim().length >= 3)) {
+          errors.push('party_leave.remains_at must be 3-100 chars');
+        } else if (Array.isArray(context.regions)) {
+          const target = canonKey(leave.remains_at);
+          const known = new Set(context.regions.map((region) => canonKey(typeof region === 'string' ? region : region?.name)));
+          const built = canonKey(story.world?.region_add?.name || '');
+          if (!known.has(target) && built !== target) errors.push(`party_leave pins ${name} at a region the record does not hold: ${String(leave.remains_at).trim()}`);
+        }
+      }
+    }
+  }
+}
+// THE FIXTURE LAW (Directive VIII.6) — place-bound canon, sealed once
+// like region canon. Atlas court iff context.regions is an array; seal
+// court iff context.fixtures is an array ([{ place, name }]).
+function validateFixtures(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const fixture = story.fixture_add;
+  if (fixture === undefined || fixture === null) return;
+  if (!fixture || typeof fixture !== 'object' || Array.isArray(fixture) || Object.keys(fixture).some((key) => !['place', 'name', 'visual'].includes(key))) {
+    errors.push('fixture_add must be an object with exactly place, name, and visual');
+    return;
+  }
+  if (!(cleanText(fixture.place, 100) && String(fixture.place).trim().length >= 3)) errors.push('fixture_add.place must be 3-100 chars');
+  if (!(cleanText(fixture.name, 60) && String(fixture.name).trim().length >= 3)) errors.push('fixture_add.name must be 3-60 chars');
+  if (!(cleanText(fixture.visual, 160) && String(fixture.visual).trim().length >= 8)) errors.push('fixture_add.visual must be 8-160 chars');
+  if (Array.isArray(context.regions) && cleanText(fixture.place, 100)) {
+    const target = canonKey(fixture.place);
+    const known = new Set(context.regions.map((region) => canonKey(typeof region === 'string' ? region : region?.name)));
+    const built = canonKey(story.world?.region_add?.name || '');
+    if (!known.has(target) && built !== target) errors.push(`fixture_add names a place the record does not hold: ${String(fixture.place).trim()}`);
+  }
+  if (Array.isArray(context.fixtures) && cleanText(fixture.place, 100) && cleanText(fixture.name, 60)) {
+    const dup = context.fixtures.some((row) => row && canonKey(row.name) === canonKey(fixture.name) && canonKey(row.place) === canonKey(fixture.place));
+    if (dup) errors.push(`fixture_add duplicates a sealed fixture: ${String(fixture.name).trim()} already stands in ${String(fixture.place).trim()}`);
+  }
+}
+// THE NOBODY-TELEPORTS LAW (Directive VIII.3) — when the court is seated,
+// a narration speaker or dialogue_cue voice whose derived last lawful
+// ground is KNOWN and is neither the current scene nor within the party
+// is rejected, naming the soul and its actual ground. Exempt by law: the
+// hero (the root travels with the scene), every party member, a soul
+// introduced by this same turn's cast_add, and a soul whose whereabouts
+// the record does not know. The court seats iff the context carries a
+// presence array, a party array, AND a standing scene — all three, or
+// silence: the law binds only where the record can testify.
+function validateSpeakerGround(payload, context, errors) {
+  if (!payload || typeof payload !== 'object') return;
+  if (!Array.isArray(context.presence) || !Array.isArray(context.party)) return;
+  const sceneRegion = context.scene && typeof context.scene === 'object' ? String(context.scene.region || '').trim() : '';
+  if (!sceneRegion) return;
+  const story = (payload.story && typeof payload.story === 'object' && !Array.isArray(payload.story)) ? payload.story : {};
+  const partyNames = context.party.filter((name) => typeof name === 'string');
+  const presenceNames = context.presence.map((entry) => (entry && typeof entry.name === 'string' ? entry.name : '')).filter(Boolean);
+  const introduced = (Array.isArray(story.cast_add) ? story.cast_add : []).map((add) => (typeof add?.name === 'string' ? add.name : '')).filter(Boolean);
+  const judge = (speaker, label) => {
+    if (typeof speaker !== 'string' || !speaker.trim()) return;
+    if (namesTheHero(context, speaker)) return;
+    if (resolveAmong(partyNames, speaker)) return;
+    if (introduced.some((name) => canonKey(name) === canonKey(speaker) || canonKey(name).split(/\s+/)[0] === canonKey(speaker))) return;
+    const resolved = resolveAmong(presenceNames, speaker);
+    if (resolved === null) return; // unknown soul — the census court's business
+    const entry = context.presence.find((row) => row && row.name === resolved);
+    const ground = entry && typeof entry.ground === 'string' ? entry.ground.trim() : '';
+    if (!ground) return; // whereabouts unknown — nothing to testify
+    if (canonKey(ground) !== canonKey(sceneRegion)) errors.push(`${label}: the elsewhere does not speak — ${speaker.trim()} last stood in ${ground}, not ${sceneRegion}`);
+  };
+  (Array.isArray(payload.narration_blocks) ? payload.narration_blocks : []).forEach((block, index) => judge(block?.speaker, `narration_blocks[${index}]`));
+  judge(payload.dialogue_cue?.speaker, 'dialogue_cue');
+}
+
 // context — the codex snapshot the turn is judged against, threaded by every
 // caller (client turn path, server repair-retry path, evals). Taken BEFORE
 // this turn's story updates apply, so a soul may speak its dying words in the
@@ -179,6 +322,9 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     validateTrove(payload.story, context, errors);
     validatePurse(payload.story, context, errors);
     validateScene(payload.story, context, errors, payload);
+    validateParty(payload.story, context, errors);
+    validateFixtures(payload.story, context, errors);
+    validateSpeakerGround(payload, context, errors);
   }
   assert(payload && typeof payload === 'object' && !Array.isArray(payload), 'payload must be an object', errors);
   if (!payload || typeof payload !== 'object') return { ok: false, errors };

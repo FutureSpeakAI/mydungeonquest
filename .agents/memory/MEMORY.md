@@ -1,7 +1,7 @@
 - [MyDungeon.Quest eval is keyless-only](mydungeon-quest-eval.md) — `npm run check`'s eval hard-asserts DM `provider === 'mock'`; run it with AI keys unset or it fails.
 - [LLM tool schema must mirror strict validators](llm-toolschema-validation.md) — if a tool-calling JSON schema omits enums a client-side validator enforces, models emit valid-but-rejected turns and silently fall back.
 - [Vite 7 needs @vitejs/plugin-react for JSX](vite7-jsx-runtime.md) — without the React plugin, JSX compiles to classic createElement and crashes with "React is not defined".
-- [DM turn reliability](dm-turn-reliability.md) — aka "Asimov's cLaws" (user's term, in root README); keep systemPrompt in lockstep with validateDmTurn, never loosen it; repair-retry is the backstop; live eval retired — spot-check real turns.
+- [DM turn reliability](dm-turn-reliability.md) — aka "Asimov's cLaws"; systemPrompt, schema, and EVERY validateDmTurn call-site context stay in lockstep (unseated evidence = court silently out of session); repair-retry is the backstop.
 - [Dexie crypto-in-transaction](dexie-crypto-transactions.md) — awaiting crypto.subtle inside a Dexie rw tx premature-commits ("Transaction committed too early"); do crypto OUTSIDE the tx, keep only sync db ops inside.
 - [/api path proxy conflict](api-path-proxy-conflict.md) — only one artifact may own a path prefix at the shared proxy; a self-serving /api web app + an /api api-server silently 404s the app through :80.
 - [MyDungeon media providers are opt-in](mydungeon-media-providers.md) — films/video RETIRED July 2026 (do not reintroduce; legacy posters render as stills); paint/audio serve MOCK unless provider keys are set.
@@ -24,6 +24,6 @@
 - [Expo shell around the web house](expo-webview-shell.md) — WebView shell laws: door law fails OUTWARD by hostname (backslash trick!); no web arm (iframe preview); never a spinner.
 - [JSX text ignores \u escapes](jsx-unicode-escapes.md) — \u2019 etc. render literally in JSX text nodes; paste real characters there; only JS string contexts unescape.
 - [Engine folds resolve queues backwards](engine-backward-queues.md) — tail-first queue drains make same-pass duplicates resolve later-card-first; gate outcomes (one winner + named refusal + determinism), never intra-pass order.
-- [Proving-loop lessons](proving-loop.md) — poison words are paint orders; needles match real titles; replays verbatim; probe plates with eyes; calibrate to perfect separation; extensions once, frozen, one-strike.
+- [Proving-loop lessons](proving-loop.md) — RUN_REQUESTED reads at BOOT only (write, then restart); known-bad controls must be deterministic lies, never crossings; replays verbatim; calibrate to perfect separation; extensions once, frozen.
 - [MyDungeon genesis first-word](mydungeon-first-word.md) — pours dispatch before ANY paint; parallel foundries merge meters as deltas, never absolutes; wire-order courts drain pre-genesis lanes first.
 - [Pure replay witnesses are born fail-closed](mydungeon-witness-failclosed.md) — every list behind Array.isArray, names must be strings, malformed rows prove nothing; panels reading them render an explicit cannot-be-read line, never crash.

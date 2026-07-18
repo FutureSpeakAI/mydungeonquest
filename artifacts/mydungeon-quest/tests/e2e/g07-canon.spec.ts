@@ -42,7 +42,9 @@ test('G8 codex: Day 4, threads with citations, tappable atlas, souls with ties',
   // The day chip. (56.2 logged edit) Day 3 → Day 4: the appended t5
   // travel turn advances a third day, so the sealed record's calendar
   // reads Day 4 — same exact-match law, recalibrated to the record.
-  await expect(page.locator('.day-chip').first()).toHaveText(/Day 4/);
+  // (56B logged edit) Day 4 → Day 5: the appended t7 return ride seals a
+  // fourth day-advance; same exact-match law, recalibrated to the record.
+  await expect(page.locator('.day-chip').first()).toHaveText(/Day 5/);
 
   // The open debt — kind badge, holder, sworn-turn citation.
   const debtRow = page.locator('.thread-row', { hasText: 'Corin owes Edda restitution' }).first();

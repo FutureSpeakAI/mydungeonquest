@@ -55,7 +55,7 @@ export async function seedProvingCampaign(fixture) {
     const scripted = fixture.turns[i];
     const dm = scripted.dm;
     const actBefore = codex.spine.beats[codex.beatIndex]?.act || 1;
-    if (dm.story) codex = applyStoryUpdates(codex, dm.story, { turn: i });
+    if (dm.story) codex = applyStoryUpdates(codex, dm.story, { turn: i, heroName: hero.name });
     const player = scripted.player;
     const log = { id: crypto.randomUUID(), player, deed: null, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, beatIndex: codex.beatIndex };
     logs = [...logs, log];

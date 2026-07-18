@@ -227,6 +227,90 @@
         "time_advance": { "unit": "days", "n": 1 },
         "entropy_use": []
       }
+    },
+    {
+      "player": "I ask the envoy to ride with us.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": "Corin Voss", "text": "“Ride with you? The Duchy pays me to count crossings, ranger — but the debt rides wherever I do, and Edda's hearth holds the proof of it. Very well. My horse, my ledger, and my word: I ride with you.”" },
+          { "speaker": null, "text": "Under the gate arch, the great brass toll-scale tips once as if weighing the bargain, its mirror-worn pans catching the morning while the counting-houses pretend not to watch." }
+        ],
+        "suggestions": ["Shake on the bargain", "Weigh his ledger", "Leave before noon"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "world": null,
+          "fixture_add": {
+            "place": "The Duchy",
+            "name": "The Brass Toll-Scale",
+            "visual": "A man-high brass toll-scale bolted to the gate arch, its twin pans polished to mirrors by a century of counted crossings."
+          },
+          "party_join": { "name": "Corin Voss" }
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": null,
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "We ride home to the Vale together.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "The paved road gives way to the old gold-leafed one, and the terraces of Larkspur Vale open below like a ledger finally balanced. The party rides down together as the fourth day closes." },
+          { "speaker": "Corin Voss", "text": "“Strange. Your lying road tells the truth all the way home when it has company.”" }
+        ],
+        "suggestions": ["Ride for the hearth", "Race the last mile", "Watch the ridge"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "world": null,
+          "scene_set": { "region": "Larkspur Vale" }
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": { "unit": "days", "n": 1 },
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "I bid the envoy farewell at the hearth.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": "Edda", "text": "“So the envoy rode home with you and turned straight back for his counting-houses — debts and all, the hearth heard him say it. Then I'll ride the next stretch myself, girl. The Vale's fires can spare me a week.”" },
+          { "speaker": null, "text": "By the banked hearth the bargain changes hands: the Duchy road takes its envoy back north, and the hearth-keeper shoulders her ember-colored shawl to travel at Maren's side." }
+        ],
+        "suggestions": ["Welcome Edda aboard", "Send word north", "Bank the fire"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "world": null,
+          "party_join": { "name": "Edda" },
+          "party_leave": { "name": "Corin Voss", "remains_at": "The Duchy" }
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": null,
+        "entropy_use": []
+      }
     }
   ]
 }

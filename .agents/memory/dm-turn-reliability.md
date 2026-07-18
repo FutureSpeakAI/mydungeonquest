@@ -79,3 +79,14 @@ by donor design (legacy contexts pass none); the reducer is the layer
 that always refuses unknown resolves and duplicate opens. If either arm
 changes, re-prove both: validator-with-context refusal AND reducer
 refusal with empty context.
+
+## Every bench seats the same evidence (0.7.2 review finding)
+validateDmTurn convenes a court iff its evidence key is seated
+(party/presence/fixtures arrays, hero string) — absent evidence means
+the court is silently OUT OF SESSION, not failing. When the validator
+grows a new evidence-gated court, grep EVERY validateDmTurn call site
+and seat the new evidence at each — or accept explicitly that a bench
+sits it out (the eval runner's {cast}-only seating is the one
+deliberate exception). Cleanest client source: seat the landing from
+the same story briefing the request carried, so both benches judge
+byte-identical evidence.

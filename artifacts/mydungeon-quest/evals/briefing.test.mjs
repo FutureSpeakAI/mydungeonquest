@@ -20,7 +20,9 @@ const campaign = { hero: { name: 'Maren' }, codex, logs: [
 ] };
 
 const briefing = buildBriefing(campaign);
-assert.equal(briefing.calendar, 'It is Day 3 of the tale.');
+// Task 56B (Directive VIII.8): the calendar line grew the watch of the day
+// — byte assert RE-AIMED to the grown line, never weakened.
+assert.equal(briefing.calendar, 'It is Day 3 of the tale, in the deep night watch.');
 assert.ok(JSON.stringify(briefing).startsWith('{"calendar":"It is Day'), 'the calendar line lands first');
 assert.ok(briefing.open_threads.some((line) => line.includes('Find the sunken bell (mystery')), 'the tale\u2019s debts ride to the DM');
 assert.ok(briefing.stated_allegiances.some((line) => line.includes('Corin Voss') && line.includes('the Duchy')), 'stated allegiances ride, provenance worn');

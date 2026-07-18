@@ -13,6 +13,7 @@ import { storyBlock } from './story.js';
 import { buildCards } from './cards.js';
 import { calendarLine } from './calendar.js';
 import { allegiancesOf } from './atlas.js';
+import { presenceOf, elsewhereOf } from './presence.js';
 
 const canon = (name) => String(name || '').trim().toLowerCase();
 const SLIM = (soul) => ({ name: soul.name, role: soul.role, status: soul.status, bond: soul.bond, last_seen: soul.last_seen });
@@ -86,7 +87,12 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
     }
   }
 
-  const pack = () => ({ ...block, cast: castOut, regions: regionsOut, scene: { present: scenePresent, ties: sceneTies.slice(0, 12) } });
+  // THE PARTY AND THE ELSEWHERE (Directive VIII.5): every soul's last
+  // known ground rides the pack in full — computed once, trim-immune like
+  // party_state and fixture_state (which ride inside the block): the
+  // slim-trim loops below never touch the pack literal's own keys.
+  const presenceState = presenceOf(campaign).map(({ name, ground }) => ({ name, ground }));
+  const pack = () => ({ ...block, presence_state: presenceState, cast: castOut, regions: regionsOut, scene: { present: scenePresent, ties: sceneTies.slice(0, 12) } });
 
   // 5. The budget, enforced: drop slim rest first, then slim the tied ring,
   //    then slim regions. The scene floor stands even if it alone overflows.
@@ -138,8 +144,20 @@ export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {})
     const held = (campaign.codex?.regions || []).find((region) => canon(region.name) === canon(scene.region));
     ground = held ? `The scene stands in ${held.name} — ${held.visual}` : `The scene stands in ${scene.region}.`;
   }
-  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...(ground ? { scene_ground: ground } : {}), ...pack, ...(wealth ? { hero_wealth: wealth } : {}), stated_allegiances: allegiances });
+  // THE PARTY AND THE ELSEWHERE (Directive VIII.5) — TRAVELING WITH YOU
+  // rides in full and never trims: an empty roster is an honest sentence
+  // (the hero walks alone), never an omission. THE ELSEWHERE names up to
+  // six absent souls, most recently cited first, present only when the
+  // record holds one. Famine order is law: the elsewhere falls first,
+  // entry by entry, then the allegiances, then the wealth line — and the
+  // calendar, the ground, and the roster never fall.
+  const travelingWith = (campaign.codex?.party || []).map((member) =>
+    Number.isInteger(member.joinedTurn) ? `${member.name} — joined turn ${member.joinedTurn}` : member.name);
+  let elsewhere = elsewhereOf(campaign).slice(0, 6).map((entry) =>
+    `${entry.name} — in ${entry.ground}${Number.isInteger(entry.sinceTurn) ? ` since turn ${entry.sinceTurn}` : ''}`);
+  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...(ground ? { scene_ground: ground } : {}), ...pack, traveling_with: travelingWith, ...(elsewhere.length ? { elsewhere } : {}), ...(wealth ? { hero_wealth: wealth } : {}), stated_allegiances: allegiances });
   let out = brief();
+  while (JSON.stringify(out).length > budget && elsewhere.length) { elsewhere = elsewhere.slice(0, -1); out = brief(); }
   while (JSON.stringify(out).length > budget && allegiances.length) { allegiances = allegiances.slice(0, -1); out = brief(); }
   if (JSON.stringify(out).length > budget && wealth) { wealth = null; out = brief(); }
   return out;

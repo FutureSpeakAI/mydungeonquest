@@ -97,6 +97,11 @@ export function initCodex(spineId, seed = {}) {
     trove: keepsake,
     purses: [],
     scene: null,
+    // THE PARTY AND THE ELSEWHERE (Directive VIII): who travels with the
+    // hero, and the sealed fixtures of every place. The hero is the
+    // party's permanent root and never appears in the list.
+    party: [],
+    fixtures: [],
     completed: false
   };
 }
@@ -326,6 +331,29 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     }
   }
 
+  // THE FIXTURE LAW (Directive VIII.6) — fixtures fold after the world and
+  // before the ground: place-bound canon, sealed once like region canon.
+  // Old codexes backfill []. The offscreen tick MAY seal a fixture — the
+  // elsewhere builds, it never moves souls — and no replay reads fixtures,
+  // so the one record cannot split.
+  next.fixtures = next.fixtures ?? [];
+  const fixtureAdd = updates.fixture_add;
+  if (fixtureAdd && typeof fixtureAdd === 'object' && !Array.isArray(fixtureAdd)) {
+    const placeName = clean(fixtureAdd.place, 100);
+    const fixtureName = clean(fixtureAdd.name, 60);
+    const fixtureVisual = clean(fixtureAdd.visual, 160);
+    const heldPlace = placeName ? next.regions.find((entry) => canonName(entry.name) === canonName(placeName)) : null;
+    if (!fixtureName || !fixtureVisual) {
+      next.notes.push('Unlawful fixture blocked: a fixture needs its name and its visual truth.');
+    } else if (!heldPlace) {
+      next.notes.push(`Unlawful fixture blocked: ${placeName || 'an unnamed place'} is not a region the record knows.`);
+    } else if (next.fixtures.some((row) => canonName(row.name) === canonName(fixtureName) && canonName(row.place) === canonName(heldPlace.name))) {
+      next.notes.push(`Fixture canon sealed once: ${fixtureName} already stands in ${heldPlace.name}.`);
+    } else {
+      next.fixtures.push({ place: heldPlace.name, name: fixtureName, visual: fixtureVisual, since: Number.isInteger(meta.turn) ? meta.turn : null });
+    }
+  }
+
   // THE PRESENCE CUT (Directive VII) — the ground folds AFTER the world,
   // so a region added this turn stands before the scene is set upon it.
   // Old codexes backfill scene: null. The offscreen world may act, never
@@ -344,6 +372,43 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     } else if (!next.scene || canonName(next.scene.region) !== canonName(held.name)) {
       next.scene = { region: held.name, sinceTurn: Number.isInteger(meta.turn) ? meta.turn : null };
     }
+  }
+
+  // THE PARTY LAW (Directive VIII.2) — the party folds AFTER the ground,
+  // so a leave in a traveling turn pins against the NEW scene unless it
+  // names another region outright. Old codexes backfill []. The hero is
+  // the permanent root and never appears. The offscreen tick may not move
+  // the party: the presence replay skips tick rows whole, and a party the
+  // fold moved where the replay cannot follow would split the one record.
+  next.party = next.party ?? [];
+  const heroRoot = typeof meta.heroName === 'string' ? meta.heroName.trim() : '';
+  const namesHero = (raw) => Boolean(heroRoot) && (canonName(raw) === canonName(heroRoot) || canonName(heroRoot).split(/\s+/)[0] === canonName(raw) || canonName(raw).split(/\s+/)[0] === canonName(heroRoot));
+  const partyJoin = updates.party_join;
+  if (partyJoin && typeof partyJoin === 'object' && !Array.isArray(partyJoin)) {
+    const rawName = clean(partyJoin.name, 80);
+    const soul = rawName ? findSoul(next.cast, rawName) : null;
+    if (meta.tick) next.notes.push('The offscreen world may not move the party: party_join refused on a tick.');
+    else if (!rawName) next.notes.push('Unlawful party_join blocked: the joining soul must be named.');
+    else if (namesHero(rawName)) next.notes.push(`The hero is the party's root: ${rawName} is never joined.`);
+    else if (!soul) next.notes.push(`Unlawful party_join blocked: ${rawName} is not a soul the record knows.`);
+    else if (soul.status === 'dead') next.notes.push(`The dead do not travel: ${soul.name}.`);
+    else if (next.party.some((member) => canonName(member.name) === canonName(soul.name))) next.notes.push(`Duplicate party_join blocked: ${soul.name} already travels.`);
+    else next.party.push({ name: soul.name, joinedTurn: Number.isInteger(meta.turn) ? meta.turn : null });
+  }
+  const partyLeave = updates.party_leave;
+  if (partyLeave && typeof partyLeave === 'object' && !Array.isArray(partyLeave)) {
+    const rawName = clean(partyLeave.name, 80);
+    const exactMember = rawName ? next.party.find((entry) => canonName(entry.name) === canonName(rawName)) : null;
+    const aliasMembers = rawName ? next.party.filter((entry) => canonName(entry.name).split(/\s+/)[0] === canonName(rawName)) : [];
+    const member = exactMember || (aliasMembers.length === 1 ? aliasMembers[0] : null);
+    const remainsRaw = partyLeave.remains_at == null ? null : clean(partyLeave.remains_at, 100);
+    const remainsHeld = remainsRaw ? next.regions.find((entry) => canonName(entry.name) === canonName(remainsRaw)) : null;
+    if (meta.tick) next.notes.push('The offscreen world may not move the party: party_leave refused on a tick.');
+    else if (!rawName) next.notes.push('Unlawful party_leave blocked: the departing soul must be named.');
+    else if (namesHero(rawName)) next.notes.push(`The hero is the party's root: ${rawName} is never left.`);
+    else if (!member) next.notes.push(`Unlawful party_leave blocked: ${rawName} does not travel with the party.`);
+    else if (remainsRaw && !remainsHeld) next.notes.push(`Unlawful party_leave blocked: ${remainsRaw} is not a region the record knows.`);
+    else next.party = next.party.filter((entry) => entry !== member);
   }
 
   if (updates.beat_advance && !next.completed) {
@@ -390,6 +455,10 @@ export function storyBlock(codex) {
     // THE PRESENCE CUT (Directive VII.7): the standing ground rides to the
     // server court exactly as threads_state and trove_state do.
     scene_state: codex.scene ? { region: codex.scene.region, sinceTurn: codex.scene.sinceTurn ?? null } : null,
+    // THE PARTY AND THE ELSEWHERE (Directive VIII.5): the roster and the
+    // sealed fixtures ride to the server court the same way.
+    party_state: (codex.party || []).map(({ name, joinedTurn }) => ({ name, joinedTurn: joinedTurn ?? null })),
+    fixture_state: (codex.fixtures || []).map(({ place, name }) => ({ place, name })),
     directives: [
       ...(codex.completed ? ['The tale is sealed. Write nothing new; if asked, speak only a closing line.'] : []),
       ...(sealing ? ['SEAL THE TALE — the player has chosen to end with honor. These are denouement turns: quiet and combat-free; no new cast, no new threads; resolve what stands, let farewells be spoken, and bring the road home. If a cinematic is due, let it be the ending the tale has earned (victory, death, or bittersweet).'] : []),

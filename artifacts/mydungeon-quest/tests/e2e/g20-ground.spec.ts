@@ -34,15 +34,18 @@ test('G20a: the ground protocol — the door refuses by name, and the fold and t
   const campaignId = await seedFixture(page);
   const campaign = await readCampaign(page, campaignId);
   expect(campaign, 'the seeded campaign must read back').toBeTruthy();
-  expect(campaign.codex?.scene?.region, 'the fold stands in the Duchy after the sealed travel').toBe('The Duchy');
+  // (56B logged edit) The Duchy → Larkspur Vale: the appended t7 rides the
+  // party home, and t8 pins the departed envoy at the Duchy — the fold now
+  // stands home again, and both grounds carry the richer record.
+  expect(campaign.codex?.scene?.region, 'the fold stands home in the Vale after the sealed return').toBe('Larkspur Vale');
 
   const duchy = visitorsOf(campaign, 'The Duchy');
-  expect(duchy.standing.map((soul: any) => soul.name), 'the travelers stand on the new ground').toEqual(['Corin Voss', 'Maren']);
-  expect(duchy.former, 'nobody has yet left the Duchy').toEqual([]);
+  expect(duchy.standing.map((soul: any) => soul.name), 'the departed envoy remains where the leave pinned him').toEqual(['Corin Voss']);
+  expect(duchy.former.map((soul: any) => soul.name), 'the hero has stood in the Duchy and ridden home').toEqual(['Maren']);
 
   const vale = visitorsOf(campaign, 'Larkspur Vale');
-  expect(vale.standing.map((soul: any) => soul.name), 'the ones who stayed still stand in the Vale').toEqual(['Vessarine', 'Edda']);
-  expect(vale.former.map((soul: any) => soul.name), 'the travelers are remembered where they stood').toEqual(['Corin Voss', 'Maren']);
+  expect(vale.standing.map((soul: any) => soul.name), 'the home ground holds the stayer, the new companion, and the hero').toEqual(['Vessarine', 'Edda', 'Maren']);
+  expect(vale.former.map((soul: any) => soul.name), 'the pinned envoy is remembered where he stood').toEqual(['Corin Voss']);
 
   // Cites are journal row indices. The walk-on soul cites the opening row
   // (the one exact index that can never shift); every other cite is judged
@@ -52,11 +55,16 @@ test('G20a: the ground protocol — the door refuses by name, and the fold and t
   for (const entry of [...duchy.standing, ...vale.standing, ...vale.former]) {
     expect(Number.isInteger(entry.cite) && entry.cite >= 0, `${entry.name} cites a journal row`).toBeTruthy();
   }
-  for (const traveler of ['Corin Voss', 'Maren']) {
-    const now = duchy.standing.find((soul: any) => soul.name === traveler);
-    const then = vale.former.find((soul: any) => soul.name === traveler);
-    expect(now!.cite, `${traveler} reached the Duchy after standing in the Vale`).toBeGreaterThan(then!.cite);
-  }
+  // (56B logged edit) The travel loop re-aimed to the return ride: each
+  // soul's FINAL ground cites a later row than the ground it left — the
+  // envoy's pin outranks his Vale ride, the hero's homecoming outranks
+  // her Duchy crossing. Strictly greater: the two clocks never tie.
+  const corinNow = duchy.standing.find((soul: any) => soul.name === 'Corin Voss');
+  const corinThen = vale.former.find((soul: any) => soul.name === 'Corin Voss');
+  expect(corinNow!.cite, 'the pinned envoy reached the Duchy after riding the Vale').toBeGreaterThan(corinThen!.cite);
+  const marenNow = vale.standing.find((soul: any) => soul.name === 'Maren');
+  const marenThen = duchy.former.find((soul: any) => soul.name === 'Maren');
+  expect(marenNow!.cite, 'the hero came home after standing in the Duchy').toBeGreaterThan(marenThen!.cite);
 
   // The full ledger knows every sighted soul.
   const ground = presenceOf(campaign);
@@ -70,19 +78,24 @@ test('G20b: the ground page — who stands here with cites, who has stood here, 
   await seedFixture(page);
   await openCodex(page);
 
-  // The Duchy: the travelers STAND here, each cited to a journal row.
+  // (56B logged edit) The Duchy page re-aimed to the return ride: the
+  // pinned envoy STANDS here alone now, and the hero HAS STOOD here —
+  // the former section earned its place, so the old honest-absence
+  // assert is re-aimed to an honest presence, one soul per list.
   await page.locator('.region-gallery article').nth(1).click();
   const placePage = page.locator('.place-page');
   await expect(placePage).toBeVisible();
   await expect(placePage.locator('h4').first()).toHaveText('The Duchy');
   await expect(placePage).toContainText('Standing here');
-  const duchyStanding = placePage.locator('.presence-list').first().locator('li');
-  await expect(duchyStanding).toHaveCount(2);
+  await expect(placePage).toContainText('Have stood here');
+  const duchyLists = placePage.locator('.presence-list');
+  const duchyStanding = duchyLists.nth(0).locator('li');
+  await expect(duchyStanding).toHaveCount(1);
   await expect(duchyStanding.nth(0)).toContainText('Corin Voss');
   await expect(duchyStanding.nth(0)).toContainText(/turn \d+/);
-  await expect(duchyStanding.nth(1)).toContainText('Maren');
-  await expect(duchyStanding.nth(1)).toContainText(/turn \d+/);
-  await expect(placePage, 'nobody has yet left the Duchy — the former section is honestly absent').not.toContainText('Have stood here');
+  const duchyFormer = duchyLists.nth(1).locator('li');
+  await expect(duchyFormer.nth(0)).toContainText('Maren');
+  await expect(duchyFormer.nth(0)).toContainText(/turn \d+/);
   await placePage.locator('header button', { hasText: 'close' }).click();
 
   // The Vale: the stayers stand; the travelers HAVE STOOD, with cites.
@@ -91,14 +104,18 @@ test('G20b: the ground page — who stands here with cites, who has stood here, 
   await expect(placePage.locator('h4').first()).toHaveText('Larkspur Vale');
   await expect(placePage).toContainText('Standing here');
   await expect(placePage).toContainText('Have stood here');
+  // (56B logged edit) The Vale re-aimed to the homecoming: three now
+  // stand here (the stayer, the new companion, the hero) and only the
+  // pinned envoy has stood and gone — former count tightened to exactly
+  // one, the Maren-former assert re-aimed into vale STANDING above.
   const lists = placePage.locator('.presence-list');
-  await expect(lists).toHaveCount(2);
   await expect(lists.nth(0)).toContainText('Vessarine');
   await expect(lists.nth(0)).toContainText('Edda');
+  await expect(lists.nth(0)).toContainText('Maren');
   const former = lists.nth(1).locator('li');
+  await expect(former).toHaveCount(1);
   await expect(former.nth(0)).toContainText('Corin Voss');
   await expect(former.nth(0)).toContainText(/turn \d+/);
-  await expect(former.nth(1)).toContainText('Maren');
   await placePage.locator('header button', { hasText: 'close' }).click();
 
   // The soul page: the last known ground, said plainly with its cite.

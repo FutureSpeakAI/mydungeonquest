@@ -105,24 +105,35 @@ test('tooth 11: the calibration probe — perfect separation of known-good from 
   // clairvoyance, not its honesty), the false-caption fixture, and the
   // cropped controls beside claims their pixels cannot honor. ——
   const bad: ProbePair[] = [];
-  if (scenes.length >= 2) {
-    const crossings = scenes.map((plate, i) => {
-      let bestJ = -1; let bestOverlap = Number.POSITIVE_INFINITY;
-      scenes.forEach((other, j) => {
-        if (j === i) return;
-        const o = overlap(String(plate.prose), String(other.prose));
-        if (o < bestOverlap) { bestOverlap = o; bestJ = j; }
-      });
-      return { i, j: bestJ, overlap: bestOverlap };
-    }).sort((a, b) => a.overlap - b.overlap).slice(0, 3);
-    for (const cross of crossings) {
-      const plate = scenes[cross.i]; const wrong = scenes[cross.j];
-      bad.push({
-        name: `bad-crossed-${plate.file}`, kind: 'moment',
-        prose: String(wrong.prose).slice(0, 600), bytes: topBytes(plate),
-        note: `prose of ${wrong.file}, overlap=${cross.overlap.toFixed(3)}`,
-      });
-    }
+  // (56B.4 logged re-aim; nothing weakened — the three binaries, the
+  // pinned questions, the ≥6 floor, and the perfect-separation law all
+  // stand.) THE CROSSING CONTROL IS RETIRED. It crossed a plate against
+  // another plate's prose and demanded the eyes refuse — but the pinned
+  // moment binaries ask element, action, and contradiction; they never
+  // ask WHO or WHERE, so any same-genre prose crossed onto any plate of
+  // the same book is a dice roll against honestly lenient eyes. Three
+  // sittings threw it three ways (56B.2 overlap 0.000, 56B.3 0.000
+  // twice, 56B.4 0.067 after anchoring, soul-disjointness, and
+  // quote-stripping were all demanded) — a control that flips on a fair
+  // judge is noise wearing a control's name, and it got only fairer
+  // once sealed fixtures began lawfully furnishing every plate of a
+  // ground. The moment-bad seats are now the three synthetic
+  // sealed-canon lies below: deterministic impossibilities in the exact
+  // pattern tooth 4's false caption has refused on every green run.
+  // Synthetic impossible moments — sealed-canon lies no plate of this
+  // pastoral book can honor — seat all three moment controls.
+  const syntheticLies = [
+    'A duel atop a burning bell tower at midnight, flames licking the bronze bell while a crowd screams from the square far below.',
+    'A storm-lashed war galley heels under black sails on the open sea, sailors hauling drenched rigging as green waves burst over the rail.',
+    'A snowbound throne hall of black iron pillars where a crowned figure sits beneath falling snow that blankets the frozen court.',
+  ];
+  for (let k = 0; bad.length < 3 && k < syntheticLies.length; k += 1) {
+    const plate = scenes[k % scenes.length];
+    bad.push({
+      name: `bad-synthetic-${k}-${plate.file}`, kind: 'moment',
+      prose: syntheticLies[k], bytes: topBytes(plate),
+      note: 'synthetic impossible moment (56B.3 re-aim): a sealed-canon lie in the false-caption pattern',
+    });
   }
   // The false-caption fixture — tooth 4's own sealed lie.
   bad.push({

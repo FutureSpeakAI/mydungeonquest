@@ -39,6 +39,8 @@ const REQUIRED_EXECUTED = [
   // (Directive VII) G20 THE GROUND — both courts demanded by name, and the
   // round-trip rider that keeps every future court's instruments honest.
   'G20a', 'G20b', 'G00-RT',
+  // (Directive VIII) G21 THE PARTY — both courts demanded by name.
+  'G21a', 'G21b',
 ];
 
 let verdict;

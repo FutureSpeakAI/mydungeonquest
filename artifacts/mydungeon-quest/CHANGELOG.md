@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.7.2 — The Party and the Elsewhere
+
+**The party rides (Experience-Directive VIII, ratified).** The fellowship is sealed canon now, not narration's habit: `party_join {name}` seats a living cast soul whose last lawful ground is the current scene — or one walked on by the same turn's `cast_add` — and the hero is never joined, the party is hers already; `party_leave {name, remains_at?}` releases a member onto a named ground the record holds (or one built by the same turn's `region_add`), and omitted, the leaver remains honestly at the standing scene. The membership courts refuse joining the absent and releasing the never-joined; the fold lands at row END, so the presence witness answers mid-turn questions from the record as it stood when the words were spoken. The party travels as one when the scene moves — `traveling_with` rides every briefing and NEVER trims — while the elsewhere line rations famine-first to six souls, and `presence_state` stays trim-immune beside them. The table shows what the record holds: a party strip with joined-turn cites, and when no one rides, the plain truth — "The hero travels alone."
+
+**The fixtures seal (the third op).** `fixture_add {place, name, visual}` plants a permanent thing on a permanent ground: the place must stand in the atlas or be built by the same turn's `region_add` (the court honors the same breath, as the ground law always has), the duplicate court refuses a second sealing of the same name on the same ground, and the `visual` — 8 to 160 characters of paintable truth — is written ONCE and never rewritten: the painter reads it forever. Scene prompts carry the standing ground's sealed fixtures as a rider so the Waystation's bell hangs in every plate painted there; portrait prompts never take the rider — a face is not furniture. Every place page lists its fixtures with sealed-turn cites.
+
+**The watch of day.** A new engine calendar (`fatescript/calendar`) cuts the day into six watches of four hours — deep night, dawn, morning, afternoon, dusk, night — and the story's clock now has a face to read: the briefing's calendar byte names the watch, the scene prompt gains a watch-of-day line so the painted light obeys the story's own hour, and the day chip at the table speaks it plainly. The mock walk advances time on a deterministic chain and seals THE WAYSTATION BELL on the genesis turn alone, so the keyless tier exercises every new court with no provider in the house.
+
+**Nobody teleports.** The speaker-ground law closes the last soft door: a narration speaker the record can place must stand where the scene stands — party members ride with the scene and a soul walked on by the same turn is exempt — and a voice thrown from another ground is refused by name. The Dungeon Master's own law grew rules 31 through 33 (the calendar, the fixtures, nobody teleports), and the tool schema declares every new op with the validator's exact bounds — the lockstep law, never loosened.
+
+**The landing seated whole (the review's one finding).** The architect's sitting confirmed both mid-loop instrument re-aims honest and raised one blocking mismatch, verified by direct read before the cut: the client landing court seated only the older evidence — cast, threads, trove, purses, regions, scene — while the server bench seated hero, party, presence, and fixtures besides; the validator convenes a court iff its evidence is seated, so Directive VIII's courts sat on the road and were silent at the landing. The landing now seats hero from the pre-turn record and party, presence, and fixtures from the same story briefing the request itself carried — both benches convene identical courts on identical bytes, or identically none.
+
+*Gates 92 → 95 (party, fixture, watch — keyless, mock-sovereign). The
+proving loop closed GREEN at the ceiling's edge: four reds taught, four
+greens sealed (56B.5 through 56B.8, the last carrying the review's
+cure) — 68 courts each, zero skips, every court EXECUTED, G21a and
+G21b now demanded by name. Two instruments re-aimed mid-loop, both
+logged, nothing weakened: the harvest scalpel probes for a clean wound
+— a hole the sealed record explains is answered with the record's
+word, never "missing" — and the calibration's crossed-prose control is
+retired for synthetic sealed-canon lies, because the pinned binaries
+never ask WHO or WHERE, and a same-genre crossing tested the judge's
+clairvoyance rather than its honesty. The ledger rides LOOP_LOG.md.*
+
 ## 0.7.1 — The Presence Cut
 
 **The standing scene (Experience-Directive VII, fourteen laws, ratified).** The story now owns WHERE it stands the way it owns days and coin: one additive op — `scene_set {region}`, an object of exactly one key, 3–100 characters — judged at the door by three courts that seat only when the record can testify (the presence law again: the atlas court seats only when the context carries the regions list, the travel court only when it carries the scene key, and a bare context gets shape law alone). The ground must already stand in the codex or be built by the same turn's `region_add`; MOVING it costs that same turn a `time_advance` — travel costs time — while restating the standing ground is free, and the offscreen tick may not move the stage at all, refused with a note by name. The fold lands AFTER the world, so a region can be built and stood upon in one breath; it backfills `scene: null` into old codexes, holds `sinceTurn` across restatements, writes a note on every refusal, and sends `scene_state` riding the story block to the server court. The Dungeon Master's own law grew rules 29 and 30, and the tool schema declares `scene_set` with the same bounds the validator enforces — the lockstep law, never loosened.

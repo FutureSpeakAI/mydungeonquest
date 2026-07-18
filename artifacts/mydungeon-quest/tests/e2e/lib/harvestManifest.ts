@@ -461,13 +461,37 @@ export function preflightManifest(project: JudgeProject, manifest?: TopManifest)
   return m;
 }
 
-/** Tooth 8's scalpel: break exactly the FIRST need of a project in a
- * deep clone, and name what was broken so the bite can be verified. */
+/** Tooth 8's scalpel: break exactly ONE need of a project in a deep
+ * clone, and name what was broken so the bite can be verified.
+ * (56B.3 logged re-aim) The scalpel used to cut NEEDS[project][0]
+ * unconditionally. When the sealed live record HONESTLY explains that
+ * need's hole — a REFUSED or ANCHORED attestation from a real paint
+ * event — the preflight rightly answers with the record's word (tooth
+ * 8b's own law: REFUSED never masquerades as missing), and the
+ * missing-by-name message is unreachable: the tooth then fails on
+ * truthful evidence, not a dull blade. The scalpel now probes the
+ * needs IN ORDER and cuts the FIRST whose hole the record does NOT
+ * explain, so the missing law is proven on a clean wound. If every
+ * hole is record-explained it falls back to the first need and the
+ * tooth fails honestly — such a store carries defects the courts must
+ * surface, and no doctoring should paper that over. */
 export function doctorFirstNeed(project: JudgeProject, manifest: TopManifest): { manifest: TopManifest; what: string } {
-  const clone: TopManifest = JSON.parse(JSON.stringify(manifest));
-  const need = NEEDS[project][0];
-  need.doctor(clone);
-  return { manifest: clone, what: need.what };
+  let fallback: { manifest: TopManifest; what: string } | null = null;
+  for (const need of NEEDS[project]) {
+    const clone: TopManifest = JSON.parse(JSON.stringify(manifest));
+    need.doctor(clone);
+    if (!fallback) fallback = { manifest: clone, what: need.what };
+    try {
+      preflightManifest(project, clone);
+      continue; // the doctoring drew no blood — probe the next need
+    } catch (error: any) {
+      if (String(error?.message || '').includes(`${project} preflight: harvest artifact missing`)) {
+        return { manifest: clone, what: need.what };
+      }
+      continue; // the record explains this hole — probe the next need
+    }
+  }
+  return fallback!;
 }
 
 /** Tooth 8b's scalpel (0.6.3 §5): for a project with a paint-dependent

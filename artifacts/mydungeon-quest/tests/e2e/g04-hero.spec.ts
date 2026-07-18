@@ -19,9 +19,13 @@ test('G4 tenor controls, three auditions, and a blessing that survives reload', 
 
   await page.locator('.door-tab').nth(2).click(); // the hand door
 
-  await expect(page.locator('label:has-text("Presentation") select').first()).toBeVisible();
-  await expect(page.locator('label:has-text("Pronouns") input').first()).toBeVisible();
-  await expect(page.locator('label:has-text("Distinguishing mark") input').first()).toBeVisible();
+  // (TASK 58B logged edit) Directive XIII moved the asked copy to the
+  // plain-speech FIELD MAP; the pins follow the map's own bytes.
+  // Strength unchanged: the same select and inputs, visible on the
+  // hand door, each still the player's to declare.
+  await expect(page.locator('label:has-text("How they present") select').first()).toBeVisible();
+  await expect(page.locator('label:has-text("What words fit them") input').first()).toBeVisible();
+  await expect(page.locator('label:has-text("The mark that sets them apart") input').first()).toBeVisible();
 
   const chips = page.locator('.audition-chip');
   await expect(chips).toHaveCount(3);

@@ -21,6 +21,8 @@ const REQUIRED_PROJECTS = [
   'g16-captions', 'g17-framing', 'g18-storybook', 'g22-frame', 'g23-battle', 'teeth',
   // (0.9.0) the prose court sits every run.
   'g24-prose',
+  // (0.9.1, Directive XIII) the two-hands court sits every run.
+  'g27-forge',
 ];
 // Test-title needles that must appear among EXECUTED (non-skipped) tests.
 const REQUIRED_EXECUTED = [
@@ -50,6 +52,9 @@ const REQUIRED_EXECUTED = [
   // (0.9.0) THE WRITER'S ROOM — the prose court's six criteria and its
   // two instrument teeth, each demanded by its own exact name.
   'G24w', 'G24a', 'G24b', 'G24c', 'G24d', 'G24e', 'G24f', 'tooth 10:', 'tooth 19:',
+  // (0.9.1, Directive XIII) THE TWO HANDS — four courts demanded by name,
+  // the live-smith round-trip among them so it can never silently skip.
+  'G27a', 'G27b', 'G27c', 'G27d',
 ];
 
 let verdict;

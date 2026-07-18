@@ -2612,3 +2612,120 @@ calibration + g16-captions replayed 19/19 green — both quarantine
 lines fired under the new keys, G16b stood down under custody with
 the bench's separation named, G16c recused and judged by replay.
 The 58.12 verdict stands untouched; the hardening rides the cut.
+
+# TASK 58B — THE TWO HANDS (0.9.1)
+
+Directive XIII ratified before any code. Ceiling: eight iterations; close
+demands keyless 116 and three consecutive loop greens.
+
+## Test-edit ledger (58B)
+- (planned, sanctioned by Directive XIII §6) g02-forge.spec.ts G3 label pins
+  move to the plain-speech copy: "Your world" → "Tell the game your world",
+  "Tone" → "How it feels". Strength unchanged: five fields, each editable,
+  each moved by its die.
+- (executed) The G3 label pins moved to the map's own bytes: "Your world" →
+  "Tell the game your world", "Tone" → "How it feels", "The world's look" →
+  "The world’s look" (the map's typographic apostrophe). Five fields, each
+  editable, each moved by its die — strength unchanged.
+- (new court) g27-forge.spec.ts joins the bench as project g27-forge
+  (deps: dom): one tap deals a whole world and a whole hero; a field die
+  touches its field alone; typed ink survives whole spins and neighbour
+  dice; own-die consent lifts it; three choices to Chapter One; and ONE
+  direct round-trip through the live smith (POST /api/smith, keyed, hard
+  stop if the key is absent) judged by the engine's validateCandidateSet —
+  provider must be anthropic in a keyed house, so a schema drift that
+  degrades to the mock floor is a named FAIL. Evidence lands in
+  test-results/smith-evidence.json.
+- (new gates) Three evals join the keyless chain: questions.test.mjs
+  (Law I — the one-seat field map, byte-pinned asks + consequences, order,
+  demotions, derived shape, X-card as card-never-form, one-seat sweep of
+  component sources), twoHands.test.mjs (Law II — pen sovereignty through
+  whole spins and neighbour dice at both real doors, own-die consent,
+  lock-blind conditioned mock smith, calling as one body), smith.test.mjs
+  (the candidate court — refusals, schema-mirrors-validator with enums,
+  lawful floor across every scope/field/lock, pinned temperature).
+- (pin) g13 PINNED_PASS_COUNT 113 → 116 in the same commit, history noted.
+- (verdict) verdict.mjs learns the new bench: g27-forge joins
+  REQUIRED_PROJECTS and G27a–G27d join REQUIRED_EXECUTED by name — the
+  two-hands court (the live-smith round-trip included) can never silently
+  fail to sit. Strengthens only.
+- (iteration 58B.1, RED — one court) G4 pinned the pre-directive hand-door
+  labels ("Presentation", "Pronouns", "Distinguishing mark"); Directive
+  XIII moved the asked copy to the field map. Sanctioned edit, same family
+  as the G3 pins: the locators follow the map's bytes ("How they present",
+  "What words fit them", "The mark that sets them apart"). Strength
+  unchanged — same select and inputs demanded visible on the hand door,
+  three auditions, blessing survives reload. The 11 "skips" in 58B.1 were
+  dependents of dom (g24-prose, g27-forge), not courts declining to sit.
+- (iteration 58B.2, RED — one court, mine) G27d demanded provider
+  'anthropic' from the 5199 route — but the rig's webserver runs KEYLESS
+  by standing law (Task 52: provider keys live in the TEST process only,
+  like the vision judge's; never in the app server). The court was asking
+  the one seat that lawfully cannot answer. Rebuilt on the honest seam,
+  strength INCREASED: seat one proves the route refuses malformed asks
+  (400) and serves the mock floor IN ITS OWN NAME (an 'anthropic' there
+  would now be a named FAIL — a key leak into the app server); seat two
+  convenes the LIVE smith in-process via server/smith.js smithCandidates
+  where the key lawfully lives — provider must be 'anthropic', schema
+  round-trip judged by validateCandidateSet, temperature pinned, redraws
+  ≤ 2, locked keys withheld. The court's own process pins
+  SPEND_CEILING_ANTHROPIC so the criterion is never hostage to the day's
+  ledger; the app server's guards untouched. Evidence carries BOTH seats.
+- (iteration 58B.3, RED — one court, and the court EARNED its seat) G27d's
+  in-process live sitting still received the floor. The probe found TWO
+  real defects no other court could see:
+  (a) Anthropic 400s the `temperature` parameter for this model family
+      (July 2026 deprecation) — EVERY live deal died at the door and the
+      smith degraded silently. The request no longer carries the dial;
+      the live evidence declares temperature honest-null (toll-house
+      precedent), while the mock floor still declares its own 0.9.
+      G27d's pin moved 0.9 → null accordingly — LOGGED test edit,
+      honesty, not weakening; SMITH_TEMPERATURE stays pinned at 0.9 as
+      the floor's dial.
+  (b) Schema fences proved ADVISORY to the live model: six over-fence
+      homeRegions in one probe, bench saved only by the redraw law at
+      its ceiling. Hardened at every lawful seat, all from the ONE
+      fence table: the description now speaks each bound where the
+      model reads (engine); the smith law binds all schema bounds
+      (listless — names the contract); redraw notes carry the court's
+      refusals BY NAME as data; the ask itself carries the hard-wall
+      line; max_tokens 2000 → 4000 (a truncated tool JSON empties the
+      bench invisibly). evals/smith.test.mjs STRENGTHENED: every offered
+      free-text property must carry finite maxLength AND a description
+      naming that same bound, plus literal drift-pins on all thirteen
+      fences at the schema's mouth.
+  Probes after hardening: seed 7 fills at call 3 (redraws 2, lawful),
+  seed 11 deals clean at call 1 (redraws 0, discarded 0). The redraw law
+  remains the designed backstop; evidence carries counts honestly.
+  Side-finding for the REPORT (out of 58B's walls, untouched): room.js
+  sends temperature: 0 at four live sittings — same refused parameter,
+  latent live-tier degrade in the writers' room. Recommend its own task.
+- (architect review round, after greens 58B.4-6) The reviewing architect
+  found the candidate court FAIL-OPEN on two seats, both real, both
+  verified before legislating:
+  (a) The governing calling could sit in the LOCK and the court never
+      read it — a whole-hero deal under a locked className carries no
+      className of its own, so rider coherence was never tried: a Wizard
+      could seat a greatsword's die and the court said nothing. The
+      court now reads the governing calling from the candidate OR the
+      lock (the floor already dealt canonically from the lock; the court
+      rises to the floor's own line). A locked calling the tables do not
+      know (the pen is sovereign) governs nothing, matching the floor.
+  (b) Background coherence carried a hero-scope exemption the floor
+      never had (drawHero deals canonical backgrounds) — exemption dead,
+      background binds uniformly wherever the governing calling is known.
+  MIRROR LAW closure with the fix: under a locked calling the schema now
+  deals every rider as enum-of-one from the same tables the court reads;
+  where a calling may be DEALT (unlocked hero / className respin), the
+  settled tables ride the ASK as data so the smith can copy a body
+  byte-exact; the smith law gains the one-body sentence (listless).
+  evals/smith.test.mjs STRENGTHENED (logged): locked-calling
+  contradiction courts for all five riders BY NAME, dead-exemption
+  court, lone-rider-under-lock court, unlocked-lone-rider liberty court,
+  and enum-of-one mirror pins against the class tables. No e2e spec
+  bytes changed in this round. Live probes after the closure: locked-
+  calling hero deals lawful with canonical riders (provider anthropic);
+  unlocked hero deals lawful, one invented background refused and
+  answered on redraw. Keyless tail re-run on final bytes: green at the
+  116 pin. Iteration 58B.7 requested as the end-to-end certification of
+  the review closure.

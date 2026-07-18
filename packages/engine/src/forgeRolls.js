@@ -43,7 +43,7 @@ export const SIGILS = ['\u2726', '\u2735', '\u273f', '\u2740', '\u2749', '\u2698
 const STANDARD = [15, 14, 13, 12, 10, 8];
 const DEFAULT_STYLE = 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.';
 
-const BEARINGS = {
+export const BEARINGS = {
   Ranger: 'Weather-worn leathers, a longbow slung easy, and eyes that never stop reading the treeline.',
   Fighter: 'Dented plate kept honest, a soldier\u2019s stance, hands that have carried more than swords.',
   Rogue: 'Quiet boots, a coat of useful pockets, and a smile that arrives half a beat late.',
@@ -53,7 +53,7 @@ const BEARINGS = {
   Barbarian: 'Furs and old iron, braids wound with trophies, a stillness like held weather.',
   Warlock: 'Fine clothes a season out of fashion, and a shadow that sits slightly wrong.'
 };
-const BACKGROUNDS = {
+export const BACKGROUNDS = {
   Ranger: 'A former road-warden who can hear when a path is lying.',
   Fighter: 'Mustered out of a war nobody won, still keeping the watch out of habit.',
   Rogue: 'Retired from a guild that does not accept retirements.',

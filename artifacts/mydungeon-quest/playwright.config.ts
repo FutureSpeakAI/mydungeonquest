@@ -56,6 +56,11 @@ export default defineConfig({
     // the harvest's session records through the server's own courts; teeth
     // 10 and 19 (calibration) prove its instruments before it convenes.
     { name: 'g24-prose', testMatch: /g24-prose\.spec\.ts/, dependencies: ['calibration', 'dom'] },
+    // G27 (Directive XIII): the two-hands court — sovereignty at the real
+    // doors, and one direct round-trip through the live smith's own tool
+    // schema, so a valid-but-rejected drift can never hide behind the
+    // mock floor.
+    { name: 'g27-forge', testMatch: /g27-forge\.spec\.ts/, dependencies: ['dom'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

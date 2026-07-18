@@ -291,6 +291,19 @@ app.post('/api/retell', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), 
   res.json(result);
 });
 
+// THE SMITH'S DOOR (Directive XIII) — the dice of both forge doors on the
+// illuminated tier. No innkeeper seat: the forge precedes the first pour,
+// and the watchtower's spend ceiling already guards the smith's own coin
+// (it degrades to the mock smith, never errors). A malformed ask gets a
+// plain no; a lawful ask ALWAYS gets a lawful, already-judged set.
+app.post('/api/smith', rateLimit(Number(process.env.RATE_LIMIT_SMITH_MAX || 30)), abuseCaps('smith'), async (req, res) => {
+  const { validSmithAsk, smithCandidates } = await import('./smith.js');
+  const refusal = validSmithAsk(req.body || {});
+  if (refusal) return res.status(400).json({ error: refusal });
+  const { scope, field = null, locked, seed } = req.body;
+  res.json(await smithCandidates({ scope, field, locked: locked || {}, seed: Number(seed) || 0 }));
+});
+
 async function sendAsset(res, result) {
   res.setHeader('Content-Type', result.mime);
   res.setHeader('X-Media-Provider', result.provider);

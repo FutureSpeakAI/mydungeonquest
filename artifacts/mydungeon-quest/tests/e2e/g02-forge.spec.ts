@@ -68,14 +68,16 @@ test('G3 deep forge: five fields whose dice change the values; the oracle fills 
   await page.locator('.door-tab').nth(2).click(); // the deep door
 
   // Labels are the forge's REAL copy (iteration-1 logged edit: the spec had
-  // guessed "Covenant"; the field is titled "Your world"). Strength unchanged:
-  // five fields, each present, editable, and moved by its die.
+  // guessed "Covenant"; TASK 58B logged edit: the deep door now renders the
+  // plain-speech FIELD MAP — Directive XIII — so the pins moved to the
+  // map's own bytes). Strength unchanged: five fields, each present,
+  // editable, and moved by its die.
   const fields = [
     { label: 'Chronicle title' },
-    { label: 'Your world' },
-    { label: 'Tone' },
+    { label: 'Tell the game your world' },
+    { label: 'How it feels' },
     { label: 'Home region' },
-    { label: "The world's look" }
+    { label: 'The world\u2019s look' }
   ];
   for (const field of fields) {
     const row = page.locator(`label:has-text("${field.label}")`).first();

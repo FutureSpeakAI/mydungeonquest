@@ -7,9 +7,10 @@ import { SPINES } from 'fatescript/spines';
 import { portraitPrompt, keyArtPrompt } from '../lib/cinema/prompts.js';
 import { heroSoul, nameSeed } from '../lib/cinema/prologue.js';
 import { auditionCandidates } from 'fatescript/cinema/casting';
-import { rollWorld, rollHero, oracleWorld, oracleHero, rollTitle, rollCovenant, rollTone, rollRegion, rollName, rollMark, ORACLE_WORLD, ORACLE_HERO } from 'fatescript/forgeRolls';
+import { oracleWorld, oracleHero, ORACLE_WORLD, ORACLE_HERO, CLASSES, BEARINGS, BACKGROUNDS, rollAbilities } from 'fatescript/forgeRolls';
+import { FIELD_MAP, XCARD_COPY, fieldEntry, spineFromPromise, spineLabel, titleFromPromise, WORLD_KEYS, HERO_KEYS, CALLING_RIDERS } from 'fatescript/smith';
+import { smithSpin } from '../lib/smithClient.js';
 import { openSitting, blessSitting, sittingRequired } from '../lib/sitting.js';
-import { rollLook } from '../lib/forgeRolls.js';
 
 // THE FORGE REMEMBERS (G4) — a sitting's draft survives a reload. Drafts live
 // in sessionStorage (per tab; never synced, never sealed, never exported) and
@@ -17,17 +18,12 @@ import { rollLook } from '../lib/forgeRolls.js';
 // blocks the forge — the defaults simply stand.
 const WORLD_DRAFT_KEY = 'mdq:forge:world';
 const HERO_DRAFT_KEY = 'mdq:forge:hero';
+const XCARD_SEEN_KEY = 'mdq:xcard:seen';
 export const clearForgeDrafts = () => {
   try { sessionStorage.removeItem(WORLD_DRAFT_KEY); sessionStorage.removeItem(HERO_DRAFT_KEY); } catch { /* storage walled off */ }
 };
 const loadDraft = (key) => { try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch { return null; } };
 const saveDraft = (key, value) => { try { sessionStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ } };
-
-const seedWorlds = [
-  'A drowned empire where memories are legal tender.',
-  'A cozy mountain kingdom built atop a sleeping machine.',
-  'A moonlit frontier where roads choose their travelers.'
-];
 
 // Ephemeral forge preview: paint straight from the model and hand back an
 // object URL. Nothing is sealed here — the canonical, attested art is forged
@@ -43,11 +39,50 @@ async function paintPreview(body, signal) {
 }
 
 const randomSeed = () => Math.floor(Math.random() * 1e9);
+const ask = (scope, key) => fieldEntry(scope, key).ask;
 
-// THE DOORS — every forge offers three: the fast door (one tap, all dice),
-// the Oracle (three questions), and the deep door (every field yours, each
-// wearing a die). One shared form underneath, so nothing chosen is lost by
-// walking through another door.
+// ------------------------------------------------------------
+// THE TWO HANDS (Directive XIII, Law II) — every asked field owns a die
+// and a pen. The pen's ink is SOVEREIGN: `__sovereign` in the draft names
+// the keys the player wrote, and no spin may cross them. One consent
+// exists: a sovereign field's OWN die (`force`) lifts its own ink and
+// redraws that field alone. Applying any candidate returns written keys
+// to the dice's custody (they redraw freely on the next spin).
+// ------------------------------------------------------------
+const sovereignOf = (form) => new Set(Array.isArray(form.__sovereign) ? form.__sovereign : []);
+const markSovereign = (v, key) => [...new Set([...(Array.isArray(v.__sovereign) ? v.__sovereign : []), key])];
+function applyCandidate(v, candidate, force = []) {
+  const sov = sovereignOf(v);
+  const next = { ...v };
+  for (const [key, value] of Object.entries(candidate)) {
+    if (sov.has(key) && !force.includes(key)) continue; // ink stands
+    next[key] = value;
+    sov.delete(key);
+  }
+  return { ...next, __sovereign: [...sov] };
+}
+// The standing remainder for a single-field respin: every other smith key's
+// current value. For the calling, its unsovereign riders ride OUT of the
+// lock — the calling is one body and moves with them (§5, the rider clause).
+function remainderLock(form, keys, field) {
+  const sov = sovereignOf(form);
+  const riders = field === 'className' ? CALLING_RIDERS.filter((r) => !sov.has(r)) : [];
+  const lock = {};
+  for (const key of keys) {
+    if (key === field || riders.includes(key)) continue;
+    if (form[key] !== undefined) lock[key] = form[key];
+  }
+  return lock;
+}
+const sovereignLock = (form, keys) => {
+  const sov = sovereignOf(form);
+  return Object.fromEntries(keys.filter((k) => sov.has(k) && form[k] !== undefined).map((k) => [k, form[k]]));
+};
+
+// THE DOORS — every forge offers three: the fast door (plain questions, all
+// dice), the Oracle (three questions), and the deep door (every field yours,
+// each wearing a die). One shared form underneath, so nothing chosen is lost
+// by walking through another door.
 function DoorRow({ doors, door, onDoor }) {
   return <div className="door-row" role="tablist" aria-label="How to forge">
     {doors.map(([id, label, hint]) =>
@@ -61,10 +96,21 @@ function DiceButton({ onRoll, label }) {
   return <button type="button" className="dice-button" onClick={onRoll} aria-label={label} title={label}><Dices/></button>;
 }
 
+// THE X-CARD (Directive XIII §2) — safety presented as a CARD the game
+// deals, never a form the player must fill. Dealt once per device; lines
+// and veils keep their surfaces behind the deep door.
+function XCard() {
+  return <article className="xcard-card" role="note">
+    <ShieldCheck aria-hidden/>
+    <p>{XCARD_COPY}</p>
+  </article>;
+}
+
 // THE AUDITION — three voices step forward by the stated presentation; tap to
 // hear, tap to bless. A blessed voice rides the hero forever (the casting
 // session yields to it); unblessed, the session reads the finished card. On a
-// keyless table the throat is a plain tone — the choice still seals.
+// keyless table the throat is a plain tone — the choice still seals. The die
+// beside the row is the voice's own die: a candidate steps forward blessed.
 function AuditionRow({ presentation, name, voiceId, onBless }) {
   const [busy, setBusy] = useState(null);
   const candidates = auditionCandidates(presentation, name);
@@ -83,7 +129,7 @@ function AuditionRow({ presentation, name, voiceId, onBless }) {
     finally { setBusy(null); }
   };
   return <div className="audition-row">
-    <span className="eyebrow">The audition — how they sound</span>
+    <span className="eyebrow label-line">{ask('hero', 'voice')} <DiceButton label="Spin a voice" onRoll={() => { const c = candidates[Math.floor(Math.random() * candidates.length)]; onBless(c.id); play(c); }}/></span>
     <div className="audition-choices">{candidates.map((candidate) =>
       <button key={candidate.id} type="button" className={`audition-chip${voiceId === candidate.id ? ' selected' : ''}`} disabled={Boolean(busy) && busy !== candidate.id}
         onClick={() => { onBless(candidate.id); play(candidate); }}>
@@ -95,22 +141,59 @@ function AuditionRow({ presentation, name, voiceId, onBless }) {
 
 export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
   const [form, setForm] = useState(() => {
-    const fallback = { title: 'The Unwritten Road', covenant: seedWorlds[2], spineId: 'classic-epic', tone: 'Mythic, warm, and dangerous', linesText: '', veilsText: '', homeRegion: 'Larkspur Vale', styleBible: 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.' };
+    const fallback = { title: 'The Unwritten Road', covenant: 'A moonlit frontier where roads choose their travelers.', spineId: 'classic-epic', tone: 'Mythic, warm, and dangerous', linesText: '', veilsText: '', homeRegion: 'Larkspur Vale', styleBible: 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.', __sovereign: [] };
     const saved = loadDraft(WORLD_DRAFT_KEY);
     return saved && typeof saved.title === 'string' ? { ...fallback, ...saved } : fallback;
   });
   useEffect(() => { saveDraft(WORLD_DRAFT_KEY, form); }, [form]);
-  const set = (key) => (event) => setForm((value) => ({ ...value, [key]: event.target.value }));
+  const pen = (key) => (event) => setForm((v) => ({ ...v, [key]: event.target.value, __sovereign: markSovereign(v, key) }));
   const [door, setDoor] = useState('spin');
   // THE THREE SPARKS (Directive V) — dealt once per minute-seed, so a
   // returning player sees a fresh hand without the row shuffling mid-choice.
   // Under the proving rig (?proving=1, Task 52) the deal is the fixed seed 42.
   const [sparkDeal] = useState(() => sparks(isProving() ? 42 : (Date.now() / 60000) | 0));
+  // The X-card is dealt as a card, once per device; a walled storage means
+  // it was dealt elsewhere — never block the door over a flag.
+  const [xcardDealt] = useState(() => { try { return localStorage.getItem(XCARD_SEEN_KEY) === '1'; } catch { return true; } });
   const [keyArt, setKeyArt] = useState(null);
   const urlRef = useRef(null);
-  const spin = () => setForm((value) => ({ ...value, ...rollWorld(randomSeed()) }));
-  const dice = (roll) => () => { const seed = randomSeed(); setForm((value) => ({ ...value, ...roll(seed) })); };
-  const forgeOn = () => onContinue({ ...form, lines: form.linesText.split(',').map((x) => x.trim()).filter(Boolean), veils: form.veilsText.split(',').map((x) => x.trim()).filter(Boolean) });
+  const spinBusy = useRef(false);
+
+  // THE SHAPE OF THE PROMISE (Law I) — the fast path never asks the spine;
+  // it reads the promise. The deep door's picker, once touched, outranks it.
+  const sov = sovereignOf(form);
+  const effSpine = sov.has('spineId') ? form.spineId : spineFromPromise(form.covenant);
+  const effTitle = sov.has('covenant') && !sov.has('title') ? titleFromPromise(form.covenant) : form.title;
+
+  // The whole-world die: locks exactly the sovereign ink, redraws the rest.
+  const spin = async () => {
+    if (spinBusy.current) return;
+    spinBusy.current = true;
+    try {
+      const locked = sovereignLock(form, WORLD_KEYS);
+      const result = await smithSpin({ scope: 'world', locked, seed: randomSeed(), tier: mediaTier });
+      setForm((v) => applyCandidate(v, result.candidates[0]));
+    } finally { spinBusy.current = false; }
+  };
+  // A field's own die: locks the ENTIRE standing remainder, redraws the
+  // field alone — the one consent that lifts the field's own ink.
+  const fieldDie = (key) => async () => {
+    const locked = remainderLock(form, WORLD_KEYS, key);
+    const result = await smithSpin({ scope: 'field', field: key, locked, seed: randomSeed(), tier: mediaTier });
+    setForm((v) => applyCandidate(v, result.candidates[0], [key]));
+  };
+  // The Oracle composes; its words are the game's hand, not the pen's.
+  const oracleWrite = (patch) => setForm((v) => {
+    const composed = oracleWorld({ place: patch.__place ?? v.__place, wound: patch.__wound ?? v.__wound, hope: patch.__hope ?? v.__hope });
+    return { ...applyCandidate(v, composed), ...patch };
+  });
+
+  const forgeOn = () => {
+    try { localStorage.setItem(XCARD_SEEN_KEY, '1'); } catch { /* dealt elsewhere */ }
+    const out = {};
+    for (const [key, value] of Object.entries(form)) if (!key.startsWith('__')) out[key] = value;
+    onContinue({ ...out, title: effTitle, spineId: effSpine, lines: form.linesText.split(',').map((x) => x.trim()).filter(Boolean), veils: form.veilsText.split(',').map((x) => x.trim()).filter(Boolean) });
+  };
 
   // As the covenant, tone and style settle, the world paints itself faintly
   // behind the page — the forge becomes a title sequence.
@@ -119,8 +202,8 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const prompt = keyArtPrompt({ ...form, covenant: form.covenant }, 'establishing');
-        const url = await paintPreview({ prompt, kind: 'keyart', label: 'keyart', variant: 'establishing', seed: nameSeed(`${form.title}:${form.covenant}`), dimensions: '1280x720' }, controller.signal);
+        const prompt = keyArtPrompt({ ...form, title: effTitle }, 'establishing');
+        const url = await paintPreview({ prompt, kind: 'keyart', label: 'keyart', variant: 'establishing', seed: nameSeed(`${effTitle}:${form.covenant}`), dimensions: '1280x720' }, controller.signal);
         if (urlRef.current) URL.revokeObjectURL(urlRef.current);
         urlRef.current = url; setKeyArt(url);
       } catch { /* preview is optional; the sealed art comes at genesis */ }
@@ -130,10 +213,16 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
 
   useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current); }, []);
 
+  const worldCard = <article className="spin-card">
+    <h3>{effTitle}</h3>
+    <p>{form.covenant}</p>
+    <div className="spin-meta"><span>{spineLabel(effSpine)}</span><span>{form.tone}</span><span>Home — {form.homeRegion}</span></div>
+  </article>;
+
   return <main className="forge-page page-enter">
     {keyArt && <div className="forge-keyart" style={{ backgroundImage: `url("${keyArt}")` }} aria-hidden />}
     <button className="text-button" onClick={onBack}>← Chronicle shelf</button>
-    <header className="forge-header"><span className="eyebrow">World Forge</span><h1>Speak the world into being.</h1><p>A sentence is enough — or a single tap. The spine gives the story its bones without deciding where you walk.</p></header>
+    <header className="forge-header"><span className="eyebrow">World Forge</span><h1>Speak the world into being.</h1><p>A sentence is enough — or a single tap. Every question tells you where its answer lands.</p></header>
     <section className="forge-card">
       <DoorRow door={door} onDoor={setDoor} doors={[
         ['spin', 'Spin the World', 'One tap. The dice write it; keep spinning until it sings.'],
@@ -142,12 +231,17 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
       ]}/>
 
       {door === 'spin' && <>
-        <SparkRow sparks={sparkDeal} onPick={(spark) => setForm((f) => ({ ...f, title: spark.title, covenant: spark.covenant, tone: spark.tone, homeRegion: spark.region }))}/>
-        <article className="spin-card">
-          <h3>{form.title}</h3>
-          <p>{form.covenant}</p>
-          <div className="spin-meta"><span>{SPINES.find((s) => s.id === form.spineId)?.label}</span><span>{form.tone}</span><span>Home — {form.homeRegion}</span></div>
-        </article>
+        <SparkRow sparks={sparkDeal} onPick={(spark) => setForm((v) => applyCandidate({ ...v, __sovereign: (v.__sovereign || []).filter((k) => !['title', 'covenant', 'tone', 'homeRegion'].includes(k)) }, { title: spark.title, covenant: spark.covenant, tone: spark.tone, homeRegion: spark.region }))}/>
+        <label className="ask-row"><span className="label-line">{ask('world', 'covenant')} <DiceButton label="Spin a promise" onRoll={fieldDie('covenant')}/></span>
+          <textarea value={form.covenant} onChange={pen('covenant')} rows="3" maxLength={2000}/>
+          <small className="fine-print">{fieldEntry('world', 'covenant').hint}</small>
+        </label>
+        <label className="ask-row"><span className="label-line">{ask('world', 'tone')} <DiceButton label="Spin the feel" onRoll={fieldDie('tone')}/></span>
+          <input value={form.tone} onChange={pen('tone')} maxLength={120}/>
+        </label>
+        <p className="shape-line">{ask('world', 'shape')} — <b>{spineLabel(effSpine)}</b><small>{fieldEntry('world', 'shape').hint}</small></p>
+        {worldCard}
+        {!xcardDealt && <XCard/>}
         <div className="button-row">
           <button type="button" className="secondary-button" onClick={spin}><Dices/> Spin again</button>
           <button className="primary-button" onClick={forgeOn}>Forge the hero <ArrowRight/></button>
@@ -157,29 +251,28 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
 
       {door === 'oracle' && <>
         <div className="form-grid oracle-grid">
-          <label>What kind of place is it?<select value={undefined} defaultValue="" onChange={(e) => setForm((v) => ({ ...v, ...oracleWorld({ place: e.target.value, wound: v.__wound, hope: v.__hope }), __place: e.target.value }))}>
+          <label>What kind of place is it?<select defaultValue="" onChange={(e) => oracleWrite({ __place: e.target.value })}>
             <option value="" disabled>choose…</option>{ORACLE_WORLD.places.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
-          <label>What is wrong with it?<select defaultValue="" onChange={(e) => setForm((v) => ({ ...v, ...oracleWorld({ place: v.__place, wound: e.target.value, hope: v.__hope }), __wound: e.target.value }))}>
+          <label>What is wrong with it?<select defaultValue="" onChange={(e) => oracleWrite({ __wound: e.target.value })}>
             <option value="" disabled>choose…</option>{ORACLE_WORLD.wounds.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
-          <label>What hope remains?<select defaultValue="" onChange={(e) => setForm((v) => ({ ...v, ...oracleWorld({ place: v.__place, wound: v.__wound, hope: e.target.value }), __hope: e.target.value }))}>
+          <label>What hope remains?<select defaultValue="" onChange={(e) => oracleWrite({ __hope: e.target.value })}>
             <option value="" disabled>choose…</option>{ORACLE_WORLD.hopes.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
         </div>
-        <article className="spin-card"><h3>{form.title}</h3><p>{form.covenant}</p></article>
+        <article className="spin-card"><h3>{effTitle}</h3><p>{form.covenant}</p></article>
         <button className="primary-button" onClick={forgeOn}>Forge the hero <ArrowRight/></button>
       </>}
 
       {door === 'deep' && <>
-        <label><span className="label-line">Chronicle title <DiceButton label="Roll a title" onRoll={dice((s) => ({ title: rollTitle(s) }))}/></span><input value={form.title} onChange={set('title')} maxLength={80}/></label>
-        <label><span className="label-line">Your world <DiceButton label="Roll a covenant" onRoll={dice((s) => ({ covenant: rollCovenant(s) }))}/></span><textarea value={form.covenant} onChange={set('covenant')} rows="5" maxLength={2000}/></label>
-        <div className="seed-row">{seedWorlds.map((seed) => <button key={seed} onClick={() => setForm((v) => ({ ...v, covenant: seed }))}>{seed}</button>)}</div>
+        <label><span className="label-line">{ask('world', 'title')} <DiceButton label="Roll a title" onRoll={fieldDie('title')}/></span><input value={sov.has('title') || !sov.has('covenant') ? form.title : effTitle} onChange={pen('title')} maxLength={80}/></label>
+        <label><span className="label-line">{ask('world', 'covenant')} <DiceButton label="Roll a covenant" onRoll={fieldDie('covenant')}/></span><textarea value={form.covenant} onChange={pen('covenant')} rows="5" maxLength={2000}/></label>
         <div className="form-grid">
-          <label>Story spine<select value={form.spineId} onChange={set('spineId')}>{SPINES.map((s) => <option key={s.id} value={s.id}>{s.label} · {s.beats.length} beats</option>)}</select></label>
-          <label><span className="label-line">Tone <DiceButton label="Roll a tone" onRoll={dice((s) => ({ tone: rollTone(s) }))}/></span><input value={form.tone} onChange={set('tone')} /></label>
-          <label><span className="label-line">Home region <DiceButton label="Roll a region" onRoll={dice((s) => ({ homeRegion: rollRegion(s) }))}/></span><input value={form.homeRegion} onChange={set('homeRegion')} /></label>
-          <label>Lines — never appear<input value={form.linesText} onChange={set('linesText')} placeholder="comma separated" /></label>
-          <label>Veils — fade to black<input value={form.veilsText} onChange={set('veilsText')} placeholder="comma separated" /></label>
+          <label>{ask('world', 'spineId')}<select value={effSpine} onChange={pen('spineId')}>{SPINES.map((s) => <option key={s.id} value={s.id}>{s.label} · {s.beats.length} beats</option>)}</select></label>
+          <label><span className="label-line">{ask('world', 'tone')} <DiceButton label="Roll a tone" onRoll={fieldDie('tone')}/></span><input value={form.tone} onChange={pen('tone')} /></label>
+          <label><span className="label-line">{ask('world', 'homeRegion')} <DiceButton label="Roll a region" onRoll={fieldDie('homeRegion')}/></span><input value={form.homeRegion} onChange={pen('homeRegion')} /></label>
+          <label>{ask('world', 'linesText')}<input value={form.linesText} onChange={pen('linesText')} placeholder="comma separated" /></label>
+          <label>{ask('world', 'veilsText')}<input value={form.veilsText} onChange={pen('veilsText')} placeholder="comma separated" /></label>
         </div>
-        <label><span className="label-line">The world's look <DiceButton label="Roll a look" onRoll={dice((s) => ({ styleBible: rollLook(s) }))}/></span><textarea value={form.styleBible} onChange={set('styleBible')} rows="3" maxLength={300}/></label>
+        <label><span className="label-line">{ask('world', 'styleBible')} <DiceButton label="Roll a look" onRoll={fieldDie('styleBible')}/></span><textarea value={form.styleBible} onChange={pen('styleBible')} rows="3" maxLength={300}/></label>
         <div className="law-note"><ShieldCheck/><span>Every scene and painting stays PG-13. Your lines and veils never leave this device.</span></div>
         <button className="primary-button" onClick={forgeOn}>Forge the hero <ArrowRight/></button>
       </>}
@@ -189,22 +282,50 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
 
 export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
   const [form, setForm] = useState(() => {
-    const fallback = { name: 'Aster Vale', sigil: '✦', ancestry: 'Human', className: 'Ranger', caster: 'half', hitDie: 10, abilities: { STR: 14, DEX: 15, CON: 13, INT: 10, WIS: 12, CHA: 8 }, skills: ['Perception','Survival','Stealth'], bearing: 'Weather-worn leathers, a road-warden\u2019s longbow, and eyes that never stop reading the treeline.', background: 'A former road-warden who can hear when a path is lying.', presentation: 'neutral', pronouns: '', mark: '', voiceId: null };
+    const fallback = { name: 'Aster Vale', sigil: '✦', ancestry: 'Human', className: 'Ranger', caster: 'half', hitDie: 10, abilities: { STR: 14, DEX: 15, CON: 13, INT: 10, WIS: 12, CHA: 8 }, skills: ['Perception','Survival','Stealth'], bearing: 'Weather-worn leathers, a road-warden\u2019s longbow, and eyes that never stop reading the treeline.', background: 'A former road-warden who can hear when a path is lying.', presentation: 'neutral', pronouns: '', mark: '', keepsake: 'a river-stone that is always warm', voiceId: null, __sovereign: [] };
     const saved = loadDraft(HERO_DRAFT_KEY);
     // The blessing travels with the forge: a reload rehydrates the whole
     // sheet, voiceId included, so the blessed chip still wears its mark.
     return saved && typeof saved.name === 'string' ? { ...fallback, ...saved, abilities: { ...fallback.abilities, ...(saved.abilities || {}) } } : fallback;
   });
   useEffect(() => { saveDraft(HERO_DRAFT_KEY, form); }, [form]);
-  const set = (key) => (event) => setForm((value) => ({ ...value, [key]: event.target.value }));
-  const setPresentation = (event) => setForm((value) => ({ ...value, presentation: event.target.value, voiceId: null })); // a new register opens a new audition
-  const updateAbility = (ability, value) => setForm((f) => ({ ...f, abilities: { ...f.abilities, [ability]: Number(value) } }));
+  const pen = (key) => (event) => setForm((v) => ({ ...v, [key]: event.target.value, __sovereign: markSovereign(v, key) }));
+  const setPresentation = (event) => setForm((v) => ({ ...v, presentation: event.target.value, voiceId: null, __sovereign: markSovereign(v, 'presentation') })); // a new register opens a new audition
+  // The calling is one body: choosing it seats the whole sheet — bearing,
+  // background, abilities, skills — except where the player's ink stands.
+  const setCalling = (event) => setForm((v) => {
+    const cls = CLASSES.find((c) => c.className === event.target.value) || CLASSES[0];
+    const riders = { caster: cls.caster, hitDie: cls.hitDie, skills: cls.skills, abilities: rollAbilities(cls.className, randomSeed()), bearing: BEARINGS[cls.className], background: BACKGROUNDS[cls.className] };
+    return { ...applyCandidate(v, riders), className: cls.className, __sovereign: markSovereign({ ...v, __sovereign: (v.__sovereign || []).filter((k) => k !== 'className') }, 'className') };
+  });
+  const updateAbility = (ability, value) => setForm((f) => ({ ...f, abilities: { ...f.abilities, [ability]: Number(value) }, __sovereign: markSovereign(f, 'abilities') }));
   const [door, setDoor] = useState('bones');
   const [portrait, setPortrait] = useState(null); // null | 'pending' | objectURL
   const urlRef = useRef(null);
-  const castBones = () => setForm((value) => ({ ...value, ...rollHero(randomSeed()), voiceId: null }));
-  const dice = (roll) => () => { const seed = randomSeed(); setForm((value) => ({ ...value, ...roll(seed) })); };
+  const castBusy = useRef(false);
+  const sov = sovereignOf(form);
+
+  // The whole-hero die: one throw, a whole coherent soul — sovereign ink
+  // stands, and a locked calling conditions the entire sheet around it.
+  const castBones = async () => {
+    if (castBusy.current) return;
+    castBusy.current = true;
+    try {
+      const locked = sovereignLock(form, HERO_KEYS);
+      const result = await smithSpin({ scope: 'hero', locked, seed: randomSeed(), tier: mediaTier });
+      setForm((v) => ({ ...applyCandidate(v, result.candidates[0]), voiceId: null }));
+    } finally { castBusy.current = false; }
+  };
+  const fieldDie = (key) => async () => {
+    const locked = remainderLock(form, HERO_KEYS, key);
+    const result = await smithSpin({ scope: 'field', field: key, locked, seed: randomSeed(), tier: mediaTier });
+    setForm((v) => applyCandidate(v, result.candidates[0], [key]));
+  };
   const bless = (voiceId) => setForm((value) => ({ ...value, voiceId }));
+  const oracleWrite = (patch) => setForm((v) => {
+    const composed = oracleHero({ path: patch.__path ?? v.__path, virtue: patch.__virtue ?? v.__virtue, keepsake: patch.__keepsake ?? v.__keepsake });
+    return { ...applyCandidate(v, composed), ...patch };
+  });
 
   // THE SITTING — a face is accepted, not assigned (illuminated tier
   // only; parchment paints procedurally and owes no sitting). Three
@@ -222,7 +343,8 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
 
   // The hero's face materialises live beside the sheet: shimmer, then the
   // generated bust. Uses the same prompt + seed as the sealed anchor so the
-  // ritual and the canon match.
+  // ritual and the canon match. The mark rides in the prompt — inscribed
+  // into the painting itself when the easel is lit.
   useEffect(() => {
     if (mediaTier === 'parchment' || !form.name.trim()) { setPortrait(null); return; }
     const controller = new AbortController();
@@ -236,12 +358,15 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
       } catch { setPortrait(null); }
     }, 800);
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [form.name, form.bearing, form.background, mediaTier, world]);
+  }, [form.name, form.bearing, form.background, form.mark, mediaTier, world]);
 
   useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current); }, []);
 
   const hasFace = portrait && portrait !== 'pending';
   const heardAs = { feminine: 'Heard feminine', masculine: 'Heard masculine', neutral: 'Heard as they choose' }[form.presentation];
+  const presentationField = (
+    <label><span className="label-line">{ask('hero', 'presentation')} <DiceButton label="Spin how they present" onRoll={fieldDie('presentation')}/></span><select value={form.presentation} onChange={setPresentation}><option value="feminine">Feminine</option><option value="masculine">Masculine</option><option value="neutral">Neutral / unsaid</option></select></label>
+  );
   return <main className="forge-page page-enter">
     <button className="text-button" onClick={onBack}>← World Forge</button>
     <header className="forge-header"><span className="eyebrow">Hero Forge</span><h1>Give the world someone to remember.</h1><p>{world.title} is waiting.</p></header>
@@ -249,13 +374,16 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
       <div className="hero-identity">
         <figure className={`hero-portrait ${portrait === 'pending' ? 'summoning' : ''}`}>
           {hasFace ? <img src={portrait} alt={form.name}/> : <span className="portrait-mark">{form.sigil}</span>}
-          <figcaption>{hasFace ? form.name : portrait === 'pending' ? 'The face is arriving…' : 'A face waiting to be painted'}</figcaption>
+          <figcaption>
+            {hasFace ? form.name : portrait === 'pending' ? 'The face is arriving…' : 'A face waiting to be painted'}
+            {form.mark.trim() && <span className="portrait-inscription">{form.mark}</span>}
+          </figcaption>
         </figure>
-        <div className="hero-sigil"><span>{form.sigil}</span><input aria-label="Sigil" value={form.sigil} onChange={set('sigil')} maxLength={2}/></div>
+        <div className="hero-sigil"><span>{form.sigil}</span><input aria-label="Sigil" value={form.sigil} onChange={pen('sigil')} maxLength={2}/><DiceButton label="Spin a sigil" onRoll={fieldDie('sigil')}/></div>
       </div>
 
       <DoorRow door={door} onDoor={setDoor} doors={[
-        ['bones', 'Cast the Bones', 'A whole soul from one throw. Cast until they feel true.'],
+        ['bones', 'Cast the Bones', 'A whole soul from one throw — then answer only what you care to.'],
         ['oracle', 'The Oracle', 'Three questions shape the sheet.'],
         ['hand', 'Forge by Hand', 'Every stat and sentence yours — with dice on call.']
       ]}/>
@@ -268,40 +396,52 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
           <p className="fine-print">{form.mark ? `Marked by ${form.mark}. ` : ''}{form.background}</p>
         </article>
         <button type="button" className="secondary-button" onClick={castBones}><Dices/> Cast again</button>
+        <label className="ask-row"><span className="label-line">{ask('hero', 'name')} <DiceButton label="Spin a name" onRoll={fieldDie('name')}/></span><input value={form.name} onChange={pen('name')} maxLength={60}/></label>
+        <div className="form-grid">
+          <label><span className="label-line">{ask('hero', 'ancestry')} <DiceButton label="Spin an ancestry" onRoll={fieldDie('ancestry')}/></span><input value={form.ancestry} onChange={pen('ancestry')} maxLength={40}/></label>
+          <label><span className="label-line">{ask('hero', 'className')} <DiceButton label="Spin a calling" onRoll={fieldDie('className')}/></span><select value={CLASSES.some((c) => c.className === form.className) ? form.className : ''} onChange={setCalling}>{!CLASSES.some((c) => c.className === form.className) && <option value="" disabled>{form.className}</option>}{CLASSES.map((c) => <option key={c.className} value={c.className}>{c.className}</option>)}</select></label>
+        </div>
+        <div className="form-grid">
+          {presentationField}
+          <label><span className="label-line">{ask('hero', 'pronouns')} <DiceButton label="Spin the words" onRoll={fieldDie('pronouns')}/></span><input value={form.pronouns} onChange={pen('pronouns')} maxLength={30} placeholder="she/her, he/him, they/them…"/></label>
+        </div>
+        <label className="ask-row"><span className="label-line">{ask('hero', 'mark')} <DiceButton label="Spin a mark" onRoll={fieldDie('mark')}/></span><input value={form.mark} onChange={pen('mark')} maxLength={80} placeholder="A scar, a brand, a streak of white…"/></label>
+        <label className="ask-row"><span className="label-line">{ask('hero', 'keepsake')} <DiceButton label="Spin a keepsake" onRoll={fieldDie('keepsake')}/></span><input value={form.keepsake} onChange={pen('keepsake')} maxLength={60} placeholder="It goes into their pack — and into the story."/></label>
       </>}
 
       {door === 'oracle' && <>
         <div className="form-grid oracle-grid">
-          <label>Which way do you walk?<select defaultValue="" onChange={(e) => setForm((v) => ({ ...v, ...oracleHero({ path: e.target.value, virtue: v.__virtue, keepsake: v.__keepsake }), __path: e.target.value, voiceId: v.voiceId }))}>
+          <label>Which way do you walk?<select defaultValue="" onChange={(e) => oracleWrite({ __path: e.target.value })}>
             <option value="" disabled>choose…</option>{ORACLE_HERO.paths.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
-          <label>What carries you?<select defaultValue="" onChange={(e) => setForm((v) => ({ ...v, ...oracleHero({ path: v.__path, virtue: e.target.value, keepsake: v.__keepsake }), __virtue: e.target.value, voiceId: v.voiceId }))}>
+          <label>What carries you?<select defaultValue="" onChange={(e) => oracleWrite({ __virtue: e.target.value })}>
             <option value="" disabled>choose…</option>{ORACLE_HERO.virtues.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
-          <label>What do you keep?<select defaultValue="" onChange={(e) => setForm((v) => ({ ...v, ...oracleHero({ path: v.__path, virtue: v.__virtue, keepsake: e.target.value }), __keepsake: e.target.value, voiceId: v.voiceId }))}>
+          <label>What do you keep?<select defaultValue="" onChange={(e) => oracleWrite({ __keepsake: e.target.value })}>
             <option value="" disabled>choose…</option>{ORACLE_HERO.keepsakes.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
         </div>
         <div className="form-grid">
-          <label>Name<input value={form.name} onChange={set('name')} /></label>
-          <label>Presentation — how they are heard<select value={form.presentation} onChange={setPresentation}><option value="feminine">Feminine</option><option value="masculine">Masculine</option><option value="neutral">Neutral / unsaid</option></select></label>
+          <label>{ask('hero', 'name')}<input value={form.name} onChange={pen('name')} /></label>
+          {presentationField}
         </div>
         <article className="spin-card"><p>{form.bearing}</p><p className="fine-print">{form.background}</p></article>
       </>}
 
       {door === 'hand' && <>
         <div className="form-grid">
-          <label><span className="label-line">Name <DiceButton label="Roll a name" onRoll={dice((s) => ({ name: rollName(s) }))}/></span><input value={form.name} onChange={set('name')} /></label>
-          <label>Ancestry<input value={form.ancestry} onChange={set('ancestry')} /></label>
-          <label>Class<input value={form.className} onChange={set('className')} /></label>
-          <label>Casting<select value={form.caster} onChange={set('caster')}><option value="none">None</option><option value="full">Full caster</option><option value="half">Half caster</option><option value="energy">Spell energy</option></select></label>
-          <label>Hit die<select value={form.hitDie} onChange={set('hitDie')}><option>6</option><option>8</option><option>10</option><option>12</option></select></label>
+          <label><span className="label-line">{ask('hero', 'name')} <DiceButton label="Roll a name" onRoll={fieldDie('name')}/></span><input value={form.name} onChange={pen('name')} /></label>
+          <label><span className="label-line">{ask('hero', 'ancestry')} <DiceButton label="Roll an ancestry" onRoll={fieldDie('ancestry')}/></span><input value={form.ancestry} onChange={pen('ancestry')} /></label>
+          <label>{ask('hero', 'className')}<input value={form.className} onChange={pen('className')} /></label>
+          <label>Casting<select value={form.caster} onChange={pen('caster')}><option value="none">None</option><option value="full">Full caster</option><option value="half">Half caster</option><option value="energy">Spell energy</option></select></label>
+          <label>Hit die<select value={form.hitDie} onChange={pen('hitDie')}><option>6</option><option>8</option><option>10</option><option>12</option></select></label>
         </div>
         <div className="ability-grid">{Object.entries(form.abilities).map(([ability, score]) => <label key={ability}>{ability}<input type="number" min="3" max="20" value={score} onChange={(e) => updateAbility(ability, e.target.value)}/><small>{Math.floor((score-10)/2) >= 0 ? '+' : ''}{Math.floor((score-10)/2)}</small></label>)}</div>
         <div className="form-grid">
-          <label>Presentation — how they are heard<select value={form.presentation} onChange={setPresentation}><option value="feminine">Feminine</option><option value="masculine">Masculine</option><option value="neutral">Neutral / unsaid</option></select></label>
-          <label>Pronouns (optional)<input value={form.pronouns} onChange={set('pronouns')} maxLength={30} placeholder="she/her, he/him, they/them…"/></label>
-          <label><span className="label-line">Distinguishing mark <DiceButton label="Roll a mark" onRoll={dice((s) => ({ mark: rollMark(s) }))}/></span><input value={form.mark} onChange={set('mark')} maxLength={80} placeholder="A scar, a brand, a streak of white…"/></label>
+          {presentationField}
+          <label><span className="label-line">{ask('hero', 'pronouns')} <DiceButton label="Roll the words" onRoll={fieldDie('pronouns')}/></span><input value={form.pronouns} onChange={pen('pronouns')} maxLength={30} placeholder="she/her, he/him, they/them…"/></label>
+          <label><span className="label-line">{ask('hero', 'mark')} <DiceButton label="Roll a mark" onRoll={fieldDie('mark')}/></span><input value={form.mark} onChange={pen('mark')} maxLength={80} placeholder="A scar, a brand, a streak of white…"/></label>
         </div>
-        <label><span className="label-line">Bearing — how the world sees them</span><input value={form.bearing} onChange={set('bearing')} maxLength={200} placeholder="Their look, their gear, the way they carry themselves"/></label>
-        <label>Background<textarea value={form.background} onChange={set('background')} rows="3" /></label>
+        <label className="ask-row"><span className="label-line">{ask('hero', 'keepsake')} <DiceButton label="Roll a keepsake" onRoll={fieldDie('keepsake')}/></span><input value={form.keepsake} onChange={pen('keepsake')} maxLength={60}/></label>
+        <label><span className="label-line">{ask('hero', 'bearing')} <DiceButton label="Roll a bearing" onRoll={fieldDie('bearing')}/></span><input value={form.bearing} onChange={pen('bearing')} maxLength={200} placeholder="Their look, their gear, the way they carry themselves"/></label>
+        <label><span className="label-line">{ask('hero', 'background')} <DiceButton label="Roll a background" onRoll={fieldDie('background')}/></span><textarea value={form.background} onChange={pen('background')} rows="3" /></label>
         <p className="fine-print">Starting skills: {Array.isArray(form.skills) ? form.skills.join(', ') : 'Perception, Survival, Stealth'}. Every value is yours to change before play.</p>
       </>}
 
@@ -314,7 +454,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
           </button>)}</div>
       </div>}
       <AuditionRow presentation={form.presentation} name={form.name} voiceId={form.voiceId} onBless={bless}/>
-      <button className="primary-button" onClick={() => onBegin(sitting ? { ...form, sitting } : form)}>Begin the chronicle <ArrowRight/></button>
+      <button className="primary-button" onClick={() => { /* the blessing travels with the forge; the sovereign ledger stays home */ const hero = sitting ? { ...form, sitting } : { ...form }; const out = {}; for (const [key, value] of Object.entries(hero)) if (!key.startsWith('__')) out[key] = value; onBegin(out); }}>Begin the chronicle <ArrowRight/></button>
     </section>
   </main>;
 }

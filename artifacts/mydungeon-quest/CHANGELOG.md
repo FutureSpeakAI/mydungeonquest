@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.1 — The Two Hands
+
+**Every question wears both hands (Experience-Directive XIII, ratified).** Onboarding stops being a form and becomes a table: every asked question names where its answer lands — the FIELD MAP in the engine is the ONE seat of ask copy, and the doors, the evals, and the e2e courts all read their bytes from it (Law I). Every field owns a die AND a pen (Law II): the die deals three candidates from the smith, the pen writes sovereign ink, and typed ink survives whole-spins and neighbour dice untouched — the ONE consent to replace a player's words is that field's own die, pressed by the player's own hand. The calling moves as one body: a className respin carries its riders with it, sovereign riders dropped from the deal, never overwritten. The spine is DERIVED from the promise, never asked — no candidate may carry it.
+
+**The smith and its court.** One door — `/api/smith` — behind the watchtower's rate and abuse caps, deliberately before the innkeeper (the forge precedes the first pour). The mock floor deals deterministic, lock-conditioned, sweep-clean candidate sets keyless — the same contract as the live smith, so the proving and parchment tiers play the whole game on the floor's dice. The illuminated tier convenes the live smith under degrade-to-mock-never-error; the candidate court refuses locked keys, stranger keys, missing keys, over-fence strings, incoherent callings, and unswept text; at most two redraws, each carrying the court's refusals BY NAME as data so a falling deal learns why it fell; and the client re-judges every served set fail-closed with the engine's own court before a single card shows.
+
+**The dial that died and the fence the model couldn't see.** Two live-tier truths no keyless court could catch, caught by the two-seat G27d court (the rig's webserver is key-scrubbed by standing law, so the route proves mock-in-its-own-name at one seat while the live smith convenes in-process at the other). First: Anthropic retired the `temperature` parameter for this model family — every live deal 400'd at the door and the floor seated silently; the request no longer carries the dial and the live evidence declares honest-null, while the floor still declares its pinned 0.9. Second: schema fences proved ADVISORY — the bound now rides four seats from the ONE fence table: maxLength, a description spoken where the model reads, the law's bounds sentence, and the ask's hard-wall line, with max_tokens headroom so a truncated tool JSON cannot empty the bench invisibly.
+
+**The architect's sitting (a fail-open court, cured whole).** The review caught the candidate court blind on two seats, both verified before legislating: the governing calling could sit in the LOCK — a whole-hero deal under a locked className carries no className of its own, so rider coherence was never tried, and a Wizard could seat a greatsword's die unchallenged; and background coherence carried a hero-scope exemption the floor never had. The court now reads the governing calling from the candidate OR the lock, background binds uniformly, and the mirror closed with it: under a locked calling the schema deals every rider as enum-of-one from the tables the court reads, and where a calling may be dealt, the settled callings ride the ask as data — copy the body exactly, or the court refuses it whole. Five rider-contradiction regression courts stand by name, and the pen stays sovereign: a calling the tables do not know governs nothing.
+
+*Gates 113 → 116 (the questions, the two hands, the smith gate —
+keyless, mock-sovereign). The proving loop burned seven of eight tags:
+three reds taught (stale label bytes at the hand door; the key-scrubbed
+rig demanding the two-seat court; the dead dial and the advisory fence),
+three consecutive greens sealed 58B.4 through 58B.6 — 97 of 97, zero
+skipped, zero flaky — the architect's two blockers cured, and 58B.7
+certified the closure end-to-end on final bytes. The extension was
+never drawn.*
+
 ## 0.9.0 — The Writer's Room
 
 **Three minds behind the one door (Experience-Directive XI, ratified).** Playtests convicted the telling of three crimes the record could not see: prose that echoes itself because no one reads yesterday's pages, narration unsaid in front of the reader, and captions that were 90-character knife-cuts orphaned mid-clause. The room answers: the Director (once per beat, intent and measure), the Voice (the standing dm_turn author, unchanged in station), the Editor (every draft, behind the curtain), the Art Director (only when a plate is due) — `server/room.js` orchestrates the seats and `/api/dm` remains the one door. However many minds deliberate, exactly one validated `dm_turn` enters the record per turn, and the player sees nothing until it has.

@@ -512,3 +512,15 @@
 .epitaph .doom-decline{background:transparent;border:1px solid currentColor;opacity:.7;margin-top:.5rem}
 .epitaph .roll-button.doom{margin-top:.75rem}
 .party-strip .sheet-line{display:block;opacity:.75;font-size:.85rem;margin-top:.15rem}
+
+/* ---- THE TWO HANDS (Directive XIII, 0.9.1) ---- */
+.ask-row{display:flex;flex-direction:column;gap:.3rem;margin:.5rem 0}
+.ask-row textarea{min-height:3.2rem}
+.shape-line{display:flex;align-items:baseline;gap:.45rem;flex-wrap:wrap;margin:.55rem 0;padding:.5rem .75rem;border-left:2px solid rgba(212,162,78,.45);background:rgba(233,223,200,.04);font-size:.95rem}
+.shape-line b{font-family:Cinzel,serif;letter-spacing:.03em}
+.shape-line small{opacity:.62;font-size:.78rem}
+.xcard-card{display:flex;gap:.6rem;align-items:flex-start;border:1px solid rgba(212,162,78,.3);border-radius:12px;padding:.7rem .85rem;margin:.5rem 0;background:linear-gradient(160deg,rgba(233,223,200,.05),rgba(0,0,0,.24))}
+.xcard-card svg{flex:none;margin-top:.15rem;opacity:.8}
+.xcard-card p{margin:0;font-size:.9rem;line-height:1.45;opacity:.88}
+.portrait-inscription{display:block;font-style:italic;font-size:.78rem;opacity:.75;margin-top:.15rem}
+.hero-sigil .dice-button{margin-left:.35rem}

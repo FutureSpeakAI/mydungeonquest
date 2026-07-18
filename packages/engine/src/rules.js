@@ -63,32 +63,55 @@ export function rollDie(sides, random = Math.random) {
   return Math.floor(random() * sides) + 1;
 }
 
-export function heroRoll(hero, request, random = Math.random) {
+// THE TABLE'S-DICE LAW (Directive X, Law V) — ONE roll engine, two lawful
+// actors: the hero and the sheeted companion fold the same way, and the
+// result carries its owner's name. A death save is the plain die: no
+// ability, no proficiency — a d20 against 10, the dark keeping score.
+function tableRoll(actorId, abilities, level, conditions, request, random) {
+  const isDeathSave = request.kind === 'death_save';
   const ability = request.ability || SKILLS[request.skill] || 'DEX';
-  const poisoned = hero.conditions.includes('poisoned');
-  const frightened = hero.conditions.includes('frightened');
-  const restrainedDex = hero.conditions.includes('restrained') && request.kind === 'save' && ability === 'DEX';
-  const autoFail = request.kind === 'save' && ['STR', 'DEX'].includes(ability) && hero.conditions.some((c) => ['paralyzed','stunned','unconscious'].includes(c));
+  const poisoned = conditions.includes('poisoned');
+  const frightened = conditions.includes('frightened');
+  const restrainedDex = conditions.includes('restrained') && request.kind === 'save' && ability === 'DEX';
+  const autoFail = request.kind === 'save' && ['STR', 'DEX'].includes(ability) && conditions.some((c) => ['paralyzed','stunned','unconscious'].includes(c));
   let mode = request.advantage || 'normal';
   if (poisoned || frightened || restrainedDex) mode = mode === 'advantage' ? 'normal' : 'disadvantage';
   const dice = [rollDie(20, random)];
   if (mode !== 'normal') dice.push(rollDie(20, random));
   const selected = mode === 'advantage' ? Math.max(...dice) : mode === 'disadvantage' ? Math.min(...dice) : dice[0];
-  const mods = [
-    { source: ability, value: modifier(hero.abilities[ability]) },
-    ...(request.proficient ? [{ source: 'Proficiency', value: proficiency(hero.level) }] : []),
+  const mods = isDeathSave ? [] : [
+    { source: ability, value: modifier(abilities[ability]) },
+    ...(request.proficient ? [{ source: 'Proficiency', value: proficiency(level) }] : []),
     ...(request.extra_mod ? [{ source: 'Other', value: Number(request.extra_mod) }] : [])
   ];
   const total = autoFail ? 0 : selected + mods.reduce((sum, entry) => sum + entry.value, 0);
-  const target = request.dc ?? null;
+  const target = request.dc ?? (isDeathSave ? 10 : null);
   const outcome = autoFail ? 'failure' : selected === 20 ? 'critical_success' : selected === 1 ? 'critical_failure' : target == null ? 'success' : total >= target ? 'success' : 'failure';
-  return { requestId: request.id, actorId: 'hero', targetId: request.target_id || null, actionId: request.action_id || null, rawDice: dice, selectedDie: selected, modifiers: mods, total, dcOrAc: target, outcome, appliedEffects: [] };
+  return { requestId: request.id, actorId, targetId: request.target_id || null, actionId: request.action_id || null, rawDice: dice, selectedDie: selected, modifiers: mods, total, dcOrAc: target, outcome, appliedEffects: [] };
+}
+
+export function heroRoll(hero, request, random = Math.random) {
+  return tableRoll('hero', hero.abilities, hero.level, hero.conditions, request, random);
+}
+
+// The sheet-bearing sibling: a sheeted companion's die, folded from the
+// companion's own sheet. Sheets carry no conditions — that road is not
+// yet law — so the fold walks unimpeded.
+export function companionRoll(name, sheet, request, random = Math.random) {
+  return tableRoll(String(name ?? '').trim(), sheet.abilities, sheet.level, [], request, random);
 }
 
 export function applyStateUpdates(hero, updates) {
   if (!updates) return hero;
   const next = structuredClone(hero);
   next.hp = Math.max(0, Math.min(next.maxHp, next.hp + Number(updates.hp_delta || 0)));
+  // THE DOOM LAW (Directive X, Law VII) — breath returning clears the
+  // deathbed: above zero the saves reset and the stable-at-zero mark lifts.
+  // The permanent seal (dead) is not this fold's to touch.
+  if (next.hp > 0) {
+    if (next.stableAtZero) next.stableAtZero = false;
+    if (next.deathSaves && (next.deathSaves.successes || next.deathSaves.failures)) next.deathSaves = { successes: 0, failures: 0 };
+  }
   next.xp = Math.max(0, next.xp + Math.max(0, Number(updates.xp_gain || 0)));
   next.gold = Math.max(0, next.gold + Number(updates.gold_delta || 0));
   if (Number.isFinite(updates.ac_set)) next.ac = Math.max(1, Math.min(30, Number(updates.ac_set)));
@@ -113,10 +136,69 @@ export function spendSlot(hero, requestedLevel) {
   return usable || null;
 }
 
+// THE ROUND LAW (Directive X, Law III) — the order is sealed ONCE when
+// battle opens, as an operation: device draws for the player's side
+// (d20 + DEX for the hero; companions draw plain until sheets are law),
+// pool draws for enemy species groups — pack initiative, every instance
+// of a group sharing its drawn die. Ties break toward the player's side,
+// then by name — determinism is law. Death and flight never reshuffle
+// the sealed order; the fallen keep their seats.
+export function sealInitiative({ hero, party = [], enemies = [], draws = [], random = Math.random }) {
+  const canon = (value) => String(value ?? '').trim().toLowerCase();
+  const rows = [];
+  rows.push({ id: hero.id || 'hero', name: hero.name, side: 'player', total: rollDie(20, random) + modifier(hero.abilities.DEX), hero: true });
+  for (const companion of party) {
+    const name = typeof companion === 'string' ? companion : companion?.name;
+    if (!name) continue;
+    rows.push({ id: `party-${canon(name).replace(/[^a-z0-9]+/g, '-')}`, name, side: 'player', total: rollDie(20, random), hero: false });
+  }
+  const drawByGroup = new Map();
+  for (const draw of draws) if (draw && typeof draw === 'object') drawByGroup.set(canon(draw.group), Number(draw.value) || 0);
+  for (const enemy of enemies) {
+    const groupKey = drawByGroup.has(canon(enemy.species)) ? canon(enemy.species) : canon(enemy.id);
+    rows.push({ id: enemy.id, name: enemy.name, side: 'enemy', total: drawByGroup.get(groupKey) ?? 0, hero: false });
+  }
+  return rows.sort((a, b) => (b.total - a.total)
+    || (a.side !== b.side ? (a.side === 'player' ? -1 : 1) : 0)
+    || (canon(a.name) < canon(b.name) ? -1 : canon(a.name) > canon(b.name) ? 1 : 0));
+}
+
 export function rollInitiative(hero, enemies, random = Math.random) {
   const entries = [
     { id: hero.id, name: hero.name, total: rollDie(20, random) + modifier(hero.abilities.DEX), zone: 'engaged', hero: true },
     ...enemies.map((enemy) => ({ id: enemy.id, name: enemy.name, total: rollDie(20, random) + Number(enemy.init_mod || 0), zone: enemy.zone, hero: false }))
   ];
   return entries.sort((a,b) => b.total - a.total);
+}
+
+// THE COMPANION-SHEET LAW (Directive X, Law VI) — THE ROLE TABLE fixes the
+// spread, the band, and the growth; hit points are arithmetic, never model
+// numbers. The sigil is the owner's mark on the roll surface.
+export const ROLE_TABLE = {
+  guardian:   { spread: { STR: 15, DEX: 12, CON: 14, INT: 8,  WIS: 12, CHA: 10 }, bandHp: 12, perLevel: 7, sigil: '▲' },
+  skirmisher: { spread: { STR: 12, DEX: 15, CON: 12, INT: 10, WIS: 13, CHA: 10 }, bandHp: 9,  perLevel: 5, sigil: '➤' },
+  mender:     { spread: { STR: 10, DEX: 12, CON: 13, INT: 12, WIS: 15, CHA: 10 }, bandHp: 8,  perLevel: 4, sigil: '✚' },
+  trickster:  { spread: { STR: 10, DEX: 15, CON: 12, INT: 13, WIS: 10, CHA: 14 }, bandHp: 8,  perLevel: 5, sigil: '◆' }
+};
+
+// hp = bandHp(role) + (level − 1) × perLevel(role). An unlawful role or
+// level returns null — fail closed, never invent a sheet.
+export function sheetFor(role, level) {
+  const row = ROLE_TABLE[String(role || '').toLowerCase()];
+  if (!row || !Number.isInteger(level) || level < 1 || level > 5) return null;
+  const hp = row.bandHp + (level - 1) * row.perLevel;
+  return { role: String(role).toLowerCase(), level, sigil: row.sigil, abilities: { ...row.spread }, hp, maxHp: hp, deathSaves: { successes: 0, failures: 0 } };
+}
+
+// THE DOOM LAW (Directive X, Law VII) — three-and-three, a pure fold: each
+// resolved save moves one count; three successes stand stable at zero,
+// three failures seal death. A sealed bed refuses a fourth save — the
+// fold returns the seal unchanged. No resurrection retcons ride here.
+export function foldDeathSave(saves, outcome) {
+  const current = { successes: Math.max(0, Math.trunc(Number(saves?.successes) || 0)), failures: Math.max(0, Math.trunc(Number(saves?.failures) || 0)) };
+  if (current.successes >= 3) return { deathSaves: current, verdict: 'stable' };
+  if (current.failures >= 3) return { deathSaves: current, verdict: 'dead' };
+  const success = outcome === 'success' || outcome === 'critical_success';
+  const next = { successes: current.successes + (success ? 1 : 0), failures: current.failures + (success ? 0 : 1) };
+  return { deathSaves: next, verdict: next.successes >= 3 ? 'stable' : next.failures >= 3 ? 'dead' : 'pending' };
 }

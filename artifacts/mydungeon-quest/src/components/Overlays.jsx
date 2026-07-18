@@ -173,7 +173,11 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
         listed. An empty roster is said plainly — the hero travels alone. */}
     <h3>The party — who rides with the hero</h3>
     {(c.party || []).length > 0
-      ? <ul className="presence-list party-strip">{(c.party || []).map((member, i) => <li key={i}><b>{member.name}</b><span className="cite">{Number.isInteger(member.joinedTurn) ? `joined turn ${member.joinedTurn}` : 'joined on the road'}</span></li>)}</ul>
+      ? <ul className="presence-list party-strip">{(c.party || []).map((member, i) => <li key={i}><b>{member.name}</b><span className="cite">{Number.isInteger(member.joinedTurn) ? `joined turn ${member.joinedTurn}` : 'joined on the road'}</span>
+        {/* THE COMPANION-SHEET LAW (Directive X, Law VI) — the sheet on the
+            strip: role, level, hit points, and the spread — arithmetic from
+            THE ROLE TABLE; the doomed and the stable say so plainly. */}
+        {member.sheet && <span className="sheet-line">{member.sheet.sigil} {member.sheet.role} · level {member.sheet.level} · {member.sheet.doom === 'dead' ? 'fallen — the seal is permanent' : member.sheet.doom === 'stable' ? 'stable at zero' : `${member.sheet.hp}/${member.sheet.maxHp} hp`} · {['STR','DEX','CON','INT','WIS','CHA'].map((a) => `${a} ${member.sheet.abilities[a]}`).join(' · ')}</span>}</li>)}</ul>
       : <p className="muted">The hero travels alone.</p>}
     <h3>The cast — what the world remembers</h3>
     {openCard && <article className="soul-page">

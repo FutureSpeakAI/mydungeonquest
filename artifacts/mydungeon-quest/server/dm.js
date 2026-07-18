@@ -22,6 +22,12 @@ export function judgeTurn(turn, input) {
   if (Array.isArray(input.story?.party_state)) context.party = input.story.party_state.map((member) => member?.name).filter((memberName) => typeof memberName === 'string');
   if (Array.isArray(input.story?.presence_state)) context.presence = input.story.presence_state;
   if (Array.isArray(input.story?.fixture_state)) context.fixtures = input.story.fixture_state;
+  // THE BATTLE CUT (Directive X): the sealed bestiary and the standing
+  // combatants seat their courts the same conditional way — evidence
+  // present, court in session; absent, out of session, never faked.
+  if (Array.isArray(input.story?.bestiary_state)) context.bestiary = input.story.bestiary_state;
+  if (Array.isArray(input.story?.sheet_state)) context.sheets = input.story.sheet_state.map((row) => row?.name).filter((name) => typeof name === 'string');
+  if (Array.isArray(input.state?.combat?.enemies)) context.combatants = input.state.combat.enemies.map((enemy) => ({ id: enemy?.id, name: enemy?.name, hp: enemy?.hp }));
   const validation = validateDmTurn(turn, input.entropy, context);
   const errors = validation.ok ? [] : [...validation.errors];
   const strangers = unrecordedSouls(turn, input.story?.cast || [], { hero: input.hero || null });
@@ -51,7 +57,7 @@ const rollRequestSchema = {
         advantage: { type: 'string', enum: ['normal','advantage','disadvantage'] },
         extra_mod: { type: 'integer', minimum: -10, maximum: 20 },
         action_id: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 80 }] },
-        actor_id: { type: 'string', maxLength: 80 },
+        actor_id: { type: 'string', maxLength: 80, description: "Whose die falls: 'hero', or a SHEETED companion's exact name — the table rolls only for the hero and the sheeted; the owner's die lands on the player's own device." },
         target_id: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 80 }] }
       }
     }
@@ -84,7 +90,25 @@ const combatSchema = {
         enemy_add: { type: 'array', items: { type: 'object', required: ['id','name','hp','maxHp','ac','zone'], properties: { id: { type: 'string' }, name: { type: 'string' }, hp: { type: 'integer', minimum: 1, maximum: 999 }, maxHp: { type: 'integer', minimum: 1, maximum: 999 }, ac: { type: 'integer', minimum: 1, maximum: 30 }, zone: { type: 'string', enum: ['engaged','near','far'] } } } },
         enemy_update: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, hp_delta: { type: 'integer' }, zone: { anyOf: [{ type: 'null' }, { type: 'string', enum: ['engaged','near','far'] }] } } } },
         enemy_remove: { type: 'array', items: { type: 'string' } },
-        npc_actions: { type: 'array', items: { type: 'object' } }
+        npc_actions: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['actor','action'], properties: {
+          actor: { type: 'string', maxLength: 80, description: 'Exact enemy instance id or name. ONE action per living combatant per turn — a second action by the same actor is refused by name, and the downed and the fled do not act.' },
+          action: { type: 'string', maxLength: 120 }
+        } } },
+        // THE BATTLE CUT (Directive X): declared because the strict validator
+        // enforces these exact shapes — a schema the model cannot see is a trap.
+        spawn: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['species','count','names','zone'], properties: {
+          species: { type: 'string', minLength: 3, maxLength: 60, description: 'A species the bestiary has SEALED via story.creature_add — this turn or before. Instances derive hit points and armor from the sealed threat rating; never invent stats for a sealed species.' },
+          count: { type: 'integer', minimum: 1, maximum: 6 },
+          names: { anyOf: [ { type: 'null' }, { type: 'array', maxItems: 6, items: { type: 'string', minLength: 2, maxLength: 60 } } ], description: 'Optional given names; unnamed instances take deterministic letters (Marsh Howler A, B, …). Spawn rides only op start.' },
+          zone: { type: 'string', enum: ['engaged','near','far'] }
+        } } ] },
+        initiative: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['device','entropy'], properties: {
+          device: { type: 'array', minItems: 1, items: { type: 'string', maxLength: 80 }, description: 'The player side by exact name — the hero and every party companion. Their d20s fall on the player\'s own screen; never roll for them.' },
+          entropy: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'object', additionalProperties: false, required: ['group','index'], properties: {
+            group: { type: 'string', maxLength: 80, description: 'Species name (pack initiative — one draw per species group) or the exact id of a lone added enemy.' },
+            index: { type: 'integer', description: 'Index into this turn\'s entropy_use citing a d20 draw — every draw accounted.' }
+          } } }
+        }, description: 'REQUIRED when op is start, refused otherwise — the order is sealed once, as an operation. At most three enemy groups; the pool holds three d20s.' } ] }
       }
     }
   ]
@@ -163,6 +187,20 @@ const storySchema = {
           place: { type: 'string', minLength: 3, maxLength: 100, description: 'The region this fixture stands in — one the record holds, or one created by this same turn\'s world.region_add.' },
           name: { type: 'string', minLength: 3, maxLength: 60 },
           visual: { type: 'string', minLength: 8, maxLength: 160, description: 'The fixture\'s paintable visual truth. Fixture canon seals once — written once, never rewritten, and the painter reads it forever.' }
+        } } ] },
+        // THE BATTLE CUT (Directive X, Law I): declared because the strict
+        // validator enforces this exact shape — a single object, never an
+        // array, and the seal is once.
+        creature_add: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['species','visual','nature','threat'], properties: {
+          species: { type: 'string', minLength: 3, maxLength: 60, description: 'Species canon seals ONCE — written once, never rewritten; a duplicate of [STORY].bestiary_state is refused by name.' },
+          visual: { type: 'string', minLength: 8, maxLength: 160, description: 'The species\' paintable visual truth — the painter reads it forever.' },
+          nature: { type: 'string', minLength: 3, maxLength: 90, description: 'How the species behaves — hunts, guards, flees.' },
+          threat: { type: 'integer', minimum: 1, maximum: 5, description: 'Fixes every instance\'s hit points and armor through the table\'s threat law; never state enemy stats yourself.' }
+        } } ] },
+        sheet_grant: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name','role','level'], properties: {
+          name: { type: 'string', minLength: 2, maxLength: 60, description: "A STANDING party member's exact name (party_state; a soul joining this same turn counts). Sheets seal once — a duplicate is refused by name." },
+          role: { type: 'string', enum: ['guardian','skirmisher','mender','trickster'], description: 'THE ROLE TABLE fixes the ability spread and hit points in code — never state sheet numbers yourself.' },
+          level: { type: 'integer', minimum: 1, maximum: 5, description: 'hp = band + (level − 1) × growth, by the role table in code.' }
         } } ] }
       }
     }

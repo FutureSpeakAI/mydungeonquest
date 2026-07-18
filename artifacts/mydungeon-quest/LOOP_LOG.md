@@ -1843,3 +1843,28 @@ exists. The task closes RED, honestly, with this evidence standing:
 - Every ledgered edit is a brief cure, an instrument-law amendment
   (9, ledgered), a lockstep pin move, or a walk hardening — no assertion
   weakened anywhere, no skip introduced, no dependency added.
+
+## TASK 57 — THE BATTLE CUT (2026-07-18)
+
+Opened under the owner's amend-and-proceed ruling of 2026-07-18: Task 57's
+precondition read "56C closed green"; the ledger holds 56C closed RED at the
+frozen ceiling with two full greens standing at exhaustion and the
+architect's PASS. The ruling: those stand as sufficient ratification; the
+deviation is ledgered in Directive X's preamble. Verifiable preconditions
+proven before any byte moved: HEAD b3c5b78, CHANGELOG top 0.7.3, keyless
+check exit 0 at the 102 pin (run on closing bytes, keys unset).
+EXPERIENCE-DIRECTIVE-X.md ratified before code, per the directive-first law.
+Ceiling: ten iterations across both stages. Test edits ledger below.
+
+### Stage One test edits (2026-07-18)
+- NEW `evals/bestiary.test.mjs` — Directive X Laws I–II: the creature_add door (shape, bounds, seal-by-name, bare-context silence), THREAT_TABLE fixed rows, expandSpawn (deterministic letters, given names, clamp at six, unsealed-expands-to-nothing), reducer seal-once with notes, storyBlock bestiary_state, and the scenePrompt bestiary rider (verbatim clause, cap three, recency, silent when no battle stands or the species is downed).
+- NEW `evals/roundLaw.test.mjs` — Directive X Law III: initiative required at op start and refused elsewhere, device-side coverage by name, 1–3 accounted d20 draws with group dedupe, spawn/enemy_add draw coverage, spawn only at the opening, unsealed-spawn refusal beside same-breath lawfulness, npc_actions first shape with one-action-by-name, fallen and stranger refusals, bare-context silence, and sealInitiative determinism (tie toward the player, alphabetical within a side, absent draws fail to zero).
+- `package.json` eval chain grew both gates, appended after firstWord — no existing gate touched.
+- `tests/e2e/g13-check.spec.ts` PINNED_PASS_COUNT 102 → 104 in the same commit that adds the two PASS lines (pin law).
+- Amendment (2026-07-18): the easel rider fixture in `evals/bestiary.test.mjs` renamed its second species 'Gore Crow' → 'Dusk Crow' — the standing PG-13 easel filter redacts 'Gore' on the painted plate, which is that filter's law, not the bestiary rider's. Assertion strength unchanged (verbatim clause, cap three, recency). The fold-section 'Gore Crow' stays — storyBlock carries canon uncensored.
+
+### Stage Two test edits (2026-07-18)
+- NEW `evals/tableDice.test.mjs` — Directive X, Law V: the actor court (hero always lawful; a sheeted companion lawful by name; an unsheeted actor refused by name when the sheet ledger sits; bare context keeps shape law), the sheet-bearing sibling fold (companion abilities and proficiency, owner's name riding the result), the plain death save (no ability, no proficiency, DC 10 default), and the no-invented-numbers prompt rule pinned byte-stable.
+- NEW `evals/doom.test.mjs` — Directive X, Laws VI-VII: the sheet_grant door (shape, role enum, level bounds, membership with the party seated, duplicate-by-name with the sheet ledger seated, bare-context silence), THE ROLE TABLE row by row with the hp arithmetic cited, the reducer's seal-once fold with notes and sheet_state on the block, the three-and-three walk both ways under seeded dice, the sealed bed refusing a fourth save, the resurrection retcon still blocked, the memorial fact, and the fall notes riding held threads by name.
+- `package.json` eval chain grew both gates, appended after roundLaw — no existing gate touched.
+- `tests/e2e/g13-check.spec.ts` PINNED_PASS_COUNT 104 → 106 in the same commit that adds the two PASS lines (pin law; both stage pins land in the one Task 57 closing commit).

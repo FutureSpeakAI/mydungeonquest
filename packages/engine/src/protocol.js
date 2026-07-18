@@ -1,3 +1,5 @@
+import { ROLE_TABLE } from './rules.js';
+
 const ALLOWED_KEYS = new Set(['narration_blocks','suggestions','roll_request','state_updates','combat','cinematic','story','image_cue','dialogue_cue','time_advance','entropy_use']);
 const CINEMATIC_TYPES = new Set(['chapter','boss_reveal','discovery','ominous','level_up','death','victory']);
 const ROLL_KINDS = new Set(['check','save','attack','damage','death_save']);
@@ -276,6 +278,79 @@ function validateFixtures(story, context, errors) {
     if (dup) errors.push(`fixture_add duplicates a sealed fixture: ${String(fixture.name).trim()} already stands in ${String(fixture.place).trim()}`);
   }
 }
+// THE BATTLE CUT (Directive X, Law I) — species canon seals once, like
+// fixture canon: creature_add { species, visual, nature, threat }, an
+// object and never an array, exactly four keys. Shape law always; the
+// seal court seats iff context.bestiary is an array ([{ species, threat }]).
+// A duplicate sealed species is refused by name.
+export const THREAT_TABLE = { 1: { hp: 4, ac: 10 }, 2: { hp: 9, ac: 11 }, 3: { hp: 16, ac: 12 }, 4: { hp: 30, ac: 14 }, 5: { hp: 55, ac: 16 } };
+function validateBestiary(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const add = story.creature_add;
+  if (add === undefined || add === null) return;
+  if (!add || typeof add !== 'object' || Array.isArray(add) || Object.keys(add).some((key) => !['species', 'visual', 'nature', 'threat'].includes(key))) {
+    errors.push('creature_add must be an object with exactly species, visual, nature, and threat');
+    return;
+  }
+  if (!(cleanText(add.species, 60) && String(add.species).trim().length >= 3)) errors.push('creature_add.species must be 3-60 chars');
+  if (!(cleanText(add.visual, 160) && String(add.visual).trim().length >= 8)) errors.push('creature_add.visual must be 8-160 chars');
+  if (!(cleanText(add.nature, 90) && String(add.nature).trim().length >= 3)) errors.push('creature_add.nature must be 3-90 chars');
+  if (!(Number.isInteger(add.threat) && add.threat >= 1 && add.threat <= 5)) errors.push('creature_add.threat must be an integer between 1 and 5');
+  if (Array.isArray(context.bestiary) && cleanText(add.species, 60)) {
+    if (context.bestiary.some((card) => canonKey(card?.species) === canonKey(add.species))) {
+      errors.push(`creature_add duplicates a sealed species: ${String(add.species).trim()}`);
+    }
+  }
+}
+// THE COMPANION-SHEET LAW (Directive X, Law VI) — one additive grant seals
+// a standing party member's sheet: exactly { name, role, level }, role from
+// THE ROLE TABLE, level 1-5, an object never an array. Membership is judged
+// with the party seated (a soul joining this same breath counts); a
+// duplicate sheet is refused by name with the sheet ledger seated; bare
+// context keeps shape law and no more.
+function validateSheetGrant(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const grant = story.sheet_grant;
+  if (grant === undefined || grant === null) return;
+  if (typeof grant !== 'object' || Array.isArray(grant) || Object.keys(grant).length !== 3 || Object.keys(grant).some((key) => !['name', 'role', 'level'].includes(key))) {
+    errors.push('sheet_grant must be an object with exactly name, role, and level');
+    return;
+  }
+  if (!(cleanText(grant.name, 60) && String(grant.name).trim().length >= 2)) errors.push('sheet_grant.name must be 2-60 chars');
+  if (!(typeof grant.role === 'string' && Object.prototype.hasOwnProperty.call(ROLE_TABLE, String(grant.role).toLowerCase()))) errors.push('sheet_grant.role must be one of guardian, skirmisher, mender, trickster');
+  if (!(Number.isInteger(grant.level) && grant.level >= 1 && grant.level <= 5)) errors.push('sheet_grant.level must be an integer between 1 and 5');
+  if (!cleanText(grant.name, 60)) return;
+  if (Array.isArray(context.party)) {
+    const joining = story.party_join?.name;
+    const seated = context.party.some((name) => canonKey(name) === canonKey(grant.name)) || (joining && canonKey(joining) === canonKey(grant.name));
+    if (!seated) errors.push(`sheet_grant names a soul outside the standing party: ${String(grant.name).trim()}`);
+  }
+  if (Array.isArray(context.sheets) && context.sheets.some((name) => canonKey(name) === canonKey(grant.name))) {
+    errors.push(`sheet_grant duplicates a standing sheet: ${String(grant.name).trim()}`);
+  }
+}
+// THE SPAWN EXPANSION — the ONE helper every bench and client calls, so
+// instances derive identically everywhere: id `species-slug-letter`,
+// deterministic letters for the unnamed, hit points and armor from THE
+// THREAT TABLE, zone from the spawn. A species the bestiary cannot
+// resolve expands to nothing — fail closed, never invent.
+export function expandSpawn(spawn, bestiary = []) {
+  if (!spawn || typeof spawn !== 'object' || Array.isArray(spawn)) return [];
+  const card = (Array.isArray(bestiary) ? bestiary : []).find((row) => canonKey(row?.species) === canonKey(spawn.species));
+  if (!card) return [];
+  const table = THREAT_TABLE[card.threat];
+  if (!table) return [];
+  const species = String(card.species).trim();
+  const slug = canonKey(species).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'creature';
+  const letters = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const count = Math.max(1, Math.min(6, Math.trunc(Number(spawn.count) || 1)));
+  return letters.slice(0, count).map((letter, i) => {
+    const given = Array.isArray(spawn.names) ? spawn.names[i] : null;
+    const name = typeof given === 'string' && given.trim() ? given.trim().slice(0, 60) : `${species} ${letter.toUpperCase()}`;
+    return { id: `${slug}-${letter}`, name, species, hp: table.hp, maxHp: table.hp, ac: table.ac, zone: ZONES.has(spawn.zone) ? spawn.zone : 'near' };
+  });
+}
+
 // THE NOBODY-TELEPORTS LAW (Directive VIII.3) — when the court is seated,
 // a narration speaker or dialogue_cue voice whose derived last lawful
 // ground is KNOWN and is neither the current scene nor within the party
@@ -392,6 +467,8 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     validateScene(payload.story, context, errors, payload);
     validateParty(payload.story, context, errors);
     validateFixtures(payload.story, context, errors);
+    validateBestiary(payload.story, context, errors);
+    validateSheetGrant(payload.story, context, errors);
     validateSpeakerGround(payload, context, errors);
     validateImageCue(payload, context, errors);
   }
@@ -450,6 +527,14 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     assert(ADVANTAGE.has(rr?.advantage), 'roll_request.advantage invalid', errors);
     assert(Number.isInteger(rr?.extra_mod) && rr.extra_mod >= -10 && rr.extra_mod <= 20, 'roll_request.extra_mod invalid', errors);
     assert(cleanText(rr?.actor_id, 80), 'roll_request.actor_id invalid', errors);
+    // THE TABLE'S-DICE LAW (Directive X, Law V) — with the sheet ledger
+    // seated, the table rolls only for the hero and the sheeted: actor_id
+    // is 'hero' or a sheeted companion's name. Bare context keeps shape law.
+    if (Array.isArray(context?.sheets) && cleanText(rr?.actor_id, 80) && String(rr.actor_id).trim() !== 'hero') {
+      if (!context.sheets.some((name) => canonKey(name) === canonKey(rr.actor_id))) {
+        errors.push(`roll_request.actor_id names an unsheeted actor: ${String(rr.actor_id).trim()} — the table rolls only for the hero and the sheeted`);
+      }
+    }
     assert(rr?.target_id === null || cleanText(rr?.target_id, 80), 'roll_request.target_id invalid', errors);
     if (['attack','damage'].includes(rr?.kind)) assert(cleanText(rr?.action_id, 80), 'attacks and damage require action_id', errors);
     if (payload.state_updates !== null) errors.push('state_updates must be null while a roll is unresolved');
@@ -466,7 +551,7 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
 
   if (payload.combat !== null) {
     const combat = payload.combat;
-    noUnknown(combat, new Set(['op','round_delta','enemy_add','enemy_update','enemy_remove','npc_actions']), 'combat', errors);
+    noUnknown(combat, new Set(['op','round_delta','enemy_add','enemy_update','enemy_remove','npc_actions','spawn','initiative']), 'combat', errors);
     assert(['start','update','end'].includes(combat?.op), 'combat.op invalid', errors);
     assert([0,1].includes(combat?.round_delta), 'combat.round_delta invalid', errors);
     assert(Array.isArray(combat?.enemy_add) && Array.isArray(combat?.enemy_update) && Array.isArray(combat?.enemy_remove) && Array.isArray(combat?.npc_actions), 'combat arrays required', errors);
@@ -476,6 +561,117 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
       assert(Number.isInteger(enemy.maxHp) && enemy.maxHp >= enemy.hp && enemy.maxHp <= 999, 'enemy maxHp invalid', errors);
       assert(Number.isInteger(enemy.ac) && enemy.ac >= 1 && enemy.ac <= 30, 'enemy ac invalid', errors);
       assert(ZONES.has(enemy.zone), 'enemy zone invalid', errors);
+    }
+    // THE BESTIARY LAW (Directive X, Law I) — instances enter through spawn,
+    // referencing a SEALED species; hit points and armor derive from the
+    // threat table, never from the model. Spawn rides only the opening
+    // operation — instances enter when battle opens, so every group draws.
+    const spawn = combat?.spawn;
+    if (spawn !== undefined && spawn !== null) {
+      if (typeof spawn !== 'object' || Array.isArray(spawn) || Object.keys(spawn).some((key) => !['species', 'count', 'names', 'zone'].includes(key))) {
+        errors.push('combat.spawn must be an object with exactly species, count, names, and zone');
+      } else {
+        assert(cleanText(spawn.species, 60) && String(spawn.species).trim().length >= 3, 'combat.spawn.species must be 3-60 chars', errors);
+        assert(Number.isInteger(spawn.count) && spawn.count >= 1 && spawn.count <= 6, 'combat.spawn.count must be an integer between 1 and 6', errors);
+        assert(spawn.names === null || spawn.names === undefined || (Array.isArray(spawn.names) && spawn.names.length <= (Number.isInteger(spawn.count) ? spawn.count : 0) && spawn.names.every((name) => cleanText(name, 60) && String(name).trim().length >= 2)), 'combat.spawn.names must be null or 2-60 char names, at most one per instance', errors);
+        assert(ZONES.has(spawn.zone), 'combat.spawn.zone invalid', errors);
+        assert(combat?.op === 'start', 'combat.spawn rides only the opening operation — instances enter when battle opens', errors);
+        if (Array.isArray(context.bestiary) && cleanText(spawn.species, 60)) {
+          const sealed = context.bestiary.some((card) => canonKey(card?.species) === canonKey(spawn.species));
+          const sameBreath = canonKey(payload.story?.creature_add?.species || '') === canonKey(spawn.species);
+          assert(sealed || sameBreath, `combat.spawn names a species the record has not sealed: ${String(spawn.species).trim()}`, errors);
+        }
+      }
+    }
+    // THE ROUND LAW (Directive X, Law III) — combat opens by sealing
+    // initiative as an operation: ONE order, device draws for the player's
+    // side, one accounted d20 pool draw per enemy species group (pack
+    // initiative — the pool holds three d20s, so at most three groups).
+    const init = combat?.initiative;
+    if (combat?.op === 'start') assert(init !== undefined && init !== null, 'combat.op start requires initiative — the order is sealed as an operation', errors);
+    if (init !== undefined && init !== null && combat?.op !== 'start') errors.push('combat.initiative rides only the opening operation — the order is sealed once');
+    if (init !== undefined && init !== null) {
+      if (typeof init !== 'object' || Array.isArray(init) || Object.keys(init).some((key) => !['device', 'entropy'].includes(key))) {
+        errors.push('combat.initiative must be an object with exactly device and entropy');
+      } else {
+        assert(Array.isArray(init.device) && init.device.length >= 1 && init.device.every((name) => cleanText(name, 80)), 'combat.initiative.device must name the player side — the hero and every companion draw on the device', errors);
+        const draws = Array.isArray(init.entropy) ? init.entropy : [];
+        assert(Array.isArray(init.entropy) && draws.length >= 1 && draws.length <= 3, 'combat.initiative.entropy must hold 1-3 group draws — the pool holds three d20s', errors);
+        const groups = new Set();
+        for (const [i, draw] of draws.entries()) {
+          if (!draw || typeof draw !== 'object' || Array.isArray(draw) || Object.keys(draw).some((key) => !['group', 'index'].includes(key))) {
+            errors.push(`combat.initiative.entropy[${i}] must be an object with exactly group and index`);
+            continue;
+          }
+          assert(cleanText(draw.group, 80), `combat.initiative.entropy[${i}].group invalid`, errors);
+          const use = (payload.entropy_use || [])[draw.index];
+          assert(Number.isInteger(draw.index) && Boolean(use) && use.die === 'd20', `initiative draw for ${String(draw.group || '').trim() || 'an unnamed group'} must cite a d20 entropy_use entry by index — every draw accounted`, errors);
+          const key = canonKey(draw.group);
+          if (key) {
+            assert(!groups.has(key), `initiative draws twice for the same group: ${String(draw.group).trim()}`, errors);
+            groups.add(key);
+          }
+        }
+        if (spawn && cleanText(spawn?.species, 60)) {
+          assert(groups.has(canonKey(spawn.species)), `initiative must account a draw for the spawned species: ${String(spawn.species).trim()}`, errors);
+        }
+        for (const enemy of combat?.enemy_add || []) {
+          if (cleanText(enemy?.id, 80)) assert(groups.has(canonKey(enemy.id)) || groups.has(canonKey(enemy.name)), `initiative must account a draw for the added enemy: ${String(enemy?.name || enemy?.id).trim()}`, errors);
+        }
+        // The device coverage court — seats iff the context carries the
+        // hero AND a party array: the device list names exactly the
+        // player's side, nobody missing, nobody invented. A soul joined
+        // by this same turn's party_join may lawfully appear.
+        if (typeof context.hero === 'string' && context.hero.trim() && Array.isArray(context.party)) {
+          const declared = new Set((Array.isArray(init.device) ? init.device : []).map((name) => canonKey(name)));
+          for (const need of [context.hero, ...context.party.filter((name) => typeof name === 'string')]) {
+            if (!declared.has(canonKey(need))) errors.push(`initiative.device must name the whole player side — missing: ${String(need).trim()}`);
+          }
+          const lawful = new Set([canonKey(context.hero), ...context.party.filter((name) => typeof name === 'string').map((name) => canonKey(name))]);
+          if (typeof payload.story?.party_join?.name === 'string') lawful.add(canonKey(payload.story.party_join.name));
+          for (const name of Array.isArray(init.device) ? init.device : []) {
+            if (!lawful.has(canonKey(name))) errors.push(`initiative.device names a soul outside the player side: ${String(name).trim()}`);
+          }
+        }
+      }
+    }
+    // THE ONE-ACTION COURT (Directive X, Law III) — npc_actions gains its
+    // first shape: { actor, action }. One action per living combatant per
+    // turn; a second is refused BY NAME; the dead and the fled keep their
+    // seats and act no more. The standing court seats iff the context
+    // carries a combatants array; an actor spawned or added this same
+    // turn is lawful (the same-breath law).
+    const sameBreathActors = new Set();
+    if (spawn && typeof spawn === 'object' && !Array.isArray(spawn)) {
+      const cards = [...(Array.isArray(context.bestiary) ? context.bestiary : [])];
+      const fresh = payload.story?.creature_add;
+      if (fresh && typeof fresh === 'object' && !Array.isArray(fresh)) cards.push(fresh);
+      for (const instance of expandSpawn(spawn, cards)) {
+        sameBreathActors.add(canonKey(instance.id));
+        sameBreathActors.add(canonKey(instance.name));
+      }
+    }
+    for (const enemy of combat?.enemy_add || []) {
+      if (enemy?.id) sameBreathActors.add(canonKey(enemy.id));
+      if (enemy?.name) sameBreathActors.add(canonKey(enemy.name));
+    }
+    const actors = new Set();
+    for (const [i, action] of (combat?.npc_actions || []).entries()) {
+      if (!action || typeof action !== 'object' || Array.isArray(action) || Object.keys(action).length !== 2 || Object.keys(action).some((key) => !['actor', 'action'].includes(key))) {
+        errors.push(`combat.npc_actions[${i}] must be an object with exactly actor and action`);
+        continue;
+      }
+      assert(cleanText(action.actor, 80) && String(action.actor).trim().length >= 2, `combat.npc_actions[${i}].actor must be 2-80 chars`, errors);
+      assert(cleanText(action.action, 120) && String(action.action).trim().length >= 3, `combat.npc_actions[${i}].action must be 3-120 chars`, errors);
+      const key = canonKey(action.actor);
+      if (!key) continue;
+      assert(!actors.has(key), `a second action in one turn is refused by name: ${String(action.actor).trim()} has already acted`, errors);
+      actors.add(key);
+      if (Array.isArray(context.combatants)) {
+        const row = context.combatants.find((c) => canonKey(c?.id) === key || canonKey(c?.name) === key);
+        if (!row && !sameBreathActors.has(key)) errors.push(`combat.npc_actions[${i}] moves a combatant the record does not stand: ${String(action.actor).trim()}`);
+        else if (row && Number.isFinite(Number(row?.hp)) && Number(row.hp) <= 0) errors.push(`the fallen do not act: ${String(action.actor).trim()} is down`);
+      }
     }
   }
 

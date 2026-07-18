@@ -223,6 +223,19 @@ export function scenePrompt(campaign, cue, moment = null) {
     .sort((a, b) => ((b.since ?? -1) - (a.since ?? -1)))
     .slice(0, 3);
   const fixtureLine = placeFixtures.length ? ` Standing fixtures of ${cue.region}, sealed canon each: ${placeFixtures.map((entry) => `${entry.name} — ${entry.visual}`).join('; ')}.` : '';
+  // THE BATTLE CUT (Directive X, Law II) — the bestiary rider, byte-stable
+  // like the fixture rider: when sealed species stand LIVING in the
+  // standing combat, their sealed visual clauses ride beside the region
+  // canon — most recently sealed first, at most three, each clause
+  // verbatim. Sealed once, painted forever; the downed do not ride.
+  const standingSpecies = [...new Set(((campaign.combat?.enemies) || [])
+    .filter((enemy) => enemy && enemy.species && (enemy.hp ?? 1) > 0)
+    .map((enemy) => String(enemy.species).trim().toLowerCase()))];
+  const speciesCards = (campaign.codex.bestiary || [])
+    .filter((card) => standingSpecies.includes(String(card.species || '').trim().toLowerCase()))
+    .sort((a, b) => ((b.since ?? -1) - (a.since ?? -1)))
+    .slice(0, 3);
+  const bestiaryLine = speciesCards.length ? ` Bestiary canon, sealed each: ${speciesCards.map((card) => `${card.species} — ${card.visual}`).join('; ')}.` : '';
   // THE HONEST FRAME (Directive IX) — two byte-stable riders. THE PRINCIPAL
   // CLAUSE crowns the cue's FIRST subject the composition's foremost figure,
   // spoken only when the roster paints that soul — a staged soul cannot be
@@ -243,7 +256,7 @@ export function scenePrompt(campaign, cue, moment = null) {
       ? ' The frame is closed except its granted crowd: beyond the named painted souls, only an indistinct distant background crowd may stand — unidentifiable figures, no readable face, no named soul among them.'
       : ' The frame is closed: the only figures in this frame are the named painted souls — no other person, figure, or silhouette of any kind stands in frame.')
     : '';
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}.${beat}${moodLine}${watchLine} ${soulLines}${stagedLine}${principalLaw} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''}${fixtureLine} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul is the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line rides on them in frame, large and whole. Named souls are the PRINCIPAL figures of this frame — never demoted to the background, never displaced by an invented figure. Each named soul's dress, gear, and worn covering follow their identity line exactly — nothing added it does not state, nothing it states removed or undone.${markLaw}${closureLaw}`, campaign);
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}.${beat}${moodLine}${watchLine} ${soulLines}${stagedLine}${principalLaw} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''}${fixtureLine}${bestiaryLine} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul is the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line rides on them in frame, large and whole. Named souls are the PRINCIPAL figures of this frame — never demoted to the background, never displaced by an invented figure. Each named soul's dress, gear, and worn covering follow their identity line exactly — nothing added it does not state, nothing it states removed or undone.${markLaw}${closureLaw}`, campaign);
 }
 
 // The roster, exported for the job bench: the same painted-first seating

@@ -11,9 +11,9 @@ import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
 import { CharacterSheet, Codex, Settings, Storybook } from './components/Overlays.jsx';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
-import { applyStateUpdates, createHero, heroRoll, rollInitiative } from 'fatescript/rules';
+import { applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll, sealInitiative } from 'fatescript/rules';
 import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
-import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
+import { expandSpawn, makeEntropy, validateDmTurn } from 'fatescript/protocol';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
@@ -128,11 +128,19 @@ function seal(campaignId, type, payload) {
   return run;
 }
 
-function applyCombat(current, update, hero) {
+function applyCombat(current, update, hero, aids = {}) {
   if (!update) return current;
   if (update.op === 'end') return null;
   const next = current ? structuredClone(current) : { active: true, round: 1, enemies: [], order: [] };
   for (const enemy of update.enemy_add || []) if (!next.enemies.some((e) => e.id === enemy.id)) next.enemies.push(enemy);
+  // THE BESTIARY LAW (Directive X, Law I): instances enter through the ONE
+  // engine expansion — sealed species, deterministic letters, threat-table
+  // hit points — so the client derives exactly what the bench derives.
+  if (update.spawn) {
+    for (const instance of expandSpawn(update.spawn, aids.bestiary || [])) {
+      if (!next.enemies.some((e) => e.id === instance.id)) next.enemies.push(instance);
+    }
+  }
   for (const patch of update.enemy_update || []) {
     const enemy = next.enemies.find((e) => e.id === patch.id); if (!enemy) continue;
     enemy.hp = Math.max(0, Math.min(enemy.maxHp, enemy.hp + Number(patch.hp_delta || 0)));
@@ -140,7 +148,15 @@ function applyCombat(current, update, hero) {
   }
   next.enemies = next.enemies.filter((enemy) => !(update.enemy_remove || []).includes(enemy.id));
   next.round += Number(update.round_delta || 0);
-  if (update.op === 'start') next.order = rollInitiative(hero, next.enemies);
+  // THE ROUND LAW (Directive X, Law III): the order is sealed ONCE at the
+  // opening — device draws for the player's side, one pool draw per enemy
+  // species group — and never reshuffled after; the downed and the fled
+  // keep their seats. The sealed order rides the journal in stateAfter,
+  // so a reload reads the seats, never re-rolls them.
+  if (update.op === 'start') {
+    const draws = (update.initiative?.entropy || []).map((entry) => ({ group: entry.group, value: (aids.entropy || [])[entry.index]?.value ?? 0 }));
+    next.order = sealInitiative({ hero, party: aids.party || [], enemies: next.enemies, draws });
+  }
   return next;
 }
 
@@ -645,6 +661,12 @@ export default function App() {
       if (Array.isArray(story?.party_state)) landingContext.party = story.party_state.map((member) => member?.name).filter((memberName) => typeof memberName === 'string');
       if (Array.isArray(story?.presence_state)) landingContext.presence = story.presence_state;
       if (Array.isArray(story?.fixture_state)) landingContext.fixtures = story.fixture_state;
+      // THE BATTLE CUT (Directive X): the bestiary and the standing
+      // combatants seat the same courts the door ran — both benches alike,
+      // from the same briefing evidence and the same pre-turn combat.
+      if (Array.isArray(story?.bestiary_state)) landingContext.bestiary = story.bestiary_state;
+      if (Array.isArray(base.combat?.enemies)) landingContext.combatants = base.combat.enemies.map((enemy) => ({ id: enemy?.id, name: enemy?.name, hp: enemy?.hp }));
+      if (Array.isArray(story?.sheet_state)) landingContext.sheets = story.sheet_state.map((row) => row?.name).filter((name) => typeof name === 'string');
       const validation = validateDmTurn(dm, entropy, landingContext);
       // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
       // the door ran, run once more where the turn becomes record, on the
@@ -661,7 +683,7 @@ export default function App() {
       if (dm.state_updates?.chronicle_add) codex.chronicle = [...codex.chronicle, String(dm.state_updates.chronicle_add).slice(0, 260)];
       const heroBeforeLevel = base.hero.level;
       const hero = applyStateUpdates(base.hero, dm.state_updates);
-      const combat = applyCombat(base.combat, dm.combat, hero);
+      const combat = applyCombat(base.combat, dm.combat, hero, { bestiary: codex.bestiary || [], entropy, party: (base.codex.party || []).map((member) => member?.name).filter((memberName) => typeof memberName === 'string') });
       // Combat opens: one drawn blade, one accent, through the Director — it
       // yields (and is dropped) if the narrator already holds the stage.
       if (combat?.active && !base.combat?.active) playUiSfx(base, 'sword');
@@ -929,10 +951,51 @@ export default function App() {
     await playTurn(current, clean);
   };
 
+  // THE DOOM LAW (Directive X, Law VII) — a sheeted companion at zero walks
+  // the saves through the SAME pending-roll door, owner-labeled: the door
+  // opens itself when the stage is clear, each die lands in the open, and
+  // the third failure seals through the standing grave law (fall notes ride
+  // the reducer). Stable resets the count and closes the bed.
+  useEffect(() => {
+    if (!current || busy || current.pendingRoll || current.completed || current.readOnly) return;
+    if (current.hero.hp <= 0) return; // the hero's own doom takes the stage whole
+    const dying = (current.codex.party || []).find((member) => member?.sheet && member.sheet.hp <= 0 && !member.sheet.doom);
+    if (!dying) return;
+    const walked = (dying.sheet.deathSaves?.successes || 0) + (dying.sheet.deathSaves?.failures || 0);
+    const slug = String(dying.name).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    setCurrent((prior) => prior && !prior.pendingRoll ? { ...prior, pendingRoll: { id: `doom-${slug}-${walked + 1}`, label: `Death save — ${dying.name}`, kind: 'death_save', die: 'd20', ability: null, skill: null, proficient: false, dc: 10, advantage: 'normal', extra_mod: 0, action_id: null, actor_id: dying.name, target_id: null } } : prior);
+  }, [current, busy]);
+
+  const resolveCompanionDoom = async (member, result) => {
+    setDiceResult(result);
+    playUiSfx(current, 'die'); // one die on parchment — the owner's own
+    const folded = foldDeathSave(member.sheet.deathSaves, result.outcome);
+    const sheet = { ...member.sheet, deathSaves: folded.verdict === 'stable' ? { successes: 0, failures: 0 } : folded.deathSaves, ...(folded.verdict !== 'pending' ? { doom: folded.verdict } : {}) };
+    let codex = { ...current.codex, party: current.codex.party.map((row) => row === member ? { ...row, sheet } : row) };
+    if (folded.verdict === 'dead') {
+      // The seal: status dead through the standing grave law — memorial
+      // fact, fall notes on held threads, the validator's watch. Permanent.
+      codex = applyStoryUpdates(codex, { cast_update: [{ name: member.name, status: 'dead', last_seen: 'Fell to wounds — the third failure sealed it.' }] }, { turn: current.turnNumber });
+    }
+    await seal(current.id, 'resolution', { ...result, deathSaves: folded.deathSaves, verdict: folded.verdict });
+    const sealed = await db.campaigns.get(current.id);
+    const next = { ...current, codex, pendingRoll: null, headHash: sealed.headHash, turnCount: sealed.turnCount };
+    await saveCampaign(next); setCurrent(next);
+    if (folded.verdict === 'dead') setTimeout(() => playTurn(next, `Resolve Death save — ${member.name} has fallen.`, result, null), 950);
+  };
+
   const resolveRoll = async () => {
     if (!current.pendingRoll || busy) return;
     primeNarration(); // the roll tap blesses the throat for the coming reading
-    const result = heroRoll(current.hero, current.pendingRoll);
+    // THE TABLE'S-DICE LAW (Directive X, Law V) — the owner's die: a pending
+    // roll whose actor_id names a sheeted companion folds through the
+    // companion's own sheet; every other seat stays the hero's.
+    const ownerKey = (value) => String(value ?? '').trim().toLowerCase();
+    const sheetRow = current.pendingRoll.actor_id && ownerKey(current.pendingRoll.actor_id) !== 'hero'
+      ? (current.codex.party || []).find((member) => member?.sheet && ownerKey(member.name) === ownerKey(current.pendingRoll.actor_id))
+      : null;
+    if (sheetRow && current.pendingRoll.kind === 'death_save') return resolveCompanionDoom(sheetRow, companionRoll(sheetRow.name, sheetRow.sheet, current.pendingRoll));
+    const result = sheetRow ? companionRoll(sheetRow.name, sheetRow.sheet, current.pendingRoll) : heroRoll(current.hero, current.pendingRoll);
     setDiceResult(result);
     playUiSfx(current, 'die'); // one die on parchment — dropped if a voice holds the stage
     const resolutionRecord = await seal(current.id, 'resolution', result);
@@ -1243,7 +1306,7 @@ export default function App() {
     {overlay === 'level' && <div className="ritual"><Sparkles/><span>Level {current.hero.level}</span><h2>The story has made you larger.</h2><button onClick={()=>setOverlay(null)}>Accept the new name fate gives you</button></div>}
     {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement — farewells, consequences, the road home. Then the wax presses, and the tale is bound.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal the Tale</button></div></div>}
     {overlay === 'sealing' && <Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
-    {current.hero.hp <= 0 && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} />}
+    {current.hero.hp <= 0 && !current.hero.stableAtZero && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} onFaceTheDark={async()=>{const hero={...current.hero,doomChosen:true};const next={...current,hero};await seal(current.id,'resolution',{type:'doom_declined'});await saveCampaign(next);setCurrent(next);}} onDeathSave={async()=>{const saves=current.hero.deathSaves||{successes:0,failures:0};const rr={id:`doom-hero-${saves.successes+saves.failures+1}`,label:'Death save',kind:'death_save',die:'d20',ability:null,skill:null,proficient:false,dc:10,advantage:'normal',extra_mod:0,action_id:null,actor_id:'hero',target_id:null};const result=heroRoll(current.hero,rr);setDiceResult(result);playUiSfx(current,'die');const folded=foldDeathSave(saves,result.outcome);const hero={...current.hero,deathSaves:folded.verdict==='stable'?{successes:0,failures:0}:folded.deathSaves,...(folded.verdict==='dead'?{dead:true}:{}),...(folded.verdict==='stable'?{stableAtZero:true}:{})};await seal(current.id,'resolution',{...result,deathSaves:folded.deathSaves,verdict:folded.verdict});const next={...current,hero};await saveCampaign(next);setCurrent(next);}} />}
   </div>;
 }
 
@@ -1492,9 +1555,37 @@ function Composer({ campaign, busy, reduceMotion, onSubmit, onSuggestion, onRoll
 }
 
 function CombatBanner({ combat }) {
-  return <section className="combat-banner"><div><Swords/><span>Round {combat.round}</span></div><div className="initiative">{combat.order.map((entry)=><span className={entry.hero?'hero':''} key={entry.id}>{entry.name} <b>{entry.total}</b></span>)}</div><div className="enemy-bars">{combat.enemies.map((enemy)=><span key={enemy.id}><i style={{width:`${enemy.hp/enemy.maxHp*100}%`}}/><b>{enemy.name}</b><small>{enemy.zone} · {enemy.hp}/{enemy.maxHp}</small></span>)}</div></section>;
+  // THE ROUND LAW (Directive X): the sealed order never reshuffles — the
+  // downed and the fled keep their seats, greyed, so the table reads the
+  // battle's history in its chairs. Old sealed orders without a side
+  // render exactly as they always did.
+  return <section className="combat-banner"><div><Swords/><span>Round {combat.round}</span></div><div className="initiative">{combat.order.map((entry)=>{
+    const foe = entry.side === 'enemy' ? combat.enemies.find((e)=>e.id===entry.id) : null;
+    const out = entry.side === 'enemy' && (!foe || (foe.hp ?? 0) <= 0);
+    return <span className={`${entry.hero?'hero':''}${out?' out':''}`} key={entry.id}>{entry.name} <b>{entry.total}</b></span>;
+  })}</div><div className="enemy-bars">{combat.enemies.map((enemy)=><span key={enemy.id}><i style={{width:`${enemy.hp/enemy.maxHp*100}%`}}/><b>{enemy.name}</b><small>{enemy.zone} · {enemy.hp}/{enemy.maxHp}</small></span>)}</div></section>;
 }
 
-function Epitaph({ campaign, onIntervene }) {
-  return <div className="epitaph"><span>{campaign.hero.sigil}</span><p>An epitaph waits, but fate has not yet closed its hand.</p><h1>{campaign.hero.name}</h1>{!campaign.hero.deathTouched && <button onClick={onIntervene}>Invoke Fate’s Intervention</button>}</div>;
+// THE DOOM LAW (Directive X, Law VII) — zero is DYING, not dead. While the
+// standing mercy is unspent and undeclined the epitaph waits as it always
+// has; once the mercy is spent or declined the doom walk begins: death
+// saves through the open door, three-and-three, each die landing on stage.
+// Three successes stand stable at zero; three failures seal the epitaph
+// final — no intervention, no resurrection, no take-backs.
+function Epitaph({ campaign, onIntervene, onFaceTheDark, onDeathSave }) {
+  const hero = campaign.hero;
+  const saves = hero.deathSaves || { successes: 0, failures: 0 };
+  if (hero.dead) return <div className="epitaph"><span>{hero.sigil}</span><p>The road ends here. The record keeps the name.</p><h1>{hero.name}</h1><p className="doom-tally">Three failures. The seal is permanent.</p></div>;
+  const walking = hero.deathTouched || hero.doomChosen;
+  return <div className="epitaph"><span>{hero.sigil}</span><p>{walking ? 'The dark leans close. Roll, and be counted.' : 'An epitaph waits, but fate has not yet closed its hand.'}</p><h1>{hero.name}</h1>
+    {walking
+      ? <>
+          <p className="doom-tally">Death saves — successes {saves.successes} of 3 · failures {saves.failures} of 3</p>
+          <button className="roll-button doom" onClick={onDeathSave}><Dices/><span><small>{hero.name} {hero.sigil} · death_save · DC 10</small>Death save</span><b>Roll d20</b></button>
+        </>
+      : <>
+          <button onClick={onIntervene}>Invoke Fate’s Intervention</button>
+          <button className="doom-decline" onClick={onFaceTheDark}>Face the dark</button>
+        </>}
+  </div>;
 }

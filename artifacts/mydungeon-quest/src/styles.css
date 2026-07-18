@@ -502,3 +502,13 @@
 .presence-list li .cite{font-size:.7rem;color:#9d849a;font-style:italic}
 
 .codex-meta{display:flex;align-items:center;gap:.7rem}
+
+/* THE ROUND LAW (Directive X) — the downed and the fled keep their greyed seats. */
+.combat-banner .initiative span.out{opacity:.45;text-decoration:line-through}
+
+/* THE DOOM LAW (Directive X) — the deathbed on stage: the tally, the plain
+   decline, and the sheet line on the party strip. */
+.epitaph .doom-tally{opacity:.8;font-size:.95rem;letter-spacing:.02em}
+.epitaph .doom-decline{background:transparent;border:1px solid currentColor;opacity:.7;margin-top:.5rem}
+.epitaph .roll-button.doom{margin-top:.75rem}
+.party-strip .sheet-line{display:block;opacity:.75;font-size:.85rem;margin-top:.15rem}

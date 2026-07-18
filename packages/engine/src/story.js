@@ -1,4 +1,5 @@
 import { getSpine } from './spines.js';
+import { sheetFor } from './rules.js';
 import { castVoiceByCard } from './cinema/casting.js';
 
 const REGION_STATES = ['thriving', 'troubled', 'corrupted', 'ruined', 'healed'];
@@ -102,6 +103,9 @@ export function initCodex(spineId, seed = {}) {
     // party's permanent root and never appears in the list.
     party: [],
     fixtures: [],
+    // THE BATTLE CUT (Directive X): the sealed bestiary — species canon,
+    // written once, painted forever.
+    bestiary: [],
     completed: false
   };
 }
@@ -189,6 +193,16 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
           soul.status = status;
           if (status === 'dead') {
             soul.known_facts = pushFact(soul.known_facts, `Fell${Number.isInteger(meta.turn) ? ` on turn ${meta.turn}` : ''}${patch.last_seen ? ` — ${clean(patch.last_seen, 100)}` : ''}`);
+            // THE DOOM LAW (Directive X, Law VII) — the fall marks the
+            // ledger: every open thread held by the fallen carries a fall
+            // note in the journal's own hand. The thread stays open —
+            // grief is not an outcome.
+            for (const thread of next.threads || []) {
+              if (thread.status === 'open' && thread.holder && canonName(thread.holder) === canonName(soul.name)) {
+                thread.fallNote = `${soul.name} fell holding this.`;
+                next.notes.push(`The thread "${thread.label}" lost its holder: ${soul.name} has fallen.`);
+              }
+            }
           }
         }
       }
@@ -354,6 +368,29 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     }
   }
 
+  // THE BESTIARY LAW (Directive X, Law I) — species canon folds beside the
+  // fixtures: sealed once, refused thereafter with a note. The offscreen
+  // tick MAY seal a species — the elsewhere breeds, it never moves souls —
+  // and no replay reads the bestiary, so the one record cannot split.
+  // Old codexes backfill [].
+  next.bestiary = next.bestiary ?? [];
+  const creatureAdd = updates.creature_add;
+  if (creatureAdd && typeof creatureAdd === 'object' && !Array.isArray(creatureAdd)) {
+    const species = clean(creatureAdd.species, 60);
+    const speciesVisual = clean(creatureAdd.visual, 160);
+    const speciesNature = clean(creatureAdd.nature, 90);
+    const threat = Math.trunc(Number(creatureAdd.threat) || 0);
+    if (!species || !speciesVisual || !speciesNature) {
+      next.notes.push('Unlawful creature blocked: a species needs its name, its visual truth, and its nature.');
+    } else if (threat < 1 || threat > 5) {
+      next.notes.push(`Unlawful creature blocked: ${species} carries no honest threat rating.`);
+    } else if (next.bestiary.some((card) => canonName(card.species) === canonName(species))) {
+      next.notes.push(`Species canon sealed once: ${species} already stands in the bestiary.`);
+    } else {
+      next.bestiary.push({ species, visual: speciesVisual, nature: speciesNature, threat, since: Number.isInteger(meta.turn) ? meta.turn : null });
+    }
+  }
+
   // THE PRESENCE CUT (Directive VII) — the ground folds AFTER the world,
   // so a region added this turn stands before the scene is set upon it.
   // Old codexes backfill scene: null. The offscreen world may act, never
@@ -411,6 +448,23 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     else next.party = next.party.filter((entry) => entry !== member);
   }
 
+  // THE COMPANION-SHEET LAW (Directive X, Law VI) — one grant seals a
+  // standing party member's sheet from THE ROLE TABLE: arithmetic, never
+  // model numbers. Seal-once with a note; the offscreen tick may not arm
+  // the party; an unlawful role or level seals nothing — fail closed.
+  const sheetGrant = updates.sheet_grant;
+  if (sheetGrant && typeof sheetGrant === 'object' && !Array.isArray(sheetGrant)) {
+    const grantName = clean(sheetGrant.name, 60);
+    const grantRow = grantName ? next.party.find((entry) => canonName(entry.name) === canonName(grantName)) : null;
+    const grantSheet = sheetFor(sheetGrant.role, sheetGrant.level);
+    if (meta.tick) next.notes.push('The offscreen world may not arm the party: sheet_grant refused on a tick.');
+    else if (!grantName) next.notes.push('Unlawful sheet_grant blocked: the sheeted soul must be named.');
+    else if (!grantRow) next.notes.push(`Unlawful sheet_grant blocked: ${grantName} does not stand in the party.`);
+    else if (grantRow.sheet) next.notes.push(`Sheet canon sealed once: ${grantRow.name} already holds a sheet.`);
+    else if (!grantSheet) next.notes.push(`Unlawful sheet_grant blocked: no honest role or level for ${grantRow.name}.`);
+    else grantRow.sheet = grantSheet;
+  }
+
   if (updates.beat_advance && !next.completed) {
     // The final beat must PLAY, not merely arrive: advancing while already on
     // the last beat is what closes the tale. (Before the Experience Cut,
@@ -458,7 +512,11 @@ export function storyBlock(codex) {
     // THE PARTY AND THE ELSEWHERE (Directive VIII.5): the roster and the
     // sealed fixtures ride to the server court the same way.
     party_state: (codex.party || []).map(({ name, joinedTurn }) => ({ name, joinedTurn: joinedTurn ?? null })),
+    sheet_state: (codex.party || []).filter((member) => member && member.sheet).map((member) => ({ name: member.name, role: member.sheet.role, level: member.sheet.level, hp: member.sheet.hp })),
     fixture_state: (codex.fixtures || []).map(({ place, name }) => ({ place, name })),
+    // THE BATTLE CUT (Directive X.1): the sealed bestiary rides to the
+    // server court the same way — species and threat, the seal's evidence.
+    bestiary_state: (codex.bestiary || []).map(({ species, threat }) => ({ species, threat })),
     directives: [
       ...(codex.completed ? ['The tale is sealed. Write nothing new; if asked, speak only a closing line.'] : []),
       ...(sealing ? ['SEAL THE TALE — the player has chosen to end with honor. These are denouement turns: quiet and combat-free; no new cast, no new threads; resolve what stands, let farewells be spoken, and bring the road home. If a cinematic is due, let it be the ending the tale has earned (victory, death, or bittersweet).'] : []),

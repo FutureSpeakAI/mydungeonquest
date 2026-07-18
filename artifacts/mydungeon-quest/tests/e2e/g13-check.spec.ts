@@ -21,7 +21,7 @@ import { GAME_ROOT } from './lib/vision';
 // keyless check in the same commit that seats the scene law.
 // (56B) 98 → 101: Task 56B adds three gates — party.test.mjs,
 // fixture.test.mjs, watch.test.mjs (Directive VIII).
-const PINNED_PASS_COUNT = 102;
+const PINNED_PASS_COUNT = 106;
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

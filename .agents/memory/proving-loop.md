@@ -116,3 +116,5 @@ read-back (page courts green) is almost certainly the mapper.
   fit the chain, say so at the moment it becomes true, ride the remaining
   iterations as closing evidence, and close red with the evidence named —
   never re-adjudicate a recorded iteration, never invent accounting.
+
+- THE MINT LAW (standing ruling of this project, pinned in LOOP_LOG beside THE EXTENSION LAW): paint falls get at most 3 fidelity-proven re-lay ladders per artifact per iteration, instrument-only, through the app's own foundry and attestation door; capped is never a fall; all-three-fall is blocker-grade (hunt stops); a single fall under hash-identical law is variance, not defect.

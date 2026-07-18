@@ -1168,6 +1168,40 @@ VERIFICATION window, never a cure window. Its terms, always:
   inside the extension window; the changelog coda carries the same in
   one line.
 
+### THE MINT LAW — standing ruling of the house (2026-07-18)
+Sanctioned by the owner on Task 57's blocker report (three live-mint
+falls in three iterations, every one honest law holding); effective
+iteration 57.5 and every fresh mint henceforth — harvest A's live walk
+and harvest B's plates alike. Its terms:
+- INSTRUMENT-ONLY. The re-lay door lives in the harvest instruments
+  and drives the app's OWN foundry through the app's own attestation
+  door. No warden floor moves, no court bar bends, no paint-law byte
+  changes. Bought dice, never bent law.
+- THREE LADDERS per artifact per iteration, the in-play ladder counted
+  first — at most two re-lays. Ladder counts derive from the SEALED
+  RECORD (each completed ladder seals exactly one terminal attestation
+  under the seat's key): replay-proof, and per-iteration by
+  construction, because every sitting seeds fresh.
+- FIDELITY PROVEN, never presumed: a re-laid ask must BE the fallen
+  ask — rebuilt promptHash, generationSpecHash, and cacheKey equal to
+  the attested seat's own — or the door refuses and the fall stands.
+  Where the re-ask is the same job bytes (the fixture arm), fidelity
+  holds by construction. A drifted mirror can only fail closed.
+- A CAPPED ASK IS NEVER A LADDER FALL. The toll-house's no is honest
+  scarcity; the door halts and names it.
+- ALL-THREE-FALL IS BLOCKER-GRADE. HARVEST-EXHAUSTED names the seat
+  and every attestation; the hunt stops for an owner report. No fourth
+  ladder, ever.
+- THE TASK-54 DOCTRINE STANDS AMENDED: "refused = defect" reads now as
+  "a refused or anchored required plate is a game defect only when it
+  survives THE MINT LAW's ladders or recurs under changed law bytes —
+  under hash-identical law, a single fall is variance." Paint budget,
+  never truth budget.
+- A need already satisfied buys no ladders (§2.5 — the preflights' own
+  doctrine); honest silence stays HARVEST-STARVED, and each fired
+  ladder buys back only its own measured wall-clock (+150s per §2.3
+  arithmetic), never time the record didn't spend.
+
 ### TASK 54C — EXTENSION GRANTED BY RULING (2026-07-17)
 The house granted 54C.5–.7 under THE EXTENSION LAW, first application.
 The ledger qualified: the sole red (.3) carries its named root cause
@@ -1981,3 +2015,189 @@ ran lawfully (paints attested, sighting → repaint → second sighting →
 anchor, drift named). No law is touched; no bar bends. 57.4 rolls
 verbatim under 56C.5's precedent (repeat hit, mechanics decoded, no
 edit) while the owner weighs the spend.
+
+### 57.4 — red (stores SEALED at last; two defects, both named, both the courts' own)
+
+The watershed first: harvest A crossed the live gate — the turn-1 seat
+that spent 57.1–57.3 minted clean, the live store SEALED, and harvest B
+sealed the battle plate beside it. 84 tests, 82 passed, 0 skipped, 0
+flaky; every court sat. The cures below touch no paint-law byte, so
+57.5+ ride both sealed stores as replays. Two failures, both
+first-execution defects in the courts' own instruments — no game law
+touched, no assertion weakened:
+
+- G23a (a six-seat sealed order judged absent): THE ROUND-TRIP RIDER's
+  third strike. The seed folded the doom opening lawfully — the db row
+  held six seats and the banner rendered them — but readCampaign still
+  rebuilt the campaign row field-by-field, and the Battle Cut's new
+  blocks (combat, pendingRoll) never crossed the bridge. Same family
+  as iteration-4's `kind` and 55.1's `dm.story`. Cure (logged edit,
+  harness.ts): the campaign row now rides WHOLE — a verbatim spread,
+  derived normalizations layered BESIDE the record, never in place of
+  it. The doom fixture's bytes stand untouched; its dialect was lawful
+  all along (creature_add seats the bestiary at turn 3, the companions
+  join at 1–2 before the opening, the device names the player side and
+  the pool draw seats the pack).
+
+- Tooth 8b (the eclipse at the preflight door): the tooth plants a
+  refusal on g17's first paint need — but the real sealed record now
+  lawfully holds an ANCHORED full-figure of the same class (a
+  non-required seat that shipped its anchor, attestation #11), seated
+  earlier in the refusals ledger. The door's find-first took the
+  sister seat, spoke ANCHORED, and the planted refusal's name was
+  never said. Cure (logged edit, harvestManifest.ts): a short need now
+  names EVERY fallen member of its class in one throw, refused members
+  leading. The 54.2 death-names stand; the tooth's demands stand
+  verbatim; the door under it grew MORE honest, not less.
+
+Then THE MINT LAW's instruments, per the standing ruling pinned beside
+THE EXTENSION LAW, effective this coming iteration:
+
+- terminality.ts (logged edit): waitForResolutions gains the optional
+  relay door. Without a door the semantics are the pre-mint-law bytes
+  — first fall throws in the same poll, the teeth's millisecond
+  guarantees hold. With the door: seats group by cacheKey; a seat with
+  any fulfilled-with-bytes ladder is redeemed history (§2.5); a
+  satisfied need buys no ladders; a fallen seat re-lays while ladders
+  remain; all-three-fall throws HARVEST-EXHAUSTED naming every
+  attestation. The Task-54 doctrine sentence is AMENDED per the ruling
+  in both fall classes. classifyAttestations now carries promptHash
+  and generationSpecHash onto the resolution — the fidelity proof's
+  reading matter, enrichment only, no judgment moved.
+
+- harvest.spec.ts (logged edit): fireMintLadder, the A-door — rebuilds
+  the fallen ask by mirroring the app's own builders (keyArtJob/actOf,
+  heroBustJob, the cast portrait triple, the easel's detectCast → cue
+  → moment → roster → bearing chain), PROVES fidelity (promptHash +
+  generationSpecHash + cacheKey equal to the attested seat) before
+  firing, and runs the ladder through the app's own foundry, awaited
+  to the sealed terminal. The door never touches campaign.spend — the
+  settle-once meter law owns that ledger, the server clamp is the true
+  wall, and this line is the ledger of that deliberate choice. Both
+  waits wired.
+
+- harness.ts paintFixtureExtras (logged edit): the B-arm ladders at
+  the enqueue site — same job bytes, same key, fidelity by
+  construction; a capped ask halts honestly; at three falls the last
+  lawful outcome ships and the courts judge it, so the anchor-mirror
+  bust (which ships its anchor BY DESIGN) can never become a false
+  blocker while a starved need still reds the sitting honestly.
+
+57.5 requested with both stores riding.
+
+### 57.5 — red (one court, one wedge: the book that would not open)
+
+The mint law armed and never needed: every judge replayed (one lawful
+fresh in sabotage-3's own theater), both stores rode sealed, G23a's
+full order executed to the last reload assertion, tooth 8b heard the
+refusal's name — 83 of 84, 0 skipped, 0 flaky. The one fall: G15's
+storybook court. The seal was clicked and iframe.book-frame never came
+(120s of honest waiting); the snapshot shows the log view healthy and
+the seal [active]. The click landed; the open died in silence.
+
+Root cause (by elimination, and by the door's own shape): App's
+openStorybook awaits four reads before the iframe state lands —
+journal, media rows, every blob through FileReader, the seen ledger —
+and none of them sat under a catch. One transient rejection (a blob
+whose bytes would not read back under a busy box) fells the whole
+binding with no error, no status, no retry: a player presses the seal
+and nothing happens, ever. The court caught a REAL player-facing
+defect — a silent fall at a spoken door. The same sitting replayed
+locally green (7 passed, 41.8s): the class is transient; the door was
+the defect.
+
+Cure (logged edit, App.jsx — not a law source; both stores stay
+sealed): openStorybook now binds under a catch that SPEAKS — the
+status line names the fall and invites the seal again — and one
+unreadable blob no longer fells the book: the row rides with a null
+plate (the book seats only proven art regardless) and the binding
+names how many plates would not read. No assertion weakened, no court
+byte moved, no paint-law byte moved; the mirror regions the A-door
+copies (detectCast, the easel chain) sit above the edit and hold
+byte-true.
+
+57.6 requested with both stores riding.
+
+### 57.6 — GREEN (1 of 3): every court sat, every door held
+
+84 of 84, 0 skipped, 0 flaky, exit 0. The cured seal door opened the
+book on the first press; G23a's whole order ran to the reload and the
+spine; tooth 8b heard the refusal's name; the mint law stood armed and
+was never needed — every judge group replayed, zero fresh calls in
+the entire sitting (sabotage-3's 57.5 fresh sealed into the store and
+replayed here). No edit of any kind this iteration: the bytes that
+carried 57.5's cure sit unmoved. 57.7 requested with both stores
+riding.
+
+### 57.7 — GREEN (2 of 3): unmoved bytes, unmoved verdict
+
+84 of 84, 0 skipped, 0 flaky, exit 0. Second consecutive green on
+byte-identical courts and law — no edit of any kind between 57.6 and
+57.7. Both stores rode sealed; the mint law armed and idle; the one
+fresh judge call was sabotage-3's own theater, fresh by its design
+(as in 57.5), every other group pure replay. 57.8 requested with both
+stores riding.
+
+### 57.8 — GREEN (3 of 3): THE RITUAL CLOSES
+
+84 of 84, 0 skipped, 0 flaky, exit 0; missing projects, missing
+executed, unexpected titles, and skipped titles all empty. Three
+consecutive greens — 57.6, 57.7, 57.8 — on byte-identical law from
+57.5's cure onward. Eight iterations spent of the ceiling's ten; the
+extension never drawn; the mint law never fired a ladder in anger.
+The Battle Cut is proven: the loop closes and the bench rises for the
+architect's review, the changelog, and the closing seal.
+
+### THE ARCHITECT'S SITTING (post-close, 2026-07-18) — two doors shut, one union told the truth
+
+The review sat on the full Task-57 diff and returned FAIL with two
+blockers, both in the mint relay's own instruments, both verified
+against the bytes before any cut, both cured. Every cure below is
+instrument-side; the loop's greens rode different doors (the relay
+never fired in any green sitting), the no-relay semantics are
+byte-untouched, and the paint-law hash never moved.
+
+- [severe] The fidelity proof presumed what it could not prove: the
+  promptHash / generationSpecHash / cacheKey comparisons were each
+  guarded on the ATTESTED field's presence, so a seat that carried no
+  identity would have fired unproven — and the grouping fallback
+  (`#attestation-N` when cacheKey was absent) gave every keyless fall
+  its own group, so the three-ladder ceiling could never trip for the
+  portrait class: unbounded re-lays, fail-open twice over. Cures
+  (logged edits, harvest.spec.ts + terminality.ts): absence is now a
+  refusal — no promptHash or no generationSpecHash refuses the re-lay
+  outright, cache-key EXISTENCE must agree between attested and
+  rebuilt before equality is even asked; and ladders group by the
+  seat's true identity (cacheKey, else generationSpecHash — which the
+  fidelity proof pins across every re-lay — else promptHash), while a
+  fall with no identity at all throws terminal at once, fail-closed,
+  exactly as a doorless wait would.
+
+- [moderate] The door itself could outrun the cap: relay.fire was
+  awaited bare, so a hung foundry call would have slid past capMs into
+  the outer test timeout — an open wait where the contract promises a
+  measured one. Cure (logged edit, terminality.ts): the fire races a
+  real timer at its own allowance (150s, §2.3's lawful worst for one
+  ladder) — deliberately NOT the injectable sleep, which models poll
+  cadence for the teeth and must never fake a door hang — and a door
+  that outlives its allowance answers infra, terminal, never an open
+  wait. The deadline still stretches only for a ladder that truly
+  fired.
+
+- [moderate] harvestManifest's JudgeProject union and JUDGE_PROJECTS
+  index never enrolled g23-battle even as NEEDS carried its ledger and
+  the section-3 notes claimed enrollment — the union lied and tooth
+  8's doctor walk skipped the battle court. Cure (logged edit): both
+  now carry it; the walk grew STRICTER (one more doctored manifest
+  must refuse by name), and the teeth prove it below.
+
+Proof of the cures, targeted (the loop stands closed; no iteration
+respent): teeth + preflight + harvest + g23-battle — 29 passed, 0
+skipped, 1.1m, tooth 8's stricter walk included, both sealed stores
+replaying. Keyless check on the same bytes: exit 0, PASS 106 exact.
+No assertion weakened anywhere in the cures; three grew stricter.
+
+The review also caught one memory-hygiene slip (a conversation-local
+task number in the agent's own topic file), reworded topic-based the
+same hour. Findings below severe: none left standing. The bench
+rises; the changelog and the closing seal follow.

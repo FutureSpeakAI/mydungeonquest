@@ -27,3 +27,5 @@
 - [Proving-loop lessons](proving-loop.md) — RUN_REQUESTED reads at BOOT only (write, then restart); known-bad controls must be deterministic lies, never crossings; replays verbatim; calibrate to perfect separation; extensions once, frozen.
 - [MyDungeon genesis first-word](mydungeon-first-word.md) — pours dispatch before ANY paint; parallel foundries merge meters as deltas, never absolutes; wire-order courts drain pre-genesis lanes first.
 - [Pure replay witnesses are born fail-closed](mydungeon-witness-failclosed.md) — every list behind Array.isArray, names must be strings, malformed rows prove nothing; panels reading them render an explicit cannot-be-read line, never crash.
+- [Harness readers carry rows whole](harness-row-roundtrip.md) — spread stored rows verbatim in test readers; field-by-field rebuilds drop every new block (three strikes of this family).
+- [UI async doors must catch and speak](ui-silent-async-doors.md) — uncaught await in a view-mount handler = eternal silent wedge; catch → status line, per-row degrade.

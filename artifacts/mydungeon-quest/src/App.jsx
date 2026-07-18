@@ -1020,14 +1020,26 @@ export default function App() {
 
   const openStorybook = async (size = 'Letter', campaign = current) => {
     playUiSfx(campaign, 'page'); // the book opens (or rebinds): one page turn
-    const journal = await campaignJournal(campaign.id);
-    const mediaRows = await db.media.where('campaignId').equals(campaign.id).toArray();
-    const media = await Promise.all(mediaRows.map(async (row) => ({ ...row, dataUrl: row.blob ? await blobToDataUrl(row.blob) : null })));
-    // The seen ledger rides along: the book retells the adventure as it was
-    // actually SEEN at this table — only dealt art, seated with its own
-    // chapters. (An elder tale with no ledger still binds, the old way.)
-    const reveals = await listReveals(campaign.id);
-    const html = buildStorybook({ campaign, journal, media, reveals, pageSize: size }); setBookHtml(html); setOverlay('storybook');
+    // (57.5) The door speaks or the door opens — never silence. Every read
+    // below sits under the catch: a fall at any of them used to leave the
+    // seal pressed and NOTHING happening, forever, with no word to the
+    // player. And one unreadable blob must not fell the whole binding: that
+    // row rides with a null plate (the book seats only proven art anyway)
+    // and the binding names how many plates would not read.
+    try {
+      const journal = await campaignJournal(campaign.id);
+      const mediaRows = await db.media.where('campaignId').equals(campaign.id).toArray();
+      let unread = 0;
+      const media = await Promise.all(mediaRows.map(async (row) => ({ ...row, dataUrl: row.blob ? await blobToDataUrl(row.blob).catch(() => { unread += 1; return null; }) : null })));
+      // The seen ledger rides along: the book retells the adventure as it was
+      // actually SEEN at this table — only dealt art, seated with its own
+      // chapters. (An elder tale with no ledger still binds, the old way.)
+      const reveals = await listReveals(campaign.id);
+      const html = buildStorybook({ campaign, journal, media, reveals, pageSize: size }); setBookHtml(html); setOverlay('storybook');
+      if (unread > 0) setStatus(`The chronicle is bound, but ${unread} plate${unread === 1 ? '' : 's'} could not be read from the shelf.`);
+    } catch (error) {
+      setStatus(`The chronicle would not open: ${error?.message || 'the binding fell'}. Press the seal to try again.`);
+    }
   };
 
   const bindPdf = async () => {

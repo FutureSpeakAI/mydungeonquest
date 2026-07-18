@@ -56,6 +56,104 @@ async function readResolutions(page: any, campaignId: string): Promise<PaintReso
 const WAIT1_CAP_MS = 480_000;
 const WAIT2_CAP_MS = 300_000;
 
+// ---------- THE MINT LAW's re-lay door (owner's ruling, 2026-07-18; 57.5) ----------
+// Instrument-only: the door re-lays a fallen REQUIRED seat's FULL ladder
+// through the app's OWN foundry — same prompts, same warden lane, same
+// attestation door (appendEvent) — with fresh dice. It rebuilds the ask by
+// MIRRORING the app's own builders (the App easel's turn scene job; the
+// prologue's genesis jobs; the introduce path's portrait jobs), then
+// PROVES fidelity before firing: the rebuilt ask's promptHash and
+// generationSpecHash must equal the fallen ask's attested fingerprints,
+// and the rebuilt cacheKey must be the very seat. A drifted mirror can
+// only ever REFUSE to re-lay (the fall then stands as sealed) — it can
+// never re-lay a different brief. No paint-law byte moves: bought dice
+// only. The same-key re-ask runs a genuinely fresh ladder because a
+// refused or anchored ask stores NO media row, by law — the foundry's
+// cache has nothing to return for the key. The door deliberately does NOT
+// touch campaign.spend: the app's settle-once meter law (54C) owns that
+// ledger and the server clamp remains the true wall; an advisory
+// undercount in a proving campaign beats racing the settlement.
+async function fireMintLadder(page: any, campaignId: string, seat: any): Promise<{ fired: boolean; capped?: boolean; mismatch?: string; infra?: string }> {
+  return page.evaluate(async ({ id, seat }: any) => {
+    const { db } = await import('/src/lib/db.js');
+    const { appendEvent } = await import('/src/lib/seal.js');
+    const { Foundry } = await import('/src/lib/cinema/foundry.js');
+    const { generationSpec, scenePrompt, portraitPrompt, sceneRoster, plateMood, bearingTextFor, identityClause, heroSoul } = await import('/src/lib/cinema/prompts.js');
+    const { keyArtJob, heroBustJob, actOf, nameSeed } = await import('/src/lib/cinema/prologue.js');
+    const campaign = await db.campaigns.get(id);
+    if (!campaign) return { fired: false, mismatch: 'the campaign is missing from the shelf' };
+
+    let job: any = null;
+    if (seat.subtype === 'keyart') {
+      job = { ...keyArtJob(campaign, actOf(campaign)), originTurnHash: seat.originTurnHash ?? null };
+    } else if (seat.subtype === 'portrait') {
+      const heroSeat = campaign.hero && String(seat.label ?? '').trim().toLowerCase() === String(campaign.hero.name).trim().toLowerCase();
+      if (heroSeat && seat.variant === 'bust') {
+        job = { ...heroBustJob(campaign), originTurnHash: seat.originTurnHash ?? null };
+      } else {
+        const locked = (campaign.codex.cast || []).find((entry: any) => entry.name === seat.label);
+        if (locked) job = { kind: 'paint', prompt: portraitPrompt(campaign, locked, seat.variant), options: { kind: 'portrait', label: seat.label, variant: seat.variant, seed: nameSeed(seat.label), referenceLabels: seat.variant === 'bust' ? [] : [seat.label], ...(seat.variant === 'bust' ? {} : { warden: { kind: 'soul', bearingText: bearingTextFor(campaign, seat.label) } }) }, priority: seat.variant === 'bust' ? 0 : 6, originTurnHash: seat.originTurnHash ?? null };
+      }
+    } else if (seat.subtype === 'scene') {
+      const log = (campaign.logs || []).find((l: any) => l.recordHash && l.recordHash === seat.originTurnHash);
+      const dm = log?.dm;
+      if (dm) {
+        // MIRROR of the app's own easel (detectCast + the turn scene job,
+        // App.jsx) — fidelity proven below; a drifted mirror refuses, never fires.
+        const detectCast = (cast: any[] = [], blocks: any[] = []) => {
+          const names = (cast || []).map((entry: any) => entry?.name).filter(Boolean);
+          const speakers = new Set((blocks || []).map((b: any) => String(b?.speaker || '').toLowerCase()).filter(Boolean));
+          const prose = (blocks || []).map((b: any) => String(b?.text || '')).join(' ').toLowerCase();
+          return names.filter((name: string) => { const n = name.toLowerCase(); return speakers.has(n) || prose.includes(n); }).slice(0, 3);
+        };
+        const presentCast = detectCast(campaign.codex.cast, dm.narration_blocks);
+        const sceneCue = dm.image_cue
+          ? { ...dm.image_cue, subjects: (dm.image_cue.subjects?.length ? dm.image_cue.subjects : presentCast) }
+          : { kind: 'scene', mood: plateMood(dm, 140) || 'the unfolding scene', subjects: presentCast, region: campaign.codex.regions?.[0]?.name || campaign.homeRegion };
+        const sceneMoment = {
+          prose: (dm.narration_blocks || []).map((block: any) => block?.text || '').join(' ').slice(0, 480),
+          seed: log.recordHash || String(log.id || ''),
+          speaker: (dm.narration_blocks || []).find((block: any) => block?.speaker)?.speaker || null
+        };
+        const seating = sceneRoster(campaign, sceneCue, sceneMoment);
+        const leadName = seating.painted[0]?.name || null;
+        const sceneBearing = leadName
+          ? (campaign.hero && String(leadName).trim().toLowerCase() === String(campaign.hero.name).trim().toLowerCase()
+              ? `${campaign.hero.name} — ${identityClause(heroSoul(campaign.hero))}`
+              : bearingTextFor(campaign, leadName))
+          : null;
+        job = { kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', ...(sceneMoment.prose ? { moment: { prose: sceneMoment.prose } } : {}), referenceLabels: [...seating.painted.map((s: any) => s.name), sceneCue.region].filter(Boolean).slice(0, 3), ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, originTurnHash: log.recordHash, cacheKey: `scene:${campaign.id}:${log.recordHash}` };
+      }
+    }
+    if (!job) return { fired: false, mismatch: `no rebuilder stands for this seat class (${seat.subtype ?? 'unnamed'})` };
+
+    // THE FIDELITY PROOF — the re-laid ask must BE the fallen ask.
+    // (57 review, logged edit) Proven, never presumed — and never
+    // presumABLE: an attested seat that carries no identity hashes cannot
+    // be proven equal to ANY rebuilt ask, so the door refuses and the fall
+    // stands. Absence is a refusal, not a pass.
+    const spec = await generationSpec(job.kind, job.prompt, job.options);
+    const rebuiltKey = job.cacheKey || spec.hash;
+    if (!seat.promptHash) return { fired: false, mismatch: 'the attested seat carries no promptHash — fidelity cannot be proven, the fall stands' };
+    if (!seat.generationSpecHash) return { fired: false, mismatch: 'the attested seat carries no generationSpecHash — fidelity cannot be proven, the fall stands' };
+    if (spec.promptHash !== seat.promptHash) return { fired: false, mismatch: 'the rebuilt brief drifted from the attested promptHash' };
+    if (spec.hash !== seat.generationSpecHash) return { fired: false, mismatch: 'the rebuilt spec drifted from the attested generationSpecHash' };
+    if ((seat.cacheKey ?? null) !== (job.cacheKey ?? null)) return { fired: false, mismatch: "the rebuilt ask and the attested seat disagree about the cache key's existence" };
+    if (seat.cacheKey && rebuiltKey !== seat.cacheKey) return { fired: false, mismatch: 'the rebuilt cacheKey is not the fallen seat' };
+
+    const foundry = new Foundry({
+      campaignId: id, tier: campaign.mediaTier, spend: campaign.spend,
+      onAttestation: async (payload: any) => appendEvent(id, 'media_attestation', payload)
+    });
+    if (!foundry.allowed('paint')) return { fired: false, capped: true };
+    // Awaited whole: the enqueue promise resolves when this ladder's
+    // terminal answer is sealed (ship, anchor, and refusal all attest). An
+    // HTTP or toll rejection rides the reject path and is named as infra.
+    try { await foundry.enqueue(job); } catch (error: any) { return { fired: false, infra: String(error?.message || error) }; }
+    return { fired: true };
+  }, { id: campaignId, seat });
+}
+
 /** Exports the chronicle through the app's own door and writes it beside
  * the plates. The courts read the JOURNAL — the sealed truth. Presentation
  * bytes (media dataURLs, per-log imageUrls) are stripped from the disk
@@ -103,7 +201,7 @@ test('harvest A: live session paints hero anchor, villain, and scenes', async ({
         { what: `the villain intro (${VILLAIN}, bust)`, matches: (r) => r.label === VILLAIN && r.variant === 'bust' },
         { what: `the villain later plate (${VILLAIN}, dramatic)`, matches: (r) => r.label === VILLAIN && r.variant === 'dramatic' },
         { what: 'a scene plate on a sealed turn', matches: (r) => r.subtype === 'scene' || String(r.cacheKey || '').startsWith('scene:') },
-      ], { capMs: WAIT1_CAP_MS });
+      ], { capMs: WAIT1_CAP_MS, relay: { fire: (seat) => fireMintLadder(page, campaignId, seat) } });
 
       const before = await turnCount(page);
       await act(page, 'I follow the gold-thread mark deeper toward the vault.');
@@ -111,7 +209,7 @@ test('harvest A: live session paints hero anchor, villain, and scenes', async ({
       await rollIfAsked(page);
       await waitForResolutions(() => readResolutions(page, campaignId), [
         { what: 'two scene plates across the sat turns', min: 2, matches: (r) => r.subtype === 'scene' || String(r.cacheKey || '').startsWith('scene:') },
-      ], { capMs: WAIT2_CAP_MS });
+      ], { capMs: WAIT2_CAP_MS, relay: { fire: (seat) => fireMintLadder(page, campaignId, seat) } });
     } catch (err) {
       // THE POST-MORTEM EXPORT (iteration 54.1 logged edit): a refusal or a
       // starvation must leave the sealed record on disk for the §4 probe —

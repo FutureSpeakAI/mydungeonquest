@@ -93,12 +93,20 @@ export async function readCampaign(page: Page, campaignId: string): Promise<any>
     const { db } = await import('/src/lib/db.js');
     const campaign = await db.campaigns.get(id);
     if (!campaign) return null;
+    // (57.4 logged edit — Directive VII.14 THE ROUND-TRIP RIDER, campaign
+    // block) The campaign read-back rebuilt the row field-by-field, and the
+    // Battle Cut's new blocks (combat, pendingRoll) never crossed: G23a
+    // judged a six-seat sealed order absent while the db row and the
+    // rendered banner both held it — the reader was the blind one, third
+    // time in this family (iteration-4 `kind`, 55.1 `dm.story`). The law
+    // that already governs log rows governs the campaign row now: the row
+    // rides WHOLE — a verbatim spread — with the derived normalizations
+    // layered BESIDE the record, never in place of it. No assertion moved.
     return JSON.parse(JSON.stringify({
-      id: campaign.id, title: campaign.title, styleBible: campaign.styleBible,
-      headHash: campaign.headHash, turnCount: campaign.turnCount, turnNumber: campaign.turnNumber,
-      signatureStatus: campaign.signatureStatus, sealedAt: campaign.sealedAt || null, completed: !!campaign.completed,
-      hero: campaign.hero, codex: campaign.codex, logs: campaign.logs || [],
-      keyArtHash: campaign.keyArtHash || null, heroBustHash: campaign.heroBustHash || null, mediaTier: campaign.mediaTier
+      ...campaign,
+      sealedAt: campaign.sealedAt || null, completed: !!campaign.completed,
+      logs: campaign.logs || [],
+      keyArtHash: campaign.keyArtHash || null, heroBustHash: campaign.heroBustHash || null
     }));
   }, campaignId);
   if (!raw) return null;
@@ -207,7 +215,7 @@ export async function paintFixtureExtras(page: Page, campaignId: string, anchorS
     const { db, saveCampaign } = await import('/src/lib/db.js');
     const { appendEvent } = await import('/src/lib/seal.js');
     const { Foundry } = await import('/src/lib/cinema/foundry.js');
-    const { portraitPrompt, regionPrompt, scenePrompt } = await import('/src/lib/cinema/prompts.js');
+    const { portraitPrompt, regionPrompt, scenePrompt, generationSpec } = await import('/src/lib/cinema/prompts.js');
     const { keyArtJob, heroBustJob, heroSoul, actOf, nameSeed } = await import('/src/lib/cinema/prologue.js');
     const campaign = await db.campaigns.get(id);
     if (!campaign) throw new Error('fixture campaign missing');
@@ -323,9 +331,32 @@ export async function paintFixtureExtras(page: Page, campaignId: string, anchorS
     for (const job of jobs) prompts[job.slot] = job.prompt;
 
     const assets: any[] = [];
+    // THE MINT LAW (owner's ruling, 2026-07-18; effective 57.5) — the
+    // fixture arm rides the same law as the live waits, per the ruling's
+    // own words ("including harvest B's battle plates"): a ladder that
+    // ends refused (null, or the anchor's row comes back — no row lands
+    // under the ask's own key, by law) or anchored may re-lay the FULL
+    // ladder with fresh dice, at most THREE complete ladders per artifact
+    // per sitting. The re-ask is the SAME job bytes under the SAME key, so
+    // fidelity is by construction (the spec object never changes), and
+    // every ladder attests through the app's own door exactly as today. A
+    // capped ask is never a ladder fall — the halt is named honestly. At
+    // three falls the LAST lawful outcome ships and the courts judge it:
+    // the preflight doors speak ANCHORED/REFUSED honestly (54.2), a
+    // starved need reds the sitting, and the sealed journal holds every
+    // ladder's attestation under the seat's key for the owner's report —
+    // seats the store never needed distinct (the anchor-mirror bust ships
+    // its anchor BY DESIGN) stay lawful deliveries, never false blockers.
     for (const job of jobs) {
       const { slot, logId, ...clean } = job;
-      const asset = await foundry.enqueue(clean).catch((error: any) => { throw new Error(`paint ${slot} failed: ${error?.message || error}`); });
+      const spec = await generationSpec(clean.kind, clean.prompt, clean.options);
+      const key = clean.cacheKey || spec.hash;
+      let asset: any = null;
+      for (let ladder = 1; ladder <= 3; ladder += 1) {
+        if (!foundry.allowed('paint')) throw new Error(`MINT-HALTED — ${slot}: the image cap is spent; a capped ask is never a ladder fall (THE MINT LAW)`);
+        asset = await foundry.enqueue(clean).catch((error: any) => { throw new Error(`paint ${slot} failed: ${error?.message || error}`); });
+        if (asset && asset.cacheKey === key) break; // a true mint under the ask's own key
+      }
       assets.push({ slot, logId, asset });
     }
 

@@ -333,11 +333,16 @@ export function topBytes(plate: TopPlate): Buffer {
 
 export type JudgeProject =
   | 'g09-character' | 'g10-environment' | 'g11-style'
-  | 'g16-captions' | 'g17-framing' | 'g18-storybook' | 'g22-frame';
+  | 'g16-captions' | 'g17-framing' | 'g18-storybook' | 'g22-frame'
+  | 'g23-battle';
 
 export const JUDGE_PROJECTS: JudgeProject[] = [
   'g09-character', 'g10-environment', 'g11-style',
   'g16-captions', 'g17-framing', 'g18-storybook', 'g22-frame',
+  // (57 review, logged edit) g23-battle was in the NEEDS ledger but not
+  // enrolled here, so the union lied and tooth 8's doctor walk skipped the
+  // battle court's manifest. Enrolled now — the walk grew STRICTER.
+  'g23-battle',
 ];
 
 interface Need {
@@ -492,16 +497,27 @@ export function preflightManifest(project: JudgeProject, manifest?: TopManifest)
     // (0.6.3 §2.5) When the need is short AND the sealed records hold a
     // refusal of its paint class, the court says REFUSED — the honest
     // name for an ask that died — never "missing", never a skip.
-    const refusal = (m.refusals || []).find((r) => refusalHits(need, r));
-    if (refusal) {
-      // (iteration 54.2 logged edit) The door law names the terminal honestly:
-      // REFUSED (text sighted twice) and ANCHORED (likeness fell twice — the
-      // anchor stood in, no distinct plate minted) are different deaths, and
-      // calling an anchored ask "refused" would be a lie at the door.
-      if (refusal.terminal === 'anchored') {
-        throw new Error(`${project} preflight: harvest artifact ANCHORED — ${need.what}; the sealed ${refusal.tag} record shows this ask fell to its blessed anchor (${refusal.subtype || refusal.role}, label=${refusal.label ?? '—'}, variant=${refusal.variant ?? '—'}, cacheKey=${refusal.cacheKey ?? '—'}, attestation #${refusal.attestation.i}${refusal.reason ? `; reason: ${refusal.reason}` : ''}) — no distinct plate was minted; a required plate that ships its anchor is a game defect; this court will not paper it over`);
+    // (iteration 54.2 logged edit) The door law names the terminal honestly:
+    // REFUSED (text sighted twice) and ANCHORED (likeness fell twice — the
+    // anchor stood in, no distinct plate minted) are different deaths, and
+    // calling an anchored ask "refused" would be a lie at the door.
+    // (57.4 logged edit) The door once named only the FIRST fallen member
+    // of a short need — and the live record's honest anchored full-figure
+    // eclipsed tooth 8b's planted refusal: the door spoke of a sister seat
+    // and never said the refusal's name. A short need now names EVERY
+    // fallen member of its class, refused members leading (the harder
+    // death heads the message). The 54.2 death-names are unchanged; there
+    // are simply no more eclipses. No assertion weakened — the tooth's
+    // demands stand verbatim and the door under it grew more honest.
+    const fallen = (m.refusals || []).filter((r) => refusalHits(need, r));
+    if (fallen.length) {
+      const describe = (r: Refusal) => `(${r.subtype || r.role}, label=${r.label ?? '—'}, variant=${r.variant ?? '—'}, cacheKey=${r.cacheKey ?? '—'}, attestation #${r.attestation.i}${r.reason ? `; reason: ${r.reason}` : ''})`;
+      const refused = fallen.filter((r) => r.terminal !== 'anchored');
+      const anchored = fallen.filter((r) => r.terminal === 'anchored');
+      if (refused.length) {
+        throw new Error(`${project} preflight: harvest artifact REFUSED — ${need.what}; the sealed ${refused[0].tag} record refused this ask ${refused.map(describe).join(' and ')}${anchored.length ? `; and beside it ${anchored.length === 1 ? 'a sister ask' : 'sister asks'} of the same class fell to the blessed anchor ${anchored.map(describe).join(' and ')}` : ''} — a refused required plate is a game defect; this court will not paper it over`);
       }
-      throw new Error(`${project} preflight: harvest artifact REFUSED — ${need.what}; the sealed ${refusal.tag} record refused this ask (${refusal.subtype || refusal.role}, label=${refusal.label ?? '—'}, variant=${refusal.variant ?? '—'}, cacheKey=${refusal.cacheKey ?? '—'}, attestation #${refusal.attestation.i}${refusal.reason ? `; reason: ${refusal.reason}` : ''}) — a refused required plate is a game defect; this court will not paper it over`);
+      throw new Error(`${project} preflight: harvest artifact ANCHORED — ${need.what}; the sealed ${anchored[0].tag} record shows ${anchored.length === 1 ? 'this ask' : 'these asks'} fell to ${anchored.length === 1 ? 'its' : 'the'} blessed anchor ${anchored.map(describe).join(' and ')} — no distinct plate was minted; a required plate that ships its anchor is a game defect; this court will not paper it over`);
     }
     throw new Error(`${project} preflight: harvest artifact missing — ${need.what}; the harvest project must mint it before this court sits`);
   }

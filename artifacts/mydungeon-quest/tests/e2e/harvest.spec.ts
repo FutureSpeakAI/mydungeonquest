@@ -10,6 +10,7 @@ import type { PlateEntry } from './lib/harness';
 import { buildTopManifest, ensureFreshStore } from './lib/harvestManifest';
 import { classifyAttestations, waitForResolutions } from './lib/terminality';
 import type { PaintResolution } from './lib/terminality';
+import { BATTLE_CUE, battleCard } from './lib/battleLaw';
 
 // ============================================================
 // THE HARVEST — the ONE project that touches the app (Move Three). It
@@ -160,7 +161,7 @@ test('harvest B: fixture paints through the app foundry, then seals into the boo
     : null;
   let prompts: any;
   try {
-    ({ prompts } = await paintFixtureExtras(page, campaignId, anchorSeed));
+    ({ prompts } = await paintFixtureExtras(page, campaignId, anchorSeed, { card: battleCard(), cue: BATTLE_CUE }));
   } catch (err) {
     // THE POST-MORTEM EXPORT — fixture arm (iteration 54.1 logged edit):
     // same law as the live arm; the sealed record outlives the failure.

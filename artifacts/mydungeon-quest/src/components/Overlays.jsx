@@ -227,13 +227,21 @@ export function Codex({ campaign, onClose, onReplay, onSealTale }) {
       </article>;
     })}</div>}
     <h3>The Open Threads</h3>
-    {(() => { const ledger = threadsOf(campaign); return ledger.length === 0
+    {(() => { const ledger = threadsOf(campaign);
+      // THE DOOM LAW (Directive X, Law VII) — the fall note renders from the
+      // reducer's own testimony (codex.threads): a doom-walk death folds
+      // client-side and never rides a journal turn, so the pure replay
+      // cannot see it. One hand writes the words; this panel only repeats
+      // them, matched by label, shown only where a fall actually stands.
+      const grief = new Map((campaign.codex?.threads || []).filter((t) => t?.fallNote).map((t) => [String(t.label || '').trim().toLowerCase(), t.fallNote]));
+      return ledger.length === 0
       ? <p className="muted">Nothing sworn yet — when a promise, debt, mystery, or goal enters the tale, it is registered here and the tale must answer it.</p>
       : <div className="thread-list">{ledger.map((thread, i) =>
           <div key={i} className={`thread-row${thread.status === 'open' ? '' : ' settled'}`}>
             <span className="thread-kind">{thread.kind}</span>
             <b>{thread.label}</b>
             <small>{thread.holder ? `held by ${thread.holder} — ` : ''}sworn turn {thread.openedTurn}</small>
+            {grief.has(String(thread.label || '').trim().toLowerCase()) && <small className="thread-fall">{grief.get(String(thread.label || '').trim().toLowerCase())}</small>}
             {thread.status !== 'open' && <span className="outcome">{thread.outcome}, turn {thread.closedTurn}</span>}
           </div>)}</div>; })()}
     <h3>The Trove</h3>

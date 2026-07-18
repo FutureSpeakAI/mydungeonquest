@@ -168,6 +168,9 @@ export function buildTopManifest(): TopManifest {
       if (ck.endsWith(':duchy-pair-1')) return 'duchy-pair-1';
       if (ck.endsWith(':duchy-pair-2')) return 'duchy-pair-2';
       if (ck.endsWith(':hero-first-scene')) return 'hero-first-scene';
+      // (Task 57) The species seat rides its own role, so the standing
+      // scene courts see exactly the plates they always saw.
+      if (ck.endsWith(':battle-species')) return 'battle-species';
       return 'scene';
     }
     if (tag === 'live') {
@@ -416,6 +419,13 @@ const NEEDS: Record<JudgeProject, Need[]> = {
     harnessSceneNeed('hero-first-scene'),
     fileNeed('sessionLive', 'the live session (the hero card)'),
     fileNeed('sessionFixture', 'the fixture session (the sealed fixture canon and the painted briefs)'),
+  ],
+  // (Task 57) THE BATTLE COURT's seats — the species plate and the brief
+  // ledger. Enrolled in JUDGE_PROJECTS, so tooth 8 doctors its first need
+  // and tooth 9 starves its paint class automatically, like every court.
+  'g23-battle': [
+    harnessSceneNeed('battle-species'),
+    fileNeed('sessionFixture', 'the fixture session (the battle brief and the species rider)'),
   ],
   'g11-style': [
     roleNeed('vale-establishing'),

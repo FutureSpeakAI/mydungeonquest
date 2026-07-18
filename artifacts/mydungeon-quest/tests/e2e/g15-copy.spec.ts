@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { boot, closeModal, openCodex, openSheet, openStorybook, seedFixture } from './lib/harness';
+import { boot, closeModal, doomFixture, openCodex, openSheet, openStorybook, seedFixture } from './lib/harness';
 
 // G15 COPY AND CAPTION MECHANICS — no leaked values, no clipped headings,
 // no blind images, no stuttered paragraphs, no prompt language on stage.
@@ -145,4 +145,38 @@ test('G15 copy law across the storybook', async ({ page }) => {
   problems.push(...imgProblems);
 
   expect(problems, `storybook copy violations:\n${problems.join('\n')}`).toEqual([]);
+});
+
+// (Task 57) G15 grows over the battle surfaces: the tracker banner, the
+// companion sheet lines, the memorial cards, and the fall note on a held
+// thread — all standing in the doom fixture BEFORE any dice walk, so the
+// sweep is deterministic. Fail-closed: each surface must exist before it
+// is swept, so an absent surface can never pass silently.
+test('G15 copy law across the battle surfaces', async ({ page }) => {
+  test.setTimeout(300_000);
+  await seedFixture(page, { source: doomFixture() });
+  const problems: string[] = [];
+
+  await expect(page.locator('.combat-banner')).toBeVisible();
+  problems.push(...sweepValues(await page.locator('.combat-banner').innerText(), 'combat banner'));
+  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'battle feed'));
+  problems.push(...await sweepDomMechanics(page, 'battle feed'));
+  problems.push(...await sweepLeaks(page, 'battle feed'));
+
+  await openCodex(page);
+  expect(await page.locator('.soul-card.memorial').count(), 'the pre-sealed grave stands for the sweep').toBeGreaterThanOrEqual(1);
+  expect(await page.locator('.thread-fall').count(), 'the fall note stands on the held thread for the sweep').toBeGreaterThanOrEqual(1);
+  const codexSheetLines = await page.locator('.sheet-line').count();
+  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'battle codex'));
+  problems.push(...await sweepDomMechanics(page, 'battle codex'));
+  await closeModal(page);
+
+  await openSheet(page);
+  const sheetSheetLines = await page.locator('.sheet-line').count();
+  expect(codexSheetLines + sheetSheetLines, 'the companion sheet lines stand for the sweep').toBeGreaterThanOrEqual(2);
+  problems.push(...sweepValues(await page.evaluate(() => document.body.innerText), 'battle sheet'));
+  problems.push(...await sweepDomMechanics(page, 'battle sheet'));
+  await closeModal(page);
+
+  expect(problems, `battle-surface copy violations:\n${problems.join('\n')}`).toEqual([]);
 });

@@ -1,4 +1,5 @@
 import { applyStoryUpdates, initCodex } from 'fatescript/story';
+import { applyCombat } from './combat.js';
 import { createHero } from 'fatescript/rules';
 import { castHeroVoice } from 'fatescript/cinema/casting';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
@@ -51,17 +52,38 @@ export async function seedProvingCampaign(fixture) {
 
   let logs = [];
   let turnNumber = 0;
+  let combat = null;
   for (let i = 0; i < fixture.turns.length; i += 1) {
     const scripted = fixture.turns[i];
     const dm = scripted.dm;
     const actBefore = codex.spine.beats[codex.beatIndex]?.act || 1;
+    // THE BATTLE CUT (Task 57, Section 3) — the initiative device reads the
+    // party AS THE RECORD STOOD BEFORE this turn's folds, exactly as the
+    // live table hands it (base.codex.party), so a same-turn grant never
+    // rides a same-turn opening.
+    const partyBefore = (codex.party || []).map((member) => member?.name).filter((name) => typeof name === 'string');
     if (dm.story) codex = applyStoryUpdates(codex, dm.story, { turn: i, heroName: hero.name });
+    // A scripted battle folds through the SAME primitive the live table
+    // folds (src/lib/combat.js — moved whole from App.jsx: one fold, two
+    // callers) with this turn's scripted entropy pool. Fixtures without
+    // dm.combat seal the exact bytes they always sealed.
+    if (dm.combat) combat = applyCombat(combat, dm.combat, hero, { bestiary: codex.bestiary || [], entropy: scripted.entropy || [], party: partyBefore });
+    // THE WOUND (G23d's seat) — the op family holds no companion-damage
+    // fold, so the seed carries the scripted wound by hand exactly as it
+    // carries the hero's bearing and mark: stagecraft the primitives do
+    // not govern, clamped to the sheet's own bounds, refused loudly when
+    // the named soul bears no sheet. Ledgered in Directive X, Amendments.
+    if (scripted.wound) {
+      const wounded = (codex.party || []).find((member) => member?.name === scripted.wound.name);
+      if (!wounded || !wounded.sheet) throw new Error(`fixture wound refused: ${scripted.wound.name} bears no sheet`);
+      wounded.sheet = { ...wounded.sheet, hp: Math.max(0, Math.min(wounded.sheet.maxHp, Math.trunc(Number(scripted.wound.hp) || 0))) };
+    }
     const player = scripted.player;
     const log = { id: crypto.randomUUID(), player, deed: null, sent: player, dm, ts: Date.now(), resolution: null, redacted: false, beatIndex: codex.beatIndex };
     logs = [...logs, log];
     turnNumber += 1;
     await saveCampaign({ ...campaign, hero, codex, logs, turnNumber });
-    const record = await appendEvent(id, 'turn', { player, visiblePlayer: player, deed: null, dm, stateAfter: { hero, combat: null }, storyAfter: codex, entropy: [], resolution: null });
+    const record = await appendEvent(id, 'turn', { player, visiblePlayer: player, deed: null, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy: scripted.entropy || [], resolution: null });
     log.recordHash = record.recordHash;
     if (scripted.struck) {
       // The X-card, as the table presses it: the strike is sealed, the
@@ -91,7 +113,12 @@ export async function seedProvingCampaign(fixture) {
 
   let sealed = await db.campaigns.get(id);
   let finished = {
-    ...campaign, hero, codex, logs, turnNumber,
+    ...campaign, hero, codex, logs, turnNumber, combat,
+    // THE STANDING ASK (G23c's seat) — a fixture may seed a pending roll
+    // the way the live table persists one (saveCampaign carries it
+    // verbatim); anything not shaped like the door's own ask is refused
+    // to null, never guessed at.
+    pendingRoll: fixture.pendingRoll && typeof fixture.pendingRoll === 'object' && !Array.isArray(fixture.pendingRoll) && typeof fixture.pendingRoll.id === 'string' && typeof fixture.pendingRoll.kind === 'string' && typeof fixture.pendingRoll.actor_id === 'string' ? fixture.pendingRoll : null,
     headHash: sealed.headHash, turnCount: sealed.turnCount, signatureStatus: sealed.signatureStatus,
     updatedAt: Date.now()
   };

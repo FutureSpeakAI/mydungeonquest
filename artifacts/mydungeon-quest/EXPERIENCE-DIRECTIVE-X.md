@@ -314,5 +314,14 @@ the G13 pin moved in the same commit.
 
 ## AMENDMENTS (same commit, per the deviation law)
 
-*None yet. The precondition amendment is ledgered in the preamble as the
-ruling required.*
+1. **The proving hook grows battle stagecraft (Section 3 build-out).** The
+   seed now folds `dm.combat` through the moved `src/lib/combat.js`
+   primitive (one fold, two callers — the same bytes the live table folds),
+   honors a scripted `wound` (companion hp clamped to the sheet's own
+   bounds, refused loudly when the named soul bears no sheet), and seats a
+   fixture `pendingRoll` shaped like the door's own ask. Reason: G23c and
+   G23d demand a companion dying at zero and a standing companion ask, and
+   the op family holds no companion-damage or ask-seeding fold — so the
+   wound and the ask are hand-carried stagecraft, exactly as the hero's
+   bearing and mark already are. Fixtures without combat, wound, or ask
+   seal the exact bytes they always sealed (combat null, entropy empty).

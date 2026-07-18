@@ -12,6 +12,7 @@ import {
   closureVerdict, duchyFixture, frameQuestionsDigest, heroClause, heroFirstSubjects, pairVerdict, principalLook,
 } from './lib/frameLaw';
 import { BINARY_PROTOCOL, BINARY_QUESTIONS_PATH, binaryVerdict } from './lib/binaryVerdict';
+import { PINNED_BATTLE_QUESTIONS_SHA256, battleCard, battleQuestionsDigest, crossedCard, speciesVerdict } from './lib/battleLaw';
 import type { BinaryKind } from './lib/binaryVerdict';
 import { magnifiedMark } from './lib/magnifier';
 
@@ -299,4 +300,26 @@ test('tooth 15: the constancy instrument sees the sealed fixture and refuses abs
   const badCanon = await pairVerdict({ aBytes: topBytes(pair1), bBytes: topBytes(pair2), visual: 'a white marble fountain crowned by three bronze herons, water threading their beaks', idSeed: 'tooth15-bad-canon', criterion: 'tooth-15-constancy' });
   console.log(`[tooth 15] bad-canon: ${JSON.stringify(badCanon)}`);
   expect(badCanon.fixture_present_in_both, 'bad: a canon neither plate holds is refused').toBe(false);
+});
+
+// TOOTH 16 (Task 57) — the species instrument. Proven on the SAME plate the
+// species court will judge: the battle plate must answer its own sealed
+// canon, refuse a crossed card no battle ever sealed, and refuse a ground
+// that holds no beast at all. The pin is checked in-tooth so a drifted
+// question sheet can never sit silently. Deterministic lies, never
+// crossings: the crossed card and the beastless ground are sealed bytes.
+test('tooth 16: the species instrument tells the sealed beast from a crossed card', async () => {
+  test.setTimeout(600_000);
+  const m = preflightManifest('g23-battle');
+  expect(battleQuestionsDigest(), 'the battle questions are sealed by their pin').toBe(PINNED_BATTLE_QUESTIONS_SHA256);
+  const plate = rolePlate(m, 'battle-species');
+  const good = await speciesVerdict({ bytes: topBytes(plate), visual: battleCard().visual, idSeed: 'tooth16-good-species', criterion: 'tooth-16-species' });
+  console.log(`[tooth 16] good: ${JSON.stringify(good)}`);
+  expect(good.species_match, 'good: the battle plate answers its own sealed canon').toBe(true);
+  const crossed = await speciesVerdict({ bytes: topBytes(plate), visual: crossedCard().visual, idSeed: 'tooth16-bad-crossed', criterion: 'tooth-16-species' });
+  console.log(`[tooth 16] bad-crossed: ${JSON.stringify(crossed)}`);
+  expect(crossed.species_match, 'bad: a species the battle never sealed is refused').toBe(false);
+  const beastless = await speciesVerdict({ bytes: topBytes(rolePlate(m, 'vale-establishing')), visual: battleCard().visual, idSeed: 'tooth16-bad-ground', criterion: 'tooth-16-species' });
+  console.log(`[tooth 16] bad-ground: ${JSON.stringify(beastless)}`);
+  expect(beastless.species_match, 'bad: a ground without the beast is refused').toBe(false);
 });

@@ -1868,3 +1868,116 @@ Ceiling: ten iterations across both stages. Test edits ledger below.
 - NEW `evals/doom.test.mjs` — Directive X, Laws VI-VII: the sheet_grant door (shape, role enum, level bounds, membership with the party seated, duplicate-by-name with the sheet ledger seated, bare-context silence), THE ROLE TABLE row by row with the hp arithmetic cited, the reducer's seal-once fold with notes and sheet_state on the block, the three-and-three walk both ways under seeded dice, the sealed bed refusing a fourth save, the resurrection retcon still blocked, the memorial fact, and the fall notes riding held threads by name.
 - `package.json` eval chain grew both gates, appended after roundLaw — no existing gate touched.
 - `tests/e2e/g13-check.spec.ts` PINNED_PASS_COUNT 104 → 106 in the same commit that adds the two PASS lines (pin law; both stage pins land in the one Task 57 closing commit).
+
+### Task 57 — Section 3 build-out (pre-loop): the five battle courts and tooth 16
+
+Test-file edits, each with its reason:
+
+- NEW `tests/e2e/fixtures/doom-session.json` — the doom fixture: hero Halvard,
+  a cast of three, two sheeted companions (skirmisher 2 and 3), two sworn
+  threads, one pre-sealed grave (Vessarine Olt, holder of the lantern
+  promise), the sealed Marsh Howler card (threat 2), a scripted three-instance
+  battle (A downed at zero, B fled, C living), and Brannoc wounded to zero —
+  the whole G23 road in sealed bytes.
+- NEW `tests/e2e/fixtures/battle-questions.json` (protocol b1) — the species
+  instrument: sealed card + crossed card + one forced-binary question with the
+  staging-variance clause. Sha-pinned in battleLaw.ts; the pin is checked
+  in-tooth and in-court, so a drifted sheet can never sit silently.
+- NEW `tests/e2e/lib/battleLaw.ts` — frameLaw's cloth: digest, pin, card
+  accessors, the BATTLE_CUE constant (harness plates bind no journal row, so
+  the cue is restated testimony), speciesVerdict on protocol b1.
+- NEW `tests/e2e/g23-battle.spec.ts` — G23a (sealed order rendered in order,
+  greyed seats for the downed AND the fled, byte-identical after a full
+  reload through the shelf), G23b (node-side one-action bench: the doctored
+  second action by a LIVING actor falls by name, byte-exact; the yield passes
+  clean), G23c (the companion die under the owner's name and sigil; margin
+  proven from the read-back sheet, never hardcoded), G23d (the doom walk:
+  three saves on stage, sealed verdicts pending/pending/dead, the memorial,
+  the permanent sheet seal, the fall note on the held thread), G23e (species
+  plate vs sealed card; the brief carried THE BESTIARY RIDER byte-for-byte;
+  the doom fixture's journal seals the same canon — one source, tied).
+- `tests/e2e/lib/harness.ts` — seedFixture grows `source`/`mutate` (additive;
+  every standing caller reads exactly as before); doomFixture() reader;
+  paintFixtureExtras grows the deterministic battle-species seat (the app's
+  own scenePrompt under a bestiary+combat campaign, so the rider rides).
+- `tests/e2e/harvest.spec.ts` — hands the battle card and cue to the mint
+  (one line; the prompts ledger picks the brief up automatically).
+- `tests/e2e/lib/harvestManifest.ts` — battle-species keeps its own role so
+  the standing scene courts see exactly the plates they always saw;
+  g23-battle joins JudgeProject/JUDGE_PROJECTS/NEEDS, so tooth 8 doctors its
+  first need and tooth 9 starves its paint class automatically.
+- `tests/e2e/calibration.spec.ts` — tooth 16 appended after tooth 15: good
+  (the battle plate answers its own sealed canon), bad (a crossed card no
+  battle ever sealed is refused), bad (a beastless ground is refused).
+  Deterministic lies, never crossings.
+- `tests/e2e/g15-copy.spec.ts` — grows the battle-surfaces sweep (banner,
+  feed, codex, sheet) with fail-closed presence gates: the memorial, the
+  fall note, and two sheet lines must STAND before the sweep counts.
+- `playwright.config.ts` — g23-battle project, dependencies: ['calibration']
+  (the species court sits only after tooth 16 proves the instrument).
+- `tests/e2e/verdict.mjs` — g23-battle joins REQUIRED_PROJECTS; 'G23a'…'G23e'
+  and 'tooth 16:' join REQUIRED_EXECUTED.
+
+Dice disclosure: companionRoll is seedless by law (Math.random at the fold),
+so the walking courts pin the table's dice via addInitScript BEFORE boot —
+G23c pins 0.5 (d20 face 11; 11 + the sheet's DEX + proficiency beats DC 12),
+G23d pins 0.25 (face 6; three failures, the seal). The pin is the harness's
+dice tray, not a change to any shipped fold. G23a stays unpinned: it proves
+render == sealed record, not values.
+
+App-side changes ledgered for the architect: applyCombat moved WHOLE to
+src/lib/combat.js (one fold, two callers); proving.js folds dm.combat /
+scripted wound / fixture pendingRoll (Amendment 1 in Directive X); the
+Composer wears the owner tag via ownerTag(); Overlays renders the fall note
+from the reducer's own testimony (codex.threads), because a doom-walk death
+folds client-side and never rides a journal turn for the pure replay to see.
+
+### 57.1 — red (standing class, no edit)
+
+Harvest A died on `painted text twice` — the unlettered warden refusing a
+live scene plate (attestation #9) after its one lawful repaint, and THE
+TERMINAL ANSWER firing HARVEST-REFUSED in the same poll that read it. The
+class is the standing repaint roulette, ruled a non-defect on 56C.1 with
+history (54.1 and 56B.3 each took exactly one such hit before any of this
+task's law existed), and the ruling carries: the live walk, its prompts,
+and the warden sit entirely outside Task 57's diff, and the battle seat
+rides harvest B, which never ran. No law is changed in response. The five
+battle courts and tooth 16 never sat (calibration and everything behind it
+skipped with the store unsealed). 57.2 requested verbatim.
+
+### 57.2 — red (standing class, no edit)
+
+Harvest A again, the other face of the live-walk dice: HARVEST-ANCHORED —
+the turn-1 scene fell to its blessed anchor (likeness would not hold
+twice; drift: the hero demoted to the background). The drift family is
+the exact one THE PRINCIPAL-FIGURE LAW refuses by name (ledgered at the
+old attestation #9), so the warden's refusal is HONEST law holding while
+the painter's dice missed twice. Precedent rules it standing: 54B.1
+(anchored at harvest A — "re-arm with fresh dice," no law touched) and
+56B.1 (anchored villain plate — "live-tier likeness flake, not a court
+defect"). Different class from 57.1's text plague — no class has
+repeated yet; if one does, it gets reported as a blocker, never a bent
+bar. Paint law rode (`reused=true`): only the unsealed live store
+re-rolls, so one clean mint seals the roulette shut and the remaining
+iterations ride. No edit. 57.3 requested verbatim.
+
+### 57.3 — red (anchored class repeated; the report clause fires; 57.4 rolls under 56C.5 precedent)
+
+Harvest A, HARVEST-ANCHORED at the same turn-1 seat: the warden refused
+the likeness twice — "full spectacles instead of a single left-eye
+monocle," "distance in the scene reduces clarity of exact facial
+features" — and the ask shipped its blessed anchor. Third live-mint
+failure in three, second of the anchored class, so 57.2's own ruling
+line fires and the blocker goes to the owner with the arithmetic: 3
+spent, 0 green, 7 remain; the chain still fits through a first green at
+57.8. Context that frames the report: this seat is the series' dominant
+tollgate (56C spent .1, .2, .5, and .6 — its extension trigger — on the
+first-scene gate; 54B.1 and 56B.1 each took one hit), every refusal is
+honest law holding, the paint-law bytes are hash-identical to the
+twelve-green law (reused=true), and Task 57 must cross the gate at least
+once regardless — the battle seat moved the paint-law hash, so no ride
+exists until one clean mint seals. Post-mortem record probed: the ladder
+ran lawfully (paints attested, sighting → repaint → second sighting →
+anchor, drift named). No law is touched; no bar bends. 57.4 rolls
+verbatim under 56C.5's precedent (repeat hit, mechanics decoded, no
+edit) while the owner weighs the spend.

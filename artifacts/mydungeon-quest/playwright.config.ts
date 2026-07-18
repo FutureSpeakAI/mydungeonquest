@@ -49,6 +49,9 @@ export default defineConfig({
     // (56C) THE HONEST FRAME — its teeth sit in calibration first (13-15),
     // so the project rides behind the calibration probe like G9 and G16.
     { name: 'g22-frame', testMatch: /g22-frame\.spec\.ts/, dependencies: ['calibration'] },
+    // (Task 57) THE BATTLE CUT — the species court sits only after tooth 16
+    // proves the instrument, so the project rides behind calibration too.
+    { name: 'g23-battle', testMatch: /g23-battle\.spec\.ts/, dependencies: ['calibration'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

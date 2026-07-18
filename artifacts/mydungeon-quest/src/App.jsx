@@ -11,9 +11,10 @@ import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
 import { CharacterSheet, Codex, Settings, Storybook } from './components/Overlays.jsx';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
-import { applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll, sealInitiative } from 'fatescript/rules';
+import { applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll } from 'fatescript/rules';
 import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
-import { expandSpawn, makeEntropy, validateDmTurn } from 'fatescript/protocol';
+import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
+import { applyCombat } from './lib/combat.js';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
@@ -128,37 +129,9 @@ function seal(campaignId, type, payload) {
   return run;
 }
 
-function applyCombat(current, update, hero, aids = {}) {
-  if (!update) return current;
-  if (update.op === 'end') return null;
-  const next = current ? structuredClone(current) : { active: true, round: 1, enemies: [], order: [] };
-  for (const enemy of update.enemy_add || []) if (!next.enemies.some((e) => e.id === enemy.id)) next.enemies.push(enemy);
-  // THE BESTIARY LAW (Directive X, Law I): instances enter through the ONE
-  // engine expansion — sealed species, deterministic letters, threat-table
-  // hit points — so the client derives exactly what the bench derives.
-  if (update.spawn) {
-    for (const instance of expandSpawn(update.spawn, aids.bestiary || [])) {
-      if (!next.enemies.some((e) => e.id === instance.id)) next.enemies.push(instance);
-    }
-  }
-  for (const patch of update.enemy_update || []) {
-    const enemy = next.enemies.find((e) => e.id === patch.id); if (!enemy) continue;
-    enemy.hp = Math.max(0, Math.min(enemy.maxHp, enemy.hp + Number(patch.hp_delta || 0)));
-    if (patch.zone) enemy.zone = patch.zone;
-  }
-  next.enemies = next.enemies.filter((enemy) => !(update.enemy_remove || []).includes(enemy.id));
-  next.round += Number(update.round_delta || 0);
-  // THE ROUND LAW (Directive X, Law III): the order is sealed ONCE at the
-  // opening — device draws for the player's side, one pool draw per enemy
-  // species group — and never reshuffled after; the downed and the fled
-  // keep their seats. The sealed order rides the journal in stateAfter,
-  // so a reload reads the seats, never re-rolls them.
-  if (update.op === 'start') {
-    const draws = (update.initiative?.entropy || []).map((entry) => ({ group: entry.group, value: (aids.entropy || [])[entry.index]?.value ?? 0 }));
-    next.order = sealInitiative({ hero, party: aids.party || [], enemies: next.enemies, draws });
-  }
-  return next;
-}
+// THE COMBAT FOLD moved whole to src/lib/combat.js (Task 57, Section 3) so
+// the proving seed folds scripted battles through the SAME primitive this
+// table folds — one fold, two callers, zero drift.
 
 // Which named cast members appear this turn — as a speaker or by name in the
 // prose. Used to anchor a scene plate's appearance canon and sealed reference
@@ -1541,6 +1514,18 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null }) {
   </article>;
 }
 
+// THE TABLE'S-DICE LAW (Directive X, Law V) — the owner's name rides the
+// roll surface: an ask whose actor_id names a sheeted companion wears that
+// companion's name and sigil beside the kind, exactly as the hero's own
+// death-save button wears the hero's. Hero asks render unchanged, and an
+// unknown or sheetless name adds nothing — never a guess.
+function ownerTag(campaign, pending) {
+  const key = (value) => String(value ?? '').trim().toLowerCase();
+  if (!pending || !pending.actor_id || key(pending.actor_id) === 'hero') return '';
+  const owner = (campaign.codex?.party || []).find((member) => member?.sheet && key(member.name) === key(pending.actor_id));
+  return owner ? `${owner.name} ${owner.sheet.sigil} · ` : '';
+}
+
 function Composer({ campaign, busy, reduceMotion, onSubmit, onSuggestion, onRoll, onXCard }) {
   const [text,setText]=useState(''); const pending=campaign.pendingRoll;
   const send=()=>{if(text.trim()){onSubmit(text);setText('');}};
@@ -1550,7 +1535,7 @@ function Composer({ campaign, busy, reduceMotion, onSubmit, onSuggestion, onRoll
   const latest=[...campaign.logs].reverse().find((l)=>!l.redacted && !l.kind);
   return <section className="composer-wrap">
     {latest?.dm?.suggestions && !pending && <SuggestionRow key={latest.id} suggestions={latest.dm.suggestions} disabled={busy} onPick={onSuggestion} reduceMotion={reduceMotion} />}
-    {pending ? <button className="roll-button" onClick={onRoll} disabled={busy}><Dices/><span><small>{pending.kind} · DC {pending.dc ?? 'hidden'}</small>{pending.label}</span><b>Roll {pending.die}</b></button> : <div className="composer"><button className="x-card" onClick={onXCard} disabled={busy} title="Remove the last scene from active canon"><MessageCircleWarning/></button><textarea value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}} placeholder="What do you do?" rows="1" disabled={busy}/><button onClick={send} disabled={busy||!text.trim()}><Feather/></button></div>}
+    {pending ? <button className="roll-button" onClick={onRoll} disabled={busy}><Dices/><span><small>{ownerTag(campaign, pending)}{pending.kind} · DC {pending.dc ?? 'hidden'}</small>{pending.label}</span><b>Roll {pending.die}</b></button> : <div className="composer"><button className="x-card" onClick={onXCard} disabled={busy} title="Remove the last scene from active canon"><MessageCircleWarning/></button><textarea value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}} placeholder="What do you do?" rows="1" disabled={busy}/><button onClick={send} disabled={busy||!text.trim()}><Feather/></button></div>}
   </section>;
 }
 

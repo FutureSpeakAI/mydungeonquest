@@ -1,0 +1,17 @@
+{
+  "protocol": "b1",
+  "note": "THE SPECIES INSTRUMENT (Directive X, Task 57) — forced binary. The sealed card and the crossed card live beside the question so the court (G23e), its tooth (16), the harvest mint, and the doom fixture's journal tie all read ONE sha-pinned source. Any byte change bumps protocol b1 and the pin in battleLaw.ts in lockstep, and tooth 16 re-proves perfect separation before the species court sits again.",
+  "card": {
+    "species": "Marsh Howler",
+    "visual": "a lean marsh-wolf with slate-grey hide, moss-matted shoulders, a bone-white blaze down the muzzle, and yellow lamplike eyes",
+    "nature": "a pack hunter of the reed-flats that circles wounded prey and calls the fog down",
+    "threat": 2
+  },
+  "crossed": {
+    "species": "Gilded Automaton",
+    "visual": "a clockwork soldier of polished brass plates with glowing blue runes at every joint and a featureless mirrored faceplate"
+  },
+  "questions": {
+    "species": "A painting was briefed to stage one or more creatures of a single sealed species. The species' sealed canon reads: {VISUAL}. Judge only what is visible in the frame: is at least one creature matching that canon — its kind, its hide or material, its distinctive form — recognizably present? Independent stagings lawfully vary pose, count, camera angle, lighting, and background; such variance is not a mismatch. Answer ONLY with JSON of the form {\"species_match\": true, \"mismatch\": \"one line naming what is absent or wrong, or an empty string\", \"confidence\": 0.0}."
+  }
+}

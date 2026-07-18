@@ -11,6 +11,11 @@ import { GAME_ROOT } from './vision';
 // ------------------------------------------------------------
 
 export const FIXTURE_PATH = path.join(GAME_ROOT, 'tests', 'e2e', 'fixtures', 'proving-campaign.json');
+// (Task 57) THE DOOM FIXTURE — a second, smaller campaign whose record
+// stages a standing battle, a sheeted party, one pre-sealed grave, and a
+// companion dying at zero. Seeded through the same sanctioned hook; never
+// harvested, never painted live.
+export const DOOM_FIXTURE_PATH = path.join(GAME_ROOT, 'tests', 'e2e', 'fixtures', 'doom-session.json');
 // (TASK 53, Move Three — logged) The plate store moved to the harvest
 // project's own ground: ONE project mints every artifact here, and the
 // judge courts read only this disk. The Task 52 store at
@@ -19,6 +24,10 @@ export const PLATES_DIR = path.join(GAME_ROOT, 'test-results', 'harvest');
 
 export function fixture(): any {
   return JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
+}
+
+export function doomFixture(): any {
+  return JSON.parse(fs.readFileSync(DOOM_FIXTURE_PATH, 'utf8'));
 }
 
 export interface BootOptions { proving?: boolean; skipArrival?: boolean; errors?: string[] }
@@ -36,9 +45,14 @@ export async function boot(page: Page, { proving = true, skipArrival = true, err
 }
 
 /** Seeds the fixture through the sanctioned hook and waits for the table. */
-export async function seedFixture(page: Page, { sealed = false, boot: doBoot = true }: { sealed?: boolean; boot?: boolean } = {}): Promise<string> {
+export async function seedFixture(page: Page, { sealed = false, boot: doBoot = true, source = null, mutate = null }: { sealed?: boolean; boot?: boolean; source?: any; mutate?: ((fx: any) => any) | null } = {}): Promise<string> {
   if (doBoot) await boot(page);
-  const data = { ...fixture(), sealed };
+  // (Task 57) `source` seats a different fixture (default: the proving
+  // campaign); `mutate` stages a lawful variant (G23c strips the wound and
+  // seeds the standing ask). Every call reads fresh bytes from disk, so a
+  // court's mutation can never leak into another court's seat.
+  let data = { ...(source ?? fixture()), sealed };
+  if (mutate) data = mutate(data) ?? data;
   const campaignId = await page.evaluate(async (fx) => (window as any).__mdqSeed(fx), data);
   await page.waitForSelector('main.adventure-log', { timeout: 30_000 });
   return campaignId as string;
@@ -188,8 +202,8 @@ export async function harvestPlates(page: Page, campaignId: string, tag: string)
  * plates. This is the letter's "paint or seed" sanction: the pipe is real,
  * only the enqueue trigger is the test. Scene plates land on their logs
  * exactly the way the table lands them. */
-export async function paintFixtureExtras(page: Page, campaignId: string, anchorSeed: { dataUrl: string; assetHash: string; mime: string } | null = null): Promise<{ painted: number; prompts: Record<string, string> }> {
-  return page.evaluate(async ({ id, seed }) => {
+export async function paintFixtureExtras(page: Page, campaignId: string, anchorSeed: { dataUrl: string; assetHash: string; mime: string } | null = null, battle: { card: any; cue: string } | null = null): Promise<{ painted: number; prompts: Record<string, string> }> {
+  return page.evaluate(async ({ id, seed, battle }) => {
     const { db, saveCampaign } = await import('/src/lib/db.js');
     const { appendEvent } = await import('/src/lib/seal.js');
     const { Foundry } = await import('/src/lib/cinema/foundry.js');
@@ -292,6 +306,19 @@ export async function paintFixtureExtras(page: Page, campaignId: string, anchorS
     const heroFirstCue = { kind: 'scene', region: vale.name, subjects: [campaign.hero.name, 'Edda'], mood: 'the hearth-light holds the road-reader and the fire-keeper', crowd: 'none' };
     jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, heroFirstCue, null), options: { kind: 'scene', referenceLabels: [campaign.hero.name, 'Edda'] }, priority: 5, originTurnHash: null, cacheKey: `proving-scene:${id}:hero-first-scene`, slot: 'hero-first-scene' });
 
+    // (Task 57, G23e) THE SPECIES SEAT — one deterministic battle plate:
+    // the app's OWN scenePrompt briefed under a campaign whose codex holds
+    // the sealed species card and whose combat stands a living instance, so
+    // THE BESTIARY RIDER rides the brief byte-for-byte. The card is the
+    // sha-pinned battle fixture's own canon (battleLaw reads the same file
+    // the courts and tooth 16 read); the doom fixture seals the same bytes
+    // in its journal, and G23e ties plate, brief, and journal together.
+    if (battle) {
+      const battleCampaign = { ...campaign, codex: { ...campaign.codex, bestiary: [battle.card] }, combat: { active: true, round: 1, order: [], enemies: [{ id: 'battle-species-instance', name: `${battle.card.species} A`, species: battle.card.species, hp: 9, maxHp: 9, ac: 11, zone: 'near' }] } };
+      const battleCue = { kind: 'scene', region: vale.name, subjects: [], mood: battle.cue, crowd: 'none' };
+      jobs.push({ kind: 'paint', prompt: scenePrompt(battleCampaign, battleCue, null), options: { kind: 'scene' }, priority: 5, originTurnHash: null, cacheKey: `proving-scene:${id}:battle-species`, slot: 'battle-species' });
+    }
+
     const prompts: Record<string, string> = {};
     for (const job of jobs) prompts[job.slot] = job.prompt;
 
@@ -328,7 +355,7 @@ export async function paintFixtureExtras(page: Page, campaignId: string, anchorS
       updatedAt: Date.now()
     });
     return { painted: assets.filter((entry) => entry.asset).length, prompts };
-  }, { id: campaignId, seed: anchorSeed });
+  }, { id: campaignId, seed: anchorSeed, battle });
 }
 
 // ---------- table drivers ----------

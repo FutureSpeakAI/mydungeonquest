@@ -1,0 +1,159 @@
+{
+  "title": "The Doom Proving",
+  "covenant": "A drowned border ford where the salvage of a broken caravan must be dragged home before the marsh takes it back, and every howl in the fog is closer than the last.",
+  "tone": "Grim, close, and loyal",
+  "styleBible": "Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.",
+  "homeRegion": "The Reed-Water Ford",
+  "spineId": "classic-epic",
+  "lines": [],
+  "veils": [],
+  "hero": {
+    "name": "Halvard",
+    "sigil": "✦",
+    "ancestry": "Human",
+    "className": "Ranger",
+    "caster": "half",
+    "hitDie": 10,
+    "abilities": { "STR": 15, "DEX": 13, "CON": 14, "INT": 10, "WIS": 12, "CHA": 8 },
+    "skills": ["Athletics", "Perception", "Survival"],
+    "bearing": "A broad-built march-warden in scarred half-plate, grey-streaked beard cropped short, a round shield slung across his back.",
+    "background": "A ford-keeper who has buried more friends than enemies and means to bury no more.",
+    "presentation": "masculine",
+    "pronouns": "he/him"
+  },
+  "turns": [
+    {
+      "player": "Begin the chronicle.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "The Reed-Water Ford lies grey under first light, the broken caravan heeled over in the shallows like a drowned ox. Fog walks the reed-line and does not lift." },
+          { "speaker": "Vessarine Olt", "text": "Salvage first, mourning after. The marsh keeps what dawdlers leave." }
+        ],
+        "story": {
+          "cast_add": [
+            {
+              "name": "Vessarine Olt",
+              "role": "guide",
+              "visual": "A wiry salvage-mistress in oiled leathers, a silver-shot braid over one shoulder, and a cracked brass spyglass on a neck-cord.",
+              "voice": "Dry and clipped, kind only when it costs nothing.",
+              "goal": "Bring the caravan's salvage and every living hand home.",
+              "secret": "She promised the dead teamster she would carry his lantern to Havenwood."
+            },
+            {
+              "name": "Brannoc",
+              "role": "companion",
+              "visual": "A young sledge-hand with rope-scarred palms, a patched fen-cloak, and a fisher's long knife at his belt.",
+              "voice": "Quick and eager, a little too loud in the fog.",
+              "goal": "Prove he can bring a load home the way his father did.",
+              "secret": "He signed the salvage debt in his own name."
+            },
+            {
+              "name": "Sela",
+              "role": "companion",
+              "visual": "A quiet ford-scout with reed-woven bracers, crop-cut dark hair, and a sling of throwing irons.",
+              "voice": "Low and spare, every word weighed before it is spent.",
+              "goal": "Read the water before the water reads them.",
+              "secret": "She has heard the howlers before and never told anyone."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "player": "We load the salvage sledge and take the ford road.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "Rope creaks and the sledge takes the weight. Brannoc sets his shoulder to the frame while Vessarine counts the crates twice and trusts neither count." },
+          { "speaker": "Brannoc", "text": "Get the salvage home — that is the whole of the debt, and I mean to pay it." }
+        ],
+        "story": {
+          "party_join": { "name": "Brannoc" },
+          "thread_add": [
+            { "label": "Carry the lantern to Havenwood", "kind": "promise", "holder": "Vessarine Olt" },
+            { "label": "Get the salvage home", "kind": "debt", "holder": "Brannoc" }
+          ]
+        }
+      }
+    },
+    {
+      "player": "Sela, scout the reed-line ahead.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "Sela slips into the reeds without a sound. Vessarine presses a fisher's blade into Brannoc's hand and shows him the grip her father showed her." },
+          { "speaker": "Sela", "text": "Tracks in the mud. Big. Keeping pace with us on the blind side of the fog." }
+        ],
+        "story": {
+          "party_join": { "name": "Sela" },
+          "sheet_grant": { "name": "Brannoc", "role": "skirmisher", "level": 2 }
+        }
+      }
+    },
+    {
+      "player": "We push past the drowned mile-stone before dark.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "They find Vessarine's watch-fire cold at the mile-stone, her spyglass set neatly on a flat stone, facing home. The marsh gives back nothing else of her." },
+          { "speaker": "Sela", "text": "Marsh howlers. That is what took her. Lean grey shapes — I saw one at dusk, yellow eyes over the reed-tops." }
+        ],
+        "story": {
+          "sheet_grant": { "name": "Sela", "role": "skirmisher", "level": 3 },
+          "creature_add": {
+            "species": "Marsh Howler",
+            "visual": "a lean marsh-wolf with slate-grey hide, moss-matted shoulders, a bone-white blaze down the muzzle, and yellow lamplike eyes",
+            "nature": "a pack hunter of the reed-flats that circles wounded prey and calls the fog down",
+            "threat": 2
+          },
+          "cast_update": [
+            { "name": "Vessarine Olt", "status": "dead", "last_seen": "Took the night watch at the mile-stone and did not come back." }
+          ]
+        }
+      }
+    },
+    {
+      "player": "Howls — form up around the sledge!",
+      "struck": false,
+      "entropy": [ { "die": "d20", "value": 13 } ],
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "The fog folds open and the pack is simply there: three lean shapes, low over the reed-water, circling the sledge in a slow and narrowing noose." }
+        ],
+        "combat": {
+          "op": "start",
+          "round_delta": 0,
+          "spawn": { "species": "Marsh Howler", "count": 3, "zone": "near" },
+          "initiative": {
+            "device": ["Halvard", "Brannoc", "Sela"],
+            "entropy": [ { "group": "Marsh Howler", "index": 0 } ]
+          },
+          "enemy_add": [],
+          "enemy_update": [],
+          "enemy_remove": [],
+          "npc_actions": []
+        }
+      }
+    },
+    {
+      "player": "Hold the line at the sledge!",
+      "struck": false,
+      "wound": { "name": "Brannoc", "hp": 0 },
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "Steel and spray. One howler goes down under Halvard's shield-edge; a second breaks and is swallowed whole by the fog. The third drags Brannoc off his feet at the water-line, and he does not get up." }
+        ],
+        "combat": {
+          "round_delta": 1,
+          "enemy_add": [],
+          "enemy_update": [ { "id": "marsh-howler-a", "hp_delta": -9 } ],
+          "enemy_remove": ["marsh-howler-b"],
+          "npc_actions": [
+            { "actor": "Marsh Howler C", "action": "Circles the downed sledge-hand, hackles up, waiting." }
+          ]
+        }
+      }
+    }
+  ]
+}

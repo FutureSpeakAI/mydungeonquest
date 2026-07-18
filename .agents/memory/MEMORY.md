@@ -33,3 +33,6 @@
 - [Harness readers carry rows whole](harness-row-roundtrip.md) — spread stored rows verbatim in test readers; field-by-field rebuilds drop every new block (three strikes of this family).
 - [UI async doors must catch and speak](ui-silent-async-doors.md) — uncaught await in a view-mount handler = eternal silent wedge; catch → status line, per-row degrade.
 - [Anthropic temperature retired](anthropic-temperature-retired.md) — new model families 400 any request carrying temperature; silent degrade eats it (a latent case still sits in the writers' room server).
+- [Turn-stamped citations](turn-stamped-citations.md) — journal rows carry their OWN turn stamp; array indexes lie once tick rows land; new stamps seat after pinned byte-runs.
+- [Moved surfaces drag instruments](moved-surface-instruments.md) — a migrated component keeps classes, not pages: retarget every eval needle + court walk in the same task.
+- [One crossing ≠ conviction](e2e-one-crossing.md) — probe-clean court that reds once under parallel load: fix the rest, rerun; only a second crossing is material.

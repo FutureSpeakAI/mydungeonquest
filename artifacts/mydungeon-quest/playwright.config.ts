@@ -78,6 +78,11 @@ export default defineConfig({
     { name: 'g31-sheet', testMatch: /g31-sheet\.spec\.ts/, dependencies: ['calibration'] },
     { name: 'g32-quiet', testMatch: /g32-quiet\.spec\.ts/, dependencies: ['dom'] },
     { name: 'g33-atelier', testMatch: /g33-atelier\.spec\.ts/, dependencies: ['calibration'] },
+    // (1.1.0, Directive XV §VI) THE COMMONS — the court raises its OWN
+    // doorless house on its own ports (staging seam, real ledger, real
+    // shelf) and puts it out when it rests; it rides behind g26 so its
+    // house never stands beside a keyed one.
+    { name: 'g29-commons', testMatch: /g29-commons\.spec\.ts/, dependencies: ['g26-return'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

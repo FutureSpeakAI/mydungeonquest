@@ -2977,3 +2977,84 @@ when the five gates land, G25/G26 join the live courts.
 - THE SERIES: 62.1–62.9, nine of the fourteen-iteration ceiling, closing on THREE consecutive greens (62.7, 62.8, 62.9 — exit 0, 119 tests, zero unexpected, zero skipped, zero flaky, all 22 projects executed, the judge ledger near-total replay with only G33a's own fresh atelier mints sitting fresh, green each time).
 - WHAT THE REDS TAUGHT, in order. 62.1–62.2 calibrated the new instruments (frame protocol f3, the G31a scale clause, the fit-aware G31d law, the G31e retarget, the G32b inline pour walk, the G33a id fix — and two app-side cures, the storybook's fail-closed `introducedCast` fold and the contain rule in styles.css). 62.3 proved the raze boundary: a judge-law protocol bump rode the paint-law digest and re-rolled the whole plate lottery — judge questions and paint law must never share a digest. 62.4 proved the moved-surface family again: the store's NEW variants (sheets, dramatics) were being swept by older kind-blind courts — each class now answers to its own bench (G11b recuses sheets to G31a and carves out diegetic scroll-text; G17a exempts dramatics from portrait framing with the ≥4 floor kept), and the closure question gained the window-staffage scenery clause after direct plate inspection seated the human half of the two-sitting law. 62.5 sat the rebuilt store first and taught the deepest law of the stage: THE SEAT-BINDING LAW — the record binds a cue to a plate only on ONE row (papers stamp the hanging turn; even the paint salt cites the arrival row), so G31b had convicted a two-soul cue against a hung BUST and G31e a bust of failing a scene caption; the hero-first plate crossed once under G22a while passing the same bytes and prose under tooth 13 in the same run (variance, evicted, re-sat green in 62.6); G31d's rect was read mid-entrance-flight (image-arrive scales 1.01) and now settles the plate's own animations first. 62.6 proved the rescue throws too proud: an unbindable seat is an EMPTY seat, not a broken contract — both courts now speak their stand-down and stand on their deterministic halves.
 - TEST EDITS, ledgered: NEW `tests/e2e/g31-sheet.spec.ts`, `g32-quiet.spec.ts`, `g33-atelier.spec.ts`, `lib/freshPlate.ts`, three new projects in playwright.config.ts with calibration gating them. `g11-style.spec.ts` recuses `variant === 'sheet'` (answers to G31a) and its question carves out diegetic text; `g17-framing.spec.ts` exempts `variant === 'dramatic'` from portrait framing (identity stays under G9; ≥4 seats keep the floor); `fixtures/frame-questions.json` closure question gains the scenery clause and `lib/frameLaw.ts` re-pins its digest (protocol f3); `sabotage.spec.ts` tooth 21 fetches the last campaign id in-page and reads through `readCampaign(page, shelfId)`; `g31-sheet.spec.ts` G31b/G31e rescoped to the same-row seat law with spoken empty-seat stand-downs after their deterministic halves, G31d settles the hung plate's animations before measuring; calibration, g04, g22, harvest, harness, harvestManifest, tooth10-probe and verdict.mjs carry the §4 enrichments. Cache evictions, ledgered as the eviction law demands: the crossed `tooth13-good-hero-first` verdicts (old-question rounds), the `g11b` Cost-of-Staying text verdict, and the crossed `g22a` hero-first seat — each re-sat fresh and green. No gate softened: every exempted class answers to its own court, tooth 13's known-bad controls still separate under the amended question, and tooth 21's forgery still falls.
+
+## TASK 61 RESUMED — THE COMMONS RETURNS (2026-07-19, on 1.0.1)
+
+The owner ruled on the halted Commons (tag `task-61-halted`; 61.7, seven
+of nine seats spent, extension law SPENT at 61.6): the work returns to
+the bench under a ONE-TIME ceiling amendment in the Task 57 precedent —
+the ceiling rises 9 → 14 for THIS task alone (seats 61.8–61.14; this is
+NOT an extension, and no further seats exist under any law). The
+designed fix lands FIRST as instrument work; greens count only AFTER
+it; the full Commons walk re-proves inside every counted green; three
+consecutive greens close 1.1.0, and if they do not land inside 14 the
+task closes honest-red with this ledger as evidence. Stop conditions:
+a counted run redding on any cause other than a control's own failure
+ends the hunt with an honest report; a false red AFTER self-verification
+is blocker-grade and stops everything.
+
+### THE CONTROL LAW (standing series law — pinned beside the extension and mint laws)
+
+**A constructed control must verify its own lie before it may seat.**
+Every control is pre-probed against the CURRENT art before any counted
+run leans on it; a control that cannot prove its lie is re-forged on
+the spot from the paint-and-probe budget — never from a seat — and the
+re-forge is attested in the trail. A tooth whose control cannot be made
+to lie is INVALID until it can. The law travels: every standing tooth
+with a constructed control gains self-verification as it is next
+touched, and Task 60B's sheet tooth (20) and stale tooth (21) are born
+under it.
+
+61.7's post-mortem (sealed in the tag's ledger) is the founding case:
+`bad-beheaded-hero` cut a FIXED 40% off the current hero art beside a
+caption lie about face and mark; a fresh composition seated the head
+lower, the crop kept mouth, jaw, and the mark, the lie went half-true,
+and an honest judge passed it — a red charged to the instrument, not
+the work. The ledgered cure, landed now as instrument work (no court
+bar, warden floor, or law byte moved):
+
+- `tests/e2e/lib/controlLaw.ts` — ONE seat for self-verifying
+  constructs. Stage one (the magnifier's own engine door: `boxBrief`,
+  `validateBox`, `clampBox`) boxes the head on the CURRENT art (two
+  sittings at most, the second fresh-salted; boxless after two = the
+  spoken invalid). The BEHEAD crops strictly below the padded box —
+  the face is provably removed on any composition. The CROWN BAND
+  keeps only what lies strictly above the padded box top — provably
+  zero subject anatomy. Strict callers (whose lie needs the subject
+  absent) refuse to seat when no band clears the box; lenient callers
+  re-forge into a behead, attested, prose re-aimed. Every construct
+  returns an attestation (box, line, proof sentence) — spoken in the
+  run log and persisted under `controlLaw` in the calibration table.
+- The claim beside the behead is re-aimed at what the crop provably
+  cuts — `WHOLE_FACE_CLAIM`, one seat in the law lib — and the mark
+  clause is DROPPED (its truth floated with the painter's whim). The
+  attested dual (58.10) carries the SAME sentence over whole pixels,
+  lockstep preserved.
+- Born under the law this sitting: teeth 5 and 7 (box-derived behead
+  and strict crown band on the live bust), tooth 11's behead and crown
+  pair, tooth 12's Control B band (strict, cache-shared with tooth
+  11's box), tooth 14's sliver (geometric ratio pin + class proof),
+  tooth 20 (alien-soul noun disjointness against the sealed canon;
+  lettered-plate byte-change proof; alien-attire garment disjointness),
+  tooth 21 (borrowed papers prove origin ≠ own turn before seating).
+
+### THE RE-LAY (the Commons delta, tag → HEAD)
+
+The halted work re-laid onto 1.0.1 (fable5 discipline — deltas lifted,
+our lockfile kept; each era keeps its own ledger, so the 61-era
+chapters stay in the tag): Directive XV; the three §V eval gates
+(mirror, publishRules, keyHome — eval chain +3); server/publish.js +
+routes and the raw-text record door; the staging seam (patrons/vault,
+double-latched — dead wherever door keys exist); the desk at the
+restore door; PublicTale + the /t/<id> reading room (composed WITH the
+errata seat in main.jsx); the ceremony publish panel; commons styles
+beside the TRUE FACE block; the G29 court with its own doorless house
+(5193/5192) riding behind g26; TOOTH 17 (the forgery bench, 5191/5190)
+appended to calibration; the premint door in run-loop.sh;
+`-u VAULT_STAGE_PATRON` in webserver.sh. Rig edits, ledgered:
+verdict.mjs REQUIRED_PROJECTS + `g29-commons` (23 projects); G13 pin
+136 → 139 (+3 gates, same commit, per the pin's own law).
+
+Seats spent since the halt: none yet. Next: gates (list + keyless
+check), then counted runs 61.8+ — the pre-probe rides inside every run
+by construction; three consecutive post-fix greens or the honest red.

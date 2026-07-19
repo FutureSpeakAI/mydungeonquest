@@ -8,6 +8,7 @@ import { GAME_ROOT, histogramDelta, judge } from './lib/vision';
 import { checkFeedOrder } from './lib/feedOrder';
 import { JUDGE_PROJECTS, doctorFirstNeed, doctorRefusedNeed, loadTopManifest, preflightManifest } from './lib/harvestManifest';
 import { binaryVerdict } from './lib/binaryVerdict';
+import { selfVerifyingBehead, selfVerifyingCrownBand } from './lib/controlLaw';
 import { markLaw } from './lib/markLaw';
 import { classifyAttestations, waitForResolutions } from './lib/terminality';
 
@@ -88,11 +89,12 @@ test('tooth 4: the false caption is refused', async () => {
 test('tooth 5: the beheaded portrait is seen as cropped', async () => {
   test.setTimeout(180_000);
   const hero = need('live', (e) => e.klass === 'portrait' && e.label === 'Maren' && e.variant === 'bust', 'hero anchor');
-  const meta = await sharp(hero).metadata();
-  const top = Math.floor((meta.height || 0) * 0.4);
-  const mutilated = await sharp(hero)
-    .extract({ left: 0, top, width: meta.width || 1, height: (meta.height || 1) - top })
-    .png().toBuffer();
+  // THE CONTROL LAW (Task 61 resumed, LOOP_LOG): the mutilation is
+  // box-derived — stage one boxes the head on the CURRENT art and the
+  // crop provably removes it, on any composition; the construct attests
+  // its own lie before it seats (the old fixed-ratio crop kept the head
+  // whenever a fresh composition seated it lower).
+  const { bytes: mutilated } = await selfVerifyingBehead({ bytes: hero, idSeed: 'control-law-live-bust', criterion: 'sabotage-5', label: 'tooth5-beheaded-portrait' });
   const verdict = await judge({
     id: 'sabotage-5-cropped-hero', criterion: 'sabotage-5',
     images: [mutilated],
@@ -127,11 +129,12 @@ test('tooth 7: the markless crop is seen markless, and the mark law refuses it b
   // room for a key-shaped burn. The REAL judge must answer mark_visible
   // false on real bytes, and the pure mark law — handed that verdict with
   // the attestations stripped — must fail NAMING the attestation path.
+  // THE CONTROL LAW (Task 61 resumed): the band is box-derived and
+  // STRICT — it stops above the detected head, so it provably holds no
+  // skin to wear the burn; strict because this tooth's lie NEEDS the
+  // subject absent (a below-face crop might honestly show the mark).
   const hero = need('live', (e) => e.klass === 'portrait' && e.label === 'Maren' && e.variant === 'bust', 'hero anchor');
-  const meta = await sharp(hero).metadata();
-  const band = await sharp(hero)
-    .extract({ left: 0, top: 0, width: meta.width || 1, height: Math.max(16, Math.floor((meta.height || 1) * 0.18)) })
-    .png().toBuffer();
+  const { bytes: band } = await selfVerifyingCrownBand({ bytes: hero, idSeed: 'control-law-live-bust', criterion: 'sabotage-7', label: 'tooth7-markless-crown', strict: true });
   const verdict = await judge({
     id: 'sabotage-7-markless-crop', criterion: 'sabotage-7',
     images: [band],
@@ -302,9 +305,15 @@ test('tooth 21: borrowed papers are refused at the frame and named by the sweep'
     // THE LIE — row B rides on row A's papers: right shape, wrong turn.
     b.imagePapers = { assetHash: 'tooth21-bytes-a', originTurnHash: a.recordHash, caption: 'A borrowed painting from another moment' };
     await db.campaigns.put(c);
-    return { ok: true, why: '', aId: a.id ?? null, bId: b.id ?? null, aTurn: a.recordHash };
+    return { ok: true, why: '', aId: a.id ?? null, bId: b.id ?? null, aTurn: a.recordHash, bTurn: b.recordHash };
   }, dataUrl);
   expect(planted.ok, `the two-row plant seats: ${planted.why || 'ok'}`).toBe(true);
+  // THE CONTROL LAW (Task 61 resumed): the stale tooth is born under it —
+  // the borrowed papers must PROVE their lie before they seat: the origin
+  // they name is ANOTHER row's turn, never row B's own.
+  expect(planted.aTurn && planted.bTurn && planted.aTurn !== planted.bTurn,
+    `the borrowed papers are provably stale for row B (origin ${String(planted.aTurn).slice(0, 12)}… must differ from B's own ${String(planted.bTurn).slice(0, 12)}…)`).toBe(true);
+  console.log(`[control-law] tooth21-borrowed-papers: origin turn ${String(planted.aTurn).slice(0, 12)}… provably ≠ row B's own ${String(planted.bTurn).slice(0, 12)}… — lie PROVEN, the control seats`);
 
   await page.reload();
   await page.waitForSelector('.title-page', { timeout: 45_000 });

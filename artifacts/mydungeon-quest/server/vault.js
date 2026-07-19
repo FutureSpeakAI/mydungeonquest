@@ -26,9 +26,12 @@
  */
 import express from 'express';
 import { canonicalize, sha256 } from 'fatescript/canonical';
-import { doorOpen, runQuery } from './patrons.js';
+import { doorOpen, stageSeamOpen, runQuery } from './patrons.js';
 
-export const vaultOpen = () => doorOpen() && Boolean(process.env.DATABASE_URL);
+// The staging seam (Directive XV §II.8) widens the vault's door exactly as
+// far as the doorkeeper's: a doorless house with a staged patron is a live
+// vault for the commons courts, and nothing else changes.
+export const vaultOpen = () => (doorOpen() || stageSeamOpen()) && Boolean(process.env.DATABASE_URL);
 export const blobShelfOpen = () => Boolean(process.env.PRIVATE_OBJECT_DIR);
 
 const SHA256_HEX = /^[a-f0-9]{64}$/;
@@ -136,6 +139,9 @@ const gcsBlobs = {
     return { bytes, mime: meta.contentType || 'application/octet-stream' };
   },
 };
+// One shelf, one seat: the commons (publish) doors serve the same
+// content-addressed blobs the vault shelves — never a second store.
+export const vaultBlobShelf = () => gcsBlobs;
 
 // ------------------------------------------------------------- the routes
 // `deps` is the eval bench's seam: { query, blobs }. Live callers take the

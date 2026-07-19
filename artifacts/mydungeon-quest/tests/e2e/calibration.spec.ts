@@ -18,6 +18,9 @@ import { PINNED_BATTLE_QUESTIONS_SHA256, battleCard, battleQuestionsDigest, cros
 import type { BinaryKind } from './lib/binaryVerdict';
 import { magnifiedMark } from './lib/magnifier';
 import { armRetractionObserver } from './lib/retraction';
+import { raiseCommonsHouse } from './lib/commonsServer';
+import { WHOLE_FACE_CLAIM, selfVerifyingBehead, selfVerifyingCrownBand } from './lib/controlLaw';
+import type { ControlAttestation } from './lib/controlLaw';
 
 // ============================================================
 // THE CALIBRATION PROBE & THE MAGNIFIER TOOTH (TASK 54B §2/§7).
@@ -143,16 +146,20 @@ test('tooth 11: the calibration probe — perfect separation of known-good from 
   for (const caption of seatableCaptions.slice(0, 3)) {
     good.push({ name: `good-caption-${caption.file}`, kind: 'caption', prose: caption.text, bytes: fs.readFileSync(path.join(HARVEST_DIR, caption.file)) });
   }
-  // THE ATTESTED DUAL (58.10, LOOP_LOG) — the bad set already builds its
-  // crop texts ONLY from sealed identity fields; this seats the SAME
-  // claim over the UNCROPPED anchor, completing the pair: the judge must
-  // pass on whole pixels the very text it must refuse on beheaded ones.
-  // Seated by the probe ritual — measured decisive before it sat.
+  // THE ATTESTED DUAL (58.10, LOOP_LOG; re-aimed under THE CONTROL LAW,
+  // Task 61 resumed) — the bad set builds its crop text ONLY from what
+  // the crop PROVABLY cuts. 61.7's lesson: the mark clause floated with
+  // the painter's whim (a lower head kept the mark in the crop and the
+  // lie went half-true), so it is DROPPED; the claim aims at the face
+  // alone, one seat for both sides (lib/controlLaw.ts). This seats the
+  // SAME claim over the UNCROPPED anchor, completing the pair: the
+  // judge must pass on whole pixels the very text it must refuse on
+  // provably beheaded ones.
   good.push({
     name: 'good-anchor-attested', kind: 'caption',
-    prose: `The hero faces us, her whole face in view, her ${m.hero.mark} plainly visible.`,
+    prose: WHOLE_FACE_CLAIM,
     bytes: topBytes(rolePlate(m, 'hero-anchor')),
-    note: 'attested dual of the beheaded/crown crops: same claim, whole pixels',
+    note: 'attested dual of the beheaded crop: same claim, whole pixels (Control Law lockstep)',
   });
   expect(good.length, `the sealed stores must seat at least six known-good pairs (scenes=${scenes.length}, pages=${pagePairs.length}, captions=${captions.length})`).toBeGreaterThanOrEqual(6);
 
@@ -198,26 +205,30 @@ test('tooth 11: the calibration probe — perfect separation of known-good from 
     bytes: need('fixture', (e) => e.klass === 'region' && !String(e.cacheKey || '').startsWith('proving:'), 'Vale establishing plate'),
   });
   // The cropped controls: real painted pixels beside claims the crop
-  // removed. The pairing texts are built ONLY from sealed identity fields.
+  // PROVABLY removed. THE CONTROL LAW (Task 61 resumed, LOOP_LOG): both
+  // constructs are box-derived and verify their own lie before they
+  // seat — the attestations ride the calibration table below, and one
+  // stage-one sit serves every construct on these bytes (the vision
+  // cache keys on bytes+id+protocol).
+  const controlAttests: ControlAttestation[] = [];
   const g9 = preflightManifest('g09-character');
   const heroBytes = topBytes(rolePlate(g9, 'hero-anchor'));
-  const heroMeta = await sharp(heroBytes).metadata();
-  const beheadTop = Math.floor((heroMeta.height || 0) * 0.4);
-  const beheaded = await sharp(heroBytes)
-    .extract({ left: 0, top: beheadTop, width: heroMeta.width || 1, height: (heroMeta.height || 1) - beheadTop })
-    .png().toBuffer();
+  const beheadForged = await selfVerifyingBehead({ bytes: heroBytes, idSeed: 'control-law-g09-anchor', criterion: 'sabotage-11', label: 'bad-beheaded-hero' });
+  controlAttests.push(beheadForged.attest);
   bad.push({
     name: 'bad-beheaded-hero', kind: 'caption',
-    prose: `The hero faces us, her whole face in view, her ${g9.hero.mark} plainly visible.`,
-    bytes: beheaded, note: 'tooth-5 crop: the head the caption claims is cut away',
+    prose: WHOLE_FACE_CLAIM,
+    bytes: beheadForged.bytes, note: 'box-derived behead: the face the caption claims is provably cut away (attested)',
   });
-  const band = await sharp(heroBytes)
-    .extract({ left: 0, top: 0, width: heroMeta.width || 1, height: Math.max(16, Math.floor((heroMeta.height || 1) * 0.18)) })
-    .png().toBuffer();
+  const crownForged = await selfVerifyingCrownBand({ bytes: heroBytes, idSeed: 'control-law-g09-anchor', criterion: 'sabotage-11', label: 'bad-crown-band' });
+  controlAttests.push(crownForged.attest);
   bad.push({
     name: 'bad-crown-band', kind: 'caption',
-    prose: `Her ${g9.hero.mark} is clearly visible on her skin.`,
-    bytes: band, note: 'tooth-7 crop: a crown band with no room for the mark',
+    prose: crownForged.mode === 'crown' ? `Her ${g9.hero.mark} is clearly visible on her skin.` : WHOLE_FACE_CLAIM,
+    bytes: crownForged.bytes,
+    note: crownForged.mode === 'crown'
+      ? 'box-derived crown band: provably no subject anatomy, no room for the mark (attested)'
+      : 'crown band re-forged into a behead (face at the crown) — the claim re-aimed at the face (attested)',
   });
   expect(bad.length, 'the probe must seat at least six known-bad pairs').toBeGreaterThanOrEqual(6);
 
@@ -233,7 +244,7 @@ test('tooth 11: the calibration probe — perfect separation of known-good from 
     table.push({ set: 'bad', name: pair.name, kind: pair.kind, pass: outcome.pass, falseBinaries: outcome.falseBinaries, note: pair.note || null });
   }
   fs.mkdirSync(path.dirname(CALIBRATION_FILE), { recursive: true });
-  fs.writeFileSync(CALIBRATION_FILE, JSON.stringify({ protocol: BINARY_PROTOCOL, pinned: PINNED_QUESTIONS_SHA256, at: new Date().toISOString(), table }, null, 2));
+  fs.writeFileSync(CALIBRATION_FILE, JSON.stringify({ protocol: BINARY_PROTOCOL, pinned: PINNED_QUESTIONS_SHA256, at: new Date().toISOString(), controlLaw: controlAttests, table }, null, 2));
   console.log(`[tooth 11] protocol=${BINARY_PROTOCOL} separation table:\n${JSON.stringify(table, null, 2)}`);
 
   const goodFails = table.filter((row) => row.set === 'good' && !row.pass);
@@ -257,14 +268,14 @@ test('tooth 12: the magnifier tooth — a markless control fails stage two; the 
   expect(edda.found, `the magnifier boxes the markless control (a bust wears a head): ${JSON.stringify(edda)}`).toBe(true);
   expect(edda.mark_visible, `stage two must refuse the markless control: ${JSON.stringify(edda)}`).toBe(false);
 
-  // Control B — the crown-band sliver (tooth 7's crop): whatever stage
-  // one answers, the look can NEVER yield a sighting — boxless is
-  // fail-closed, and a boxed crown band holds no key-shaped burn.
+  // Control B — the crown-band sliver: whatever stage one answers, the
+  // look can NEVER yield a sighting — boxless is fail-closed, and a
+  // box-derived crown band holds no subject anatomy at all. THE CONTROL
+  // LAW (Task 61 resumed): strict, because this control's lie needs the
+  // subject provably absent; same bytes and idSeed as tooth 11's
+  // constructs, so the settled stage-one box replays from the cache.
   const heroBytes = topBytes(rolePlate(m, 'hero-anchor'));
-  const meta = await sharp(heroBytes).metadata();
-  const band = await sharp(heroBytes)
-    .extract({ left: 0, top: 0, width: meta.width || 1, height: Math.max(16, Math.floor((meta.height || 1) * 0.18)) })
-    .png().toBuffer();
+  const { bytes: band } = await selfVerifyingCrownBand({ bytes: heroBytes, idSeed: 'control-law-g09-anchor', criterion: 'sabotage-12', label: 'tooth12-crown-band', strict: true });
   const bandLook = await magnifiedMark({
     bytes: band, markText,
     idSeed: 'tooth12-crown-band', criterion: 'sabotage-12',
@@ -336,9 +347,17 @@ test('tooth 14: the principal instrument matches the hero and refuses a stranger
   console.log(`[tooth 14] bad-stranger: ${JSON.stringify({ found: badSoul.found, verdict: badSoul.verdict })}`);
   expect(badSoul.matches, 'bad: the masked Regent does not answer the hero clause').toBe(false);
   // Fail-closed: a figureless sliver must never call the principal honest.
+  // THE CONTROL LAW (Task 61 resumed): this construct's lie is proven by
+  // geometry and by class — a thin crown strip cut from an ESTABLISHING
+  // plate (a peopleless class by the store's own seal) provably holds no
+  // principal figure. The ratio pin below trips if the sliver ever grows
+  // past a strip (or a strangely tiny plate seats), demanding a look.
   const sliverSource = topBytes(rolePlate(m, 'vale-establishing'));
   const meta = await sharp(sliverSource).metadata();
-  const sliver = await sharp(sliverSource).extract({ left: 0, top: 0, width: meta.width || 64, height: Math.max(24, Math.round((meta.height || 64) * 0.1)) }).png().toBuffer();
+  const sliverH = Math.max(24, Math.round((meta.height || 64) * 0.1));
+  expect(sliverH / (meta.height || 64), 'the sliver stays a sliver — ≤12% of the plate (Control Law pin)').toBeLessThanOrEqual(0.12);
+  console.log(`[control-law] tooth14-sky-sliver: ${sliverH}px of ${meta.height || 64}px cut from an establishing plate — no room for a principal; lie PROVEN, the control seats`);
+  const sliver = await sharp(sliverSource).extract({ left: 0, top: 0, width: meta.width || 64, height: sliverH }).png().toBuffer();
   const badSliver = await principalLook({ bytes: sliver, clause, idSeed: 'tooth14-bad-sliver', criterion: 'tooth-14-principal' });
   console.log(`[tooth 14] bad-sliver: ${JSON.stringify({ found: badSliver.found, matches: badSliver.matches })}`);
   expect(badSliver.found && badSliver.matches, 'bad: a sky sliver yields no honest principal').toBe(false);
@@ -416,10 +435,19 @@ test('tooth 20: the sheet instrument refuses the wrong soul, the lettered plate,
   console.log(`[tooth 20] good-identity: ${JSON.stringify(identity)}`);
   expect(identity.subject_matches === true && identity.cells_agree === true, 'good: the sheet depicts its own sealed soul in every cell').toBe(true);
 
-  // BAD — a soul no record sealed (deterministic lie, maximally separated).
+  // BAD — a soul no record sealed (deterministic lie, maximally
+  // separated). THE CONTROL LAW (Task 61 resumed): tooth 20 is born
+  // under it — the crossed clause proves its lie by NOUN DISJOINTNESS
+  // against the sealed canon before it seats; if a future canon ever
+  // seals an ogre hero, the check trips and demands a re-forge.
+  const ALIEN_SOUL = 'a hulking gray-skinned ogre of living stone, twice a man\u2019s height, tusked, draped in chained boulders';
+  for (const noun of ['ogre', 'living stone', 'tusked', 'boulder']) {
+    expect(`${card.appearance} ${card.signature}`.toLowerCase(), `the crossed soul stays alien to the sealed canon ("${noun}" must not appear)`).not.toContain(noun);
+  }
+  console.log('[control-law] tooth20-bad-soul: the crossed clause shares no noun with the sealed canon — lie PROVEN, the control seats');
   const crossed = await sheetIdentityVerdict({
     bytes: sheet,
-    clause: 'a hulking gray-skinned ogre of living stone, twice a man\u2019s height, tusked, draped in chained boulders',
+    clause: ALIEN_SOUL,
     idSeed: 'tooth20-bad-soul', criterion: 'tooth-20-sheet',
   });
   console.log(`[tooth 20] bad-soul: ${JSON.stringify(crossed)}`);
@@ -435,6 +463,10 @@ test('tooth 20: the sheet instrument refuses the wrong soul, the lettered plate,
     `<text x="50%" y="92%" font-family="serif" font-size="${Math.round(h / 16)}" fill="#000000" stroke="#ffffff" stroke-width="2" text-anchor="middle">PROPERTY OF THE HOUSE</text></svg>`
   );
   const lettered = await sharp(sheet).composite([{ input: svg, left: 0, top: 0 }]).png().toBuffer();
+  // THE CONTROL LAW: the lettered plate proves its lie before it seats —
+  // the composite provably changed the plate's bytes.
+  expect(lettered.equals(sheet), 'the lettering provably changed the plate bytes (Control Law)').toBe(false);
+  console.log(`[control-law] tooth20-bad-lettered: composite changed the plate (${sheet.length} → ${lettered.length} bytes) — lie PROVEN, the control seats`);
   const letteredVerdict = await sheetIntegrityVerdict({ bytes: lettered, idSeed: 'tooth20-bad-lettered', criterion: 'tooth-20-sheet' });
   console.log(`[tooth 20] bad-lettered: ${JSON.stringify(letteredVerdict)}`);
   expect(letteredVerdict.free_of_lettering, 'bad: a deliberately lettered sheet fails the sheet court').toBe(false);
@@ -446,9 +478,16 @@ test('tooth 20: the sheet instrument refuses the wrong soul, the lettered plate,
   const goodPair = await attirePairVerdict({ aBytes: anchor, bBytes: sheet, attire: attireTruth, idSeed: 'tooth20-good-attire', criterion: 'tooth-20-attire' });
   console.log(`[tooth 20] good-attire: ${JSON.stringify(goodPair)}`);
   expect(goodPair.attire_consistent, 'good: the anchor and the sheet wear the sealed attire canon').toBe(true);
+  // THE CONTROL LAW: the attire lie proves itself before it seats —
+  // garment disjointness against the sealed signature canon.
+  const ALIEN_ATTIRE = 'full gilded plate armor with a great horned helm and a scarlet plume';
+  for (const garment of ['gilded', 'horned helm', 'scarlet plume']) {
+    expect(attireTruth.toLowerCase(), `the attire lie stays alien to the sealed canon ("${garment}" must not appear)`).not.toContain(garment);
+  }
+  console.log('[control-law] tooth20-bad-attire: the false canon shares no garment with the sealed signature — lie PROVEN, the control seats');
   const badPair = await attirePairVerdict({
     aBytes: anchor, bBytes: sheet,
-    attire: 'full gilded plate armor with a great horned helm and a scarlet plume',
+    attire: ALIEN_ATTIRE,
     idSeed: 'tooth20-bad-attire', criterion: 'tooth-20-attire',
   });
   console.log(`[tooth 20] bad-attire: ${JSON.stringify(badPair)}`);
@@ -512,4 +551,117 @@ test('tooth 19: the retraction instrument bites the swap and stays quiet for gro
   const afterStrike = await page.evaluate(() => (window as unknown as { __retractions: string[] }).__retractions);
   expect(afterStrike.length, 'the struck node is the second crime').toBe(2);
   expect(afterStrike[1], 'the crime is named a removal').toContain('removed');
+});
+
+// ============================================================
+// TOOTH 17 — THE FORGERY (Directive XV §VI). Before the commons court's
+// badge is trusted, the badge itself is put on trial: the public page
+// claims the reader's own browser re-verifies the record's bytes — so a
+// forged byte MUST flip the verdict. The tooth raises its own doorless
+// house, publishes a lawful hash-only chronicle minted at this bench,
+// reads the page clean (badge TRUE), then reads it again through a
+// route that flips ONE letter of prose in the served record (badge
+// FALSE). Perfect separation or the tooth is red — a badge that stays
+// green over forged bytes is worse than no badge at all.
+// ============================================================
+test('TOOTH 17 — a forged byte flips the desk badge: perfect separation', async ({ browser }) => {
+  test.setTimeout(300_000);
+  const { canonicalize, sha256 } = await import('fatescript/canonical');
+  const house = await raiseCommonsHouse({ port: 5191, apiPort: 5190, court: 'tooth17', patron: 'tooth17-forgery' });
+  const contexts: import('@playwright/test').BrowserContext[] = [];
+  try {
+    // The bench's own scribe: a lawful sealed chain, hash-only.
+    const PROSE = [
+      'The bench mints a tale of its own to try the badge.',
+      'In the vault of the bench the lantern is steady gold.',
+      'A third verse to give the chain some length.',
+    ];
+    const records: any[] = [];
+    let prev: string | null = null;
+    for (let i = 0; i < 4; i += 1) {
+      const type = i === 3 ? 'sealing' : 'turn';
+      const payload = type === 'sealing'
+        ? { turns: 3 }
+        : { player: `deed ${i}`, dm: { narration_blocks: [{ speaker: null, text: PROSE[i] }], suggestions: [] } };
+      const unsigned = { type, i, prevHash: prev, payload, ts: 1770000100000 + i };
+      const record = { ...unsigned, recordHash: await sha256(canonicalize(unsigned)) };
+      records.push(record);
+      prev = record.recordHash;
+    }
+    const chronicle = {
+      header: { format: 'mydungeon.chronicle', version: 1, campaignId: 'tooth17-tale', title: 'The Forgery Bench', headHash: prev, publicKeyJwk: null, signatureStatus: 'hash-only' },
+      campaign: {
+        id: 'tooth17-tale', title: 'The Forgery Bench', sealedAt: 1770000100999,
+        hero: { name: 'Tessa' }, codex: { cast: [] },
+        logs: records.slice(0, 3).map((record, turn) => ({ id: `t17-${turn}`, turn, recordHash: record.recordHash, sent: record.payload.player, dm: record.payload.dm, redacted: false })),
+      },
+      journal: records,
+      media: [],
+    };
+
+    const ctxOwner = await browser.newContext();
+    contexts.push(ctxOwner);
+    const owner = await ctxOwner.newPage();
+    // Sweep prior sittings — the campaign id is fixed, and one living
+    // page per tale is the law this tooth must not trip over.
+    const mine = await owner.request.get(`${house.base}/api/publish/mine`);
+    expect(mine.status(), 'the staged patron owns a shelf').toBe(200);
+    for (const page of (await mine.json()).pages ?? []) {
+      if (!page.revokedAt) await owner.request.post(`${house.base}/api/publish/${page.publishId}/revoke`);
+    }
+    const landed = await owner.request.post(`${house.base}/api/publish`, {
+      headers: { 'Content-Type': 'text/plain' }, data: JSON.stringify(chronicle),
+    });
+    expect(landed.status(), 'the lawful chronicle lands').toBe(200);
+    const { publishId } = await landed.json();
+
+    // ------------------------- the clean sitting: the badge earns TRUE
+    const ctxClean = await browser.newContext();
+    contexts.push(ctxClean);
+    const clean = await ctxClean.newPage();
+    await clean.goto(`${house.base}/t/${publishId}`, { waitUntil: 'domcontentloaded' });
+    await expect(clean.getByTestId('desk-badge'), 'the true record earns the badge in the browser').toHaveAttribute('data-verdict', 'true', { timeout: 90_000 });
+    console.log('[tooth 17] clean sitting: verdict=true (the lawful record verifies)');
+
+    // ------------------- the forged sitting: ONE letter, verdict FALSE
+    // The prose lives TWICE in the record (the journal's hashed payload
+    // and the campaign's display copy), so the forgery is tried twice:
+    // forge BOTH copies and the chain law itself must break the badge.
+    const ctxForged = await browser.newContext();
+    contexts.push(ctxForged);
+    await ctxForged.route('**/api/public/tale/*/record', async (route) => {
+      const answer = await route.fetch();
+      const body = (await answer.text()).replaceAll('steady gold', 'steady goId');
+      await route.fulfill({ response: answer, body });
+    });
+    const forged = await ctxForged.newPage();
+    await forged.goto(`${house.base}/t/${publishId}`, { waitUntil: 'domcontentloaded' });
+    await expect(forged.getByTestId('desk-badge'), 'ONE forged letter must flip the verdict — perfect separation').toHaveAttribute('data-verdict', 'false', { timeout: 90_000 });
+    await expect(forged.getByTestId('desk-badge')).toContainText(/does not verify|refuses/i);
+    console.log('[tooth 17] forged sitting: verdict=false (one flipped letter in the chain, refused aloud)');
+
+    // -------------- the laundering sitting: display copy ONLY, verdict FALSE
+    // Forge just the campaign's display copy and leave the hashed journal
+    // pristine — the 61.2 sitting proved the chain court alone stays green
+    // over this, so the badge must ALSO answer for the words the page
+    // actually shows (the display-coherence court). A green badge beside
+    // forged display prose would be laundering, not verification.
+    const ctxLaunder = await browser.newContext();
+    contexts.push(ctxLaunder);
+    await ctxLaunder.route('**/api/public/tale/*/record', async (route) => {
+      const answer = await route.fetch();
+      const body = (await answer.text()).replace('steady gold', 'steady goId'); // first occurrence only — the display copy
+      await route.fulfill({ response: answer, body });
+    });
+    const laundered = await ctxLaunder.newPage();
+    await laundered.goto(`${house.base}/t/${publishId}`, { waitUntil: 'domcontentloaded' });
+    await expect(laundered.getByTestId('desk-badge'), 'a forged DISPLAY copy beside a true chain must still fell the badge').toHaveAttribute('data-verdict', 'false', { timeout: 90_000 });
+    console.log('[tooth 17] laundering sitting: verdict=false (display copy diverged from the chain, refused aloud)');
+
+    // Leave no living page behind this fixed campaign id.
+    await owner.request.post(`${house.base}/api/publish/${publishId}/revoke`);
+  } finally {
+    for (const ctx of contexts) await ctx.close().catch(() => {});
+    await house.douse();
+  }
 });

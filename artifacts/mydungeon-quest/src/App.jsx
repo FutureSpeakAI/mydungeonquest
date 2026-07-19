@@ -1641,7 +1641,7 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
           <span className="eyebrow">⛨ Kept in the vault</span>
           <div className="vault-row">
             {away.map((s) => <div key={s.campaignId} className="vault-spine-slot">
-              <button className="vault-spine" onClick={() => onVaultRestore?.(s.campaignId)}
+              <button className="vault-spine" data-campaign={s.campaignId} onClick={() => onVaultRestore?.(s.campaignId)}
                 title={`Restore "${s.title}" to this device`}>
                 <b>{s.title}</b><small>{s.hero || 'a hero'} · {s.turnCount} seals{s.sealedAt ? ' · sealed' : ''}</small>
               </button>

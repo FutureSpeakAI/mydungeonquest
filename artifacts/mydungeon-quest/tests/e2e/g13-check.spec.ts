@@ -42,7 +42,7 @@ import { GAME_ROOT } from './lib/vision';
 // face off the pipeline's OWN events), and the unmet gate (presence in
 // canon is not presence in the tale) join the keyless check in the same
 // commit that seats Articles VI, VII, and VIII of Directive XVII.
-const PINNED_PASS_COUNT = 136; // 60B Stage Three (XVII Articles VI+VII+VIII): +3 — atelier, threshold, unmet; 133 → 136
+const PINNED_PASS_COUNT = 139; // Task 61 resumed (XV §V): +3 — mirror, publishRules, keyHome; 136 → 139 (60B: 133 → 136 atelier/threshold/unmet)
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

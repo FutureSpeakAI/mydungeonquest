@@ -27,6 +27,7 @@ const REQUIRED_PROJECTS = [
   'g28-book',
   // (0.10.0, Directive XII §VII.3) the two live courts sit every run.
   'g25-wonder', 'g26-return',
+  'g29-commons',
   // (60B §4) THE BETA CUT — the sheet court, the quiet table, and the
   // atelier & threshold court sit every run.
   'g31-sheet', 'g32-quiet', 'g33-atelier',

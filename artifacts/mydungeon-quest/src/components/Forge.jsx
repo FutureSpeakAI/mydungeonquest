@@ -5,12 +5,13 @@ import { sparks } from '../lib/onboarding.js';
 import { isProving } from '../lib/proving.js';
 import { SPINES } from 'fatescript/spines';
 import { portraitPrompt, keyArtPrompt } from '../lib/cinema/prompts.js';
-import { heroSoul, nameSeed } from '../lib/cinema/prologue.js';
-import { auditionCandidates } from 'fatescript/cinema/casting';
+import { nameSeed } from '../lib/cinema/prologue.js';
 import { oracleWorld, oracleHero, ORACLE_WORLD, ORACLE_HERO, CLASSES, BEARINGS, BACKGROUNDS, rollAbilities } from 'fatescript/forgeRolls';
 import { FIELD_MAP, XCARD_COPY, fieldEntry, spineFromPromise, spineLabel, titleFromPromise, WORLD_KEYS, HERO_KEYS, CALLING_RIDERS } from 'fatescript/smith';
 import { smithSpin } from '../lib/smithClient.js';
 import { openSitting, blessSitting, sittingRequired } from '../lib/sitting.js';
+import { ATELIER_FIELDS, dealAppearance, rollAppearance, heroCanonSoul } from '../lib/atelier.js';
+import { dealAuditions } from '../lib/audition.js';
 
 // THE FORGE REMEMBERS (G4) — a sitting's draft survives a reload. Drafts live
 // in sessionStorage (per tab; never synced, never sealed, never exported) and
@@ -106,14 +107,17 @@ function XCard() {
   </article>;
 }
 
-// THE AUDITION — three voices step forward by the stated presentation; tap to
-// hear, tap to bless. A blessed voice rides the hero forever (the casting
-// session yields to it); unblessed, the session reads the finished card. On a
-// keyless table the throat is a plain tone — the choice still seals. The die
-// beside the row is the voice's own die: a candidate steps forward blessed.
+// THE AUDITION (XVII, Article VIII) — TEN voices step forward under the
+// unchanged Tenor law: the stated register leads the deal exactly as the
+// old three did (an earlier blessing keeps its chip), and the far register
+// fills the back of the row. Tap to hear, tap to bless. A blessed voice
+// rides the hero forever (the casting session yields to it); unblessed,
+// the session reads the finished card. On a keyless table the throat is a
+// plain tone — the choice still seals. The die beside the row is the
+// voice's own die: a candidate steps forward blessed.
 function AuditionRow({ presentation, name, voiceId, onBless }) {
   const [busy, setBusy] = useState(null);
-  const candidates = auditionCandidates(presentation, name);
+  const candidates = dealAuditions(presentation, name);
   const play = async (candidate) => {
     setBusy(candidate.id);
     try {
@@ -135,7 +139,7 @@ function AuditionRow({ presentation, name, voiceId, onBless }) {
         onClick={() => { onBless(candidate.id); play(candidate); }}>
         {busy === candidate.id ? '…' : '▶'} {candidate.label} — {candidate.line}
       </button>)}</div>
-    <small className="fine-print">Tap to hear and bless a voice. {voiceId ? 'Blessed — this voice is theirs.' : 'Unblessed, the casting session reads the finished card.'}</small>
+    <small className="fine-print">Ten voices wait. Tap to hear and bless one. {voiceId ? 'Blessed — this voice is theirs, for good.' : 'Unblessed, the casting session reads the finished card.'}</small>
   </div>;
 }
 
@@ -282,7 +286,7 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
 
 export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
   const [form, setForm] = useState(() => {
-    const fallback = { name: 'Aster Vale', sigil: '✦', ancestry: 'Human', className: 'Ranger', caster: 'half', hitDie: 10, abilities: { STR: 14, DEX: 15, CON: 13, INT: 10, WIS: 12, CHA: 8 }, skills: ['Perception','Survival','Stealth'], bearing: 'Weather-worn leathers, a road-warden\u2019s longbow, and eyes that never stop reading the treeline.', background: 'A former road-warden who can hear when a path is lying.', presentation: 'neutral', pronouns: '', mark: '', keepsake: 'a river-stone that is always warm', voiceId: null, __sovereign: [] };
+    const fallback = { name: 'Aster Vale', sigil: '✦', ancestry: 'Human', className: 'Ranger', caster: 'half', hitDie: 10, abilities: { STR: 14, DEX: 15, CON: 13, INT: 10, WIS: 12, CHA: 8 }, skills: ['Perception','Survival','Stealth'], bearing: 'Weather-worn leathers, a road-warden\u2019s longbow, and eyes that never stop reading the treeline.', background: 'A former road-warden who can hear when a path is lying.', presentation: 'neutral', pronouns: '', mark: '', keepsake: 'a river-stone that is always warm', voiceId: null, hair: 'chestnut hair bound in a travel knot', eyes: 'storm-grey eyes', skin: 'olive skin weathered by road-sun', build: 'wiry and quick', attire: 'weather-worn ranger leathers', accessory: 'a river-stone pendant on a cord', __sovereign: [] };
     const saved = loadDraft(HERO_DRAFT_KEY);
     // The blessing travels with the forge: a reload rehydrates the whole
     // sheet, voiceId included, so the blessed chip still wears its mark.
@@ -302,18 +306,21 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
   const [door, setDoor] = useState('bones');
   const [portrait, setPortrait] = useState(null); // null | 'pending' | objectURL
   const urlRef = useRef(null);
+  const paintCtl = useRef(null);
   const castBusy = useRef(false);
   const sov = sovereignOf(form);
 
   // The whole-hero die: one throw, a whole coherent soul — sovereign ink
   // stands, and a locked calling conditions the entire sheet around it.
+  // The atelier's six strokes ride the same throw: the smith deals the
+  // soul, the house tables deal the look, and sovereignty guards both.
   const castBones = async () => {
     if (castBusy.current) return;
     castBusy.current = true;
     try {
       const locked = sovereignLock(form, HERO_KEYS);
       const result = await smithSpin({ scope: 'hero', locked, seed: randomSeed(), tier: mediaTier });
-      setForm((v) => ({ ...applyCandidate(v, result.candidates[0]), voiceId: null }));
+      setForm((v) => ({ ...applyCandidate(applyCandidate(v, result.candidates[0]), dealAppearance(randomSeed())), voiceId: null }));
     } finally { castBusy.current = false; }
   };
   const fieldDie = (key) => async () => {
@@ -321,6 +328,12 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
     const result = await smithSpin({ scope: 'field', field: key, locked, seed: randomSeed(), tier: mediaTier });
     setForm((v) => applyCandidate(v, result.candidates[0], [key]));
   };
+  // THE ATELIER DICE (XVII, Article VIII) — the six strokes are house
+  // fields, not smith fields: their dice read the house tables and never
+  // ride the wire. Each die is the field's own consent (force lifts its
+  // own ink alone); the whole-look die respects sovereign ink entirely.
+  const atelierDie = (key) => () => setForm((v) => applyCandidate(v, { [key]: rollAppearance(key, randomSeed()) }, [key]));
+  const spinLook = () => setForm((v) => applyCandidate(v, dealAppearance(randomSeed())));
   const bless = (voiceId) => setForm((value) => ({ ...value, voiceId }));
   const oracleWrite = (patch) => setForm((v) => {
     const composed = oracleHero({ path: patch.__path ?? v.__path, virtue: patch.__virtue ?? v.__virtue, keepsake: patch.__keepsake ?? v.__keepsake });
@@ -335,32 +348,35 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
   useEffect(() => {
     if (!sittingRequired(mediaTier) || !form.name.trim()) { setSitting(null); return; }
     setSitting(openSitting(form));
-  }, [form.name, form.bearing, form.mark, form.background, mediaTier]);
+  }, [form.name, form.bearing, form.mark, form.background, form.hair, form.eyes, form.skin, form.build, form.attire, form.accessory, mediaTier]);
   const blessChair = (candidateId) => setSitting((current) => {
     const out = blessSitting(current, candidateId);
     return out.ok ? out.sitting : current;
   });
 
-  // The hero's face materialises live beside the sheet: shimmer, then the
-  // generated bust. Uses the same prompt + seed as the sealed anchor so the
-  // ritual and the canon match. The mark rides in the prompt — inscribed
-  // into the painting itself when the easel is lit.
-  useEffect(() => {
-    if (mediaTier === 'parchment' || !form.name.trim()) { setPortrait(null); return; }
+  // THE TAP REPAINT (XVII, Article VIII) — the portrait repaints on TAP,
+  // never on keystroke: the player finishes their strokes, then asks the
+  // easel. Same prompt seat and same seed as the sealed anchor
+  // (heroCanonSoul + nameSeed), so the ritual and the canon match; the
+  // atelier's composed visual rides the prompt. Parchment paints nothing
+  // here — the sigil stands for the face until genesis paints procedurally.
+  const paintFace = () => {
+    if (mediaTier === 'parchment' || !form.name.trim() || portrait === 'pending') return;
+    paintCtl.current?.abort();
     const controller = new AbortController();
+    paintCtl.current = controller;
     setPortrait('pending');
-    const timer = setTimeout(async () => {
+    (async () => {
       try {
-        const prompt = portraitPrompt(world, heroSoul(form), 'bust');
+        const prompt = portraitPrompt(world, heroCanonSoul(form), 'bust');
         const url = await paintPreview({ prompt, kind: 'portrait', label: form.name, variant: 'bust', seed: nameSeed(form.name) }, controller.signal);
         if (urlRef.current) URL.revokeObjectURL(urlRef.current);
         urlRef.current = url; setPortrait(url);
-      } catch { setPortrait(null); }
-    }, 800);
-    return () => { controller.abort(); clearTimeout(timer); };
-  }, [form.name, form.bearing, form.background, form.mark, mediaTier, world]);
+      } catch { if (!controller.signal.aborted) setPortrait(null); /* the easel spoke plainly; the sealed art still comes at genesis */ }
+    })();
+  };
 
-  useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current); }, []);
+  useEffect(() => () => { paintCtl.current?.abort(); if (urlRef.current) URL.revokeObjectURL(urlRef.current); }, []);
 
   const hasFace = portrait && portrait !== 'pending';
   const heardAs = { feminine: 'Heard feminine', masculine: 'Heard masculine', neutral: 'Heard as they choose' }[form.presentation];
@@ -371,15 +387,35 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
     <button className="text-button" onClick={onBack}>← World Forge</button>
     <header className="forge-header"><span className="eyebrow">Hero Forge</span><h1>Give the world someone to remember.</h1><p>{world.title} is waiting.</p></header>
     <section className="forge-card hero-forge">
-      <div className="hero-identity">
-        <figure className={`hero-portrait ${portrait === 'pending' ? 'summoning' : ''}`}>
+      {/* THE ATELIER (XVII, Article VIII) — portrait-first: the painted
+          hero stands large and central, and the face answers the TAP,
+          never the keystroke. */}
+      <div className="hero-identity atelier-identity">
+        <figure className={`hero-portrait atelier-portrait ${portrait === 'pending' ? 'summoning' : ''}`}>
           {hasFace ? <img src={portrait} alt={form.name}/> : <span className="portrait-mark">{form.sigil}</span>}
           <figcaption>
             {hasFace ? form.name : portrait === 'pending' ? 'The face is arriving…' : 'A face waiting to be painted'}
             {form.mark.trim() && <span className="portrait-inscription">{form.mark}</span>}
           </figcaption>
         </figure>
+        {mediaTier !== 'parchment'
+          ? <button type="button" className="secondary-button repaint-button" onClick={paintFace} disabled={!form.name.trim() || portrait === 'pending'}>{portrait === 'pending' ? 'The face is arriving…' : hasFace ? 'Repaint from the glass' : 'Paint their face'}</button>
+          : <p className="fine-print">Parchment paints the face procedurally when the chronicle begins; the sigil stands for it here.</p>}
         <div className="hero-sigil"><span>{form.sigil}</span><input aria-label="Sigil" value={form.sigil} onChange={pen('sigil')} maxLength={2}/><DiceButton label="Spin a sigil" onRoll={fieldDie('sigil')}/></div>
+      </div>
+
+      {/* THE LOOKING GLASS — six strokes of the portrait, each a die and a
+          pen under the Two Hands; together they compose the sealed canon
+          the anchor and the sheet both mint from. */}
+      <div className="atelier-fields">
+        <h3>The looking glass</h3>
+        <p className="fine-print">Six strokes of the portrait. Your ink is sovereign, and the painting reads every word.</p>
+        <div className="form-grid atelier-grid">
+          {ATELIER_FIELDS.map(({ key, ask: askWord, placeholder }) =>
+            <label key={key}><span className="label-line">{askWord} <DiceButton label={`Spin ${key}`} onRoll={atelierDie(key)}/></span>
+              <input value={form[key] || ''} onChange={pen(key)} maxLength={90} placeholder={placeholder}/></label>)}
+        </div>
+        <button type="button" className="secondary-button" onClick={spinLook}><Dices/> Spin the whole look</button>
       </div>
 
       <DoorRow door={door} onDoor={setDoor} doors={[

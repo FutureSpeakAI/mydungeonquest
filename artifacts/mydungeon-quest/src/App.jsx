@@ -24,6 +24,9 @@ import { reconcileLegacyPurse } from './lib/reconcile.js';
 import { teachOnce } from './lib/teaching.js';
 import { sealLegacy, openNextVolume } from './lib/saga.js';
 import { beginGenesis } from './lib/genesis.js';
+import { riteOpen, riteWalk } from './lib/threshold.js';
+import { ThresholdRite } from './components/Threshold.jsx';
+import { composeAppearance, composeSignature } from './lib/atelier.js';
 import { chronicleActClose, memoryLadder } from './lib/memoir.js';
 import { greetReturning } from './lib/ravens.js';
 import { fetchSeasons, skyNoteFor } from './lib/sky.js';
@@ -269,6 +272,9 @@ export default function App() {
   // THE POURED-AGAIN OFFER — a refused pour that sent the patron to checkout,
   // waiting for their word (or, for an idempotent paint, already flowing).
   const [pourOffer, setPourOffer] = useState(null);
+  // THE THRESHOLD RITE (XVII, Article VII) — genesis wears the house's
+  // face: TRUE stages walked forward off the pipeline's own events.
+  const [rite, setRite] = useState(null);
   // Pour a remembered refused intent again. Opens the intent's own table if
   // the shelf is showing (a checkout return lands on the title screen), then
   // retries by kind. Media kinds re-queue the sealed log's jobs; a refused
@@ -1010,7 +1016,12 @@ export default function App() {
       mark: (heroInput.mark || '').slice(0, 80) || null,
       // THE POSSESSIONS CUT (Directive VI): the forge keepsake rides the
       // sheet, so the trove's journal replay and the codex seed agree.
-      keepsake: (heroInput.keepsake || '').slice(0, 60) || null
+      keepsake: (heroInput.keepsake || '').slice(0, 60) || null,
+      // THE ATELIER CANON (XVII, Article VIII) — the six strokes seal as two
+      // sentences the anchor and the sheet both read from this one seat; a
+      // legacy hero (no strokes) seals null and composes from bearing as ever.
+      appearance: composeAppearance(heroInput) || null,
+      signature: composeSignature(heroInput) || null
     };
     // A voice blessed at the audition is kept; otherwise the casting session
     // reads the finished forge card — presentation included.
@@ -1033,10 +1044,25 @@ export default function App() {
     // painted, and late plates slot below their text (LogEntry's order
     // law). The sealed record is untouched — attestations bind by content;
     // arrival time is presentation, never record order.
-    await beginGenesis({
-      pour: (hooks) => playTurn(campaign, 'Begin the chronicle.', null, null, hooks),
-      paint: () => prologueRender(campaign)
-    });
+    // THE THRESHOLD RITE (XVII, Article VII) — the rite LISTENS to the
+    // pipeline's own events and never delays it: the pour's dispatch walks
+    // 'word' (first-word law untouched, media gate rides the same spread),
+    // the easel walks when the paint truly starts, the anchors when it
+    // lands, and Chapter One when genesis stands — even a torn paint still
+    // seats the table, so the finally owns the last step.
+    setRite(riteOpen());
+    try {
+      await beginGenesis({
+        pour: (hooks) => playTurn(campaign, 'Begin the chronicle.', null, null, {
+          ...hooks,
+          onPourDispatched: () => { hooks?.onPourDispatched?.(); setRite((r) => riteWalk(r, 'word')); }
+        }),
+        paint: () => { setRite((r) => riteWalk(r, 'easel')); return Promise.resolve(prologueRender(campaign)).finally(() => setRite((r) => riteWalk(r, 'anchors'))); }
+      });
+    } finally {
+      setRite((r) => riteWalk(r, 'open'));
+      setTimeout(() => setRite((r) => (r && r.stage === 'open' ? null : r)), 1600); // the rite bows out after its word — a stale timer never blows out a successor rite mid-walk
+    }
   };
 
   const submit = async (text) => {
@@ -1278,11 +1304,22 @@ export default function App() {
       await refreshShelf();
       // THE FIRST WORD (Task 54C §1) — a next volume's opening is a genesis
       // too: the pour is dispatched first, the volume's easel kicks on the
-      // wire signal, and late anchors merge softly.
-      await beginGenesis({
-        pour: (hooks) => playTurn(nextVolume, 'Begin the chronicle.', null, null, hooks),
-        paint: () => prologueRender(nextVolume)
-      });
+      // wire signal, and late anchors merge softly. And a genesis wears the
+      // house's face (XVII, Article VII): the same threshold rite walks the
+      // same pipeline events here as at the first chronicle's door.
+      setRite(riteOpen());
+      try {
+        await beginGenesis({
+          pour: (hooks) => playTurn(nextVolume, 'Begin the chronicle.', null, null, {
+            ...hooks,
+            onPourDispatched: () => { hooks?.onPourDispatched?.(); setRite((r) => riteWalk(r, 'word')); }
+          }),
+          paint: () => { setRite((r) => riteWalk(r, 'easel')); return Promise.resolve(prologueRender(nextVolume)).finally(() => setRite((r) => riteWalk(r, 'anchors'))); }
+        });
+      } finally {
+        setRite((r) => riteWalk(r, 'open'));
+        setTimeout(() => setRite((r) => (r && r.stage === 'open' ? null : r)), 1600); // the rite bows out after its word — a stale timer never blows out a successor rite mid-walk
+      }
     } finally {
       openingVolumeRef.current = false;
     }
@@ -1372,6 +1409,7 @@ export default function App() {
     <TollNotice />
     <RavenNotice recap={ravenRecap} onClose={() => setRavenRecap(null)} />
     {pourBanner}
+    {rite && <ThresholdRite rite={rite}/>}
     <div ref={regionStripRef} className="region-strip" data-chip="ground" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
       <span>{groundChip.words}</span>{groundChip.state && <small>{groundChip.state}</small>}
     </div>

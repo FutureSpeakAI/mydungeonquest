@@ -582,3 +582,31 @@
 .demo-spine { border-left: 3px solid var(--dye, #4a2b33); }
 .demo-spine .demo-drawing { display: block; opacity: .85; font-style: italic; }
 .demo-spine:disabled { opacity: .55; cursor: wait; }
+
+/* THE TRUE FACE (1.0.1 stage three) — atelier, threshold rite, beta door, polish floors */
+.atelier-identity{display:flex;flex-direction:column;align-items:center;gap:.9rem;margin-bottom:1.2rem;text-align:center}
+.atelier-portrait{width:min(300px,78vw)}
+.atelier-portrait img,.atelier-portrait .portrait-mark{width:min(300px,78vw);height:min(300px,78vw);border-radius:22px;font-size:5rem}
+.atelier-identity .hero-sigil{margin-bottom:0}
+.repaint-button{min-height:44px}
+.atelier-fields{border-top:1px solid rgba(233,223,200,.1);margin-top:1.2rem;padding-top:1.1rem}
+.atelier-fields h3{margin:.2rem 0 .4rem}
+.atelier-fields .secondary-button{margin-top:.2rem}
+.audition-choices{display:flex;flex-wrap:wrap;gap:.5rem}
+.threshold-rite{position:fixed;inset:auto 0 0 0;z-index:60;display:flex;flex-direction:column;align-items:center;gap:.35rem;padding:1rem 1rem 1.3rem;background:linear-gradient(180deg,transparent,rgba(10,8,14,.92) 30%);pointer-events:none;text-align:center}
+.threshold-rite .candle{transform:scale(.55);margin:-.6rem 0 -.9rem}
+.rite-mark{letter-spacing:.05em}.rite-mark span{color:var(--gold)}
+.rite-word{margin:0;color:var(--vellum-dim);font-size:.92rem}
+.rite-walk{display:flex;gap:.45rem}.rite-walk i{width:7px;height:7px;border-radius:50%;background:rgba(233,223,200,.18)}.rite-walk i.lit{background:var(--gold)}
+.rite-promo{margin:.2rem 0 0;font-size:.8rem;color:var(--gold);opacity:.85}
+.threshold-rite.opening{animation:riteFold .9s ease .7s both}
+@keyframes riteFold{to{opacity:0;transform:translateY(12px)}}
+.beta-report{max-height:180px;overflow:auto;background:#0f0c14;border:1px solid rgba(233,223,200,.14);border-radius:11px;padding:.7rem .8rem;font-size:.72rem;line-height:1.5;white-space:pre-wrap;color:var(--vellum-dim)}
+.button-row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+a.secondary-button{display:inline-grid;place-items:center;text-decoration:none}
+/* THE POLISH SWEEP — tap floors and small-screen alignment across table, Book, settings */
+.dice-button{min-width:44px;min-height:44px;display:inline-grid;place-items:center}
+.door-tab{min-height:44px}
+.audition-chip{min-height:44px}
+.primary-button,.secondary-button{min-height:44px}
+@media (max-width:540px){.form-grid{grid-template-columns:1fr}.ability-grid{grid-template-columns:repeat(3,1fr)}.atelier-portrait,.atelier-portrait img,.atelier-portrait .portrait-mark{width:min(240px,72vw);height:min(240px,72vw)}}

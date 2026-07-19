@@ -6,6 +6,7 @@
 // campaign key art carries the stable `keyart` label so later surfaces
 // (Chapter I mast, chronicle covers, the bound book) resolve the latest plate.
 import { heroSoul, keyArtPrompt, portraitPrompt } from './prompts.js';
+import { heroCanonSoul } from '../atelier.js';
 
 export const KEYART_LABEL = 'keyart';
 
@@ -40,7 +41,10 @@ export function keyArtJob(campaign, act = 1) {
 }
 
 export function heroBustJob(campaign) {
-  const soul = heroSoul(campaign.hero);
+  // THE ATELIER CANON (XVII, Article VIII) — the sealed anchor reads the
+  // same composed visual the forge preview painted from: one seat, so the
+  // ritual and the canon cannot drift apart.
+  const soul = heroCanonSoul(campaign.hero);
   return {
     kind: 'paint',
     prompt: portraitPrompt(campaign, soul, 'bust'),

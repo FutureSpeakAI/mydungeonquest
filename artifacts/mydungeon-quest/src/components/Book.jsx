@@ -11,6 +11,7 @@ import { clockWords } from '../lib/clockAtTable.js';
 import { chapterCard, downloadCard } from '../lib/shareCard.js';
 import { placesOf, soulsSwornTo } from '../lib/atlas.js';
 import { presenceOf, visitorsOf, partyOf } from '../lib/presence.js';
+import { introducedCast, introducedNames } from '../lib/unmet.js';
 import { threadsOf } from 'fatescript/threads';
 import { troveOf, purseOf, heldBy } from 'fatescript/trove';
 import { oneCoinFigure } from '../lib/ledger.js';
@@ -107,11 +108,19 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
   // THE LIVING WIKI: cards are derived lawfully from the log; each soul is a
   // page, each tie a backlink, each chronicle line a citation into the tale.
   const wiki = useMemo(() => { try { return cardsForCampaign(campaign).cards; } catch { return {}; } }, [campaign]);
+  // THE UNMET LAW (XVII, Article VI) — the shelf reads the record's
+  // introduction ledger: presence in canon is not presence in the tale
+  // until the record says so. The unmet render as ABSENCE — no card, no
+  // count, no trail note — and no side door (a tie chip, a soul page, a
+  // sworn chip) may name them either. Fail-closed: a torn fold shows
+  // nobody rather than everybody.
+  const shownCast = useMemo(() => { try { return introducedCast(campaign); } catch { return []; } }, [campaign]);
+  const spoken = useMemo(() => { try { return introducedNames(campaign); } catch { return new Set(); } }, [campaign]);
   const chapter = CHAPTERS.some((entry) => entry.id === nav?.chapter) ? nav.chapter : 'tale';
   const openSoul = nav?.soul || null;
   const openPlace = nav?.place || null;
   const openPack = nav?.pack || null;
-  const openCard = openSoul ? wiki[openSoul.toLowerCase()] : null;
+  const openCard = openSoul && spoken.has(openSoul.trim().toLowerCase()) ? wiki[openSoul.toLowerCase()] : null;
   const acts = [...new Set(c.spine.beats.map((beat) => beat.act || 1))];
   // THE SCRIPTORIUM made visible: the standing plan the room holds for
   // the coming scene — four scribes, one domain each, never prose.
@@ -190,15 +199,18 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
           : entry?.ground
             ? <p className="cite ground-line">Last seen standing in {entry.ground} — turn {entry.cite}.</p>
             : <p className="cite ground-line">Whereabouts unknown.</p>; })()}
-      {openCard.ties.length > 0 && <div className="tie-chips">{openCard.ties.map((tie, i) =>
-        <button key={i} className="tie-chip" onClick={() => wiki[tie.to.toLowerCase()] && onNav({ soul: tie.to })}>{tieLine(tie)}</button>)}</div>}
+      {/* THE UNMET LAW (XVII, Article VI) — a tie chip may only name the
+          spoken; an edge to the unmet is absence, not a teaser. */}
+      {(() => { const speakable = openCard.ties.filter((tie) => typeof tie.to === 'string' && spoken.has(tie.to.trim().toLowerCase()));
+        return speakable.length > 0 && <div className="tie-chips">{speakable.map((tie, i) =>
+        <button key={i} className="tie-chip" onClick={() => wiki[tie.to.toLowerCase()] && onNav({ soul: tie.to })}>{tieLine(tie)}</button>)}</div>; })()}
       <h4 className="eyebrow">Appearances</h4>
       <ol className="soul-timeline">{openCard.chronicle.map((line, i) => {
         const scene = logs.find((log) => log.turn === line.turn && log.dm?.cinematic && !log.redacted);
         return <li key={i}><b>Turn {line.turn}</b> — {line.gloss}{scene && <button className="text-button" onClick={() => onReplay(scene.dm)}>replay</button>}</li>;
       })}</ol>
     </article>}
-    {!openCard && <div className="codex-grid gallery">{c.cast.map((soul)=>{
+    {!openCard && <div className="codex-grid gallery">{shownCast.map((soul)=>{
       const dead = soul.status === 'dead';
       const lastWhy = (soul.bond_arc || []).slice(-1)[0]?.why;
       return <article key={soul.id} className={`soul-card${dead ? ' memorial' : ''}`} onClick={() => onNav({ soul: soul.name })} role="button" tabIndex={0}>
@@ -219,7 +231,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
     <h3>The Traveler's Chart</h3>
     <TravelersChart campaign={campaign} gallery={gallery} onOpenPlace={(name) => onNav({ place: name })} />
     <h3>Regions</h3><div className="region-gallery">{c.regions.map((region)=><article key={region.id} className="tappable" role="button" tabIndex={0} onClick={() => onNav({ place: openPlace === region.name ? null : region.name })}>{gallery[region.name] && <img className="region-plate" src={gallery[region.name]} alt={region.name}/>}<div className="region-copy"><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></div></article>)}</div>
-    {openPlace && (() => { const place = placesOf(campaign).find((entry) => entry.name === openPlace); const sworn = soulsSwornTo(c.cast, openPlace); return place && <article className="place-page">
+    {openPlace && (() => { const place = placesOf(campaign).find((entry) => entry.name === openPlace); const sworn = soulsSwornTo(shownCast, openPlace); /* the sworn chips read the introduced fold — no unmet name on the atlas door (XVII, Article VI) */ return place && <article className="place-page">
       <header><h4>{place.name}</h4><span className="place-state">{place.state}</span><button className="text-button" style={{marginLeft:'auto'}} onClick={() => onNav({ place: null })}>close</button></header>
       {gallery[place.name] && <img className="region-plate" src={gallery[place.name]} alt={place.name}/>}
       <p>{place.visual}</p>

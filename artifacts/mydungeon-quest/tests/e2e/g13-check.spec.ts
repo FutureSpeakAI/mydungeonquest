@@ -36,7 +36,13 @@ import { GAME_ROOT } from './lib/vision';
 // check in the same commit that seats Experience-Directive XVII's
 // image articles: reference sheets, the slot law, the render door,
 // the vertical frame, and the struck borrow rungs.
-const PINNED_PASS_COUNT = 133; // 60B Stage Two (XVII Article V + quiet table): +2 — houseVoice, quietTable; 131 → 133
+// (60B Stage Three) 133 → 136: TRUE FACE — the atelier gate (six strokes,
+// one sealed canon read by preview, anchor, and sheet; ten voices under
+// the unchanged Tenor law), the threshold gate (genesis wears the house's
+// face off the pipeline's OWN events), and the unmet gate (presence in
+// canon is not presence in the tale) join the keyless check in the same
+// commit that seats Articles VI, VII, and VIII of Directive XVII.
+const PINNED_PASS_COUNT = 136; // 60B Stage Three (XVII Articles VI+VII+VIII): +3 — atelier, threshold, unmet; 133 → 136
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

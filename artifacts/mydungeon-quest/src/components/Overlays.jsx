@@ -8,6 +8,8 @@ import { resolveSheetFace } from '../lib/sheetFace.js';
 import { heroPurse, oneCoinFigure } from '../lib/ledger.js';
 import { regionSlate } from '../lib/market.js';
 import { chartRibbon } from '../lib/atlas.js';
+import { composeReport } from '../lib/errata.js';
+import { HOUSE_VERSION } from '../lib/houseConfig.js';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
@@ -191,11 +193,37 @@ export function Settings({ campaign, settings, onChange, onDownloadAudio, audioB
       <button className="secondary-button" disabled={audioBusy} onClick={onDownloadAudio}><Download/> {audioBusy ? 'Forging the episode…' : 'Forge the podcast'}</button>
       <p className="muted">One produced episode from the sealed record — the Chronicler retells, the cast re-speak their own lines, stings sound only between sections. The forge binds real voices only; a keyless table keeps the book.{forgeElsewhere ? ' The forge lights for the voiced seat — the toll-house below tells the way.' : ''}</p>
     </>}
+    <BetaDoor campaign={campaign} settings={settings} toll={toll} />
     <OwnersBell/>
     <div className="law-note"><Heart/><span>{doorBuilt
       ? 'Your chronicles stay on this device. A name at the door is only a key — the tale itself never leaves without you.'
       : 'No accounts. Nothing leaves this device without you.'}</span></div>
   </Frame>;
+}
+
+// THE BETA DOORS (XVII, stage three) — a report the tester sends by their
+// own hand, consent stated in its first lines; the on-device errata ledger
+// rides in; the vault's local-only truth is said plainly; and the beta is
+// defined in one line. Nothing here touches the network — copy and mailto
+// are the only exits, and both are the tester's own hand.
+function BetaDoor({ campaign, settings, toll }) {
+  const [word, setWord] = useState(null);
+  const report = useMemo(() => composeReport({ version: HOUSE_VERSION, campaign, settings, plan: toll?.plan || 'keyless' }), [campaign, settings, toll]);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(report); setWord('Copied whole. Paste it wherever you send word.'); }
+    catch { setWord('The clipboard was refused. Select the report and copy it by hand.'); }
+  };
+  return <>
+    <h3>The beta door</h3>
+    <p className="muted">This is the beta: the free local build behind invites. The cloud and the toll arrive as their own works.</p>
+    <pre className="beta-report" aria-label="The report, exactly as it would be sent">{report}</pre>
+    <div className="button-row">
+      <button className="secondary-button" onClick={copy}>Copy the report</button>
+      <a className="secondary-button" href={`mailto:?subject=${encodeURIComponent('MyDungeon.Quest beta report')}&body=${encodeURIComponent(report)}`}>Send by hand</a>
+    </div>
+    {word && <p className="muted" role="status">{word}</p>}
+    <p className="muted">Until the Commons lands, this vault lives on this device alone. Export a sealed chronicle now and then — the sheet's export door keeps the tale in your own hands.</p>
+  </>;
 }
 
 export function Storybook({ html, onClose, onPdf, onHtml, onSize }) {

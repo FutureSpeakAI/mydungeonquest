@@ -201,8 +201,22 @@ const storySchema = {
         sheet_grant: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name','role','level'], properties: {
           name: { type: 'string', minLength: 2, maxLength: 60, description: "A STANDING party member's exact name (party_state; a soul joining this same turn counts). Sheets seal once — a duplicate is refused by name." },
           role: { type: 'string', enum: ['guardian','skirmisher','mender','trickster'], description: 'THE ROLE TABLE fixes the ability spread and hit points in code — never state sheet numbers yourself.' },
-          level: { type: 'integer', minimum: 1, maximum: 5, description: 'hp = band + (level − 1) × growth, by the role table in code.' }
-        } } ] }
+          level: { type: 'integer', minimum: 1, maximum: 5, description: 'hp = band + (level − 1) × growth, by the role table in code. The client seats the sheet at the hero\'s standing level — the road overrules this number.' }
+        } } ] },
+        // THE CONDITION LAW (Directive XII §II): declared because the strict
+        // validator enforces the enum and bounds — a schema the model cannot
+        // see is a trap (the toolschema-validation lesson).
+        sheet_condition: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name'], properties: {
+          name: { type: 'string', minLength: 2, maxLength: 60, description: 'A SHEETED companion — a name [STORY].sheet_state lists (a sheet granted this same turn counts).' },
+          add: { type: 'array', maxItems: 2, items: { type: 'string', enum: ['poisoned','frightened','restrained','stunned','paralyzed','unconscious','blinded','prone'] }, description: 'Conditions landing this turn — at most 2, exact SRD names only.' },
+          remove: { type: 'array', maxItems: 2, items: { type: 'string', enum: ['poisoned','frightened','restrained','stunned','paralyzed','unconscious','blinded','prone'] }, description: 'Conditions lifting this turn — at most 2, only ones sheet_state shows standing.' }
+        } } ], description: 'Move conditions on a sheeted companion — add and/or remove, at least one named. Refused on offscreen ticks.' },
+        // THE EQUIPPED LAW (Directive XII §III): one mark a turn, weapon or
+        // tool, a thing trove_state already places in that hand.
+        item_equip: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name','holder'], properties: {
+          name: { type: 'string', minLength: 3, maxLength: 60, description: 'A weapon or tool [STORY].trove_state already places in the holder\'s hand — never a thing added this same turn.' },
+          holder: { type: 'string', minLength: 1, maxLength: 60, description: 'The soul whose hand readies it. A new mark of the same kind lawfully unseats the standing one.' }
+        } } ], description: 'Mark ONE held weapon or tool as carried at the ready. trove_state speaks equipped: true while the mark stands.' }
       }
     }
   ]

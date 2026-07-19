@@ -1,0 +1,29 @@
+[
+  {
+    "spineId": "redemption-road",
+    "file": "redemption-road.chronicle.json",
+    "campaignId": "a3f97f74-d073-4ee9-b311-70dbe26a3d82",
+    "headHash": "27e7932d916161e86b07b6c8f40d5000d7636ee6337bc716bb5797c11362888b",
+    "title": "A Field of Small Gods",
+    "hero": "Sable Birchall",
+    "turns": 37
+  },
+  {
+    "spineId": "long-voyage",
+    "file": "long-voyage.chronicle.json",
+    "campaignId": "31b3c0f9-3366-465b-bdda-9ce87a21042f",
+    "headHash": "12adfb772cbc41d447419ce151ce2668dbd827aa7ed96047b9788100fc8d5f66",
+    "title": "Where the Salt Remembers",
+    "hero": "Sera Harrow",
+    "turns": 37
+  },
+  {
+    "spineId": "crown-intrigue",
+    "file": "crown-intrigue.chronicle.json",
+    "campaignId": "f2211042-b815-4313-995d-a3c890a228c4",
+    "headHash": "bc6f1a4615079503d95f3372fb8b258811834d43f80969072560bf44755cd525",
+    "title": "The Cartographer’s Debt",
+    "hero": "Isolde Gallowglass",
+    "turns": 37
+  }
+]

@@ -566,3 +566,19 @@
 /* THE STILLNESS LAW (Directive XIV) — a surface wearing the mark holds
    perfectly still; the setting and the patron's own preference both raise it. */
 [data-stillness="true"],[data-stillness="true"] *{animation:none!important;transition:none!important}
+
+/* THE SPOKEN DIE (Directive XII §III.2) — mode and cause under the number */
+.dice-mode { display: block; margin-top: 4px; font-size: 0.78rem; opacity: 0.85; font-style: italic; }
+
+/* THE ERA DOOR'S RECORD (§IV.5) — one quiet ledger line in the feed */
+.reconciliation-line { text-align: center; font-size: 0.82rem; opacity: 0.75; padding: 6px 0; font-style: italic; }
+
+/* THE DEMO SHELF (Directive XII §V.4) — the house's own telling: sealed
+   reference tales beside the vault row, quiet until drawn. The draw is a
+   word ("verifying the seal…"), never a spinner — the house has no
+   spinners to give. */
+.demo-shelf { margin-top: 18px; display: grid; gap: 8px; justify-items: start; }
+.demo-shelf .demo-note { margin: 0; font-size: 12.5px; opacity: .72; font-style: italic; }
+.demo-spine { border-left: 3px solid var(--dye, #4a2b33); }
+.demo-spine .demo-drawing { display: block; opacity: .85; font-style: italic; }
+.demo-spine:disabled { opacity: .55; cursor: wait; }

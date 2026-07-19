@@ -10,7 +10,11 @@ import { SPINES } from './spines.js';
 const hash = (s) => { let h = 0; const str = String(s ?? ''); for (let i = 0; i < str.length; i += 1) { h = (h << 5) - h + str.charCodeAt(i); h |= 0; } return Math.abs(h); };
 const pick = (pool, seed, salt = '') => pool[hash(`${seed}:${salt}`) % pool.length];
 
-export const TITLES = ['The Unwritten Road', 'A Crown of Quiet Thunder', 'The Last Lantern District', 'Where the Salt Remembers', 'The Vale of Borrowed Names', 'A Winter for the Bell-Makers', 'The Ninth Ford', 'Embers of the Old Concord', 'The Cartographer\u2019s Debt', 'A Field of Small Gods', 'The Hollow Coronation', 'Songs the River Kept'];
+// THE DOUBLED POOLS (Directive XII §V.2) — counts are pinned law: TITLES 24,
+// COVENANTS 20, TONES 16, REGION_NAMES 20, MARKS 20, FIRST_NAMES 32,
+// LAST_NAMES 32, SIGILS 16; Oracle world pools 10 each, hero pools 10 each.
+// Every entry clears the poison lexicon and the covenant's rating.
+export const TITLES = ['The Unwritten Road', 'A Crown of Quiet Thunder', 'The Last Lantern District', 'Where the Salt Remembers', 'The Vale of Borrowed Names', 'A Winter for the Bell-Makers', 'The Ninth Ford', 'Embers of the Old Concord', 'The Cartographer\u2019s Debt', 'A Field of Small Gods', 'The Hollow Coronation', 'Songs the River Kept', 'The Mended Oath', 'A Harbor for the Winterborn', 'The Usurper\u2019s Kind Regards', 'Salt Roads and Sovereigns', 'The Pilgrim\u2019s Honest Mile', 'A Siege of Slow Letters', 'The Redeemer\u2019s Second Road', 'Wind Against the Named Course', 'The Notary of Thrones', 'A Creed of Borrowed Light', 'The Long Watch at Homewall', 'Tides That Keep Court'];
 export const COVENANTS = [
   'A drowned empire where memories are legal tender.',
   'A cozy mountain kingdom built atop a sleeping machine.',
@@ -21,13 +25,23 @@ export const COVENANTS = [
   'A canyon city carved by a departed god, now renting out the echo.',
   'A borderland where winter arrives as a person and must be housed.',
   'A guild-run port where names are cargo and yours has been sold.',
-  'A pilgrim road that grows one mile longer every year, and no one knows toward what.'
+  'A pilgrim road that grows one mile longer every year, and no one knows toward what.',
+  'A mountain hold where every promise is carved, and the mason has begun erasing.',
+  'A pilgrim republic taxed in miracles, audited by doubt.',
+  'A coastal league whose treaties are sung, and someone is changing the tune.',
+  'A crown\u2019s winter court where legitimacy is a ledger and the ink is patient.',
+  'A ring of border keeps that trade sleep like grain against the long watch.',
+  'A drowned cathedral parish where the tide takes confession.',
+  'An orchard duchy whose seasons obey a contract nobody living signed.',
+  'A ferry kingdom on a river that remembers every toll ever refused.',
+  'A walled market city that has never fallen and has never once been attacked.',
+  'A teacher\u2019s valley where lessons are inherited, and one inheritance has soured.'
 ];
-export const TONES = ['Mythic, warm, and dangerous', 'Cozy at the hearth, sharp at the treeline', 'Melancholy wonder with iron underneath', 'Swashbuckling and generous-hearted', 'Slow dread, small kindnesses', 'Storybook bright with real teeth', 'Windswept and elegiac', 'Wry, weathered, and hopeful'];
-export const REGION_NAMES = ['Larkspur Vale', 'The Tinderfen', 'Saltmere Reach', 'The Bellwether Downs', 'Cinderhollow', 'The Pale Orchards', 'Greywater Crossing', 'The Antler Hills', 'Mirrormoss', 'The Long Stair'];
-export const MARKS = ['a white scar through one brow', 'a streak of frost-grey hair', 'a burn in the shape of a key', 'mismatched eyes, one gold', 'a missing left ring finger', 'a faded oath-tattoo at the wrist', 'a voice roughened by old smoke', 'a limp that vanishes in danger', 'a birthmark like a compass rose', 'a silver tooth that catches light'];
-export const FIRST_NAMES = ['Aster', 'Sera', 'Rowan', 'Maren', 'Cassian', 'Ilya', 'Wren', 'Edda', 'Tomas', 'Liora', 'Bran', 'Sable', 'Odette', 'Corin', 'Yeva', 'Halric'];
-export const LAST_NAMES = ['Vale', 'Marrow', 'Fenwick', 'Ashgrove', 'Quill', 'Harrow', 'Brightwater', 'Coldmane', 'Setter', 'Larkspur', 'Voss', 'Thorne', 'Merridew', 'Stone', 'Gallowglass', 'Reed'];
+export const TONES = ['Mythic, warm, and dangerous', 'Cozy at the hearth, sharp at the treeline', 'Melancholy wonder with iron underneath', 'Swashbuckling and generous-hearted', 'Slow dread, small kindnesses', 'Storybook bright with real teeth', 'Windswept and elegiac', 'Wry, weathered, and hopeful', 'Patient dread with warm lamplight', 'Court-sharp, velvet over steel', 'Salt-bitten and stubbornly kind', 'Penitent, austere, and slowly bright', 'Devout wonder with a skeptic\u2019s pulse', 'Homefire warmth under siege shadow', 'Ledger-dry wit, sudden mercy', 'Weather-worn and gallows-gentle'];
+export const REGION_NAMES = ['Larkspur Vale', 'The Tinderfen', 'Saltmere Reach', 'The Bellwether Downs', 'Cinderhollow', 'The Pale Orchards', 'Greywater Crossing', 'The Antler Hills', 'Mirrormoss', 'The Long Stair', 'The Winnow Coast', 'Hallowmere', 'The Stilt Gardens', 'Vesper Downs', 'The Salt Chancel', 'Kindlewick', 'The Regent\u2019s Steps', 'Foldbarrow', 'The Hushing Water', 'Lanternwrack'];
+export const MARKS = ['a white scar through one brow', 'a streak of frost-grey hair', 'a burn in the shape of a key', 'mismatched eyes, one gold', 'a missing left ring finger', 'a faded oath-tattoo at the wrist', 'a voice roughened by old smoke', 'a limp that vanishes in danger', 'a birthmark like a compass rose', 'a silver tooth that catches light', 'a pilgrim\u2019s knot inked at the collarbone', 'salt-white lashes over dark eyes', 'a signet callus on the wrong finger', 'a hairline of gold in one tooth', 'rope-burn bracelets long healed', 'a tally of small scars, self-kept', 'an accent that drifts with the weather', 'an ear notched like a ledger', 'hands steady only when it matters', 'a shadow of old paint under the jaw'];
+export const FIRST_NAMES = ['Aster', 'Sera', 'Rowan', 'Maren', 'Cassian', 'Ilya', 'Wren', 'Edda', 'Tomas', 'Liora', 'Bran', 'Sable', 'Odette', 'Corin', 'Yeva', 'Halric', 'Anselm', 'Brida', 'Caspian', 'Deryn', 'Esther', 'Falk', 'Greta', 'Hollis', 'Isolde', 'Jorun', 'Katri', 'Lowen', 'Mireille', 'Nikolai', 'Ottoline', 'Pell'];
+export const LAST_NAMES = ['Vale', 'Marrow', 'Fenwick', 'Ashgrove', 'Quill', 'Harrow', 'Brightwater', 'Coldmane', 'Setter', 'Larkspur', 'Voss', 'Thorne', 'Merridew', 'Stone', 'Gallowglass', 'Reed', 'Amberlow', 'Birchall', 'Crane', 'Dunmore', 'Ellery', 'Farrow', 'Gorse', 'Hazelett', 'Ironquill', 'Jessop', 'Kestrel', 'Loam', 'Mott', 'Nightingale', 'Orrery', 'Pyke'];
 export const ANCESTRIES = ['Human', 'Dwarf', 'Elf', 'Halfling', 'Orc-blooded', 'Tiefling', 'Gnome', 'Dragonborn'];
 export const CLASSES = [
   { className: 'Ranger', caster: 'half', hitDie: 10, skills: ['Perception', 'Survival', 'Stealth'], order: ['DEX', 'WIS', 'CON', 'STR', 'INT', 'CHA'] },
@@ -39,7 +53,7 @@ export const CLASSES = [
   { className: 'Barbarian', caster: 'none', hitDie: 12, skills: ['Athletics', 'Survival', 'Intimidation'], order: ['STR', 'CON', 'DEX', 'WIS', 'CHA', 'INT'] },
   { className: 'Warlock', caster: 'energy', hitDie: 8, skills: ['Arcana', 'Deception', 'Intimidation'], order: ['CHA', 'CON', 'DEX', 'WIS', 'INT', 'STR'] }
 ];
-export const SIGILS = ['\u2726', '\u2735', '\u273f', '\u2740', '\u2749', '\u2698', '\u269c', '\u2694'];
+export const SIGILS = ['\u2726', '\u2735', '\u273f', '\u2740', '\u2749', '\u2698', '\u269c', '\u2694', '\u2736', '\u273a', '\u2742', '\u2744', '\u2766', '\u2699', '\u2691', '\u263e'];
 const STANDARD = [15, 14, 13, 12, 10, 8];
 const DEFAULT_STYLE = 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.';
 
@@ -95,9 +109,9 @@ export function rollWorld(seed = 0) {
 }
 
 export const ORACLE_WORLD = {
-  places: ['a drowned coast', 'a mountain sanctuary', 'a frontier of moving roads', 'a river of treaties', 'a city in a god\u2019s ribcage'],
-  wounds: ['its memory is being sold', 'its guardian has gone silent', 'its winters arrive angry and early', 'its bridges are failing one by one', 'its names are being stolen'],
-  hopes: ['an heir who refuses the crown', 'a song that still opens doors', 'a road that remembers travelers kindly', 'one honest harbor', 'a lantern that has never gone out']
+  places: ['a drowned coast', 'a mountain sanctuary', 'a frontier of moving roads', 'a river of treaties', 'a city in a god\u2019s ribcage', 'a walled orchard duchy', 'a road of stubborn shrines', 'an estuary of drowned bells', 'a court that winters in exile', 'a chain of ferry crossings'],
+  wounds: ['its memory is being sold', 'its guardian has gone silent', 'its winters arrive angry and early', 'its bridges are failing one by one', 'its names are being stolen', 'its treaties are being resung', 'its harvest obeys a stranger\u2019s clock', 'its watchmen have begun to sell their sleep', 'its miracles arrive on schedule', 'its maps are older than its borders admit'],
+  hopes: ['an heir who refuses the crown', 'a song that still opens doors', 'a road that remembers travelers kindly', 'one honest harbor', 'a lantern that has never gone out', 'a mason who still carves true', 'a tide that returns what it loves', 'a witness who cannot be bought', 'one bell the fog never learned', 'a child who asks the right questions']
 };
 
 export function oracleWorld({ place, wound, hope }) {
@@ -129,11 +143,13 @@ export function rollHero(seed = 0) {
 }
 
 export const ORACLE_HERO = {
-  paths: ['the blade', 'the shadow', 'the word', 'the wild', 'the flame'],
-  virtues: ['stubborn kindness', 'cold clarity', 'reckless loyalty', 'patient cunning', 'unkillable hope'],
-  keepsakes: ['a mother\u2019s letter, unopened', 'a broken compass that points home', 'a coin from a country that fell', 'a rival\u2019s glove', 'a key with no known door']
+  paths: ['the blade', 'the shadow', 'the word', 'the wild', 'the flame', 'the hymn', 'the fang', 'the pact', 'the banner', 'the tide'],
+  virtues: ['stubborn kindness', 'cold clarity', 'reckless loyalty', 'patient cunning', 'unkillable hope', 'weathered patience', 'honest doubt', 'quiet thrift', 'borrowed courage, repaid', 'a mender\u2019s stubbornness'],
+  keepsakes: ['a mother\u2019s letter, unopened', 'a broken compass that points home', 'a coin from a country that fell', 'a rival\u2019s glove', 'a key with no known door', 'a bell clapper wrapped in wool', 'a treaty torn at one corner', 'a saint\u2019s medal worn smooth', 'a ship\u2019s nail bent by weather', 'a schoolmaster\u2019s red pencil']
 };
-const PATH_CLASS = { 'the blade': 'Fighter', 'the shadow': 'Rogue', 'the word': 'Bard', 'the wild': 'Ranger', 'the flame': 'Wizard' };
+// Every path answers with a calling (§V.2) — repeats are lawful; the set
+// of callings stays the eight standing classes.
+const PATH_CLASS = { 'the blade': 'Fighter', 'the shadow': 'Rogue', 'the word': 'Bard', 'the wild': 'Ranger', 'the flame': 'Wizard', 'the hymn': 'Cleric', 'the fang': 'Barbarian', 'the pact': 'Warlock', 'the banner': 'Fighter', 'the tide': 'Ranger' };
 
 export function oracleHero({ path, virtue, keepsake }) {
   const className = PATH_CLASS[path] || 'Ranger';

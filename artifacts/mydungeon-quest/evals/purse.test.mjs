@@ -85,7 +85,8 @@ const CAMPAIGN = {
   assert.ok(lib.includes('fatescript/ledger') && lib.includes('buildLedger'), 'the engine\u2019s ledger is the only fold');
   const overlays = read('src/components/Overlays.jsx');
   assert.ok(overlays.includes('heroPurse'), 'the folio draws the projection');
-  assert.ok(overlays.includes('purse.coin'), 'the purse on the ribbon is the ledger\u2019s');
+  assert.ok(overlays.includes('oneCoinFigure'), 'the ribbon walks the one-coin era door (Directive XII \u00a7IV)');
+  assert.ok(overlays.includes('oneCoin.coin'), 'the purse on the ribbon is the era door\u2019s one figure');
   assert.ok(overlays.includes('purse.pack'), 'the pack is the ledger\u2019s too');
   assert.ok(overlays.includes('purse.refusals'), 'receipts reach the patron');
 }

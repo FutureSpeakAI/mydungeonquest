@@ -67,7 +67,7 @@ assert.equal(flooded.trove.length, 3, 'the three-operation law holds at the fold
 
 // --- 3. The block tells the DM what is held ---
 const block = storyBlock(codex);
-assert.ok(block.trove_state.every((item) => Object.keys(item).length === 2), 'trove_state carries name and holder only');
+assert.ok(block.trove_state.every((item) => Object.keys(item).length === 2 || (Object.keys(item).length === 3 && item.equipped === true)), 'trove_state carries name and holder — plus the equipped mark only when true (Directive XII §III.5)');
 assert.ok(block.trove_state.some((item) => item.name === 'A key with no known door' && item.holder === 'Maren'));
 assert.ok(!block.trove_state.some((item) => item.holder === 'Edda'), 'gone things leave the held state');
 

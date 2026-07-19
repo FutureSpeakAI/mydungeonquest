@@ -116,10 +116,15 @@ export function mockDirector(input, beatIndex) {
   };
 }
 
-// The live Director: one temperature-zero strict-JSON sitting through
-// the standing provider plan. Any refusal, error, or unlawful word
-// falls to the deterministic floor — the table is never stalled and
-// never darkened by its planner.
+// The live Director: one strict-JSON sitting through the standing
+// provider plan. The Anthropic seat carries NO temperature dial — the
+// family retired it (probed July 18, 2026: claude-sonnet-5 answers 400
+// to any request carrying it, the same law the smith learned in 58B),
+// and before the cure every live director ask was 400ing straight to
+// the deterministic floor. The OpenAI understudy still honors its
+// zero and keeps it. Any refusal, error, or unlawful word falls to
+// the deterministic floor — the table is never stalled and never
+// darkened by its planner.
 const intentToolSchema = {
   type: 'object', additionalProperties: false,
   required: ['intent', 'secrets_held', 'threads_to_touch', 'forbidden_repeats', 'measure'],
@@ -141,7 +146,8 @@ async function anthropicIntent(input, beatIndex) {
     headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: process.env.DIRECTOR_MODEL || process.env.DM_MODEL || 'claude-sonnet-4-6',
-      max_tokens: 400, temperature: 0,
+      max_tokens: 400, // no temperature: the family retired the dial (Directive XII §VIII)
+
       system: [{ type: 'text', text: buildSystemPrompt(input) }],
       messages: [{ role: 'user', content: [{ type: 'text', text: directorBrief(input, beatIndex) }] }],
       tools: [{ name: 'beat_intent', description: "The Director's only valid word.", input_schema: intentToolSchema }],

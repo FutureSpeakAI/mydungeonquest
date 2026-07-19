@@ -84,14 +84,14 @@ assert.ok(codex.notes.some((n) => n.includes('Unlawful sheet_grant blocked: Gorl
   'a grant outside the party is a note, never a seat');
 codex = applyStoryUpdates(codex, { sheet_grant: { name: 'rell marrow', role: 'guardian', level: 2 } }, { turn: 3 });
 const rell = codex.party.find((member) => member.name === 'Rell Marrow');
-assert.deepEqual(rell.sheet, { role: 'guardian', level: 2, sigil: '▲', abilities: { STR: 15, DEX: 12, CON: 14, INT: 8, WIS: 12, CHA: 10 }, hp: 19, maxHp: 19, deathSaves: { successes: 0, failures: 0 } },
+assert.deepEqual(rell.sheet, { role: 'guardian', level: 2, sigil: '▲', abilities: { STR: 15, DEX: 12, CON: 14, INT: 8, WIS: 12, CHA: 10 }, hp: 19, maxHp: 19, deathSaves: { successes: 0, failures: 0 }, conditions: [] },
   'the sheet seals from the table, canon name case-blind: guardian 2 stands at 19');
 codex = applyStoryUpdates(codex, { sheet_grant: { name: 'RELL marrow', role: 'mender', level: 5 } }, { turn: 4 });
 assert.ok(codex.notes.some((n) => n.includes('Sheet canon sealed once: Rell Marrow already holds a sheet.')),
   'the second grant is refused with a note');
 assert.equal(codex.party.find((member) => member.name === 'Rell Marrow').sheet.role, 'guardian', 'the first truth stands');
-assert.deepEqual(storyBlock(codex).sheet_state, [{ name: 'Rell Marrow', role: 'guardian', level: 2, hp: 19 }],
-  'sheet_state rides the block — name, role, level, hit points');
+assert.deepEqual(storyBlock(codex).sheet_state, [{ name: 'Rell Marrow', role: 'guardian', level: 2, hp: 19, conditions: [] }],
+  'sheet_state rides the block — name, role, level, hit points, and the condition lane (Directive XII §II.4)');
 
 // ---------------------------------------------------------------
 // IV. THE WALK — three-and-three under seeded dice; the fourth refused.
@@ -159,7 +159,7 @@ assert.ok(codex.notes.some((n) => n.includes('Resurrection retcon blocked: Rell 
 // VI. THE PROMPT PIN & THE SCHEMA MIRROR — the law the model reads.
 // ---------------------------------------------------------------
 const promptSource = readFileSync(new URL('../src/lib/systemPrompt.js', import.meta.url), 'utf8');
-assert.ok(promptSource.includes(`38. THE FALL: a fall is addressed in the very turn it happens — name the fallen, weigh the loss, never skip past it. Death sealed by three failed death saves is permanent: no resurrection, no retcon; the memorial stands, and every open thread the fallen held carries its fall note.`),
+assert.ok(promptSource.includes(`40. THE FALL: a fall is addressed in the very turn it happens — name the fallen, weigh the loss, never skip past it. Death sealed by three failed death saves is permanent: no resurrection, no retcon; the memorial stands, and every open thread the fallen held carries its fall note.`),
   'the fall rule stands in the prompt byte-stable');
 const dmSource = readFileSync(new URL('../server/dm.js', import.meta.url), 'utf8');
 for (const needle of ["sheet_grant: { anyOf:", "required: ['name','role','level']", "enum: ['guardian','skirmisher','mender','trickster']"]) {

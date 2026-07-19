@@ -5,7 +5,7 @@ import { db } from '../lib/db.js';
 import { doorBuilt } from '../patron/door.jsx';
 import { TollSection, useToll } from '../patron/toll.jsx';
 import { resolveSheetFace } from '../lib/sheetFace.js';
-import { heroPurse } from '../lib/ledger.js';
+import { heroPurse, oneCoinFigure } from '../lib/ledger.js';
 import { regionSlate } from '../lib/market.js';
 import { chartRibbon } from '../lib/atlas.js';
 
@@ -85,6 +85,9 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
   // folded through the one ledger; refusals are receipts, shown, and a
   // count that drifted from the sheet's old memory says so out loud.
   const purse = useMemo(() => heroPurse(campaign), [campaign]);
+  // ONE COIN (Directive XII §IV) — the ribbon's figure walks the era door:
+  // purse-law tales speak the purse fold, legacy tales the cited old lane.
+  const oneCoin = useMemo(() => oneCoinFigure(campaign), [campaign]);
   // THE SLATE — the active region's staple prices, witnessed and drifted
   // by the record alone; the market ribbon speaks the engine's own words.
   const slate = useMemo(() => regionSlate(campaign), [campaign]);
@@ -93,8 +96,9 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
   const chart = useMemo(() => chartRibbon(campaign), [campaign]);
   return <Frame title="Character Sheet" icon={<Shield/>} onClose={onClose}>
     <div className="sheet-hero"><AnchorBust campaign={campaign}/><div><h3>{h.name}</h3><p>Level {h.level} {h.ancestry} {h.className}</p></div></div>
-    <div className="stat-ribbon"><span><b>{h.hp}/{h.maxHp}</b> HP</span><span><b>{h.ac}</b> AC</span><span><b>{purse.coin}</b> gold</span><span><b>{h.xp}</b> XP</span></div>
-    {!purse.agrees && <p className="muted">The ledger counts {purse.coin}; the sheet remembered {h.gold}. The record rules.</p>}
+    <div className="stat-ribbon"><span><b>{h.hp}/{h.maxHp}</b> HP</span><span><b>{h.ac}</b> AC</span><span><b>{oneCoin.coin}</b> gold</span><span><b>{h.xp}</b> XP</span></div>
+    {/* ONE COIN (Directive XII §IV) — the ledger's figure is the only coin
+        spoken; the sheet keeps no rival memory worth quoting. */}
     <div className="ability-grid compact">{Object.entries(h.abilities).map(([a,v]) => <div key={a}><b>{a}</b><span>{v}</span><small>{Math.floor((v-10)/2) >= 0 ? '+' : ''}{Math.floor((v-10)/2)}</small></div>)}</div>
     <h3>Spell slots</h3><div className="slot-row">{Object.entries(h.spellSlots).length ? Object.entries(h.spellSlots).map(([lvl,slot]) => <span key={lvl}>L{lvl} {Array.from({length:slot.max},(_,i)=><i className={i<slot.current?'full':''} key={i}/>)}</span>) : <em>No prepared slots</em>}</div>
     <h3>Conditions</h3>{h.conditions.length ? h.conditions.map((c)=><div className="condition" key={c}><b>{c}</b><span>{CONDITIONS[c]}</span></div>) : <p className="muted">No conditions.</p>}

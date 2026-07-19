@@ -30,9 +30,20 @@ test('G27a one tap deals a whole world; a field die touches its field alone', as
   const title = page.locator('.spin-card h3').first();
 
   // One tap, one whole world: the spin fills every unsovereign surface.
+  // THE DEAL MAY LAWFULLY REPEAT A SEAT (fresh entropy, finite pools) —
+  // 59.2 crossed on the promise re-dealt byte-identical, the same
+  // collision class this court's own feel-die block already retries.
+  // Three presses witness the spin lands; a dead door still convicts.
   const covenantBefore = await covenant.inputValue();
-  await page.click('button:has-text("Spin again")');
-  await expect(covenant).not.toHaveValue(covenantBefore, { timeout: 5_000 });
+  let spinMoved = false;
+  for (let attempt = 0; attempt < 3 && !spinMoved; attempt += 1) {
+    await page.click('button:has-text("Spin again")');
+    spinMoved = await page.waitForFunction(
+      (before) => document.querySelector('textarea')?.value !== before,
+      covenantBefore, { timeout: 2_500 },
+    ).then(() => true).catch(() => false);
+  }
+  expect(spinMoved, 'the whole-world spin deals the promise anew within three presses').toBe(true);
   expect((await covenant.inputValue()).trim().length, 'the spin dealt a promise').toBeGreaterThan(0);
   expect((await tone.inputValue()).trim().length, 'the spin dealt a feel').toBeGreaterThan(0);
   expect((await title.textContent())?.trim().length, 'the spin dealt a title').toBeGreaterThan(0);

@@ -62,6 +62,13 @@ export default defineConfig({
     // mock floor.
     { name: 'g27-forge', testMatch: /g27-forge\.spec\.ts/, dependencies: ['dom'] },
     { name: 'g28-book', testMatch: /g28-book\.spec\.ts/, dependencies: ['dom'] },
+    // (0.10.0, Directive XII §VII.3) THE LIVE COURTS — the wonder clock
+    // and the return law sit on the LIVE anthropic door. Each raises its
+    // OWN keyed house on its own port (the rig's app server stays keyless
+    // as ever) and puts it out when it rests; g26 rides behind g25 so two
+    // keyed houses never stand at once.
+    { name: 'g25-wonder', testMatch: /g25-wonder\.spec\.ts/, dependencies: ['dom'] },
+    { name: 'g26-return', testMatch: /g26-return\.spec\.ts/, dependencies: ['g25-wonder'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

@@ -1,3 +1,4 @@
+import { rowsOf } from './rows.js';
 // ------------------------------------------------------------
 // THE THREAD LEDGER — the narrative debt economy, replayed pure from the
 // sealed record. A thread exists because a thread_add sealed it; it closes
@@ -10,7 +11,7 @@ export const THREAD_OUTCOMES = ['kept', 'broken', 'resolved'];
 
 export function threadsOf(campaign) {
   const ledger = [];
-  (campaign?.logs || []).forEach((log, index) => {
+  rowsOf(campaign?.logs).forEach((log, index) => {
     if (log.redacted) return;
     const story = log?.dm?.story || {};
     for (const add of (story.thread_add || []).slice(0, 2)) {

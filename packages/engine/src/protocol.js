@@ -1,4 +1,4 @@
-import { ROLE_TABLE } from './rules.js';
+import { CONDITIONS, ROLE_TABLE } from './rules.js';
 
 const ALLOWED_KEYS = new Set(['narration_blocks','suggestions','roll_request','state_updates','combat','cinematic','story','image_cue','dialogue_cue','time_advance','entropy_use']);
 const CINEMATIC_TYPES = new Set(['chapter','boss_reveal','discovery','ominous','level_up','death','victory']);
@@ -329,6 +329,74 @@ function validateSheetGrant(story, context, errors) {
     errors.push(`sheet_grant duplicates a standing sheet: ${String(grant.name).trim()}`);
   }
 }
+// THE CONDITION LAW (Directive XII §II.3) — conditions land on companions
+// only through sheet_condition: exactly { name, add?, remove? }, at most 2
+// added and 2 removed per turn, names drawn only from the eight, aimed
+// only at a sheeted soul. With the sheet ledger seated membership binds
+// (a sheet granted this same breath counts); bare context keeps shape
+// law. The tick refusal is the reducer's own law, as for every party op.
+const CONDITION_NAMES = new Set(Object.keys(CONDITIONS));
+function validateSheetCondition(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const op = story.sheet_condition;
+  if (op === undefined || op === null) return;
+  if (typeof op !== 'object' || Array.isArray(op)) {
+    errors.push('sheet_condition must be an object with name and add and/or remove');
+    return;
+  }
+  noUnknown(op, new Set(['name', 'add', 'remove']), 'story.sheet_condition', errors);
+  if (!(cleanText(op.name, 60) && String(op.name).trim().length >= 2)) errors.push('sheet_condition.name must be 2-60 chars');
+  let named = 0;
+  const lanes = { add: new Set(), remove: new Set() };
+  for (const lane of ['add', 'remove']) {
+    const list = op[lane];
+    if (list === undefined || list === null) continue;
+    if (!Array.isArray(list) || list.length > 2) {
+      errors.push(`sheet_condition.${lane} must be an array of at most 2`);
+      continue;
+    }
+    for (const condition of list) {
+      named += 1;
+      if (!CONDITION_NAMES.has(condition)) errors.push(`sheet_condition.${lane} names no lawful condition: ${String(condition).slice(0, 30)}`);
+      else if (lanes[lane].has(condition)) errors.push(`sheet_condition.${lane} repeats ${condition}`);
+      lanes[lane].add(condition);
+    }
+  }
+  if (!named) errors.push('sheet_condition must add or remove at least one condition');
+  for (const condition of lanes.add) if (lanes.remove.has(condition)) errors.push(`sheet_condition adds and removes the same condition: ${condition}`);
+  if (cleanText(op.name, 60) && Array.isArray(context.sheets)) {
+    const granting = story.sheet_grant?.name;
+    const sheeted = context.sheets.some((name) => canonKey(name) === canonKey(op.name)) || (granting && canonKey(granting) === canonKey(op.name));
+    if (!sheeted) errors.push(`sheet_condition names an unsheeted soul: ${String(op.name).trim()}`);
+  }
+}
+// THE EQUIPPED LAW (Directive XII §III) — one mark moves per turn:
+// exactly { name, holder }, an object never an array. With the trove
+// seated the court binds: the thing must sit in the named holder's
+// hand, and where the ledger speaks a kind, only weapon and tool pass.
+// The record consulted is the PRE-TURN record — a thing added this
+// same turn may not also be equipped through the door, exactly as it
+// may not be transferred. Bare context keeps shape law.
+function validateItemEquip(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const op = story.item_equip;
+  if (op === undefined || op === null) return;
+  if (typeof op !== 'object' || Array.isArray(op)) {
+    errors.push('item_equip must be an object with exactly name and holder');
+    return;
+  }
+  noUnknown(op, new Set(['name', 'holder']), 'story.item_equip', errors);
+  assert(cleanText(op?.name, 60) && String(op.name).trim().length >= 3, 'item_equip.name must be 3-60 chars', errors);
+  assert(cleanText(op?.holder, 60), 'item_equip.holder invalid', errors);
+  if (Array.isArray(context.trove)) {
+    const row = context.trove.find((item) => canonKey(item?.name) === canonKey(op?.name));
+    if (!row) errors.push(`item_equip names a thing the record does not hold: ${op?.name}`);
+    else {
+      if (canonKey(row.holder) !== canonKey(op?.holder)) errors.push(`item_equip marks a thing the record does not place in ${op?.holder}'s hand: ${op?.name}`);
+      if (row.kind !== undefined && !['weapon', 'tool'].includes(row.kind)) errors.push(`item_equip touches an unequippable kind: ${op?.name} is ${row.kind}`);
+    }
+  }
+}
 // THE SPAWN EXPANSION — the ONE helper every bench and client calls, so
 // instances derive identically everywhere: id `species-slug-letter`,
 // deterministic letters for the unnamed, hit points and armor from THE
@@ -509,6 +577,8 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     validateFixtures(payload.story, context, errors);
     validateBestiary(payload.story, context, errors);
     validateSheetGrant(payload.story, context, errors);
+    validateSheetCondition(payload.story, context, errors);
+    validateItemEquip(payload.story, context, errors);
     validateSpeakerGround(payload, context, errors);
     validateImageCue(payload, context, errors);
   }

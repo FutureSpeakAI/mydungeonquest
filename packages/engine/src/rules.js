@@ -73,9 +73,13 @@ function tableRoll(actorId, abilities, level, conditions, request, random) {
   const poisoned = conditions.includes('poisoned');
   const frightened = conditions.includes('frightened');
   const restrainedDex = conditions.includes('restrained') && request.kind === 'save' && ability === 'DEX';
+  // THE CONDITION LAW (Directive XII §II.1) — the attack teeth: a blinded,
+  // prone, or restrained sheet swings at disadvantage. Standing teeth
+  // (poisoned/frightened everywhere, restrained DEX saves) are untouched.
+  const attackImpaired = request.kind === 'attack' && conditions.some((c) => ['blinded','prone','restrained'].includes(c));
   const autoFail = request.kind === 'save' && ['STR', 'DEX'].includes(ability) && conditions.some((c) => ['paralyzed','stunned','unconscious'].includes(c));
   let mode = request.advantage || 'normal';
-  if (poisoned || frightened || restrainedDex) mode = mode === 'advantage' ? 'normal' : 'disadvantage';
+  if (poisoned || frightened || restrainedDex || attackImpaired) mode = mode === 'advantage' ? 'normal' : 'disadvantage';
   const dice = [rollDie(20, random)];
   if (mode !== 'normal') dice.push(rollDie(20, random));
   const selected = mode === 'advantage' ? Math.max(...dice) : mode === 'disadvantage' ? Math.min(...dice) : dice[0];
@@ -87,7 +91,23 @@ function tableRoll(actorId, abilities, level, conditions, request, random) {
   const total = autoFail ? 0 : selected + mods.reduce((sum, entry) => sum + entry.value, 0);
   const target = request.dc ?? (isDeathSave ? 10 : null);
   const outcome = autoFail ? 'failure' : selected === 20 ? 'critical_success' : selected === 1 ? 'critical_failure' : target == null ? 'success' : total >= target ? 'success' : 'failure';
-  return { requestId: request.id, actorId, targetId: request.target_id || null, actionId: request.action_id || null, rawDice: dice, selectedDie: selected, modifiers: mods, total, dcOrAc: target, outcome, appliedEffects: [] };
+  // THE SPOKEN DIE (Directive XII §II.3) — the fold names its mode and the
+  // tooth that set it, so the ritual overlay can say WHY the second die
+  // fell. A DM-granted swing with no tooth speaks as the DM's word; teeth
+  // that eat a granted advantage are named as the crossing. Older sealed
+  // resolutions simply lack these keys and the overlay stays silent.
+  const biters = [...new Set([
+    ...(poisoned ? ['poisoned'] : []), ...(frightened ? ['frightened'] : []),
+    ...(restrainedDex ? ['restrained'] : []),
+    ...(attackImpaired ? conditions.filter((c) => ['blinded', 'prone', 'restrained'].includes(c)) : [])
+  ])];
+  const asked = request.advantage || 'normal';
+  const cause = autoFail ? conditions.filter((c) => ['paralyzed', 'stunned', 'unconscious'].includes(c)).join(' & ')
+    : mode !== 'normal' && biters.length ? biters.join(' & ')
+      : mode !== 'normal' ? 'the DM\u2019s word'
+        : asked === 'advantage' && biters.length ? `advantage crossed by ${biters.join(' & ')}`
+          : null;
+  return { requestId: request.id, actorId, targetId: request.target_id || null, actionId: request.action_id || null, rawDice: dice, selectedDie: selected, modifiers: mods, total, dcOrAc: target, outcome, mode, cause, appliedEffects: [] };
 }
 
 export function heroRoll(hero, request, random = Math.random) {
@@ -95,10 +115,12 @@ export function heroRoll(hero, request, random = Math.random) {
 }
 
 // The sheet-bearing sibling: a sheeted companion's die, folded from the
-// companion's own sheet. Sheets carry no conditions — that road is not
-// yet law — so the fold walks unimpeded.
+// companion's own sheet — conditions included, since Directive XII §II.2
+// made the sheet's condition lane law. Sheets sealed before that law
+// carry none and fold as empty, fail-closed.
 export function companionRoll(name, sheet, request, random = Math.random) {
-  return tableRoll(String(name ?? '').trim(), sheet.abilities, sheet.level, [], request, random);
+  const conditions = Array.isArray(sheet.conditions) ? sheet.conditions : [];
+  return tableRoll(String(name ?? '').trim(), sheet.abilities, sheet.level, conditions, request, random);
 }
 
 export function applyStateUpdates(hero, updates) {
@@ -125,7 +147,63 @@ export function applyStateUpdates(hero, updates) {
     for (const slot of Object.values(next.spellSlots)) slot.current = slot.max;
     if (next.spellEnergy) next.spellEnergy.current = next.spellEnergy.max;
   }
-  next.level = levelForXp(next.xp);
+  // THE MILESTONE LAW (Directive XII §I) — the level no longer derives
+  // from experience. XP stays a kept ledger of deeds; the level is the
+  // road's own milestone, folded by milestoneLevel from the spine's
+  // standing beat. The lantern is not the road.
+  return next;
+}
+
+// ------------------------------------------------------------
+// THE MILESTONE LAW (Directive XII §I) — levels 1..5 from spine
+// progress alone. Four thresholds by name: the first beat of Act II,
+// the Revelation beat, the first beat of Act III, the final beat.
+// Monotone and clamped; a spine missing a threshold simply never
+// grants that rise — fail closed, never invent a level.
+// ------------------------------------------------------------
+export function milestoneThresholds(spine) {
+  const beats = Array.isArray(spine?.beats) ? spine.beats : [];
+  if (!beats.length) return null;
+  const firstOfAct = (act) => beats.findIndex((beat) => Number(beat?.act) === act);
+  return {
+    act2: firstOfAct(2),
+    reveal: Number.isInteger(spine?.revealIdx) ? spine.revealIdx : -1,
+    act3: firstOfAct(3),
+    final: beats.length - 1
+  };
+}
+
+export function milestoneLevel(spine, beatIndex) {
+  const thresholds = milestoneThresholds(spine);
+  if (!thresholds || !Number.isInteger(beatIndex) || beatIndex < 0) return 1;
+  let level = 1;
+  for (const at of [thresholds.act2, thresholds.reveal, thresholds.act3, thresholds.final]) {
+    if (at >= 0 && beatIndex >= at) level += 1;
+  }
+  return Math.max(1, Math.min(5, level));
+}
+
+// What a rise gives, in numbers (§I.4): each level adds
+// floor(hitDie/2) + 1 + CON modifier to maximum AND current hit
+// points, never less than 1 per rise; proficiency keeps its standing
+// formula; spell slots re-derive at the new level carrying their
+// spent counts. The fold is monotone — it refuses a lower level.
+export function applyMilestone(hero, level) {
+  const target = Math.max(1, Math.min(5, Math.trunc(Number(level) || 1)));
+  if (!hero || target <= (Number(hero.level) || 1)) return hero;
+  const next = structuredClone(hero);
+  const perRise = Math.max(1, Math.floor(Number(next.hitDie || 8) / 2) + 1 + modifier(next.abilities?.CON ?? 10));
+  const rises = target - (Number(next.level) || 1);
+  next.maxHp = Math.max(1, Number(next.maxHp || 1) + perRise * rises);
+  next.hp = Math.max(1, Number(next.hp || 0) + perRise * rises);
+  next.level = target;
+  const fresh = slotsFor(next.className, target);
+  for (const [slotLevel, slot] of Object.entries(fresh)) {
+    const old = next.spellSlots?.[slotLevel];
+    const spent = old ? Math.max(0, (Number(old.max) || 0) - (Number(old.current) || 0)) : 0;
+    slot.current = Math.max(0, slot.max - spent);
+  }
+  next.spellSlots = fresh;
   return next;
 }
 
@@ -187,7 +265,9 @@ export function sheetFor(role, level) {
   const row = ROLE_TABLE[String(role || '').toLowerCase()];
   if (!row || !Number.isInteger(level) || level < 1 || level > 5) return null;
   const hp = row.bandHp + (level - 1) * row.perLevel;
-  return { role: String(role).toLowerCase(), level, sigil: row.sigil, abilities: { ...row.spread }, hp, maxHp: hp, deathSaves: { successes: 0, failures: 0 } };
+  // conditions born empty (Directive XII §II.2); sheets sealed before
+  // that law lack the lane and every reader defends with `|| []`.
+  return { role: String(role).toLowerCase(), level, sigil: row.sigil, abilities: { ...row.spread }, hp, maxHp: hp, deathSaves: { successes: 0, failures: 0 }, conditions: [] };
 }
 
 // THE DOOM LAW (Directive X, Law VII) — three-and-three, a pure fold: each

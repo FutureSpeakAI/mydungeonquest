@@ -27,7 +27,7 @@ export function watchOf(hours) {
 export function calendarOf(logs = []) {
   let day = 1;
   let hours = 0;
-  for (const log of logs) {
+  for (const log of (Array.isArray(logs) ? logs : [])) {
     const advance = log?.dm?.time_advance;
     if (!advance || log.redacted) continue;
     if (advance.unit === 'days') day += Math.max(0, advance.n | 0);

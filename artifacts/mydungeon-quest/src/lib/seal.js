@@ -35,7 +35,7 @@ export async function makeEnvelope({ type, i, prevHash = null, payload, ts = Dat
   return { ...unsigned, recordHash, signature };
 }
 
-export async function appendEvent(campaignId, type, payload) {
+export async function appendEvent(campaignId, type, payload, opts = {}) {
   // The signer is resolved BEFORE the transaction: minting a key pair awaits
   // crypto.subtle, and awaiting crypto inside a live Dexie transaction commits
   // it early — the chain write then dies with PrematureCommitError. Key minting
@@ -44,6 +44,15 @@ export async function appendEvent(campaignId, type, payload) {
   return db.transaction('rw', db.campaigns, db.journal, async () => {
     const campaign = await db.campaigns.get(campaignId);
     if (!campaign) throw new Error('Campaign not found');
+    // THE ONCE DOOR (§IV.5): some records may stand only once per spine.
+    // The standing-record check lives INSIDE the chain's own transaction —
+    // two hands sealing in parallel serialize here, the second meets the
+    // first's record and takes no ink. Exactly-once by construction,
+    // never by luck; the refused hand is answered with null, not a throw.
+    if (opts.once) {
+      const standing = await db.journal.where('campaignId').equals(campaignId).filter((row) => row.type === type).count();
+      if (standing > 0) return null;
+    }
     const i = campaign.turnCount || 0;
     // Dexie.waitFor keeps the transaction alive across the envelope's hashing
     // and signing — foreign promises with no IndexedDB work inside.

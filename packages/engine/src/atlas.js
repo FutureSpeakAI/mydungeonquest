@@ -1,3 +1,4 @@
+import { rowsOf } from './rows.js';
 // ------------------------------------------------------------
 // THE ATLAS — the Atlas Law (Directive VI).
 //
@@ -163,7 +164,7 @@ const canonAtlas = (name) => String(name || '').trim().toLowerCase();
 
 // Every region, with the turn and the words that carried it into the tale.
 export function placesOf(campaign) {
-  const logs = campaign?.logs || [];
+  const logs = rowsOf(campaign?.logs);
   const seen = new Map();
   logs.forEach((log, index) => {
     if (log.redacted) return;
@@ -172,7 +173,7 @@ export function placesOf(campaign) {
       seen.set(canonAtlas(add.name), { discoveredTurn: index, gloss: String(log.player || log.deed || '').slice(0, 90) });
     }
   });
-  return (campaign?.codex?.regions || []).map((region) => ({
+  return rowsOf(campaign?.codex?.regions).map((region) => ({
     name: region.name,
     visual: region.visual,
     state: region.state,

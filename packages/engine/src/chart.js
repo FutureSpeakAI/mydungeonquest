@@ -1,3 +1,4 @@
+import { rowsOf } from './rows.js';
 // ------------------------------------------------------------
 // THE TRAVELER'S CHART (Directive XIV, the Chart Law) — the world map
 // drawn only from what the record knows. Medallions are the record's
@@ -22,7 +23,7 @@ const canon = (name) => String(name ?? '').trim().toLowerCase();
 // seam), else its visual when the fiction's words parse. THE ONE SEAT of
 // this derivation — the table's ribbon re-exports it, never re-states it.
 export function chartRegions(campaign) {
-  return (campaign?.codex?.regions || []).map((region) => ({
+  return rowsOf(campaign?.codex?.regions).map((region) => ({
     ...region,
     place: region.place || (parsePlacement(region.visual) ? region.visual : '')
   }));

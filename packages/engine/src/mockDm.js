@@ -60,6 +60,26 @@ function rawMockDmTurn({ campaign, hero, story, player, entropy, resolution, tur
         dialogue_cue: null, time_advance: null, entropy_use: []
       };
     }
+    // THE SECOND BATTLE (Directive XII §V.3) — turn 32 closes the stray's
+    // battle: the fall is addressed in its own turn, the bite turns grey,
+    // and the fever lands as a lawful sheet_condition. Byte-pinned like
+    // the first battle cut — each speaks once — and audited against the
+    // turn-12/13/14 prose for shared runs (none reach eight folded words).
+    if (turn === 32) {
+      return {
+        narration_blocks: [{ text: success
+          ? `The boat-hook takes the stray mid-spring and turns it in the air. It lands wrong, tries for the reeds, and does not reach them — the fen-light gutters out a stride short of the water. Brannoc stands over the kill breathing hard, then spits once, deliberate as a signature. The bite on his forearm is shallow, but the flesh around it is already going grey. Mara names it without looking up: marsh-tooth fever.`
+          : `The hook glances off wet hide, and the stray's teeth find Brannoc's forearm before Mara's staff cracks its skull sideways. It drops at his feet, fen-light guttering, and does not rise. The wound is shallow; the grey spreading around it is not nothing. Mara ties it off and names the grey without ceremony: marsh-tooth fever, the pack's parting gift.`, speaker: null }],
+        suggestions: ['Tend the grey bite', 'Ask Mara for the draught', 'Burn the carcass'],
+        roll_request: null,
+        state_updates: { xp_gain: 30, chronicle_add: success ? 'The stray howler fell to Brannoc\u2019s hook.' : 'The stray fell, though its teeth found Brannoc first.' },
+        combat: { op: 'end', round_delta: 0, enemy_add: [], enemy_update: [{ id: 'marsh-howler-a', hp_delta: -7 }], enemy_remove: [], npc_actions: [] },
+        cinematic: null,
+        story: { beat_advance: true, cast_add: [], cast_update: [], world: null, arc: null, sheet_condition: { name: 'Brannoc', add: ['poisoned'] } },
+        image_cue: { kind: 'scene', subjects: [name, 'Brannoc'], region: 'The Wayhouse Ridge', mood: 'hard quiet after the kill' },
+        dialogue_cue: null, time_advance: null, entropy_use: []
+      };
+    }
     return {
       narration_blocks: [{ text: success
         ? `The ${WHEEL_A[turn % 23]} risk breaks in your favor — ${name} ${WHEEL_C[turn % 22]} through before doubt can harden. The ${WHEEL_B[turn % 21]} yields, sharply final. A gold-thread mark ${WHEEL_C[(turn + 5) % 22]} across the ${WHEEL_A[(turn + 13) % 23]} milestone — someone expected you past this ${WHEEL_B[(turn + 15) % 21]}.`
@@ -106,7 +126,15 @@ function rawMockDmTurn({ campaign, hero, story, player, entropy, resolution, tur
             ? `They come at dusk's edge — two lean shapes pouring out of the reeds, reed-green weed sleeked to wet hide, eyes burning like fen-lights over the drowned road. The howl that bent the mist all day now closes around you from two sides at once. Mara plants her staff; chalk light gutters along its grain. The pack has decided. The circle draws, and the first howler slides in to test your ground.`
             : turn === 13
               ? `The nearer howler feints and gives ground — an opening bought, not offered. Beyond it the second beast peels wide, cutting the angle to your blind side while its packmate holds your eye. Mara's voice comes low and even: “One breath. Take it.” The circle tightens — wet grass, bared teeth, fen-light eyes — and the strike is yours to make, now or not at all.`
-              : needsRoll
+              // THE SECOND BATTLE (Directive XII §V.3) — a stray of the
+              // broken pack at turns 30-32, so tales carry a battle where a
+              // SHEETED companion's die falls on the player's device and a
+              // fall is addressed in its turn. Byte-pinned, spoken once.
+              : turn === 30
+                ? `Brannoc hears it before anyone — a single howl, thin and hungry, rising off the drowned road behind you. One shape only this time: a stray of the broken pack, bolder for its loneliness, sliding along the reed-line with its eyes fixed on the smallest of you. Mara sweeps her charts under one arm. The stray means to test the weakest hand it can find. The circle it draws is small, and it is Brannoc's.`
+                : turn === 31
+                  ? `The stray feints at Brannoc and meets the boat-hook instead of his throat. He holds it the way rivermen do, hooked end low, knuckles pale on the haft. “Mine to finish,” he grunts — the first claim he has made on anything since the crossing stones. The stray coils to spring again. His strike, his die: the table waits on Brannoc's own hand.`
+                  : needsRoll
                 ? `Your road stops at a ${WHEEL_A[turn % 23]} threshold, iron-smelling rain over the ${WHEEL_B[turn % 21]}. A mechanism ${WHEEL_C[turn % 22]} beneath the stone — never ruin. It stays ${WHEEL_A[(turn + 9) % 23]}-taut before the commitment. Past this ${WHEEL_B[(turn + 11) % 21]}, nerve outweighs intention.`
                 : `You move, and the ${WHEEL_A[turn % 23]} ${WHEEL_B[turn % 21]} answers. The path ${WHEEL_C[turn % 22]} toward the ridge. Mara chalks the ${WHEEL_B[(turn + 8) % 21]} onto her chart, watching the ${WHEEL_A[(turn + 13) % 23]} horizon. Below, one wayhouse window ${WHEEL_C[(turn + 15) % 22]} toward you, and three ${WHEEL_A[(turn + 17) % 23]} tracks lead inside.`,
       speaker: null
@@ -114,10 +142,17 @@ function rawMockDmTurn({ campaign, hero, story, player, entropy, resolution, tur
     suggestions: turn === 9 ? ['Ready your blade', 'Ask Mara about the pack', 'Watch the reed line']
       : turn === 12 ? ['Strike the nearer howler', 'Guard Mara', 'Break for the wayhouse']
         : turn === 13 ? ['Commit to the strike', 'Feint and give ground', 'Shout to scatter them']
-          : needsRoll ? ['Test the hidden mechanism', 'Search for a bypass', 'Call into the dark'] : DEFAULT_ROADS[turn % 3],
+          : turn === 30 ? ['Stand with Brannoc', 'Flank the stray', 'Drive it toward the water']
+            : turn === 31 ? ['Trust his hook', 'Step in beside him', 'Shout it off him']
+              : needsRoll ? ['Test the hidden mechanism', 'Search for a bypass', 'Call into the dark'] : DEFAULT_ROADS[turn % 3],
     roll_request: turn === 13
       ? { id: `roll-${turn}`, label: 'Strike the circling howler', kind: 'attack', die: 'd20', ability: 'STR', skill: null, proficient: true, dc: 11, advantage: 'normal', extra_mod: 0, action_id: 'strike', actor_id: 'hero', target_id: 'marsh-howler-a' }
-      : needsRoll ? { id: `roll-${turn}`, label: 'Cross the prepared threshold', kind: 'check', die: 'd20', ability: 'DEX', skill: 'Investigation', proficient: hero.skills.includes('Investigation'), dc: 13, advantage: 'normal', extra_mod: 0, action_id: null, actor_id: 'hero', target_id: null } : null,
+      // THE TABLE'S-DICE LAW — the sheeted companion's die falls on the
+      // player's device: actor_id carries Brannoc's own name (sheeted at
+      // turn 21), and the door proves the sheet before the die is asked.
+      : turn === 31
+        ? { id: `roll-${turn}`, label: 'Brannoc\u2019s hook against the stray', kind: 'attack', die: 'd20', ability: 'STR', skill: null, proficient: true, dc: 11, advantage: 'normal', extra_mod: 0, action_id: 'hook-strike', actor_id: 'Brannoc', target_id: 'marsh-howler-a' }
+        : needsRoll ? { id: `roll-${turn}`, label: 'Cross the prepared threshold', kind: 'check', die: 'd20', ability: 'DEX', skill: 'Investigation', proficient: hero.skills.includes('Investigation'), dc: 13, advantage: 'normal', extra_mod: 0, action_id: null, actor_id: 'hero', target_id: null } : null,
     state_updates: needsRoll ? null : { xp_gain: first ? 50 : 10, chronicle_add: first ? 'The impossible road turned north.' : turn === 9 ? 'A howl bent the mist over the ridge road.' : turn === 12 ? 'The Marsh Howler pack closed the ridge road.' : 'The ridge revealed a waiting light.' },
     // THE BATTLE CUT (Directive X): turn 12 opens combat lawfully — spawn
     // from the turn-9 seal, the order sealed as an operation with the pack's
@@ -131,12 +166,35 @@ function rawMockDmTurn({ campaign, hero, story, player, entropy, resolution, tur
       : turn === 13
         ? { op: 'update', round_delta: 1, enemy_add: [], enemy_update: [], enemy_remove: [],
             npc_actions: [{ actor: 'marsh-howler-b', action: 'Circles wide to your blind side while its packmate holds your eye' }] }
-        : null, cinematic,
+        // The stray's battle: the species was sealed at turn 9 — the seal
+        // is forever, so the spawn is lawful; the device line carries the
+        // sheeted companion, and the pack's one draw is accounted.
+        : turn === 30
+          ? { op: 'start', round_delta: 0, enemy_add: [], enemy_update: [], enemy_remove: [],
+              spawn: { species: 'Marsh Howler', count: 1, names: null, zone: 'near' },
+              initiative: { device: [name, 'Brannoc'], entropy: [{ group: 'Marsh Howler', index: 0 }] },
+              npc_actions: [{ actor: 'marsh-howler-a', action: 'Slides along the reed-line, eyes on the smallest hand' }] }
+          : turn === 31
+            ? { op: 'update', round_delta: 1, enemy_add: [], enemy_update: [], enemy_remove: [],
+                npc_actions: [{ actor: 'marsh-howler-a', action: 'Coils low in the reed-shadow, waiting out the hook' }] }
+            : null, cinematic,
     // THE PRESENCE CUT (Directive VII.13): the mock sets the genesis scene
     // on the region it creates, and turn 4 performs ONE lawful travel —
     // same-turn region creation paired with time_advance — so keyless
     // proofs and seeded tables exercise both doors of the ground law.
-    story: { beat_advance: false, arc, cast_add: castAdd, cast_update: turn === 6 ? [{ name: 'Mara Vey', bond_delta: 1, bond_reason: 'She trusted you with the truth of the old roads.', fact_add: 'Mara once mapped a road for the enemy.', last_seen: 'On the ridge above the wayhouse' }] : [], world: first ? { blight_delta: 0, region_add: { name: campaign.homeRegion || 'Larkspur Vale', visual: 'A green river vale of slate roofs, old orchards, white standing stones, and a northern ridge scarred by a road that should not exist.' }, region_update: null } : turn === 4 ? { blight_delta: 0, region_add: { name: 'The Wayhouse Ridge', visual: 'A wind-bent grass ridge stitched with dim gold lights, a shuttered wayhouse below with one warm window and three fresh tracks at the door.' }, region_update: null } : null, ...(first ? { scene_set: { region: campaign.homeRegion || 'Larkspur Vale' } } : turn === 4 ? { scene_set: { region: 'The Wayhouse Ridge' } } : {}), item_add: first ? [{ name: 'A stub of luminous chalk', kind: 'tool', holder: name, note: 'Mara pressed it into your hand at the impossible bend.' }] : [], purse: first ? [{ holder: name, delta: 12, reason: 'A traveler’s stake counted at the door' }] : [], fixture_add: first ? { place: campaign.homeRegion || 'Larkspur Vale', name: 'The Waystation Bell', visual: 'A bronze bell above the waystation door, green with age, rung twice for riders nobody sent.' } : null, ...(turn === 9 ? { creature_add: { species: 'Marsh Howler', visual: 'A lean bog-wolf sheathed in reed-green weed, wet hide over hard ribs, eyes like fen-lights, a howl that bends the mist.', nature: 'Pack hunter of the drowned roads; circles first, tests courage before flesh.', threat: 2 } } : {}) },
+    story: { beat_advance: false, arc, cast_add: castAdd, cast_update: turn === 6 ? [{ name: 'Mara Vey', bond_delta: 1, bond_reason: 'She trusted you with the truth of the old roads.', fact_add: 'Mara once mapped a road for the enemy.', last_seen: 'On the ridge above the wayhouse' }] : [], world: first ? { blight_delta: 0, region_add: { name: campaign.homeRegion || 'Larkspur Vale', visual: 'A green river vale of slate roofs, old orchards, white standing stones, and a northern ridge scarred by a road that should not exist.' }, region_update: null } : turn === 4 ? { blight_delta: 0, region_add: { name: 'The Wayhouse Ridge', visual: 'A wind-bent grass ridge stitched with dim gold lights, a shuttered wayhouse below with one warm window and three fresh tracks at the door.' }, region_update: null } : null, ...(first ? { scene_set: { region: campaign.homeRegion || 'Larkspur Vale' } } : turn === 4 ? { scene_set: { region: 'The Wayhouse Ridge' } } : {}), item_add: first ? [{ name: 'A stub of luminous chalk', kind: 'tool', holder: name, note: 'Mara pressed it into your hand at the impossible bend.' }] : turn === 18 ? [{ name: 'A ferry-iron knife', kind: 'weapon', holder: name, note: 'Brannoc’s trade for the road’s protection.' }, { name: 'Brannoc’s boat-hook', kind: 'weapon', holder: 'Brannoc', note: 'Rope-worn, river-true.' }] : [], purse: first ? [{ holder: name, delta: 12, reason: 'A traveler’s stake counted at the door' }] : turn === 21 ? [{ holder: name, delta: -3, reason: 'Ferry toll counted into Brannoc’s rope-burned palm' }] : [], fixture_add: first ? { place: campaign.homeRegion || 'Larkspur Vale', name: 'The Waystation Bell', visual: 'A bronze bell above the waystation door, green with age, rung twice for riders nobody sent.' } : null, ...(turn === 9 ? { creature_add: { species: 'Marsh Howler', visual: 'A lean bog-wolf sheathed in reed-green weed, wet hide over hard ribs, eyes like fen-lights, a howl that bends the mist.', nature: 'Pack hunter of the drowned roads; circles first, tests courage before flesh.', threat: 2 } } : {}),
+    // THE DEPTH WALK (Directive XII §V.3) — the new-op road rides turns
+    // ≥ 18 ONLY, so the pinned 18-turn keyless walk (turns 0-17) keeps
+    // its exact bytes. Turn 18 seats Brannoc (cast + party + promise +
+    // two named weapons); 21 readies the knife, sheets him, pays the
+    // toll; 24 hands the chalk over; 30-32 are the stray's battle (the
+    // sheeted die, the addressed fall, the fever); 33 lifts the fever;
+    // 36 sends him home, promise kept.
+    ...(turn === 18 ? { cast_add: [{ name: 'Brannoc', role: 'ally', visual: 'Stocky young ferryman in a river-grey oilcloak, rope-burned hands, a boat-hook slung crosswise on his back.', voice: 'Blunt river-cadence tenor, words spent like coin.', goal: 'Get home to the ridge ferry before the season turns.', secret: 'He watched the pack take the last ferryman and ran.' }], party_join: { name: 'Brannoc' }, thread_add: [{ label: 'See Brannoc home to the Wayhouse Ridge', kind: 'promise', holder: name }] } : {}),
+    ...(turn === 21 ? { item_equip: { name: 'A ferry-iron knife', holder: name }, sheet_grant: { name: 'Brannoc', role: 'guardian', level: 1 } } : {}),
+    ...(turn === 24 ? { item_transfer: [{ name: 'A stub of luminous chalk', from: name, to: 'Brannoc' }] } : {}),
+    ...(turn === 33 ? { sheet_condition: { name: 'Brannoc', remove: ['poisoned'] } } : {}),
+    ...(turn === 36 ? { party_leave: { name: 'Brannoc', remains_at: 'The Wayhouse Ridge' }, thread_resolve: [{ label: 'See Brannoc home to the Wayhouse Ridge', outcome: 'kept' }] } : {}) },
     image_cue: cinematic ? { kind: 'scene', subjects: first ? [name, 'Mara Vey'] : [name], region: campaign.homeRegion || 'Larkspur Vale', mood: first ? 'impossible invitation at dusk' : 'foreboding wonder' } : null,
     dialogue_cue: cinematic && first ? { speaker: 'Mara Vey', line: 'It knows your name. The first step is yours.' } : null,
     // THE WATCH LAW (Directive VIII.8): the mock script walks the clock
@@ -144,7 +202,7 @@ function rawMockDmTurn({ campaign, hero, story, player, entropy, resolution, tur
     // on free turns (3 and 6 are neither roll nor resolution rows), so
     // keyless proofs watch the calendar line change its watch word.
     time_advance: first ? { unit: 'hours', n: 1 } : turn === 3 ? { unit: 'hours', n: 5 } : turn === 4 ? { unit: 'hours', n: 2 } : turn === 6 ? { unit: 'hours', n: 6 } : null,
-    entropy_use: turn === 12 ? [{ index: 0, die: 'd20', purpose: 'Initiative — the Marsh Howler pack draws its speed' }] : []
+    entropy_use: turn === 12 ? [{ index: 0, die: 'd20', purpose: 'Initiative — the Marsh Howler pack draws its speed' }] : turn === 30 ? [{ index: 0, die: 'd20', purpose: 'Initiative — the stray howler draws its speed' }] : []
   };
 }
 

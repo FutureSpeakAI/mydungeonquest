@@ -89,7 +89,7 @@ assert.ok((validateDmTurn(opening, pool, { ...seatedSheets, bestiary: [{ species
 // V. THE PROMPT PIN & THE SCHEMA MIRROR — the law the model reads.
 // ---------------------------------------------------------------
 const promptSource = readFileSync(new URL('../src/lib/systemPrompt.js', import.meta.url), 'utf8');
-assert.ok(promptSource.includes(`37. THE TABLE'S DICE: every player-side number falls on the player's own device through roll_request — the hero's dice and every sheeted companion's alike (set actor_id to the sheeted companion's exact name; the owner's name rides the roll). Never assert a player-side die result in prose or state_updates — an invented number is outlaw; request the roll and wait for its resolution.`),
+assert.ok(promptSource.includes(`39. THE TABLE'S DICE: every player-side number falls on the player's own device through roll_request — the hero's dice and every sheeted companion's alike (set actor_id to the sheeted companion's exact name; the owner's name rides the roll). Never assert a player-side die result in prose or state_updates — an invented number is outlaw; request the roll and wait for its resolution.`),
   'the no-invented-numbers rule stands in the prompt byte-stable');
 const dmSource = readFileSync(new URL('../server/dm.js', import.meta.url), 'utf8');
 assert.ok(dmSource.includes('the table rolls only for the hero and the sheeted'),

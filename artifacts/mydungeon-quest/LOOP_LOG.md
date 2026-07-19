@@ -2796,3 +2796,101 @@ every new surface). Ceiling: eight iterations, 58C.1–58C.8.
 - 58C.4 verdict: GREEN (exit 0; 101/0/0/0). Second consecutive.
 - 58C.5 verdict: GREEN (exit 0; 101/0/0/0). Third consecutive — the
   ritual stands at five iterations of the eight-iteration ceiling.
+
+## TASK 59 — DEPTH, BREADTH, AND THE TIGHT DOOR (2026-07-18)
+
+Directive XII ratified before any code; the series' one numeral gap is
+filled. Loop ceiling eight iterations, tags 59.x; pin moves 119 → 124
+when the five gates land, G25/G26 join the live courts.
+
+### Task 59 test-instrument ledger (pre-build, every edit sanctioned by XII)
+
+- ADDED tests/e2e/tools/room-dial-probe.mjs — §VIII.1's probe-before-cure
+  instrument: asks each of the room's four sittings' OWN models twice at
+  the live door (with the dial, bare), prints both answers. Probe answers,
+  2026-07-18: director-anthropic rides claude-sonnet-5 (env-seated) and
+  the family has RETIRED the dial ("`temperature` is deprecated for this
+  model." — 400 with, 200 bare), so every live director intent ask was
+  400ing straight to the deterministic floor, exactly the latent case the
+  smith's 58B lesson warned of; editor-anthropic (claude-haiku-4-5) 200s
+  both ways — dial honored, kept; director-openai (gpt-4o) and
+  editor-openai (gpt-4o-mini) 200 both ways — dials honored, kept. CURE
+  (app-side, room.js): the anthropic intent sitting alone drops the dial;
+  no judge sitting's request changed, so no protocol bump and no re-judge
+  is owed.
+- ADDED tests/e2e/tools/wonder-ceremony.mjs — §VI.1's pinning instrument:
+  real browser, real forge walk, LIVE anthropic door (preflight asks the
+  door itself and refuses any other provider; missing key is a hard
+  stop). Ten sequential rounds in fresh contexts; clock runs tap-to-first-
+  sentence; prints runs, median, and budget ceil(median × 1.5).
+
+### Test-instrument ledger — S1 retargets (2026-07-19)
+- `evals/doom.test.mjs` L87: the sealed-sheet deepEqual now expects `conditions: []` — sheets are born with an empty condition lane under Directive XII §II; the shape check is the same court, one lane wider.
+- `evals/doom.test.mjs` L162: prompt needle `38. THE FALL:` retargeted to `40.` — the charge renumbered when the duplicate "16." was cured and two new laws (sheet_condition, THE READY HAND) seated; the law's bytes are unchanged past the numeral. Moved surface, dragged instrument.
+- `evals/tableDice.test.mjs` L92: prompt needle `37. THE TABLE'S DICE:` retargeted to `39.` — same renumbering, same unchanged law text.
+- `evals/trove.test.mjs` shape court: a trove row may now carry three keys when `equipped === true` (Directive XII §III); the two-key law stands for every unmarked row.
+- Sweep: `grep includes(\`NN.` across evals/tests found no further numbered needles; censusDoor pins the unnumbered 'THE CENSUS' header, run.mjs pins 'SESSION ZERO' / 'THE CRAFT' — all stand.
+
+### Test-instrument ledger — one-coin era door (2026-07-19)
+- `evals/purse.test.mjs` wiring court: the ribbon needle `purse.coin` retargeted to `oneCoin.coin` + a new `oneCoinFigure` needle. The sheet ribbon lawfully moved behind the Directive XII §IV era door (legacy tales still speak the ledger fold through it); the instrument follows the surface (moved-surfaces law). heroPurse needles for pack/receipts stand unchanged.
+
+### The wonder ceremony — §VI.1 pinned (2026-07-19)
+- RAN `tests/e2e/tools/wonder-ceremony.mjs` on the LIVE anthropic door:
+  ten fresh rounds, tap-to-first-sentence, seconds = [89.85, 99.72,
+  46.44, 86.79, 98.46, 44.19, 81.81, 100.17, 85.33, 108.31]; median
+  88.32; budget ceil(88.32 × 1.5) = 133. The numbers are seated in
+  Directive XII §VI.1 in this same sitting; per the law no wonder-court
+  code landed before this seat, and G25 judges its three live runs
+  against the 133-second budget. The ceremony workflow and its log are
+  retired; the instrument stays under tests/e2e/tools/ for re-pinning.
+
+### Test-instrument ledger — §VII.1, the five gates seated (2026-07-19)
+- NEW `evals/milestone.test.mjs` (13 courts), `evals/conditionTeeth.test.mjs` (24), `evals/oneCoin.test.mjs` (12), `evals/breadth.test.mjs` (11), `evals/boundary.test.mjs` (8) — the five Directive XII §VII.1 gates, written this sitting and seated at the tail of the `eval` chain in package.json.
+- `tests/e2e/g13-check.spec.ts` L30: `PINNED_PASS_COUNT` 119 → 124 — five new gates, each speaking exactly one `PASS —` line; the pin grows with the gates in the same sitting, never apart.
+- `evals/boundary.test.mjs` chapter walks: 'keepsakes' (no such chapter — it lawfully fell to 'tale' and proved nothing new) replaced with the real 'party' chapter in both the junk-rows and rotten-codex walks; c.party is one of the rotted lanes, so the walk must open it.
+- `evals/boundary.test.mjs` whole-tale fixture: the honest story now folds into the codex via `applyStoryUpdates` — the people page lists the CODEX cast (the wiki only cites); the first fixture asserted a page the codex had never been told about.
+- Gate finals speak `PASS — <GATE>: N courts sat, all green.` so the g13 pin counts one line per gate; the courts themselves stay ✓-lines. (The rows-witness engine cure that these courts forced is code, not instrument — it lives in the CHANGELOG, not here.)
+
+### Test-instrument ledger — §VII.3, the live courts seated (2026-07-19)
+- NEW `tests/e2e/g25-wonder.spec.ts` — G25 THE WONDER COURT: three fresh live runs on the anthropic door, each its own context, the MEDIAN judged against §VI.1's seated 133-second budget; evidence lands in test-results/wonder-court.json before the judgment so a red run still leaves its numbers.
+- NEW `tests/e2e/g26-return.spec.ts` — G26 THE RETURN COURT: two contexts on live keys; the writable tale walks two sittings (first seat silent, first return greeted ONCE, later landings none, a new sitting greeted once more), and the borrowed book (played, read-only, sealed) is never greeted on any landing in any sitting. The completed/unplayed never-gates keep their keyless courts in `evals/sequencing.test.mjs`; recapFor is the one door all three classes pass.
+- NEW `tests/e2e/lib/keyedServer.ts` — ONE seat that raises a live court's keyed house (anthropic alone; paint, voice, doors, and DM_PROVIDER stripped), preflights the door by its own name (a non-anthropic seat is a REFUSAL, a missing key a hard stop — never a skip), and puts the house out. Both live specs import it (mirrors-one-seat law).
+- `playwright.config.ts`: projects `g25-wonder` (behind dom) and `g26-return` (behind g25-wonder, so two keyed houses never stand at once), ports 5197/5196 and 5195/5194 — the rig's 5199/5198 and the preview stay untouched.
+- `tests/e2e/verdict.mjs`: REQUIRED_PROJECTS += `g25-wonder`, `g26-return`; REQUIRED_EXECUTED += `G25:`, `G26a`, `G26b` — seated in the same commit their specs land, per §VII.3's letter.
+
+### Iteration 59.1 — one crossing: G24w, a rotted harness needle (2026-07-19)
+- Iteration 59.1: 97 passed, G24w red, G24a–f did not run. Both NEW live courts GREEN on their first sitting (G25 4.5m — median inside the 133s budget; G26a 1.6m; G26b 11.8s).
+- G24w's red was HONEST DRIFT meeting a stale needle: this task's writer's-room edits moved the prose law, the freshness door lawfully razed and demanded a reseed walk — and the walk died at `label:has-text("Presentation")`, a needle aimed at label copy the smith's ask ladder had since rewritten ("How they present", "What words fit them", "The mark that sets them apart"). Three needles had rotted invisibly; the harvest walker carries the same hero fields and survived 59.1 only because ITS store reused.
+- CURE (mirrors-one-seat): `tests/e2e/lib/harness.ts` forgeNewChronicle now aims every by-hand forge needle with the field guide's OWN copy — `fieldEntry('hero', key).ask` imported from `fatescript/smith`, the same seat that paints the labels. A copy move can never rot these needles again; a missing ask now refuses loudly by name.
+- Standalone proof: g24-prose alone (--no-deps) — 7 passed in 30.4s; the store reseeded under the new law and every prose court sat green on the fresh corpus.
+
+### Iteration 59.2 — one crossing: G27a, a dice collision convicted falsely (2026-07-19)
+- Iteration 59.2: 103 passed, G27a red. G24 whole again (the reseeded store stood all seven courts); both live courts green a second consecutive sitting (G25 3.1m — median inside 133; G26a/G26b clean).
+- G27a's red was the instrument, not the app: "Spin again" lawfully re-dealt the promise byte-identical ("A moonlit frontier where roads choose their travelers.") — fresh entropy over finite pools may repeat a seat — and the court's single press with a hard not.toHaveValue convicted the collision as a dead door. The court's OWN feel-die block already retries this exact class three times; the app bytes at the world door are identical to 59.1's green sitting, and G27b/c/d prove the deal door alive.
+- CURE (`tests/e2e/g27-forge.spec.ts` G27a): the whole-world press now mirrors its sibling — up to three presses, each polling the promise seat for movement; a dead door still convicts ("the whole-world spin deals the promise anew within three presses"). No assertion weakened: the dealt-surfaces, meta-shape, and isolation courts stand untouched.
+- Standalone proof: g27-forge alone (--no-deps), three consecutive sittings — 4 passed, 4 passed, 4 passed.
+
+### Iteration 59.3 — one crossing: G26's preflight, one ask a bad witness (2026-07-19)
+- Iteration 59.3: 102 passed, G26a red at 0ms (the raise refused in beforeAll; G26b did not run). G25 green a third consecutive sitting (4.0m). The G27a cure held; G24 whole.
+- The refusal was the keyed seat's own preflight speaking honestly: the door seated 'fallback', not anthropic. G26's house rises immediately after G25's three-pour burst — the provider throttled one ask, the watchtower lawfully degraded it, and a SINGLE preflight ask convicted the whole house. One ask is a bad witness of "this house can seat anthropic"; the same seat had passed cold on two prior sittings.
+- CURE (`tests/e2e/lib/keyedServer.ts`, the ONE keyed seat): the preflight is now a LADDER — three sealed genesis asks, a 30s cool-down apart, refusing only when every ask seats another tier; the refusal now carries the last transport fault AND the door's own log tail, so a future refusal names its reason. A house that cannot seat anthropic at all still refuses, three times over. `g26-return.spec.ts` beforeAll takes its own 480s budget (the 240s default cannot hold the worst ladder); `g25-wonder.spec.ts` outer clock 720s → 900s for the same headroom — the judged budget (per-run tap-to-sentence vs 133) is untouched.
+- Standalone proof: g26-return alone (--no-deps) — 2 passed in 2.9m, the house rising cold on the ladder's first rung.
+
+### 59.4 — GREEN (1 of 3): every court sat, every door held
+- 104 of 104, exit 0, zero skipped, zero did-not-run. First fully green sitting of the task: the three cures — the law-copy needles, the three-press witness, the preflight ladder — all held under the full parallel suite. G25's three live runs sat the median inside 133 (3.8m sitting); G26's house rose on the ladder's first rung.
+
+### 59.5 — GREEN (2 of 3): unmoved bytes, unmoved verdict
+- 104 of 104, exit 0. No edit landed between sittings; the verdict repeated on identical law bytes. G25 4.3m; both keyed houses rose and rested clean.
+
+### 59.6 — GREEN (3 of 3): THE RITUAL CLOSES
+- 104 of 104, exit 0. Three consecutive fully green sittings — 59.4, 59.5, 59.6 — at six of eight tags, two spares standing, the extension never drawn. The keyless chain held its pin of 124 on every sitting; the two live courts stood at the tail all three. The architect's sitting convenes on these bytes.
+
+### The architect's sitting — one conviction: the era door's two hands (2026-07-19)
+- After the third green the architect sat on the full diff and convicted ONE critical: the era door judged eligibility from the caller's snapshot and wrote without an atomic guard — two landings racing through `reconcileLegacyPurse` could each seal a reconciliation record (a doubled journal, the chain counted twice, the audit trail a lie). Everything else stood: the keyed courts' fail-closed doors, the lockstep of the new ops, the row witness, the recap gating, the demo shelf.
+- CURE, one seat deep: `appendEvent` (src/lib/seal.js) grew a ONCE DOOR — `{ once: true }` refuses INSIDE the chain's own transaction when a record of that type already stands for the spine; two hands sealing in parallel serialize there and the second takes no ink. Exactly-once by construction, never by luck; the refused hand is answered null, never a throw. The era door (src/lib/reconcile.js) now judges on the row as persisted NOW (fresh read, with the harness's in-memory forgeries still judged as passed), hands back the sealed truth when the door already opened, seals with `once`, and stands down to the standing record when refused.
+- New court in evals/oneCoin.test.mjs — "the era door admits one hand: two parallel landings seal exactly once" (one journal record, one shelf row, the chain advanced once, the head on the one seal, the figure never doubled). ONE-COIN GATE now sits 13 courts.
+- THE PIN LESSON, re-learned in the very hand that once wrote it: PINNED_PASS_COUNT counts gate summary tokens in stdout, not courts — a new court inside a standing gate moves nothing. The pin briefly read 125 in this draft and was returned to 124 after reproducing the gate's own count: exit 0, 124 PASS, the new court green.
+- Iteration 59.7 certifies the closure end-to-end on final bytes.
+
+### 59.7 — GREEN: the certification on final bytes (2026-07-19)
+- 104 of 104, exit 0. The once door, the fresh-read era door, the thirteenth one-coin court, and the returned pin walked the full suite together; both keyed houses rose and rested clean; the wonder court's three live runs sat their median at 83.7s against the 133 law. Seven of eight tags spent, one standing, the extension never drawn. THE TASK CLOSES GREEN.

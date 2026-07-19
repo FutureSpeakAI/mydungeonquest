@@ -49,7 +49,7 @@ export function spanEntry(span, { turn = 0, cause = '' } = {}) {
 // hour — every time.
 export function worldClock(entries = [], { startHour = 8 } = {}) {
   let hours = 0;
-  for (const entry of entries) {
+  for (const entry of (Array.isArray(entries) ? entries : [])) {
     hours += spanHours(entry?.dm?.time_advance || {});
     hours += spanHours(entry?.clock_advance || {});
   }

@@ -1,3 +1,4 @@
+import { rowsOf } from './rows.js';
 // ------------------------------------------------------------
 // THE CHARACTER CARD — one living card per soul, the hero included.
 //
@@ -52,6 +53,10 @@ export function buildCards({ hero = null, entries = [] } = {}) {
   const order = [];
   const ensure = (name, turn) => {
     const key = canon(name);
+    // Names must be strings (the witness law): a nameless or rotten name
+    // births a GHOST card — writable, never registered, never shown — so
+    // junk proves nothing and no caller ever crashes on a refused birth.
+    if (!key || typeof name !== 'string') return blankCard('', turn);
     if (!cards[key]) { cards[key] = blankCard(String(name).trim(), turn); order.push(key); }
     return cards[key];
   };
@@ -152,5 +157,5 @@ export function buildCards({ hero = null, entries = [] } = {}) {
 
 // Convenience for the client: a campaign's own log is its entry list.
 export function cardsForCampaign(campaign) {
-  return buildCards({ hero: campaign?.hero || null, entries: campaign?.logs || [] });
+  return buildCards({ hero: campaign?.hero || null, entries: rowsOf(campaign?.logs) });
 }

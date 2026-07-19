@@ -29,6 +29,11 @@ export default function DiceOverlay({ result, onDone, haptics = true }) {
       {result.modifiers.map((mod) => <span key={mod.source}>{mod.source} {mod.value >= 0 ? '+' : ''}{mod.value}</span>)}
       <strong className={gold ? 'gold' : 'ash'}>{result.total}</strong>
       <em>{result.outcome.replaceAll('_', ' ')}{critical ? ' — a breath is held' : ''}</em>
+      {/* THE SPOKEN DIE (Directive XII §II.3) — when the fold rode a mode
+          or a tooth set one, the ritual says so in the fold's own words.
+          Older sealed resolutions carry no such keys and this line never
+          renders — replays stay verbatim. */}
+      {((result.mode && result.mode !== 'normal') || result.cause) && <em className="dice-mode">{result.mode && result.mode !== 'normal' ? result.mode : ''}{result.mode && result.mode !== 'normal' && result.cause ? ' — ' : ''}{result.cause || ''}</em>}
     </div>
   </div>;
 }

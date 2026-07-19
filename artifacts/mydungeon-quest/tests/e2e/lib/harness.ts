@@ -400,10 +400,20 @@ export async function forgeNewChronicle(page: Page, options: { sparkIndex?: numb
   await page.waitForSelector('.audition-chip', { timeout: 20_000 });
   if (hero) {
     await page.locator('.door-tab').nth(2).click(); // the hand door
-    const nameInput = page.locator('label:has-text("Name") input');
-    await nameInput.fill(hero.name);
+    // THE HARNESS AIMS WITH THE LAW'S OWN COPY (mirrors-one-seat): the
+    // same field guide that paints the forge labels aims this walk, so a
+    // copy move can never rot these needles again. 59.1 proved the rot —
+    // three labels moved under the smith's ask ladder and the walk died
+    // hunting the old words.
+    const { fieldEntry } = await import('fatescript/smith');
+    const askOf = (key: string): string => {
+      const entry = fieldEntry('hero', key);
+      if (!entry?.ask) throw new Error(`the field guide holds no hero ask for "${key}" — the harness cannot aim`);
+      return String(entry.ask).replace(/"/g, '\\"');
+    };
+    await page.locator(`label:has-text("${askOf('name')}") input`).fill(hero.name);
     if (hero.presentation) {
-      const select = page.locator('label:has-text("Presentation") select');
+      const select = page.locator(`label:has-text("${askOf('presentation')}") select`);
       const value = await select.locator('option').evaluateAll((options, wanted) => {
         const match = options.find((option) => (option.textContent || '').toLowerCase().includes(wanted) || (option as HTMLOptionElement).value.toLowerCase().includes(wanted));
         return match ? (match as HTMLOptionElement).value : null;
@@ -411,9 +421,9 @@ export async function forgeNewChronicle(page: Page, options: { sparkIndex?: numb
       if (!value) throw new Error(`no presentation option matching "${hero.presentation}"`);
       await select.selectOption(value);
     }
-    if (hero.pronouns) await page.locator('label:has-text("Pronouns") input').fill(hero.pronouns);
-    if (hero.mark) await page.locator('label:has-text("Distinguishing mark") input').fill(hero.mark);
-    if (hero.bearing) await page.locator('label:has-text("Bearing") input').fill(hero.bearing);
+    if (hero.pronouns) await page.locator(`label:has-text("${askOf('pronouns')}") input`).fill(hero.pronouns);
+    if (hero.mark) await page.locator(`label:has-text("${askOf('mark')}") input`).fill(hero.mark);
+    if (hero.bearing) await page.locator(`label:has-text("${askOf('bearing')}") input`).fill(hero.bearing);
   }
   await page.locator('.audition-chip').first().click(); // the voice blessing
   await page.click('button:has-text("Begin the chronicle")');

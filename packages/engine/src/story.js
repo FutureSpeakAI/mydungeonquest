@@ -1,5 +1,5 @@
 import { getSpine } from './spines.js';
-import { sheetFor } from './rules.js';
+import { CONDITIONS, sheetFor } from './rules.js';
 import { castVoiceByCard } from './cinema/casting.js';
 
 const REGION_STATES = ['thriving', 'troubled', 'corrupted', 'ruined', 'healed'];
@@ -295,6 +295,9 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     }
     item.holder = to;
     item.moved = stamp;
+    // THE EQUIPPED LAW (Directive XII §III.4) — a transfer hands the
+    // thing over unequipped; the mark never rides between hands.
+    if (item.equipped) delete item.equipped;
   }
   for (const drop of updates.item_remove || []) {
     if (itemBudget <= 0) break;
@@ -307,6 +310,35 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     item.status = 'gone';
     item.moved = stamp;
     item.reason = drop?.reason ? clean(drop.reason, 90) : null;
+    if (item.equipped) delete item.equipped;
+  }
+  // THE EQUIPPED LAW (Directive XII §III) — one mark moves per turn:
+  // the thing must sit in the named hand and be weapon or tool; a new
+  // mark of the same kind lawfully unseats the standing one (the old
+  // steps back to the pack, noted); the offscreen tick may not arm a
+  // hand. The mark is presence-only: `equipped: true` or absent.
+  const equip = updates.item_equip;
+  if (equip && typeof equip === 'object' && !Array.isArray(equip)) {
+    if (meta.tick) next.notes.push('The offscreen world may not ready a hand: item_equip refused on a tick.');
+    else {
+      const thing = heldThing(equip?.name);
+      const equipHolder = clean(equip?.holder, 60);
+      if (!thing || !equipHolder || canonName(thing.holder) !== canonName(equipHolder)) {
+        next.notes.push(`Unlawful equip blocked: ${clean(equip?.name, 60) || 'an unnamed thing'} does not sit in the stated hand.`);
+      } else if (!['weapon', 'tool'].includes(thing.kind)) {
+        next.notes.push(`Unlawful equip blocked: ${thing.name} is a ${thing.kind}; only weapons and tools stand at the ready.`);
+      } else if (thing.equipped) {
+        next.notes.push(`Already at the ready: ${thing.name} stands equipped in ${thing.holder}'s hand.`);
+      } else {
+        const standing = next.trove.find((item) => item !== thing && item.status === 'held' && canonName(item.holder) === canonName(equipHolder) && item.kind === thing.kind && item.equipped);
+        if (standing) {
+          delete standing.equipped;
+          next.notes.push(`${standing.name} steps back to the pack: ${thing.name} takes its place at the ready.`);
+        }
+        thing.equipped = true;
+        thing.moved = stamp;
+      }
+    }
   }
   for (const move of (updates.purse || []).slice(0, 2)) {
     const holder = clean(move?.holder, 60);
@@ -456,13 +488,46 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
   if (sheetGrant && typeof sheetGrant === 'object' && !Array.isArray(sheetGrant)) {
     const grantName = clean(sheetGrant.name, 60);
     const grantRow = grantName ? next.party.find((entry) => canonName(entry.name) === canonName(grantName)) : null;
-    const grantSheet = sheetFor(sheetGrant.role, sheetGrant.level);
+    // THE LOCKSTEP LAW (Directive XII §I.6) — a sheet seats at the
+    // hero's standing level when the caller attests it; the grant op's
+    // own number is overruled. Callers that do not attest keep the old
+    // road: the op's level, judged by sheetFor's own law.
+    const lockstep = Number.isInteger(meta.heroLevel) ? Math.max(1, Math.min(5, meta.heroLevel)) : null;
+    const grantSheet = sheetFor(sheetGrant.role, lockstep ?? sheetGrant.level);
     if (meta.tick) next.notes.push('The offscreen world may not arm the party: sheet_grant refused on a tick.');
     else if (!grantName) next.notes.push('Unlawful sheet_grant blocked: the sheeted soul must be named.');
     else if (!grantRow) next.notes.push(`Unlawful sheet_grant blocked: ${grantName} does not stand in the party.`);
     else if (grantRow.sheet) next.notes.push(`Sheet canon sealed once: ${grantRow.name} already holds a sheet.`);
     else if (!grantSheet) next.notes.push(`Unlawful sheet_grant blocked: no honest role or level for ${grantRow.name}.`);
     else grantRow.sheet = grantSheet;
+  }
+
+  // THE CONDITION LAW (Directive XII §II.3) — conditions move onto a
+  // sheeted companion only here: at most two added and two removed per
+  // turn, names from the eight the table knows; a duplicate add and an
+  // absent remove are refused by name; the offscreen tick may not
+  // poison the party. Sheets sealed before this law gain the lane on
+  // first lawful touch — born empty, fail closed.
+  const sheetCondition = updates.sheet_condition;
+  if (sheetCondition && typeof sheetCondition === 'object' && !Array.isArray(sheetCondition)) {
+    const conditionName = clean(sheetCondition.name, 60);
+    const conditionRow = conditionName ? next.party.find((entry) => canonName(entry.name) === canonName(conditionName)) : null;
+    if (meta.tick) next.notes.push('The offscreen world may not poison the party: sheet_condition refused on a tick.');
+    else if (!conditionName) next.notes.push('Unlawful sheet_condition blocked: the sheeted soul must be named.');
+    else if (!conditionRow || !conditionRow.sheet) next.notes.push(`Unlawful sheet_condition blocked: ${conditionName} holds no sheet.`);
+    else {
+      const sheet = conditionRow.sheet;
+      sheet.conditions = Array.isArray(sheet.conditions) ? sheet.conditions : [];
+      for (const add of (Array.isArray(sheetCondition.add) ? sheetCondition.add : []).slice(0, 2)) {
+        if (!CONDITIONS[add]) next.notes.push(`Unlawful condition blocked: ${clean(String(add ?? ''), 30) || 'an unnamed mark'} is not a condition the table knows.`);
+        else if (sheet.conditions.includes(add)) next.notes.push(`Condition already stands: ${conditionRow.name} is already ${add}.`);
+        else sheet.conditions.push(add);
+      }
+      for (const removal of (Array.isArray(sheetCondition.remove) ? sheetCondition.remove : []).slice(0, 2)) {
+        if (!sheet.conditions.includes(removal)) next.notes.push(`Condition not standing: ${conditionRow.name} is not ${clean(String(removal ?? ''), 30) || 'so marked'}.`);
+        else sheet.conditions = sheet.conditions.filter((condition) => condition !== removal);
+      }
+    }
   }
 
   if (updates.beat_advance && !next.completed) {
@@ -481,6 +546,33 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
   // tale completes when the denouement turns have breathed.
   if (next.sealing && !next.completed && Number.isInteger(meta.turn) && meta.turn >= next.sealing.final_turn) {
     next.completed = true;
+  }
+  return next;
+}
+
+// THE LOCKSTEP LAW (Directive XII §I.6) — when the hero rises, every
+// standing sheet re-seats to the same level by ROLE TABLE arithmetic.
+// Damage carries ABSOLUTE (new maximum minus the wounds already taken,
+// never below 1 for the standing), zero stays zero (the doom holds),
+// death saves and conditions ride whole. Monotone: a sheet never falls.
+export function applyPartyMilestone(codex, level) {
+  const target = Math.max(1, Math.min(5, Math.trunc(Number(level) || 1)));
+  const party = Array.isArray(codex?.party) ? codex.party : [];
+  if (!party.some((member) => member?.sheet && Number(member.sheet.level) < target)) return codex;
+  const next = structuredClone(codex);
+  for (const member of next.party) {
+    const sheet = member?.sheet;
+    if (!sheet || Number(sheet.level) >= target) continue;
+    const fresh = sheetFor(sheet.role, target);
+    if (!fresh) continue;
+    const damage = Math.max(0, (Number(sheet.maxHp) || 0) - (Number(sheet.hp) || 0));
+    const atZero = (Number(sheet.hp) || 0) <= 0;
+    member.sheet = {
+      ...fresh,
+      hp: atZero ? 0 : Math.max(1, fresh.maxHp - damage),
+      deathSaves: sheet.deathSaves || fresh.deathSaves,
+      conditions: Array.isArray(sheet.conditions) ? sheet.conditions : []
+    };
   }
   return next;
 }
@@ -504,7 +596,9 @@ export function storyBlock(codex) {
     open_threads: (codex.threads || []).filter((thread) => thread.status === 'open').slice(0, 6)
       .map((thread) => `${thread.label} (${thread.kind}${thread.holder ? `, held by ${thread.holder}` : ''})`),
     threads_state: (codex.threads || []).map(({ label, status }) => ({ label, status })),
-    trove_state: (codex.trove || []).filter((item) => item.status === 'held').map(({ name, holder }) => ({ name, holder })),
+    // THE EQUIPPED LAW (Directive XII §III.5) — trove_state speaks the
+    // mark only when it is true; unmarked things keep the old two-key shape.
+    trove_state: (codex.trove || []).filter((item) => item.status === 'held').map(({ name, holder, equipped }) => (equipped ? { name, holder, equipped: true } : { name, holder })),
     purse_state: (codex.purses || []).map(({ holder, coin }) => ({ holder, coin })),
     // THE PRESENCE CUT (Directive VII.7): the standing ground rides to the
     // server court exactly as threads_state and trove_state do.
@@ -512,7 +606,7 @@ export function storyBlock(codex) {
     // THE PARTY AND THE ELSEWHERE (Directive VIII.5): the roster and the
     // sealed fixtures ride to the server court the same way.
     party_state: (codex.party || []).map(({ name, joinedTurn }) => ({ name, joinedTurn: joinedTurn ?? null })),
-    sheet_state: (codex.party || []).filter((member) => member && member.sheet).map((member) => ({ name: member.name, role: member.sheet.role, level: member.sheet.level, hp: member.sheet.hp })),
+    sheet_state: (codex.party || []).filter((member) => member && member.sheet).map((member) => ({ name: member.name, role: member.sheet.role, level: member.sheet.level, hp: member.sheet.hp, conditions: Array.isArray(member.sheet.conditions) ? [...member.sheet.conditions] : [] })),
     fixture_state: (codex.fixtures || []).map(({ place, name }) => ({ place, name })),
     // THE BATTLE CUT (Directive X.1): the sealed bestiary rides to the
     // server court the same way — species and threat, the seal's evidence.

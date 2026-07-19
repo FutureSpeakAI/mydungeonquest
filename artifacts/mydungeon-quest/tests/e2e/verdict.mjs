@@ -25,6 +25,8 @@ const REQUIRED_PROJECTS = [
   'g27-forge',
   // (0.9.2, Directive XIV) the open-book court sits every run.
   'g28-book',
+  // (0.10.0, Directive XII §VII.3) the two live courts sit every run.
+  'g25-wonder', 'g26-return',
 ];
 // Test-title needles that must appear among EXECUTED (non-skipped) tests.
 const REQUIRED_EXECUTED = [
@@ -59,6 +61,9 @@ const REQUIRED_EXECUTED = [
   'G27a', 'G27b', 'G27c', 'G27d',
   // (0.9.2, Directive XIV) THE OPEN BOOK — four courts demanded by name.
   'G28a', 'G28b', 'G28c', 'G28d',
+  // (0.10.0, Directive XII §VI.1/§VI.4) the wonder clock and the return
+  // law, demanded by name so a live court can never silently skip.
+  'G25:', 'G26a', 'G26b',
 ];
 
 let verdict;

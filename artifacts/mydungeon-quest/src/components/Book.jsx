@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Film, ScrollText } from 'lucide-react';
 import { db } from '../lib/db.js';
 import { ACT_NAMES, romanNumeral } from 'fatescript/story';
+import { rowsOf } from 'fatescript/rows';
 import { cardsForCampaign } from 'fatescript/cards';
 import { roomForTurn, SCRIBES } from '../lib/scriptorium.js';
 import { tellCourt, TELL_FAMILIES } from '../lib/tells.js';
@@ -12,6 +13,7 @@ import { placesOf, soulsSwornTo } from '../lib/atlas.js';
 import { presenceOf, visitorsOf, partyOf } from '../lib/presence.js';
 import { threadsOf } from 'fatescript/threads';
 import { troveOf, purseOf, heldBy } from 'fatescript/trove';
+import { oneCoinFigure } from '../lib/ledger.js';
 import { calendarOf } from 'fatescript/calendar';
 import { Frame, useGallery } from './Overlays.jsx';
 import { RecapCard } from './Sequence.jsx';
@@ -46,6 +48,7 @@ function PackHolding({ item }) {
   return <div className={`thread-row trove-row pack-holding${item.status === 'held' ? '' : ' settled'}`}>
     <span className="thread-kind">{item.kind}</span>
     <button className="text-button" onClick={() => setOpen(!open)}>{item.name}</button>
+    {item.equipped && <span className="ready-mark">at the ready</span>}
     {open && <small className="trove-chain">{item.chain.map((hand) => `${hand.holder} (turn ${hand.since})`).join(' → ')}</small>}
     {open && item.note && <small className="trove-note">“{item.note}”</small>}
   </div>;
@@ -72,8 +75,11 @@ function Packs({ campaign, gallery, openPack, onOpenPack }) {
   return <>
     <h3>The Packs</h3>
     <div className="pack-list">{bearers.map((name) => {
-      const held = heldBy(campaign, name);
-      const purse = purseOf(campaign, name);
+      // THE READY HAND at the head of the pack (Directive XII §III.4);
+      // the hero's coin through the one-coin era door (§IV), companions'
+      // purses by the purse fold alone — they never had an old lane.
+      const held = heldBy(campaign, name).sort((a, b) => (b.equipped ? 1 : 0) - (a.equipped ? 1 : 0));
+      const purse = name === heroName ? oneCoinFigure(campaign) : purseOf(campaign, name);
       const open = openPack === name;
       return <article key={name} className="pack" data-pack={name}>
         <button className="pack-head" onClick={() => onOpenPack(open ? null : name)} aria-expanded={open}>
@@ -94,6 +100,9 @@ function Packs({ campaign, gallery, openPack, onOpenPack }) {
 
 export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onReplay, onSealTale }) {
   const c = campaign.codex; const revealed = c.beatIndex >= c.spine.revealIdx;
+  // THE ROW WITNESS at the Book's own door — junk rows prove nothing here
+  // either; every read below this line touches witnessed rows only.
+  const logs = rowsOf(campaign.logs);
   const gallery = useGallery(campaign);
   // THE LIVING WIKI: cards are derived lawfully from the log; each soul is a
   // page, each tie a backlink, each chronicle line a citation into the tale.
@@ -124,7 +133,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
     downloadCard(chapterCard(campaign, i, plate), i);
   };
   return <Frame title="The Book" icon={<ScrollText/>} onClose={onClose} wide>
-    <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p><p className="muted codex-clock" role="note">{clockWords(campaign.logs)}</p></div><div className="codex-meta"><span className="day-chip">Day {calendarOf(campaign.logs || []).day}</span><div className="blight">Blight <b>{c.blight}/5</b></div></div></div>
+    <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p><p className="muted codex-clock" role="note">{clockWords(logs)}</p></div><div className="codex-meta"><span className="day-chip">Day {calendarOf(logs).day}</span><div className="blight">Blight <b>{c.blight}/5</b></div></div></div>
     <nav className="book-chapters" role="tablist" aria-label="Chapters">{CHAPTERS.map((entry) =>
       <button key={entry.id} role="tab" data-chapter={entry.id} aria-selected={chapter === entry.id} className={chapter === entry.id ? 'open' : ''} onClick={() => onNav({ chapter: entry.id })}>{entry.word}</button>)}</nav>
     <div className="book-body" data-stillness={reduceMotion ? 'true' : undefined}>
@@ -152,7 +161,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
     <ul className="scriptorium-plan">{SCRIBES.map((scribe) => <li key={scribe}><b>{scribe}</b> — <span className="muted">{roomPlan.scratchpad[scribe]}</span></li>)}</ul></>}
     {tells && tells.report.flagged.length > 0 && <><h3>The human hand — the tell court</h3>
     <ul className="scriptorium-plan">{tells.report.flagged.map((key) => <li key={key}><b>{TELL_FAMILIES[key].name}</b> — <span className="muted">{TELL_FAMILIES[key].finding}</span></li>)}</ul></>}
-    <h3>Cinematic archive</h3><div className="replay-list">{campaign.logs.filter((l)=>l.dm.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm)}><Film/> {log.dm.cinematic.title}</button>)}</div>
+    <h3>Cinematic archive</h3><div className="replay-list">{logs.filter((l)=>l.dm?.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm)}><Film/> {log.dm.cinematic.title}</button>)}</div>
     <h3>Memoir</h3>{c.memoir.length ? c.memoir.map((m,i)=><p key={i}>{m}</p>) : <p className="muted">The Chronicler has not yet needed to compress the road behind you.</p>}
     </div>}
 
@@ -185,7 +194,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         <button key={i} className="tie-chip" onClick={() => wiki[tie.to.toLowerCase()] && onNav({ soul: tie.to })}>{tieLine(tie)}</button>)}</div>}
       <h4 className="eyebrow">Appearances</h4>
       <ol className="soul-timeline">{openCard.chronicle.map((line, i) => {
-        const scene = campaign.logs.find((log) => log.turn === line.turn && log.dm?.cinematic && !log.redacted);
+        const scene = logs.find((log) => log.turn === line.turn && log.dm?.cinematic && !log.redacted);
         return <li key={i}><b>Turn {line.turn}</b> — {line.gloss}{scene && <button className="text-button" onClick={() => onReplay(scene.dm)}>replay</button>}</li>;
       })}</ol>
     </article>}
@@ -241,7 +250,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
 
     {chapter === 'things' && <div className="book-page" data-page="things">
     <h3>The Trove</h3>
-    {(() => { const heroName = campaign.hero?.name || 'The hero'; const purse = purseOf(campaign, heroName); const items = troveOf(campaign); return <>
+    {(() => { const heroName = campaign.hero?.name || 'The hero'; const purse = oneCoinFigure(campaign); const items = troveOf(campaign).sort((a, b) => (b.equipped ? 1 : 0) - (a.equipped ? 1 : 0)); return <>
       <p className="purse-line"><b>{purse.coin}</b> coin held by {heroName}.</p>
       {purse.entries.length > 0 && <div className="purse-list">{purse.entries.map((entry, i) =>
         <div key={i} className="purse-row">
@@ -255,6 +264,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
           <div key={i} className={`thread-row trove-row${item.status === 'held' ? '' : ' settled'}`}>
             <span className="thread-kind">{item.kind}</span>
             <b>{item.name}</b>
+            {item.equipped && <span className="ready-mark">at the ready</span>}
             <small className="trove-chain">{item.chain.map((hand) => `${hand.holder} (turn ${hand.since})`).join(' → ')}</small>
             {item.note && <small className="trove-note">“{item.note}”</small>}
             {item.status === 'gone' && <span className="outcome">gone{item.removedReason ? ` — ${item.removedReason}` : ''}, turn {item.removedTurn}</span>}
@@ -271,7 +281,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
       // client-side and never rides a journal turn, so the pure replay
       // cannot see it. One hand writes the words; this panel only repeats
       // them, matched by label, shown only where a fall actually stands.
-      const grief = new Map((campaign.codex?.threads || []).filter((t) => t?.fallNote).map((t) => [String(t.label || '').trim().toLowerCase(), t.fallNote]));
+      const grief = new Map(rowsOf(campaign.codex?.threads).filter((t) => t?.fallNote).map((t) => [String(t.label || '').trim().toLowerCase(), t.fallNote]));
       return ledger.length === 0
       ? <p className="muted">Nothing sworn yet — when a promise, debt, mystery, or goal enters the tale, it is registered here and the tale must answer it.</p>
       : <div className="thread-list">{ledger.map((thread, i) =>
@@ -289,8 +299,8 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         from the codex fold; the hero is the permanent root and is never
         listed. An empty roster is said plainly — the hero travels alone. */}
     <h3>The party — who rides with the hero</h3>
-    {(c.party || []).length > 0
-      ? <ul className="presence-list party-strip">{(c.party || []).map((member, i) => { const memberPurse = purseOf(campaign, member.name); const memberHeld = heldBy(campaign, member.name); return <li key={i}><b>{member.name}</b><span className="cite">{Number.isInteger(member.joinedTurn) ? `joined turn ${member.joinedTurn}` : 'joined on the road'}</span>
+    {rowsOf(c.party).length > 0
+      ? <ul className="presence-list party-strip">{rowsOf(c.party).map((member, i) => { const memberPurse = purseOf(campaign, member.name); const memberHeld = heldBy(campaign, member.name); return <li key={i}><b>{member.name}</b><span className="cite">{Number.isInteger(member.joinedTurn) ? `joined turn ${member.joinedTurn}` : 'joined on the road'}</span>
         {/* THE COMPANION-SHEET LAW (Directive X, Law VI) — the sheet on the
             strip: role, level, hit points, and the spread — arithmetic from
             THE ROLE TABLE; the doomed and the stable say so plainly. */}

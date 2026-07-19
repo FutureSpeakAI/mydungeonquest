@@ -13,13 +13,15 @@ import { CharacterSheet, Settings, Storybook, useGallery } from './components/Ov
 import { Book } from './components/Book.jsx';
 import { tableOf } from 'fatescript/table';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
-import { applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll } from 'fatescript/rules';
-import { ACT_NAMES, actInfo, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
+import { applyMilestone, applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll, milestoneLevel } from 'fatescript/rules';
+import { ACT_NAMES, actInfo, applyPartyMilestone, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
 import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
 import { applyCombat } from './lib/combat.js';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
+import { reconcileLegacyPurse } from './lib/reconcile.js';
+import { teachOnce } from './lib/teaching.js';
 import { sealLegacy, openNextVolume } from './lib/saga.js';
 import { beginGenesis } from './lib/genesis.js';
 import { chronicleActClose, memoryLadder } from './lib/memoir.js';
@@ -292,6 +294,7 @@ export default function App() {
       if (intent.campaignId && campaign?.id !== intent.campaignId) {
         campaign = await db.campaigns.get(intent.campaignId);
         if (campaign?.mediaTier === 'cinema') campaign = { ...campaign, mediaTier: 'illuminated' };
+        if (campaign) campaign = await reconcileLegacyPurse(campaign); // a refused pour can land a legacy tale writable too
         if (campaign) { setCurrent(campaign); setFlow('table'); }
       }
       if (!campaign) { setStatus('✦ The refused pour could not find its table again.'); return; }
@@ -697,10 +700,24 @@ export default function App() {
           ...(strangers.length ? [censusNote(strangers)] : []),
         ].join('; '));
       }
-      let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0, heroName: base.hero?.name });
+      let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0, heroName: base.hero?.name, heroLevel: base.hero?.level });
       if (dm.state_updates?.chronicle_add) codex.chronicle = [...codex.chronicle, String(dm.state_updates.chronicle_add).slice(0, 260)];
+      // THE SWORN-THREAD BEAT (Directive XII §VI.3) — the first thread the
+      // tale ever swears earns one teaching line; presentation-state only.
+      if (!(base.codex.threads || []).length && (codex.threads || []).length) teachOnce(base.id, 'thread').then((line) => line && setStatus(`✦ ${line}`)).catch(() => {});
       const heroBeforeLevel = base.hero.level;
-      const hero = applyStateUpdates(base.hero, dm.state_updates);
+      let hero = applyStateUpdates(base.hero, dm.state_updates);
+      // THE MILESTONE LAW (Directive XII §I) — the level is the road's own:
+      // the spine's milestones move it, xp stays a kept ledger of deeds.
+      // Folded HERE, at the one funnel every input path passes through, so
+      // the level overlay below and the party's lockstep re-seat ride the
+      // same sealed turn. A grant earlier this turn seated at the standing
+      // level; the re-seat carries it to the new one in the same breath.
+      const milestone = milestoneLevel(codex.spine, codex.beatIndex);
+      if (milestone > hero.level) {
+        hero = applyMilestone(hero, milestone);
+        codex = applyPartyMilestone(codex, milestone);
+      }
       const combat = applyCombat(base.combat, dm.combat, hero, { bestiary: codex.bestiary || [], entropy, party: (base.codex.party || []).map((member) => member?.name).filter((memberName) => typeof memberName === 'string') });
       // Combat opens: one drawn blade, one accent, through the Director — it
       // yields (and is dropped) if the narrator already holds the stage.
@@ -1014,6 +1031,8 @@ export default function App() {
   const resolveRoll = async () => {
     if (!current.pendingRoll || busy) return;
     primeNarration(); // the roll tap blesses the throat for the coming reading
+    // THE FIRST-ROLL BEAT (Directive XII §VI.3) — once per campaign, presentation only.
+    teachOnce(current.id, 'roll').then((line) => line && setStatus(`✦ ${line}`)).catch(() => {});
     // THE TABLE'S-DICE LAW (Directive X, Law V) — the owner's die: a pending
     // roll whose actor_id names a sheeted companion folds through the
     // companion's own sheet; every other seat stays the hero's.
@@ -1037,6 +1056,8 @@ export default function App() {
     const target = [...current.logs].reverse().find((log) => !log.redacted && log.recordHash);
     if (!target || busy || current.readOnly) return;
     primeNarration(); // the X-card tap too — its redirect turn will want a voice
+    // THE X-CARD BEAT (Directive XII §VI.3) — once per campaign, presentation only.
+    teachOnce(current.id, 'xcard').then((line) => line && setStatus(`✦ ${line}`)).catch(() => {});
     await seal(current.id, 'redaction', { targetRecordHash: target.recordHash, scope: 'active_canon' });
     await db.memories.where('campaignId').equals(current.id).filter((row) => row.recordHash === target.recordHash).delete();
     const logs = current.logs.map((log) => log.id === target.id ? { ...log, redacted: true } : log);
@@ -1054,6 +1075,22 @@ export default function App() {
   const restoreFile = async (file) => {
     try { const restored = await importChronicle(JSON.parse(await file.text())); await refreshShelf(); setCurrent(restored.mediaTier === 'cinema' ? { ...restored, mediaTier: 'illuminated' } : restored); setFlow('table'); }
     catch (error) { setStatus(`Restore failed: ${error.message}`); }
+  };
+
+  // THE DEMO SHELF'S DRAW (Directive XII §V.4) — a reference tale enters
+  // through the STANDING import door, once: a prior import of the same
+  // sealed head is handed back, never duplicated, so the shelf gains one
+  // book no matter how many times the tale is drawn. A fresh draw fetches
+  // the shipped bytes and lets importChronicle judge them whole — the door
+  // verifies before it opens, and a refused seal is the caller's to speak.
+  const drawDemoTale = async (entry) => {
+    const standing = campaigns.find((c) => c.forkOf?.campaignId === entry.campaignId && c.forkOf?.headHash === entry.headHash);
+    if (standing) return standing;
+    const response = await fetch(`${import.meta.env.BASE_URL}demo-tales/${entry.file}`);
+    if (!response.ok) throw new Error(`the shelf could not reach the tale (${response.status})`);
+    const restored = await importChronicle(await response.json());
+    await refreshShelf();
+    return restored;
   };
 
   // TASK 52 — THE PROVING HOOK (§2), second half of the one sanctioned hook:
@@ -1274,7 +1311,7 @@ export default function App() {
 
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={stillness} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={(campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } setCurrent(campaign); setFlow('table'); greetTale(campaign); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} status={status} /></>;
+  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={stillness} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={async (campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } campaign = await reconcileLegacyPurse(campaign); /* the era door's one write (§IV.5) — before the table seats, so no turn can race it */ setCurrent(campaign); setFlow('table'); greetTale(campaign); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} onDemoDraw={drawDemoTale} status={status} /></>;
   if (!current) return null;
 
   const chapter = chapterInfo(current.codex);
@@ -1325,6 +1362,12 @@ export default function App() {
             // dividers — never an empty turn row (Directive VI, Phase 1).
             const prev = seats.slice(0, index).reverse().find((s) => s.kind === 'turn')?.log;
             return <TickDivider key={seat.log.id} log={seat.log} prevLog={prev} />;
+          }
+          if (seat.log?.kind === 'reconciliation') {
+            // THE ERA DOOR'S ONE RECORD (Directive XII §IV.5) — spoken plainly
+            // in the feed, never hidden; fail-closed if the row cannot be read.
+            const moved = Number(seat.log?.dm?.story?.purse?.[0]?.delta) || 0;
+            return <div className="reconciliation-line" key={seat.log.id}>⚖ The old lane’s coin was reconciled — {moved} gold seated as one sealed purse movement.</div>;
           }
           const log = seat.log;
           if (log.redacted) return <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div>;
@@ -1377,7 +1420,7 @@ const VAULT_MARKS = {
   error: { glyph: '◌', word: 'the vault is out of reach — the tale is safe on this device' },
 };
 
-function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVaultRestore, onBurn, onBurnVault, onNew, onOpen, onRestore, reduceMotion, mediaTier, status }) {
+function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVaultRestore, onBurn, onBurnVault, onNew, onOpen, onRestore, onDemoDraw, reduceMotion, mediaTier, status }) {
   const input = useRef(null);
   // THE PYRE'S ASKING — a burn is asked once, in ember, with honest scope:
   // what is taken (device / vault / both) is said before any match is struck.
@@ -1386,6 +1429,35 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
   const [bgIndex, setBgIndex] = useState(0);
   const [attract, setAttract] = useState(false);
   const [plaque, setPlaque] = useState('');
+
+  // THE DEMO SHELF (Directive XII §V.4) — the house's own telling: three
+  // reference tales played to seal on the house's mock table and shipped
+  // with the app. The manifest is read fail-closed (rows must carry a file
+  // and a campaign id); an absent shelf is an absent shelf, not a fault.
+  // A draw is a word, never a spinner; a refused draw speaks where the
+  // patron stands.
+  const [demoTales, setDemoTales] = useState([]);
+  const [demoBusy, setDemoBusy] = useState(null);
+  const [demoWord, setDemoWord] = useState('');
+  useEffect(() => {
+    let alive = true;
+    fetch(`${import.meta.env.BASE_URL}demo-tales/manifest.json`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((list) => { if (alive && Array.isArray(list)) setDemoTales(list.filter((tale) => tale && typeof tale.file === 'string' && typeof tale.campaignId === 'string')); })
+      .catch(() => { /* the shelf simply is not set out */ });
+    return () => { alive = false; };
+  }, []);
+  const drawDemo = async (entry) => {
+    if (demoBusy || typeof onDemoDraw !== 'function') return;
+    setDemoBusy(entry.spineId); setDemoWord('');
+    try {
+      const campaign = await onDemoDraw(entry);
+      firstTouch();
+      await onOpen(campaign, { keepsakes: Boolean(campaign.sealedAt) });
+    } catch (error) {
+      setDemoWord(`The reference tale would not open: ${error.message}`);
+    } finally { setDemoBusy(null); }
+  };
 
   // THE ARRIVAL (Phase 6) — a cold open, once per sitting: darkness; one
   // candle lights; the title warms in; the shelf rises beneath. Any touch
@@ -1491,6 +1563,19 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
           </div>
         </div>;
       })()}
+      {demoTales.length > 0 && <div className="demo-shelf">
+        <span className="eyebrow">✦ The house’s own telling</span>
+        <p className="demo-note">Reference tales played to seal at the house’s table — they open read-only, chain-verified at the door.</p>
+        <div className="vault-row">
+          {demoTales.map((tale) => <button key={tale.spineId} className="vault-spine demo-spine" disabled={Boolean(demoBusy)}
+            style={{ '--dye': dyeOf(tale.campaignId) }} onClick={() => drawDemo(tale)}
+            title={`Open “${tale.title}” — sealed, read-only`}>
+            <b>{tale.title}</b><small>{tale.hero || 'a hero'} · {tale.turns} turns · sealed</small>
+            {demoBusy === tale.spineId && <small className="demo-drawing">verifying the seal…</small>}
+          </button>)}
+        </div>
+        {demoWord && <p className="muted shelf-status" role="status">{demoWord}</p>}
+      </div>}
     </section>}
     {pyre && <div className="ritual pyre-ask" role="alertdialog" aria-modal="true" aria-label={`Burn ${pyre.title}?`}>
       <Flame className="ritual-flame" size={40} aria-hidden/>

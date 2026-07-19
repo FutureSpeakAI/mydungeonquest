@@ -131,6 +131,15 @@ export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {})
     .sort((a, b) => (b.moved ?? -1) - (a.moved ?? -1))
     .slice(0, 4).map((item) => item.name);
   let wealth = `${campaign.hero?.name || 'The hero'} carries ${purse?.coin ?? 0} coin.${holdings.length ? ` Holds: ${holdings.join(', ')}.` : ''}`;
+  // THE WIELDS LINE (Directive XII §III.4) — one line for the hero alone,
+  // naming only things at the ready; ABSENT when nothing is equipped — an
+  // honest omission, never an empty string. Famine order: it rides the
+  // wealth line's tier — the pair falls together, only after the last
+  // allegiance, and the floors above them never move.
+  const ready = (campaign.codex?.trove || [])
+    .filter((item) => item.status === 'held' && item.equipped && canon(item.holder) === heroName)
+    .map((item) => item.name);
+  let wields = ready.length ? `${campaign.hero?.name || 'The hero'} wields ${ready.join(' and ')}.` : null;
   // THE GROUND LINE (Directive VII.10) — the briefing names the ground by
   // law, not by heuristic: byte-exact, the briefing's SECOND key, right
   // after the calendar; ABSENT when no scene stands — an honest omission,
@@ -155,10 +164,10 @@ export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {})
     Number.isInteger(member.joinedTurn) ? `${member.name} — joined turn ${member.joinedTurn}` : member.name);
   let elsewhere = elsewhereOf(campaign).slice(0, 6).map((entry) =>
     `${entry.name} — in ${entry.ground}${Number.isInteger(entry.sinceTurn) ? ` since turn ${entry.sinceTurn}` : ''}`);
-  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...(ground ? { scene_ground: ground } : {}), ...pack, traveling_with: travelingWith, ...(elsewhere.length ? { elsewhere } : {}), ...(wealth ? { hero_wealth: wealth } : {}), stated_allegiances: allegiances });
+  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...(ground ? { scene_ground: ground } : {}), ...pack, traveling_with: travelingWith, ...(elsewhere.length ? { elsewhere } : {}), ...(wealth ? { hero_wealth: wealth } : {}), ...(wields ? { hero_wields: wields } : {}), stated_allegiances: allegiances });
   let out = brief();
   while (JSON.stringify(out).length > budget && elsewhere.length) { elsewhere = elsewhere.slice(0, -1); out = brief(); }
   while (JSON.stringify(out).length > budget && allegiances.length) { allegiances = allegiances.slice(0, -1); out = brief(); }
-  if (JSON.stringify(out).length > budget && wealth) { wealth = null; out = brief(); }
+  if (JSON.stringify(out).length > budget && (wealth || wields)) { wealth = null; wields = null; out = brief(); }
   return out;
 }

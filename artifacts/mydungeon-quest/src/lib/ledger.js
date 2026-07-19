@@ -19,6 +19,8 @@
 // writes its stake, and the folio says so out loud.
 // ------------------------------------------------------------
 import { buildLedger, walletOf, inventoryOf, WORLD } from 'fatescript/ledger';
+import { purseOf } from 'fatescript/trove';
+import { laneOf, listOf, rowsOf } from 'fatescript/rows';
 
 export function openingStake(campaign) {
   if (campaign?.openingStake) return campaign.openingStake;
@@ -33,25 +35,50 @@ export function openingStake(campaign) {
 export function tradeRowsFrom(campaign) {
   const hero = campaign?.hero?.name || 'hero';
   const rows = [];
-  (campaign?.logs || []).forEach((log, index) => {
+  rowsOf(campaign?.logs).forEach((log, index) => {
     if (!log || log.redacted) return;
     if (log.kind === 'tick' || log.kind === 'annal' || log.kind === 'span') return;
-    const updates = log.dm?.state_updates;
+    const updates = laneOf(laneOf(log.dm)?.state_updates);
     if (!updates) return;
-    const cause = String(updates.chronicle_add || log.dm?.narration_blocks?.find((b) => b?.text)?.text || '').slice(0, 160);
+    const cause = String(updates.chronicle_add || listOf(laneOf(log.dm)?.narration_blocks).find((b) => b?.text)?.text || '').slice(0, 160);
     const push = (from, to, coin, goods) => rows.push({
-      id: `trade:${log.id}:${rows.length}`, kind: 'trade', turn: index, redacted: false,
+      id: `trade:${log.id}:${rows.length}`, kind: 'trade', turn: log.turn ?? index, redacted: false,
       trade: { from, to, coin, goods, cause }
     });
     const delta = Math.floor(Number(updates.gold_delta || 0));
     if (delta > 0) push(WORLD, hero, delta, []);
     if (delta < 0) push(hero, WORLD, -delta, []);
-    const gained = (updates.add_items || []).map((item) => ({ item: String(item), qty: 1 }));
+    const gained = listOf(updates.add_items).map((item) => ({ item: String(item), qty: 1 }));
     if (gained.length) push(WORLD, hero, 0, gained);
-    const lost = (updates.remove_items || []).map((item) => ({ item: String(item), qty: 1 }));
+    const lost = listOf(updates.remove_items).map((item) => ({ item: String(item), qty: 1 }));
     if (lost.length) push(hero, WORLD, 0, lost);
   });
   return rows;
+}
+
+// THE ONE-COIN LAW (Directive XII §IV) — the era door. A tale holding ANY
+// purse movement for the hero is purse-law whole: its figure is the purse
+// fold and nothing else. A tale holding none is a legacy tale: its figure
+// derives from the old lane — the opening stake and every gold_delta row —
+// each entry cited to the turn that moved it, struck turns moving nothing.
+// The two lanes NEVER sum. One seat; every surface that speaks the hero's
+// coin speaks through this door.
+export function oneCoinFigure(campaign) {
+  const hero = campaign?.hero?.name || 'hero';
+  const purse = purseOf(campaign, hero);
+  if (purse.entries.length) return { era: 'purse', coin: purse.coin, entries: purse.entries };
+  const legacy = heroPurse(campaign);
+  const stake = openingStake(campaign)[hero]?.coin ?? 10;
+  const entries = [{ delta: stake, reason: 'the opening stake, the forge\u2019s floor', turn: 0, clamped: false }];
+  for (const row of tradeRowsFrom(campaign)) {
+    if (!row.trade.coin) continue;
+    entries.push({
+      delta: row.trade.from === hero ? -row.trade.coin : row.trade.coin,
+      reason: row.trade.cause || 'the old lane, uncaused',
+      turn: row.turn, clamped: false
+    });
+  }
+  return { era: 'legacy', coin: legacy.coin, entries };
 }
 
 // The folio's purse: a projection of the record, never a counter.

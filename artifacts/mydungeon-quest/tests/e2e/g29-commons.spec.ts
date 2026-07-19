@@ -137,7 +137,10 @@ test.describe('G29 — THE COMMONS', () => {
       await pageB.addInitScript(() => { try { sessionStorage.setItem('mdq:arrived', '1'); } catch { /* private mode */ } });
       await pageB.goto(`${house.base}/`, { waitUntil: 'domcontentloaded' });
       await pageB.waitForSelector('.title-page', { timeout: 45_000 });
-      const spine = pageB.locator('.vault-shelf .vault-spine', { hasText: 'The Lantern of Bell Hollow' });
+      // The shelf honestly accumulates a spine per iteration's walk (each
+      // run mints a fresh campaign under the same staged patron) — the
+      // court holds ITS OWN tale by the instrument, never by title.
+      const spine = pageB.locator(`.vault-shelf .vault-spine[data-campaign="${campaignId}"]`);
       await expect(spine, 'the away tale stands on the vault shelf').toBeVisible({ timeout: 60_000 });
       await spine.click();
       await pageB.waitForSelector('main.adventure-log', { timeout: 90_000 });

@@ -87,6 +87,23 @@ export async function seedProvingCampaign(fixture) {
     await saveCampaign({ ...campaign, hero, codex, logs, turnNumber });
     const record = await appendEvent(id, 'turn', { player, visiblePlayer: player, deed: null, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy: scripted.entropy || [], resolution: null });
     log.recordHash = record.recordHash;
+    // THE PLATE (Directive XV §VII, additive) — a scripted turn may carry
+    // its painted scene as bytes, seated exactly as the foundry seats a
+    // real pour: content-addressed on the media shelf, stamped with the
+    // turn record it answers to. Fixtures without `plate` seal the exact
+    // bytes they always sealed. The hash is taken OUTSIDE any Dexie
+    // transaction (the crypto-in-transaction law), and the seed refuses
+    // aloud rather than seat an unreadable plate.
+    if (scripted.plate) {
+      const raw = atob(String(scripted.plate.base64 || ''));
+      if (!raw.length) throw new Error(`fixture plate refused at turn ${i}: no bytes`);
+      const bytes = new Uint8Array(raw.length);
+      for (let b = 0; b < raw.length; b += 1) bytes[b] = raw.charCodeAt(b);
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      const assetHash = Array.from(new Uint8Array(digest)).map((x) => x.toString(16).padStart(2, '0')).join('');
+      const mime = scripted.plate.mime || 'image/png';
+      await db.media.put({ assetHash, cacheKey: `fixture:${id}:turn:${i}`, campaignId: id, kind: scripted.plate.kind || 'scene', mime, originTurnHash: record.recordHash, createdAt: Date.now(), blob: new Blob([bytes], { type: mime }) });
+    }
     if (scripted.struck) {
       // The X-card, as the table presses it: the strike is sealed, the
       // memory rows fall, the log row wears the mark.

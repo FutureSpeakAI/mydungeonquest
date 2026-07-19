@@ -582,3 +582,42 @@
 .demo-spine { border-left: 3px solid var(--dye, #4a2b33); }
 .demo-spine .demo-drawing { display: block; opacity: .85; font-style: italic; }
 .demo-spine:disabled { opacity: .55; cursor: wait; }
+
+/* THE COMMONS (Directive XV) — the ceremony's publish panel and the
+   public reading room at /t/<id>. The reading room stands alone (no app
+   shell), so it carries its own modest parchment. */
+.commons-panel h3 { display: flex; align-items: center; gap: 7px; }
+.commons-link { margin: 6px 0 10px; font-size: 13.5px; word-break: break-all; }
+.commons-link a { color: inherit; text-decoration: underline; opacity: .92; }
+.commons-listing { display: flex; align-items: center; gap: 8px; font-size: 13px; opacity: .88; margin: 4px 0 10px; cursor: pointer; }
+.commons-listing input { accent-color: #7a5a3a; }
+.commons-error { color: #b4553f; font-style: italic; }
+
+.public-tale { min-height: 100vh; background: #17120e; color: #e8ddc9; font-family: Georgia, 'Times New Roman', serif; padding: 26px 18px 40px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.public-tale .eyebrow { letter-spacing: .14em; text-transform: uppercase; font-size: 11.5px; opacity: .62; }
+.public-mast { max-width: 860px; width: 100%; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.public-mast h1 { margin: 0; font-size: clamp(26px, 4.6vw, 40px); line-height: 1.12; }
+.desk-badge { font-size: 13.5px; line-height: 1.5; padding: 9px 14px; border-radius: 6px; max-width: 640px; }
+.desk-badge[data-verdict="true"] { background: rgba(74, 112, 66, .18); border: 1px solid rgba(116, 160, 102, .55); color: #cfe3bd; }
+.desk-badge[data-verdict="false"] { background: rgba(140, 52, 38, .2); border: 1px solid rgba(190, 84, 62, .6); color: #f0c5b4; }
+.public-struck-note { margin: 0; font-size: 12.5px; opacity: .68; font-style: italic; }
+.public-tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.public-tabs button { background: transparent; border: 1px solid rgba(232, 221, 201, .3); color: inherit; font: inherit; font-size: 13.5px; padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+.public-tabs button.is-open { background: rgba(232, 221, 201, .14); border-color: rgba(232, 221, 201, .6); }
+.public-book { width: min(920px, 96vw); height: 78vh; border: 1px solid rgba(232, 221, 201, .25); border-radius: 8px; background: #fff; }
+.public-episodes { max-width: 720px; width: 100%; display: flex; flex-direction: column; gap: 22px; }
+.public-episode { border: 1px solid rgba(232, 221, 201, .2); border-radius: 8px; padding: 16px 18px; background: rgba(255, 250, 240, .03); }
+.public-episode header { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; opacity: .6; margin-bottom: 8px; }
+.public-episode img { width: 100%; border-radius: 6px; margin: 6px 0 10px; display: block; }
+.public-episode p { margin: 0 0 9px; line-height: 1.55; font-size: 15px; }
+.episode-deed { opacity: .82; font-style: italic; }
+.public-cast { max-width: 720px; width: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.public-soul { border: 1px solid rgba(232, 221, 201, .2); border-radius: 8px; padding: 13px 15px; }
+.public-soul.is-hero { border-color: rgba(203, 166, 110, .55); background: rgba(203, 166, 110, .08); grid-column: 1 / -1; }
+.public-soul h3 { margin: 0 0 4px; font-size: 16px; }
+.public-soul .role { margin: 0; font-size: 13px; opacity: .72; }
+.public-plaque { max-width: 640px; text-align: center; margin: 12vh auto 0; font-size: 15.5px; opacity: .85; }
+.public-plaque.tombstone h1 { font-size: clamp(22px, 4vw, 32px); margin-bottom: 10px; }
+.public-foot { margin-top: auto; padding-top: 26px; text-align: center; font-size: 13px; opacity: .72; }
+.public-foot a { color: inherit; }
+.public-foot p { margin: 4px 0; }

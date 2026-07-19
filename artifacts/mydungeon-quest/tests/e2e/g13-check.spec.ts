@@ -30,7 +30,11 @@ import { GAME_ROOT } from './lib/vision';
 // (60 §2) 124 → 125: THE DESK — the desk gate joins the keyless check in
 // the same commit that seats the engine's pure verifier and re-speaks
 // the table's seal door from that one seat.
-const PINNED_PASS_COUNT = 125;
+// (61 §V) 125 → 128: Directive XV seats THE COMMONS — the mirror gate,
+// the publish-rules gate, and the key-home gate join the keyless check
+// in the same commit that opens the vault's staging seam and the public
+// shelf.
+const PINNED_PASS_COUNT = 128;
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

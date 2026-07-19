@@ -30,7 +30,13 @@ import { GAME_ROOT } from './lib/vision';
 // (60 §2) 124 → 125: THE DESK — the desk gate joins the keyless check in
 // the same commit that seats the engine's pure verifier and re-speaks
 // the table's seal door from that one seat.
-const PINNED_PASS_COUNT = 125;
+// (60B Stage One) 125 → 131: TRUE IMAGE — the one-road, fresh-plate,
+// prop-law, and easel-priority gates (trueImage.test.mjs, 4 PASS) and
+// the sheet and slot gates (sheets.test.mjs, 2 PASS) join the keyless
+// check in the same commit that seats Experience-Directive XVII's
+// image articles: reference sheets, the slot law, the render door,
+// the vertical frame, and the struck borrow rungs.
+const PINNED_PASS_COUNT = 131;
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

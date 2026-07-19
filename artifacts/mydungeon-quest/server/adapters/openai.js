@@ -10,8 +10,11 @@ export function openaiAdapter(key) {
   return {
     name: 'openai',
     capabilities: { configured: Boolean(key), supportsReferences: true, maxReferenceImages: 4, supportsSeed: false, includesAudio: true, asynchronous: true },
-    async paint({ prompt, size = '1536x1024', references = [] }) {
+    async paint({ prompt, kind = 'scene', size = null, references = [] }) {
       const model = process.env.PAINT_MODEL_OPENAI || 'gpt-image-1';
+      // THE VERTICAL LAW (XVII): feed plates are portrait, sheets square,
+      // furniture wide — same pins as the Gemini seat.
+      size = size || (kind === 'portrait' || kind === 'scene' ? '1024x1536' : kind === 'sheet' ? '1024x1024' : '1536x1024');
       let response;
       if (references.length) {
         // Reference conditioning: locked canon busts/plates ride along so

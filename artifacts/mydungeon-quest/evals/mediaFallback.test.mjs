@@ -139,11 +139,14 @@ const textOf = (node) => {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Fullscreen Cinematic overlay, chapter-card timing: the card fires the
-//    instant a turn seals — BEFORE that turn's paint lands — so neither the
-//    beat cache keys nor the origin-turn hash match any media row. The overlay
-//    must borrow the campaign's most recent painted scene as its backdrop
-//    rather than dropping to the flat procedural gradient.
+// 3. Fullscreen Cinematic overlay, chapter-card timing, under THE FRESH
+//    PLATE LAW (XVII, Article III): the card fires the instant a turn
+//    seals — BEFORE that turn's paint lands — and no code path may stand
+//    a prior turn's plate in for the living moment. The overlay holds the
+//    honest procedural gradient until THIS turn's own art exists; the
+//    earlier scene on the shelf is NEVER borrowed. (Recut 2026-07-19,
+//    Task 60B Stage One: this gate formerly pinned the 0.9-era borrow —
+//    the exact seam the founder playtest convicted.)
 // ---------------------------------------------------------------------------
 {
   const campaign = { id: 'camp-early-card', codex: { beatIndex: 0, cast: [] } };
@@ -171,12 +174,12 @@ const textOf = (node) => {
   assert.equal(collect(tree, 'video').length, 0, 'early card: no film exists anywhere anymore');
   const imgs = collect(tree, 'img');
   assert.equal(imgs.length, 1, 'early card: the overlay must render a still backdrop');
-  assert.equal(imgs[0].props.src, earlierUrl, "early card: the backdrop must be the campaign's latest painted scene");
-  assert.ok(!String(imgs[0].props.src).startsWith('data:'), 'early card: the flat procedural gradient must remain a last resort only');
+  assert.notEqual(imgs[0].props.src, earlierUrl, 'early card: a prior turn\u2019s plate NEVER stands in for the living moment (XVII, Article III)');
+  assert.ok(String(imgs[0].props.src).startsWith('data:image/svg'), 'early card: the honest procedural gradient holds the frame until this turn\u2019s own art lands');
 
   await act(async () => { root.unmount(); });
   await db.media.clear();
-  console.log('PASS — an early chapter card borrows the latest painted scene (no flat gradient).');
+  console.log('PASS — an early chapter card holds the honest gradient: no borrowed plate, ever.');
 }
 
 // ---------------------------------------------------------------------------

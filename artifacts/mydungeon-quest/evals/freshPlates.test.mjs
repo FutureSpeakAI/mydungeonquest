@@ -8,9 +8,11 @@
 //   2. THE BRIEF VARIES, THE FACES HOLD — same cue, different turn: the brief
 //      differs (prose slice + framing wheel) while the subjects' appearance
 //      canon stays wired into every variant.
-//   3. THE REVEAL LAW — the chapter-card ladder skips art already revealed as
-//      a card, rung by rung, down to the honest procedural gradient (null);
-//      replays are exempt. The seen ledger records FIRST showings only.
+//   3. THE REVEAL LAW & THE FRESH PLATE LAW (XVII) — the chapter card deals
+//      its OWN art only: the beat's keyed cover, or this very turn's plate.
+//      A seen cover is never re-dealt, and another moment's painting is
+//      NEVER borrowed — the honest gradient (null) is the last resort.
+//      Replays are exempt. The seen ledger records FIRST showings only.
 //   4. THE DEED LINE & THE PLATE MARK — a turn where the player acted rather
 //      than spoke (a die, the X-card) still shows in sequence, marked apart
 //      from spoken words; a painted plate records itself as seen on render.
@@ -130,24 +132,23 @@ const collectClass = (node, cls, out = []) => {
   await db.media.clear();
   await db.media.bulkPut([
     { assetHash: 'beat-cover', cacheKey: keys.still, campaignId: CAMP, kind: 'paint', subtype: 'beat-still', label: 'Beat', originTurnHash: null, createdAt: 3, blob: new Blob(['B'], { type: 'image/png' }) },
-    { assetHash: 'scene-old', cacheKey: 'scene:old', campaignId: CAMP, kind: 'paint', subtype: 'scene', originTurnHash: 't-old', createdAt: 1, blob: new Blob(['P1'], { type: 'image/png' }) },
-    { assetHash: 'scene-new', cacheKey: 'scene:new', campaignId: CAMP, kind: 'paint', subtype: 'scene', originTurnHash: 't-new', createdAt: 2, blob: new Blob(['P2'], { type: 'image/png' }) }
+    { assetHash: 'scene-own', cacheKey: 'scene:own', campaignId: CAMP, kind: 'paint', subtype: 'scene', originTurnHash: 't-own', createdAt: 2, blob: new Blob(['P2'], { type: 'image/png' }) }
   ]);
 
   const first = await resolveAssets(campaign, 'no-such-turn', 0);
   assert.equal(first.still?.assetHash, 'beat-cover', 'the beat\u2019s own keyed cover wins while unseen');
   await markRevealed(CAMP, 'card', 'beat-cover', { beatIndex: 0 });
 
+  // THE FRESH PLATE LAW (XVII, Article III) — the borrow rungs are STRUCK:
+  // a seen cover never falls to another moment's painting, however many
+  // unseen plates the shelf holds. The honest gradient (null) stands.
   const second = await resolveAssets(campaign, 'no-such-turn', 0);
-  assert.equal(second.still?.assetHash, 'scene-new', 'a seen cover is skipped — the latest UNSEEN scene is borrowed');
-  await markRevealed(CAMP, 'card', 'scene-new', { beatIndex: 0 });
+  assert.equal(second.still, null, 'a seen cover is never re-dealt, and another moment\u2019s plate is NEVER borrowed — the gradient is the honest last resort');
 
-  const third = await resolveAssets(campaign, 'no-such-turn', 0);
-  assert.equal(third.still?.assetHash, 'scene-old', 'the ladder keeps falling to unseen rungs');
-  await markRevealed(CAMP, 'card', 'scene-old', { beatIndex: 0 });
-
-  const spent = await resolveAssets(campaign, 'no-such-turn', 0);
-  assert.equal(spent.still, null, 'every painting seen: the honest last resort is the gradient (null), never a repeat');
+  // This very turn's OWN painting remains lawful — fresh art of the moment
+  // the card crowns, not a recycled ambient plate.
+  const own = await resolveAssets(campaign, 't-own', 0);
+  assert.equal(own.still?.assetHash, 'scene-own', 'the card may still take THIS turn\u2019s own plate');
 
   const replay = await resolveAssets(campaign, 'no-such-turn', 0, { replay: true });
   assert.equal(replay.still?.assetHash, 'beat-cover', 'a replay is a re-view, not a new reveal — nothing is skipped');
@@ -164,7 +165,7 @@ const collectClass = (node, cls, out = []) => {
   assert.ok(kinds.has('beat-cover'), 'plate and card showings are recorded apart');
 
   await db.media.clear();
-  console.log('PASS — the reveal law: seen covers are never dealt as new; replays exempt; first showings kept.');
+  console.log('PASS — the reveal law: seen covers never re-dealt, stale plates never borrowed; replays exempt; first showings kept.');
 }
 
 // ---------------------------------------------------------------------------
@@ -217,9 +218,11 @@ const collectClass = (node, cls, out = []) => {
 // ---------------------------------------------------------------------------
 // 5. THE CHAINED CARDS — a DM card and an act card born of the SAME turn
 //    (same campaign, same turn hash, same beat) mount as two card instances;
-//    the second must re-consult the ledger and take DIFFERENT art. (In the
-//    app, the per-card key on <Cinematic> forces exactly this remount even
-//    though the chained close batches its two state updates.)
+//    the second must re-consult the ledger and take DIFFERENT art — under
+//    the fresh-plate law (XVII), that different art is the turn's OWN plate,
+//    never an ambient borrow. (In the app, the per-card key on <Cinematic>
+//    forces exactly this remount even though the chained close batches its
+//    two state updates.)
 // ---------------------------------------------------------------------------
 {
   const Cinematic = (await import('../src/components/Cinematic.jsx')).default;
@@ -232,10 +235,11 @@ const collectClass = (node, cls, out = []) => {
     { assetHash: 'chain-scene', cacheKey: 'scene:chain', campaignId: CAMP, kind: 'paint', subtype: 'scene', originTurnHash: 't-chain', createdAt: 1, blob: new Blob(['C2'], { type: 'image/png' }) }
   ]);
 
+  // Both cards ride the SAME turn hash, as the app's chained close does.
   const mountCard = async (card) => {
     let root;
     await act(async () => {
-      root = TestRenderer.create(h(Cinematic, { cinematic: card, dialogue: null, campaign, reduceMotion: false, turnRecordHash: 'no-such-turn', beatIndex: 0, onClose: () => {} }));
+      root = TestRenderer.create(h(Cinematic, { cinematic: card, dialogue: null, campaign, reduceMotion: false, turnRecordHash: 't-chain', beatIndex: 0, onClose: () => {} }));
     });
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 60)); });
     await act(async () => { root.unmount(); });
@@ -247,7 +251,7 @@ const collectClass = (node, cls, out = []) => {
 
   await mountCard({ type: 'act', title: 'Act II', subtitle: 'The world unravelling.', palette: ['#0d0b14', '#4c465e', '#b8541f'] });
   const afterSecond = (await listReveals(CAMP)).filter((row) => row.kind === 'card').map((row) => row.assetHash);
-  assert.deepEqual(afterSecond, ['chain-cover', 'chain-scene'], 'the chained act card re-consults the ledger and deals DIFFERENT art');
+  assert.deepEqual(afterSecond, ['chain-cover', 'chain-scene'], 'the chained act card re-consults the ledger and deals the turn\u2019s OWN plate — different art, lawfully sourced');
 
   await db.media.clear();
   console.log('PASS — chained cards from one turn deal different art: the second card consults the ledger.');

@@ -11,9 +11,13 @@ function timedFetch(url, options = {}, ms = 120000) {
   return fetch(url, { ...options, signal: AbortSignal.timeout(ms) });
 }
 
+// THE VERTICAL LAW (XVII): feed plates — scene and portrait — are
+// vertical at the pinned 3:4; sheets are square (a 2x2 grid); covers,
+// key art, and region canon are furniture and keep the wide frame.
 function aspectFor(kind, size) {
-  if (kind === 'portrait') return '3:4';
-  if (kind === 'scene' || kind === 'key_art' || kind === 'cover') return '16:9';
+  if (kind === 'portrait' || kind === 'scene') return '3:4';
+  if (kind === 'sheet') return '1:1';
+  if (kind === 'key_art' || kind === 'cover') return '16:9';
   if (typeof size === 'string' && /^\d+x\d+$/.test(size)) {
     const [w, h] = size.split('x').map(Number);
     return w >= h ? '16:9' : '3:4';
@@ -24,13 +28,22 @@ function aspectFor(kind, size) {
 export function geminiAdapter(key) {
   return {
     name: 'gemini',
-    capabilities: { configured: Boolean(key), supportsReferences: true, maxReferenceImages: 3, supportsSeed: false, includesAudio: true, asynchronous: true },
+    // THE SLOT LAW (XVII, Article II): Gemini's pinned budget is 14
+    // reference images / 5 identifiable subjects — mirrored in
+    // plateroad.SLOT_BUDGETS (the one road).
+    capabilities: { configured: Boolean(key), supportsReferences: true, maxReferenceImages: 14, supportsSeed: false, includesAudio: true, asynchronous: true },
 
-    async paint({ prompt, kind = 'scene', size = '1536x1024', references = [] }) {
+    async paint({ prompt, kind = 'scene', size = '1536x1024', references = [], edit = null }) {
       const model = process.env.PAINT_MODEL_GEMINI || 'gemini-3.1-flash-image';
       const parts = [{ text: prompt }];
-      // Locked canon busts/plates ride along so faces and places converge.
-      for (const ref of references.slice(0, 3)) {
+      // THE MENDED PLATE (XVII): a warden repaint may carry the failed
+      // render itself — a targeted edit that preserves the composition
+      // while removing the offense. The failed bytes ride FIRST so the
+      // instruction reads as an edit of that image.
+      if (edit?.data) parts.push({ inlineData: { mimeType: edit.mime || 'image/png', data: edit.data } });
+      // Locked canon sheets/busts/plates ride along so faces and places
+      // converge — up to the pinned budget.
+      for (const ref of references.slice(0, 14)) {
         if (ref?.data) parts.push({ inlineData: { mimeType: ref.mime || 'image/png', data: ref.data } });
       }
       const response = await timedFetch(`${BASE}/models/${model}:generateContent?key=${key}`, {

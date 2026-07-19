@@ -5,6 +5,7 @@ import { wardenBrief, parseVerdict, mockWarden, wardenRuling } from 'fatescript/
 import { parseMark } from 'fatescript/magnifier';
 import { unletteredBrief, parseUnlettered, unletteredRuling } from 'fatescript/unlettered';
 import { tollRefusal } from '../../patron/tollNotice.js';
+import { bindingLinesFor, slotBudget } from '../plateroad.js';
 
 // ------------------------------------------------------------
 // THE FOUNDRY — asynchronous media orchestrator.
@@ -29,17 +30,41 @@ const blobToBase64 = (blob) => new Promise((resolve, reject) => {
 // generation time by label, so jobs queued before the anchor exists
 // still pick it up, and the chosen anchors are sealed into the
 // attestation for provenance.
-async function resolveAnchors(campaignId, labels = []) {
+//
+// THE SHEET SHELF (XVII, Article I): once a subject's composite sheet
+// is minted, the SHEET rides to the easel in the anchor's place — one
+// image carrying face, profile, figure, and detail. Sheet mint jobs
+// themselves resolve bust-first and NEVER against a prior sheet (the
+// never-chained law lives right here); the newest sheet is the
+// standing revision. The warden still judges beside the original
+// BUST anchor — a grid is no likeness comparator.
+async function resolveAnchors(campaignId, labels = [], { max = 3, sheets = true } = {}) {
   if (!labels.length) return [];
   const rows = await db.media.where('campaignId').equals(campaignId).toArray();
   const anchors = [];
-  for (const label of labels.filter(Boolean).slice(0, 3)) {
+  for (const label of labels.filter(Boolean).slice(0, max)) {
     const candidates = rows.filter((row) => row.kind === 'paint' && row.label === label && row.blob);
     if (!candidates.length) continue;
-    candidates.sort((a, b) => (a.variant === 'bust' ? 0 : 1) - (b.variant === 'bust' ? 0 : 1) || a.createdAt - b.createdAt);
-    anchors.push(candidates[0]);
+    const sheetRows = sheets ? candidates.filter((row) => row.variant === 'sheet') : [];
+    if (sheetRows.length) {
+      sheetRows.sort((a, b) => b.createdAt - a.createdAt);
+      anchors.push(sheetRows[0]);
+      continue;
+    }
+    const plain = candidates.filter((row) => row.variant !== 'sheet');
+    if (!plain.length) continue;
+    plain.sort((a, b) => (a.variant === 'bust' ? 0 : 1) - (b.variant === 'bust' ? 0 : 1) || a.createdAt - b.createdAt);
+    anchors.push(plain[0]);
   }
   return anchors;
+}
+
+// The warden's own anchor: always the sealed ORIGINAL — bust-first,
+// never a sheet — for the label that leads the roster.
+async function resolveWardenAnchor(campaignId, label) {
+  if (!label) return null;
+  const [row] = await resolveAnchors(campaignId, [label], { max: 1, sheets: false });
+  return row || null;
 }
 
 export class Foundry {
@@ -87,10 +112,31 @@ export class Foundry {
   }
 
   async generate(job) {
-    const anchors = await resolveAnchors(this.campaignId, job.options?.referenceLabels || []);
+    // THE SHEET SHELF & THE SLOT LAW (XVII, Articles I & II): plates
+    // resolve sheets-first up to the pinned reference budget; a sheet
+    // MINT resolves its subject's sealed original — bust-first, one
+    // slot, NEVER a prior sheet (the never-chained law).
+    const minting = job.options?.kind === 'sheet';
+    const anchors = await resolveAnchors(this.campaignId, job.options?.referenceLabels || [], minting ? { max: 1, sheets: false } : { max: slotBudget().references, sheets: true });
     const references = await Promise.all(anchors.map(async (row) => ({ mime: row.mime, data: await blobToBase64(row.blob), assetHash: row.assetHash })));
     const referenceAssetHashes = anchors.map((row) => row.assetHash);
     if (references.length) job.options = { ...job.options, references };
+    // THE WARDEN'S OWN ANCHOR: likeness is judged beside the sealed
+    // original bust, never a grid — and the refusal fallback ships that
+    // same single lawful image, exactly as the pre-sheet law did.
+    const wardenAnchor = job.kind === 'paint' && (job.options?.referenceLabels || []).length
+      ? await resolveWardenAnchor(this.campaignId, job.options.referenceLabels[0])
+      : null;
+    // THE BINDING LINES (XVII, Article II) — composed at resolution time
+    // from what ACTUALLY attached (composite sheet or sealed portrait),
+    // byte-stable, appended to the ask so the painter never guesses
+    // which reference image is whom.
+    const seatingRoles = Array.isArray(job.options?.seating) ? job.options.seating : null;
+    const bindings = !minting && anchors.length ? bindingLinesFor(anchors.map((row) => ({
+      name: row.label,
+      role: seatingRoles?.find((seat) => seat.name === row.label)?.role || 'subject',
+      sheet: row.variant === 'sheet'
+    }))) : [];
     const route = job.kind === 'paint' ? 'paint' : job.kind;
     // THE WARDEN'S EYES (Directive VI, Phase 13) — every post-anchor soul
     // render is judged beside its anchor: a pass ships with the verdict
@@ -98,13 +144,13 @@ export class Foundry {
     // and a second drift ships the anchor itself — THE HOUSE NEVER SHIPS A
     // STRANGER. Renders with no anchor to betray (first takes, parchment's
     // procedural woodcuts, covers, audio) owe the warden nothing.
-    const wardenPlan = job.kind === 'paint' && job.options?.warden?.bearingText && anchors.length ? job.options.warden : null;
+    const wardenPlan = job.kind === 'paint' && job.options?.warden?.bearingText && wardenAnchor ? job.options.warden : null;
     // THE MOMENT LAW (0.6.1) — a scene paint that carries its turn's moment
     // answers for it: the beat-supremacy clause is a plea until someone
     // checks the work.
     const momentPlan = job.kind === 'paint' && job.options?.kind === 'scene' && job.options?.moment?.prose ? String(job.options.moment.prose) : null;
     const bucket = job.kind === 'paint' ? 'images' : job.kind === 'music' ? 'music' : null;
-    let prompt = job.prompt;
+    let prompt = bindings.length ? `${job.prompt}\n${bindings.join('\n')}` : job.prompt;
     let response; let blob; let wardenAttest = null;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       response = await fetch(`/api/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, ...job.options }) });
@@ -125,9 +171,18 @@ export class Foundry {
       // on a second sighting the plate is REFUSED — the surface keeps its
       // lawful textless fallback and the refusal is sealed into the record.
       const ruling = wardenPlan
-        ? wardenRuling(await this.judge(wardenPlan, anchors[0], blob), { attempt })
+        ? wardenRuling(await this.judge(wardenPlan, wardenAnchor, blob), { attempt })
         : unletteredRuling(await this.judgeText(blob), { attempt });
-      if (ruling.action === 'repaint') { prompt = `${prompt} ${ruling.notes.join(' ')}`; continue; }
+      if (ruling.action === 'repaint') {
+        // THE MENDED PLATE (XVII): the offense-removal families — likeness
+        // drift, lettering — repaint as a targeted EDIT of the failed bytes,
+        // composition preserved, offense corrected. The moment court below
+        // keeps fresh dice: a mis-staged moment needs a new staging, not a
+        // touch-up. Harvest ladders are untouched by this clause.
+        prompt = `${prompt} ${ruling.notes.join(' ')}`;
+        job.options = { ...job.options, edit: { mime: blob.type || 'image/png', data: await blobToBase64(blob) } };
+        continue;
+      }
       if (ruling.action === 'refuse') {
         // The refused bytes are hashed for the record and then dropped —
         // never stored, never shipped. The blessed anchor is the lawful
@@ -141,14 +196,15 @@ export class Foundry {
         // courts — binds the refusal to the ask it answers. Never a marker
         // row; the record itself learns to speak.
         await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, cacheKey: job.cacheKey, label: job.options?.label ?? null, variant: job.options?.variant ?? null, subtype: job.options?.kind ?? null, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: refusedHash, mime: blob.type, byteLength: blob.size, referenceAssetHashes, warden: ruling.attest });
-        return anchors.length ? anchors[0] : null;
+        return wardenAnchor || null;
       }
       if (ruling.action === 'anchor') {
         // The anchor stands in — no new bytes are minted (the anchor row
         // already holds these very bytes under its own name); the sealed
-        // attestation carries the fallback verdict for provenance.
-        await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, cacheKey: job.cacheKey, label: job.options?.label ?? null, variant: job.options?.variant ?? null, subtype: job.options?.kind ?? null, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: anchors[0].assetHash, mime: anchors[0].mime, byteLength: anchors[0].blob?.size ?? 0, referenceAssetHashes, warden: ruling.attest });
-        return anchors[0];
+        // attestation carries the fallback verdict for provenance. The
+        // stand-in is the warden's own single sealed image, never a sheet.
+        await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, cacheKey: job.cacheKey, label: job.options?.label ?? null, variant: job.options?.variant ?? null, subtype: job.options?.kind ?? null, promptHash: job.spec.promptHash, generationSpecHash: job.spec.hash, assetHash: wardenAnchor.assetHash, mime: wardenAnchor.mime, byteLength: wardenAnchor.blob?.size ?? 0, referenceAssetHashes, warden: ruling.attest });
+        return wardenAnchor;
       }
       // THE MOMENT LAW (0.6.1) — one more question at the same door for
       // scene plates that carry their moment: is THIS moment staged? A miss

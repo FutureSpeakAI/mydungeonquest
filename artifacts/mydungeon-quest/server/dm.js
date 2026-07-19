@@ -3,6 +3,7 @@ import { mockDmTurn } from 'fatescript/mockDm';
 import { safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { artDirectorSits } from './artDirector.js';
+import { cueCourt, propLawCheck, movedItems, groundFixtures } from '../src/lib/plateroad.js';
 
 // THE CENSUS AT THE DOOR — Directive VI, Phase 11. The validator rules the
 // shape; the census rules the roll: an attributed speaker the record does
@@ -33,6 +34,19 @@ export function judgeTurn(turn, input) {
   const errors = validation.ok ? [] : [...validation.errors];
   const strangers = unrecordedSouls(turn, input.story?.cast || [], { hero: input.hero || null });
   if (strangers.length) errors.push(censusNote(strangers));
+  // THE IDENTITY CEILING & THE PROP LAW (XVII, Articles II & IV) — the
+  // cue's own courts, seated beside the validator at every door alike:
+  // at most five identifiable subjects, and a named item rides the
+  // frame only with its holder present, as a fixture of this ground,
+  // or moved by this very turn's operations.
+  const ceiling = cueCourt(turn.image_cue);
+  if (!ceiling.ok) errors.push(...ceiling.violations);
+  const props = propLawCheck(turn.image_cue, {
+    trove: context.trove,
+    fixtures: groundFixtures(context.fixtures || [], context.scene?.region || null),
+    moved: movedItems(turn.story)
+  });
+  if (!props.ok) errors.push(...props.refusals);
   return { ok: errors.length === 0, errors };
 }
 
@@ -119,8 +133,9 @@ const imageCueSchema = {
     { type: 'null' },
     { type: 'object', additionalProperties: false, required: ['kind','subjects'], properties: {
       kind: { type: 'string', enum: ['portrait','scene'] },
-      subjects: { type: 'array', items: { type: 'string', minLength: 2, maxLength: 80, description: 'Exact cast or hero name, LIVING AND PRESENT at the scene — never a dead soul, never a soul the record holds elsewhere, never a name outside the record. FIRST NAME FIRST: the first subject is the principal figure of the composition.' } },
-      crowd: { type: 'string', enum: ['none','background'], description: 'Whether an indistinct, unidentifiable background crowd may fill the frame. Omitted or none, the frame is closed to all but the named subjects.' }
+      subjects: { type: 'array', maxItems: 5, items: { type: 'string', minLength: 2, maxLength: 80, description: 'Exact cast or hero name, LIVING AND PRESENT at the scene — never a dead soul, never a soul the record holds elsewhere, never a name outside the record. FIRST NAME FIRST: the first subject is the principal figure of the composition. AT MOST FIVE identifiable subjects (the pinned reference budget) — stage a larger gathering with crowd background and framing, never a sixth likeness.' } },
+      crowd: { type: 'string', enum: ['none','background'], description: 'Whether an indistinct, unidentifiable background crowd may fill the frame. Omitted or none, the frame is closed to all but the named subjects.' },
+      items: { type: 'array', maxItems: 4, items: { type: 'string', minLength: 3, maxLength: 60 }, description: 'THE PROP LAW: named trove things due IN FRAME this plate — each lawful ONLY if its recorded holder stands among subjects, it is a fixture of the standing ground, or this very turn\u2019s operations moved it. Omit otherwise; an unlawful item is refused by name.' }
     } }
   ]
 };

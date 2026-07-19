@@ -12,6 +12,21 @@ function svgBytes(label, prompt, width = 1280, height = 720) {
   return Buffer.from(svg);
 }
 
+// The keyless reference sheet: four quadrant washes in one square
+// frame, gridded by thin rules — and NOT ONE letter (the silence
+// clause holds by construction, not by promise).
+function sheetGridBytes(prompt, anchored = '', size = 1024) {
+  const id = hash(`sheet:${prompt}:${anchored}`);
+  const half = size / 2;
+  const cell = (i, x, y) => {
+    const a = `#${id.slice(i * 6, i * 6 + 6)}`;
+    const b = `#${id.slice(i * 6 + 6, i * 6 + 12)}`;
+    return `<rect x="${x}" y="${y}" width="${half}" height="${half}" fill="url(#q${i})"/><circle cx="${x + half / 2}" cy="${y + half * (i % 2 ? 0.42 : 0.5)}" r="${half * (0.18 + (parseInt(id.slice(i, i + 2), 16) % 12) / 100)}" fill="${b}" opacity=".5"/><defs><linearGradient id="q${i}" x2="1" y2="1"><stop stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>`;
+  };
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="100%" height="100%" fill="#0d0b14"/>${cell(0, 0, 0)}${cell(1, half, 0)}${cell(2, 0, half)}${cell(3, half, half)}<path d="M${half} 0V${size}M0 ${half}H${size}" stroke="#08070a" stroke-width="6"/><rect width="100%" height="100%" fill="none" stroke="#08070a" stroke-width="10"/></svg>`;
+  return Buffer.from(svg);
+}
+
 function wavTone({ seconds = 2, frequency = 220, volume = 0.15 }) {
   const sampleRate = 22050;
   const samples = Math.floor(sampleRate * seconds);
@@ -38,7 +53,14 @@ export const mockAdapter = {
   async see() { return { floor: true, text: '', provider: 'mock', model: 'no-eyes' }; },
   async paint({ prompt, kind = 'scene', references = [] }) {
     const anchored = references.length ? ` ⚓${hash(references.map((ref) => ref.assetHash || ref.data || '').join('|')).slice(0, 6)}` : '';
-    return { bytes: svgBytes(`MOCK ${kind.toUpperCase()}${anchored}`, prompt, kind === 'portrait' ? 768 : 1280, kind === 'portrait' ? 1024 : 720), mime: 'image/svg+xml', provider: 'mock', model: 'procedural-svg', seed: hash(prompt).slice(0, 12), usage: { cost: 0 } };
+    // THE REFERENCE SHEET (XVII, Article I): sheets honor the silence
+    // clause BY CONSTRUCTION on the keyless floor — a textless 2x2 grid,
+    // square, deterministic on the prompt. No <text> node exists in it.
+    if (kind === 'sheet') return { bytes: sheetGridBytes(prompt, anchored), mime: 'image/svg+xml', provider: 'mock', model: 'procedural-sheet', seed: hash(prompt).slice(0, 12), usage: { cost: 0 } };
+    // THE VERTICAL LAW (XVII): feed plates are portrait 3:4; furniture
+    // (key art, covers, beat stills, region canon) keeps the wide frame.
+    const vertical = kind === 'portrait' || kind === 'scene';
+    return { bytes: svgBytes(`MOCK ${kind.toUpperCase()}${anchored}`, prompt, vertical ? 768 : 1280, vertical ? 1024 : 720), mime: 'image/svg+xml', provider: 'mock', model: 'procedural-svg', seed: hash(prompt).slice(0, 12), usage: { cost: 0 } };
   },
   async speak({ text }) { return { bytes: wavTone({ seconds: Math.max(1.5, Math.min(5, text.length / 25)), frequency: 180 + parseInt(hash(text).slice(0,2), 16) }), mime: 'audio/wav', provider: 'mock', model: 'procedural-tone', seed: hash(text).slice(0, 12), usage: { cost: 0 } }; },
   async music({ prompt }) { return { bytes: wavTone({ seconds: 8, frequency: 110 + parseInt(hash(prompt).slice(0,2), 16) / 3, volume: .11 }), mime: 'audio/wav', provider: 'mock', model: 'procedural-stinger', seed: hash(prompt).slice(0, 12), usage: { cost: 0 } }; },

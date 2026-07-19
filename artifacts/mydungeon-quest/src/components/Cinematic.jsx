@@ -34,21 +34,13 @@ export async function resolveAssets(campaign, turnRecordHash, beatIndex, { repla
   const byKey = (key) => rows.find((row) => row.cacheKey === key && row.blob);
   const byTurn = (kind) => rows.filter((row) => row.kind === kind && row.blob && turnRecordHash && row.originTurnHash === turnRecordHash)
     .sort((a, b) => b.createdAt - a.createdAt)[0];
-  const newest = (list) => list.sort((a, b) => b.createdAt - a.createdAt)[0];
-  const paints = rows.filter((row) => row.kind === 'paint' && row.blob && !seen.has(row.assetHash));
-  // Prefer a true scene so the backdrop is a place, not a character bust. New
-  // rows carry an explicit subtype; older rows are inferred — scene plates are
-  // the only paint jobs enqueued without a label/variant.
-  const isScene = (row) => (row.subtype ? row.subtype === 'scene' : !row.label && !row.variant);
-  const latestScene = newest(paints.filter(isScene));
-  const latestPaint = newest(paints);
   return {
-    // The chapter card usually fires the instant a turn seals, BEFORE that
-    // turn's paint has landed — so a beat-key/turn-hash miss used to drop all
-    // the way to the flat procedural gradient. Borrow the campaign's most
-    // recent UNSEEN painted scene instead (any painted art beats the gradient,
-    // which remains a true last resort).
-    still: fresh(byKey(keys.still)) || fresh(byTurn('paint')) || latestScene || latestPaint || null,
+    // THE FRESH PLATE LAW (XVII, Article III) — the card shows its OWN art:
+    // the beat's pre-briefed cover, or this very turn's painting. The old
+    // borrow rungs (the campaign's most recent unseen plate, any plate at
+    // all) are struck: an ambient painting from another moment is a stale
+    // plate, and the honest procedural gradient beats a recycled painting.
+    still: fresh(byKey(keys.still)) || fresh(byTurn('paint')) || null,
     music: byKey(keys.score) || byTurn('music') || null
   };
 }

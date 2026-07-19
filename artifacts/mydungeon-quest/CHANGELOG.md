@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 — The Beta Cut (in progress)
+
+**Stage One — TRUE IMAGE (Directive XVII, Articles I–V).** Every image ask now walks ONE ROAD (`src/lib/plateroad.js`), and the app, the server court, and the foundry import that single seat — no law byte lives twice. Reference sheets: every carded soul, place, species, and notable item mints one silent 2x2 composite at introduction, derived from its sealed anchor and NEVER from a prior sheet (the never-chained law, proven through the real foundry); scene plates ride sheets-first to the easel. The slot law pins per-provider budgets (Gemini 5 subjects/14 references at its true ceiling, OpenAI at its honest 4) and seats a deterministic plan — principal, ground, subjects, species, items — with byte-stable binding lines composed from what actually attached. The identity ceiling (five likenesses, one seat per soul) and the prop law (a named thing appears only in its holder's hands, as a fixture of this ground, or moved by this very turn) sit in the same court on both benches, schema and system prompt in lockstep. The render door: a turn plate renders only with papers naming this very turn's seal — stale papers draw an honest EMPTY FRAME in plain words, never yesterday's painting — while sealed history is grandfathered whole. Feed plates turn vertical (3:4 at every adapter, letterboxed never cropped); sheets square; furniture keeps the wide frame. The chapter card's ambient borrow rungs are STRUCK (own cover or this turn's own plate, else the honest gradient), the easel sorts paint before voice deterministically, and failed warden repaints ride the failed bytes back as an edit ask (the mended plate). Six gates join the keyless check — pin 125 → 131.
+
 ## 1.0.0 — Parity and the Ritual
 
 **The series closes at one.** Task 60 is four doors walked in order — the port, the desk, the record, the ritual — and the house steps through the last of them carrying its own proof.

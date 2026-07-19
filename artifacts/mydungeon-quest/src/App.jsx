@@ -52,6 +52,8 @@ import { PatronDoor } from './patron/door.jsx';
 import { burnFromVault, nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
 import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
 import { rememberRefusedPour, reportTollRefusal, setPourContext, tollRefusal } from './patron/tollNotice.js';
+import { admitPlate, cueCourt, easelOrder, emptyFrameLine, groundFixtures, movedItems, propLawCheck, seatingPlan } from './lib/plateroad.js';
+import { heroSheetJob, sheetJobs } from './lib/sheets.js';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
 // Task #50 — the recap greets a RETURN to the table, never the first seat,
@@ -454,7 +456,19 @@ export default function App() {
           ? `${campaign.hero.name} — ${identityClause(heroSoul(campaign.hero))}`
           : bearingTextFor(campaign, leadName))
       : null;
-    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', ...(sceneMoment.prose ? { moment: { prose: sceneMoment.prose } } : {}), referenceLabels: [...seating.painted.map((seat) => seat.name), sceneCue.region].filter(Boolean).slice(0, 3), ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
+    // THE SLOT LAW (XVII, Article II) — the seating plan is deterministic
+    // from the sealed cue: principal and ground always ride, cue subjects
+    // follow, one species sheet covers every instance, a prop-lawful item
+    // earns a slot. The foundry resolves each seat to its composite sheet
+    // (or sealed anchor while the sheet is still minting) and binds every
+    // attached image to its subject in plain words.
+    const speciesInFrame = dm.story?.creature_add?.species ? [dm.story.creature_add.species] : [];
+    const scenePlan = seatingPlan({
+      cue: { subjects: seating.painted.map((seat) => seat.name), items: dm.image_cue?.items || [] },
+      region: sceneCue.region || null,
+      species: speciesInFrame
+    }).plan;
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', ...(sceneMoment.prose ? { moment: { prose: sceneMoment.prose } } : {}), referenceLabels: scenePlan.map((seat) => seat.name), seating: scenePlan, ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
       if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name], ...(variant === 'bust' ? {} : { warden: { kind: 'soul', bearingText: bearingTextFor(campaign, soul.name) } }) }, priority: variant === 'bust' ? 0 : 6 });
@@ -475,6 +489,12 @@ export default function App() {
       const stateTurned = dm.story.world.region_update.state != null;
       if (region) jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, region), options: { kind: 'region', label: region.name, seed: nameSeed(region.name), ...(stateTurned ? {} : { referenceLabels: [region.name] }) }, priority: 3 });
     }
+    // THE REFERENCE SHEETS (XVII, Article I) — every introduction mints its
+    // composite sheet beside its sealed anchor: souls, places on their
+    // standing state, species, notable items. Rank 2 — after the identity
+    // busts (0) and this moment's own plate (1): the sheet serves every
+    // FUTURE plate and never delays the turn that introduced its subject.
+    jobs.push(...sheetJobs(campaign, dm.story));
     if (dm.cinematic) {
       const keys = beatKeys(campaign.id, campaign.codex.beatIndex);
       // THE SOUND LAW: one short phrase for the card — a musical sentence with
@@ -496,7 +516,10 @@ export default function App() {
     // the very faces it was meant to hold existed; the lane then honored the
     // queue, but the scene was already on the easel.
     const settlements = [];
-    for (const job of jobs.filter((entry) => tollAllows(entry.kind)).sort((a, b) => (a.priority ?? 5) - (b.priority ?? 5))) {
+    // THE EASEL PRIORITY (XVII): the paint asks enter the wire before the
+    // audio asks, deterministically — easelOrder is the one road's own sort
+    // (paint class first, priority within class, declaration order on ties).
+    for (const job of easelOrder(jobs.filter((entry) => tollAllows(entry.kind)))) {
       // The scene plate is painting: show a shimmer over the procedural stand-in
       // until the illuminated image lands (or the job resolves without one).
       if (job.logId && job.kind === 'paint') setPaintingImages((prev) => ({ ...prev, [job.logId]: true }));
@@ -507,7 +530,12 @@ export default function App() {
           const dataUrl = await blobToDataUrl(asset.blob);
           setCurrent((prev) => {
             if (!prev || prev.id !== campaign.id) return prev;
-            const logs = prev.logs.map((log) => log.id === job.logId ? { ...log, imageUrl: dataUrl, imageAssetHash: asset.assetHash } : log);
+            // THE FRESH PLATE LAW (XVII, Article III) — the plate lands with
+            // its papers: the asset's own attested origin. The render door
+            // (admitPlate) will hold these papers against the log's sealed
+            // hash; a stand-in from another moment shows an honest empty
+            // frame, never yesterday's painting.
+            const logs = prev.logs.map((log) => log.id === job.logId ? { ...log, imageUrl: dataUrl, imageAssetHash: asset.assetHash, imagePapers: { assetHash: asset.assetHash, originTurnHash: asset.originTurnHash ?? null } } : log);
             const next = { ...prev, logs };
             saveCampaign(next); return next;
           });
@@ -694,10 +722,22 @@ export default function App() {
       // same pre-turn snapshot. A stranger who survived the road is refused
       // here by name — the codex only knows what the ops declare.
       const strangers = unrecordedSouls(dm, base.codex.cast, { hero: base.hero });
-      if (!validation.ok || strangers.length) {
+      // THE IDENTITY CEILING & THE PROP LAW (XVII, Articles II & IV) — the
+      // cue's own courts sit at the landing exactly as they sit in the
+      // server's judgeTurn: same evidence, same refusals, both benches in
+      // lockstep (the DM-turn reliability law).
+      const cueBench = cueCourt(dm.image_cue);
+      const propBench = propLawCheck(dm.image_cue, {
+        trove: landingContext.trove,
+        fixtures: groundFixtures(landingContext.fixtures || [], landingContext.scene?.region || null),
+        moved: movedItems(dm.story)
+      });
+      if (!validation.ok || strangers.length || !cueBench.ok || !propBench.ok) {
         throw new Error([
           ...(validation.ok ? [] : validation.errors),
           ...(strangers.length ? [censusNote(strangers)] : []),
+          ...cueBench.violations,
+          ...propBench.refusals,
         ].join('; '));
       }
       let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0, heroName: base.hero?.name, heroLevel: base.hero?.level });
@@ -919,6 +959,13 @@ export default function App() {
       foundry.enqueue({ ...keyArtJob(campaign, actOf(campaign)), originTurnHash: null }).catch(() => null),
       foundry.enqueue({ ...heroBustJob(campaign), originTurnHash: null }).catch(() => null)
     ]);
+    // THE HERO'S SHEET (XVII, Article I) — minted beside her first bust,
+    // derived from that sealed anchor, AFTER the bust has landed on the
+    // shelf (a sheet enqueued in parallel could resolve before its anchor
+    // exists and mint a fresh invention — the never-chained law's twin).
+    // No bust, no sheet: an anchorless mint would be unlawful derivation.
+    const heroSheet = heroSheetJob(campaign);
+    if (heroBust && heroSheet) await foundry.enqueue({ ...heroSheet, originTurnHash: null }).catch(() => null);
     // THE STABLE FACE KEY — the hero's first bust is remembered by hash on
     // the campaign itself (exactly like the key art), so the original
     // portrait is found by identity ever after. A display-name label would
@@ -1649,11 +1696,16 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = 
   // sealed before the Art Director's chair opened.
   const mood = cue?.caption || cue?.mood || plateMood(log.dm, 90) || 'the scene';
   const art = proceduralArtDataUrl(`${campaign.id}:${log.id}`, mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
-  // Chronicles sealed before films were retired may carry a painted keyframe
-  // poster on their film turns. Sealed history is immutable, so render that
-  // poster as the turn's still rather than pretending the turn had no art.
-  const still = log.imageUrl || log.videoPosterUrl || null;
-  const showScene = Boolean(still || cue || painting);
+  // THE FRESH PLATE LAW (XVII, Article III) — a plate bearing papers walks
+  // the render door: its attested origin must equal this very log's sealed
+  // hash, and its caption must stand. Refused papers show an HONEST EMPTY
+  // FRAME — never yesterday's painting, never a recycled stand-in. Logs
+  // sealed before papers existed are grandfathered whole: immutable history
+  // renders exactly as it always did (including retired-film posters).
+  const verdict = log.imagePapers ? admitPlate({ turnHash: log.recordHash ?? null, attestation: log.imagePapers, caption: mood }) : null;
+  const refused = Boolean(verdict && !verdict.admit);
+  const still = refused ? null : (log.imageUrl || log.videoPosterUrl || null);
+  const showScene = Boolean(still || cue || painting || refused);
   // Tap-to-expand for painted stills: the plate opens a full-screen lightbox
   // so the art can actually be studied — faces, costume, brushwork — instead
   // of living only inside the log column.
@@ -1680,7 +1732,7 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = 
   // THE PLATE MARK — the seen ledger records a painted plate the moment it
   // actually renders in the transcript (reopens included; first showing
   // wins). Fire-and-forget: the ledger is an observation, never load-bearing.
-  const stillHash = log.imageAssetHash || null;
+  const stillHash = !refused && log.imageAssetHash ? log.imageAssetHash : null;
   useEffect(() => {
     if (stillHash) markRevealed(campaign.id, 'plate', stillHash, { logId: log.id });
   }, [stillHash, campaign.id, log.id]);
@@ -1696,10 +1748,12 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = 
         so a paint that finishes mid-read never shoves the paragraph you're on. */}
     <div className="narration">{poured.map((block,i)=><p key={i} className={i===0?'dropcap':''}>{block.speaker && <strong>{block.speaker}</strong>}{block.text}</p>)}</div>
     <NarrationButton campaign={campaign} log={log} />
-    {showScene && <figure className={`illustration-panel full-bleed ${!still && painting ? 'painting' : ''}`}>
-      <button type="button" className="plate-zoom" onClick={() => setExpandedSrc(still || art)} aria-label="Expand the illustration"><img src={still || art} alt={mood}/></button>
+    {showScene && <figure className={`illustration-panel full-bleed ${!still && !refused && painting ? 'painting' : ''}`}>
+      {refused
+        ? <div className="empty-frame" role="img" aria-label={emptyFrameLine(verdict.status)}><span className="frame-sigil" aria-hidden="true">❖</span><p>{emptyFrameLine(verdict.status)}</p></div>
+        : <button type="button" className="plate-zoom" onClick={() => setExpandedSrc(still || art)} aria-label="Expand the illustration"><img src={still || art} alt={mood}/></button>}
       {/* The folio speaks: a numbered engraving, as a printed book would caption it. */}
-      <figcaption>{mood}<span>{plateNumeral && <b className="plate-no">Plate {plateNumeral} · </b>}{still ? 'illuminated' : (painting ? 'painting…' : 'procedural plate')}</span></figcaption>
+      <figcaption>{mood}<span>{plateNumeral && <b className="plate-no">Plate {plateNumeral} · </b>}{refused ? 'empty frame' : still ? 'illuminated' : (painting ? 'painting…' : 'procedural plate')}</span></figcaption>
     </figure>}
     {log.resolution && <div className={`roll-stamp ${log.resolution.outcome.includes('success')?'success':'failure'}`}><Dices/><span>{log.resolution.selectedDie} → {log.resolution.total}</span><b>{log.resolution.outcome.replaceAll('_',' ')}</b></div>}
     {expandedSrc && <div className="plate-lightbox" role="dialog" aria-modal="true" aria-label="Illustration, expanded" onClick={() => setExpandedSrc(null)}>

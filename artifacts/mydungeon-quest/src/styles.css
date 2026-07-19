@@ -57,7 +57,7 @@
 .illustration-panel.full-bleed figcaption span{color:var(--gold);text-transform:uppercase;font-size:.6rem;letter-spacing:.16em}
 @media (max-width:640px){
   .illustration-panel.full-bleed{margin-inline:calc(50% - 50vw);margin-block:.5rem 1rem}
-  .illustration-panel.full-bleed img{border-radius:0;width:100vw;max-height:74vh;object-fit:cover;box-shadow:none}
+  .illustration-panel.full-bleed img{border-radius:0;width:100vw;max-height:74vh;object-fit:contain;box-shadow:none}
   .illustration-panel.full-bleed figcaption{padding-inline:1.1rem}
 }
 /* Cinematic film render placeholder — Veo can take minutes, so the turn shows

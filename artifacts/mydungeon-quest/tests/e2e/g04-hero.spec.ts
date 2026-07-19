@@ -28,8 +28,12 @@ test('G4 tenor controls, three auditions, and a blessing that survives reload', 
   await expect(page.locator('label:has-text("The mark that sets them apart") input').first()).toBeVisible();
 
   const chips = page.locator('.audition-chip');
-  await expect(chips).toHaveCount(3);
-  for (let i = 0; i < 3; i += 1) {
+  // (60B §4) THE TEN-VOICE DEAL — the audition row grew from three to
+  // AUDITION_COUNT under Stage Three; the court's needle moved with the
+  // surface (the moved-surfaces law). G33b owns the ten-deal court
+  // proper; this court keeps the blessing-survives-reload walk.
+  await expect(chips).toHaveCount(10);
+  for (let i = 0; i < 10; i += 1) {
     await expect(chips.nth(i), `audition ${i} offers itself`).toBeEnabled();
     expect(((await chips.nth(i).textContent()) || '').trim().length, `audition ${i} names its voice`).toBeGreaterThan(0);
   }
@@ -57,6 +61,10 @@ test('G4 live tier: the hero portrait preview is a real painted image', async ({
 
   // The bones door deals a full hero; the preview paints from the canon.
   await page.locator('.door-tab').nth(0).click();
+
+  // THE TAP REPAINT (XVII, Article VIII): the atelier paints on TAP, never
+  // on keystroke — the court taps 'Paint their face' as the player would.
+  await page.locator('.repaint-button').click({ timeout: 30_000 });
 
   await page.waitForFunction(() => {
     const img = document.querySelector('.hero-portrait img') as HTMLImageElement | null;

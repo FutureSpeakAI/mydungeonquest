@@ -1,11 +1,12 @@
-// THE FRAME INSTRUMENTS (Directive IX, Task 56C) — the shared bench of the
-// frame courts (G22) and their teeth (13-15). The questions live in
-// fixtures/frame-questions.json, sealed by sha pin: amend the file, re-pin,
-// and the teeth re-prove perfect separation before any court sits. Forced
-// binaries only; the confidence scalar is a logged diagnostic, never a
-// verdict. The bench writes the hero's identity clause with its OWN noun
-// map rather than importing the easel's pen — the court must not borrow
-// the defendant's instrument to judge the defendant's work.
+// THE FRAME INSTRUMENTS (Directive IX, Task 56C; sheets & attire 60B §4) —
+// the shared bench of the frame courts (G22, G31) and their teeth (13-15,
+// 20). The questions live in fixtures/frame-questions.json, sealed by sha
+// pin: amend the file, re-pin, and the teeth re-prove perfect separation
+// before any court sits. Forced binaries only; the confidence scalar is a
+// logged diagnostic, never a verdict. The bench writes the hero's identity
+// clause with its OWN noun map rather than importing the easel's pen — the
+// court must not borrow the defendant's instrument to judge the
+// defendant's work.
 import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
@@ -20,8 +21,10 @@ export const FRAME_PROTOCOL: string = String(fixture.protocol);
 
 // THE PIN (instrument law): the frame questions are sealed law. Any byte
 // change to the fixture demands a new pin here and a fresh sitting of
-// teeth 13-15 before the frame courts may sit again.
-export const PINNED_FRAME_QUESTIONS_SHA256 = '61708114eb2869a168bb96bf6c762aa9da37c811346991f7ad4dee0fd491280c';
+// teeth 13-15 AND tooth 20 before the frame courts may sit again.
+// Re-pinned for protocol f3 (60B §4): the sheet court's two questions and
+// the attire constancy pair joined the sealed fixture.
+export const PINNED_FRAME_QUESTIONS_SHA256 = '04a5fea94379e8197428b4fc874c7e82bd9912fa5c44190d26d929cdfd0a499b';
 export function frameQuestionsDigest(): string {
   return createHash('sha256').update(fs.readFileSync(FRAME_QUESTIONS_PATH)).digest('hex');
 }
@@ -90,6 +93,63 @@ export async function pairVerdict(args: { aBytes: Buffer; bBytes: Buffer; visual
     images: [args.aBytes, args.bBytes],
     question: String(fixture.questions.fixture_pair).replace('{VISUAL}', args.visual),
     schema: { fixture_present_in_both: 'boolean', inconsistency: 'string', confidence: 'number 0..1' },
+    protocol: FRAME_PROTOCOL,
+  });
+}
+
+// ============================================================
+// THE SHEET COURT'S BENCH (60B §4, G31a / G33a / tooth 20).
+// Two questions and a pair: integrity (the 2x2 grid stands and no
+// lettering rides the plate), identity (the sheet depicts ITS soul,
+// every cell the same soul), and the attire constancy pair (one soul,
+// two paintings, the sealed attire canon visible in both). All three
+// are sealed fixture bytes under the same pin; tooth 20 proves their
+// separation before G31 or G33 may cite them.
+// ============================================================
+export async function sheetIntegrityVerdict(args: { bytes: Buffer; idSeed: string; criterion: string }): Promise<any> {
+  return judge({
+    id: args.idSeed,
+    criterion: args.criterion,
+    images: [args.bytes],
+    question: String(fixture.questions.sheet_integrity),
+    schema: { grid_four_cells: 'boolean', free_of_lettering: 'boolean', flaw: 'string', confidence: 'number 0..1' },
+    protocol: FRAME_PROTOCOL,
+  });
+}
+
+export async function sheetIdentityVerdict(args: { bytes: Buffer; clause: string; idSeed: string; criterion: string }): Promise<any> {
+  return judge({
+    id: args.idSeed,
+    criterion: args.criterion,
+    images: [args.bytes],
+    question: String(fixture.questions.sheet_identity).replace('{CLAUSE}', args.clause),
+    schema: { subject_matches: 'boolean', cells_agree: 'boolean', mismatch: 'string', confidence: 'number 0..1' },
+    protocol: FRAME_PROTOCOL,
+  });
+}
+
+/** THE SHEET SOUL CLAUSE (60B §4) — ONE seat for the wording that turns a
+ * sealed hero card into the sheet-identity clause (mirrors-one-seat law:
+ * tooth 20 and G31a must aim the same words or the tooth calibrates a
+ * question the court never asks). Fail-closed: a card without its sealed
+ * canon throws by name rather than judging against a half-clause. */
+export function sheetSoulClause(card: any): string {
+  if (!card || typeof card.name !== 'string' || !card.name.trim()) throw new Error('sheetSoulClause: no sealed hero card — the clause cannot be built');
+  if (typeof card.appearance !== 'string' || !card.appearance.trim() || typeof card.signature !== 'string' || !card.signature.trim()) {
+    throw new Error(`sheetSoulClause: the sealed card for ${card.name} carries no composed canon (appearance/signature) — refuse, never guess`);
+  }
+  const soul = card.presentation === 'feminine' ? 'a woman' : card.presentation === 'masculine' ? 'a man' : 'a person';
+  const mark = typeof card.mark === 'string' && card.mark.trim() ? ` marked by ${card.mark};` : '';
+  return `${card.name} — ${soul};${mark} ${card.appearance}; signature look: ${card.signature}`;
+}
+
+export async function attirePairVerdict(args: { aBytes: Buffer; bBytes: Buffer; attire: string; idSeed: string; criterion: string }): Promise<any> {
+  return judge({
+    id: args.idSeed,
+    criterion: args.criterion,
+    images: [args.aBytes, args.bBytes],
+    question: String(fixture.questions.attire_pair).replace('{ATTIRE}', args.attire),
+    schema: { attire_consistent: 'boolean', contradiction: 'string', confidence: 'number 0..1' },
     protocol: FRAME_PROTOCOL,
   });
 }

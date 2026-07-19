@@ -154,10 +154,15 @@ export async function mediaBase64(page: Page, campaignId: string, assetHash: str
 export interface PlateEntry {
   file: string; kind: string; label: string | null; variant: string | null;
   mime: string; cacheKey: string | null; assetHash: string | null;
-  klass: 'scene' | 'keyart' | 'region' | 'portrait' | 'unknown';
+  klass: 'scene' | 'keyart' | 'region' | 'portrait' | 'sheet' | 'unknown';
 }
 
 function classify(row: any): PlateEntry['klass'] {
+  // (60B §4) THE SHEET CLASS — Stage One's reference sheets predate no
+  // court: without this arm a hero sheet (label set, variant 'sheet')
+  // fell to 'region' and could masquerade as a vale plate before the
+  // environment court. The moved-surfaces law, honored at the classifier.
+  if (row.variant === 'sheet' || String(row.cacheKey || '').startsWith('sheet:')) return 'sheet';
   if (String(row.cacheKey || '').startsWith('scene:') || String(row.cacheKey || '').startsWith('proving-scene:')) return 'scene';
   if (row.label === 'keyart') return 'keyart';
   if (['bust', 'full-figure', 'dramatic'].includes(row.variant)) return 'portrait';

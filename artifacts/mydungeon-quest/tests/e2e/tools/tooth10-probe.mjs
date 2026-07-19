@@ -1,11 +1,11 @@
 // ============================================================
-// TOOTH 10's PROBE (0.9.0) — the Editor's rubric calibration, run
-// in the server's own module world (the spec shells out here so the
-// courts' ESM never meets the spec loader). Deterministic, keyless,
-// no dice: two planted-awful pages must each draw ≥2 flags and a
-// revise verdict carrying one pinned reason PER flag; a clean page
-// must draw no flag and ship. Perfect separation or the tooth is
-// red. Prints ONE JSON object on stdout.
+// TOOTH 10's PROBE (0.9.0; bite three 60B §4) — the Editor's rubric
+// calibration, run in the server's own module world (the spec shells
+// out here so the courts' ESM never meets the spec loader).
+// Deterministic, keyless, no dice: three planted-awful pages must
+// each draw their OWN flags and a revise verdict carrying one pinned
+// reason PER flag; a clean page must draw no flag and ship. Perfect
+// separation or the tooth is red. Prints ONE JSON object on stdout.
 // ============================================================
 import { createHash } from 'node:crypto';
 import { EDITOR_RUBRIC, editorPrePass, mockEditor } from '../../../server/room.js';
@@ -21,7 +21,7 @@ const sit = (turn, court) => {
 // lexicon phrases crowd well past two hits per thousand characters.
 const priorPage = 'The lantern light fell across the wet stones of the old bridge and held there, steady as a kept promise, while the river worked below.';
 const awfulEcho = {
-  narration_blocks: [{ text: 'You come back the way you came, and the lantern light fell across the wet stones of the old bridge as if nothing had moved. A chill ran down your spine at the stillness. The air was thick with old smoke, and your heart pounding in your ears drowned the river out.', speaker: null }],
+  narration_blocks: [{ text: 'You come back the way you came, and the lantern light fell across the wet stones of the old bridge as if nothing had moved. A chill ran down your spine at the stillness. An eerie silence held the span, and your heart pounding in your ears drowned the river out.', speaker: null }],
   suggestions: ['Cross the bridge before the light dies', 'Ask the ferryman about the smoke', 'Turn back for the vale road']
 };
 const biteOne = sit(awfulEcho, { priorPages: [priorPage], priorSuggestions: [] });
@@ -39,6 +39,21 @@ const awfulSame = {
 };
 const biteTwo = sit(awfulSame, { intent: { measure: 'lean' }, priorPages: [], priorSuggestions: [] });
 
+// BITE THREE (60B §4) — dash + tells. Em dashes ride the page (the dash
+// law is absolute: ZERO ship), and tells-lexicon phrases crowd past the
+// pinned density (2 per 1,000 characters). Everything else is kept
+// deliberately clean: two blocks inside the lean band, fresh prose with
+// no prior page to echo, distinct suggestion roads, and no phrase from
+// the CLICHE lexicon — so the plant draws exactly its two flags.
+const awfulDash = {
+  narration_blocks: [
+    { text: 'You delve into the archive room — shelves of ledgers in the heart of the keep — and the dust answers first.', speaker: null },
+    { text: 'A sense of order holds the far wall — each seal a testament to some clerk\u2019s long patience.', speaker: null }
+  ],
+  suggestions: ['Pull the newest ledger from its shelf', 'Read the seals along the far wall', 'Call for the clerk by name']
+};
+const biteThree = sit(awfulDash, { intent: { measure: 'lean' }, priorPages: [], priorSuggestions: [] });
+
 // THE CLEAN CONTROL — fresh prose, distinct roads, a page inside its
 // lean band. The rubric must let it ship untouched.
 const cleanPage = {
@@ -54,7 +69,8 @@ process.stdout.write(JSON.stringify({
   rubricSha256: createHash('sha256').update(EDITOR_RUBRIC, 'utf8').digest('hex'),
   bites: [
     { name: 'echo+cliche', ...biteOne },
-    { name: 'sameness+measure', ...biteTwo }
+    { name: 'sameness+measure', ...biteTwo },
+    { name: 'dash+tells', ...biteThree }
   ],
   clean
 }, null, 2));

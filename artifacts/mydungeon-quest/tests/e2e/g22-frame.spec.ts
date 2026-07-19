@@ -124,7 +124,7 @@ test('G22d the painted briefs carry the frame law, and the door refuses unlawful
   const m = preflightManifest('g22-frame');
   // The instrument seal first — this court sits under pinned questions.
   expect(frameQuestionsDigest(), 'the frame questions are sealed by their pin').toBe(PINNED_FRAME_QUESTIONS_SHA256);
-  expect(FRAME_PROTOCOL, 'the frame protocol tag').toBe('f2');
+  expect(FRAME_PROTOCOL, 'the frame protocol tag').toBe('f3');
 
   // The briefs the fixture store actually painted, read from the session
   // record: the pair is ONE brief minted twice, the fixture rider stands in

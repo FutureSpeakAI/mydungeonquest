@@ -18,7 +18,12 @@ test('G17 preflight: the harvest store holds every artifact this court needs', (
 test('G17a portraits: whole heads, single subjects, no awkward crops', async () => {
   test.setTimeout(600_000);
   const m = preflightManifest('g17-framing');
-  const portraits = m.plates.filter((p) => p.klass === 'portrait');
+  // (60B §4) The atelier's DRAMATIC variant is a scene-portrait by
+  // design — the soul inside a moment, props and diegetic occlusion
+  // welcome. Headshot framing law was never its promise; identity on
+  // those plates stays under G9's hard law. Busts and full figures
+  // keep the whole-head, no-awkward-crop bench.
+  const portraits = m.plates.filter((p) => p.klass === 'portrait' && p.variant !== 'dramatic');
   expect(portraits.length).toBeGreaterThanOrEqual(4);
   const misses: any[] = [];
   for (const portrait of portraits) {

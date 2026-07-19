@@ -209,6 +209,11 @@ test('harvest A: live session paints hero anchor, villain, and scenes', async ({
         { what: `the hero anchor (${HERO.name}, bust)`, matches: (r) => r.label === HERO.name && r.variant === 'bust' },
         { what: `the villain intro (${VILLAIN}, bust)`, matches: (r) => r.label === VILLAIN && r.variant === 'bust' },
         { what: `the villain later plate (${VILLAIN}, dramatic)`, matches: (r) => r.label === VILLAIN && r.variant === 'dramatic' },
+        // (60B §4) THE SHEET LANE — the hero's reference sheet mints beside
+        // her bust at genesis (serial lane, rank 2); the sheet court (G31)
+        // and its tooth starve honestly if the mint dies, so the harvest
+        // waits for it by name like every other required plate.
+        { what: `the hero reference sheet (${HERO.name})`, matches: (r) => r.variant === 'sheet' && r.label === HERO.name },
         { what: 'a scene plate on a sealed turn', matches: (r) => r.subtype === 'scene' || String(r.cacheKey || '').startsWith('scene:') },
       ], { capMs: WAIT1_CAP_MS, relay: { fire: (seat) => fireMintLadder(page, campaignId, seat) } });
 
@@ -234,7 +239,10 @@ test('harvest A: live session paints hero anchor, villain, and scenes', async ({
     manifest = await harvestPlates(page, campaignId, 'live');
     const campaign = await readCampaign(page, campaignId);
     fs.writeFileSync(path.join(PLATES_DIR, 'live', 'session.json'),
-      JSON.stringify({ campaignId, hero: HERO, villain: VILLAIN, styleBible: campaign.styleBible, logs: campaign.logs }, null, 2));
+      // (60B §4) heroCard rides WHOLE (harness-row-roundtrip law): the sheet
+      // court reads the SEALED canon — composed appearance, signature, and
+      // the raw atelier strokes — never the spec's own hero constant.
+      JSON.stringify({ campaignId, hero: HERO, heroCard: campaign.hero, villain: VILLAIN, styleBible: campaign.styleBible, logs: campaign.logs }, null, 2));
     await exportRecord(page, campaignId, 'live');
   }
 

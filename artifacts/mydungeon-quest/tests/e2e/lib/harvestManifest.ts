@@ -51,6 +51,12 @@ const LAW_SOURCES = [
   // The book court reads captures OF the book — layout law changes must
   // raze them too, or a stale storybook.json testifies about old code.
   path.join(GAME_ROOT, 'src', 'lib', 'storybook.js'),
+  // (60B §4) THE ONE ROAD and THE SHEET LANE are paint law now: the
+  // sheet grid, the silence clause, the ratio law, and the mint-job
+  // shapes all steer what the foundry paints. A moved road kills the
+  // store; the next harvest repaints under the standing law.
+  path.join(GAME_ROOT, 'src', 'lib', 'plateroad.js'),
+  path.join(GAME_ROOT, 'src', 'lib', 'sheets.js'),
   // (0.9.0 review round, amended after 58.4/58.5) The paint law covers the
   // PLATES and their captures — nothing else. Prose freshness is the PROSE
   // store's law (proseLawHash below): widening THIS hash to prose sources
@@ -228,6 +234,13 @@ export function buildTopManifest(): TopManifest {
 
   const roleOf = (tag: 'live' | 'fixture', entry: any): string => {
     const ck = String(entry.cacheKey || '');
+    // (60B §4) THE SHEET ROLES — the reference sheets ride their own klass
+    // (harness classify learned the arm in the same cut); the hero's own
+    // sheet carries a named role for the sheet court's door law, every
+    // other sheet rides the family role and is judged beside it.
+    if (entry.klass === 'sheet') {
+      return entry.label === hero.name ? 'hero-sheet' : 'sheet';
+    }
     if (entry.klass === 'keyart') return 'keyart';
     if (entry.klass === 'scene') {
       // (56C) The frame courts' deterministic seats ride their own roles so
@@ -332,6 +345,10 @@ export function buildTopManifest(): TopManifest {
   // (0.6.3 §2.4) The refusals ledger — role-classified from the payload's
   // own identity (the attestation carries the ask's name since 0.6.3).
   const refusalKlass = (payload: any): string => {
+    // (60B §4) A refused SHEET ask must die under its own name — without
+    // this arm it classed 'region' and the sheet court's door would say
+    // "missing" where the honest word is REFUSED.
+    if (payload?.subtype === 'sheet' || payload?.variant === 'sheet' || String(payload?.cacheKey || '').startsWith('sheet:')) return 'sheet';
     if (payload?.subtype === 'scene' || String(payload?.cacheKey || '').startsWith('scene:') || String(payload?.cacheKey || '').startsWith('proving-scene:')) return 'scene';
     if (payload?.subtype === 'keyart' || payload?.label === 'keyart') return 'keyart';
     if (payload?.subtype === 'portrait' || ['bust', 'full-figure', 'dramatic'].includes(String(payload?.variant))) return 'portrait';
@@ -402,7 +419,7 @@ export function topBytes(plate: TopPlate): Buffer {
 export type JudgeProject =
   | 'g09-character' | 'g10-environment' | 'g11-style'
   | 'g16-captions' | 'g17-framing' | 'g18-storybook' | 'g22-frame'
-  | 'g23-battle';
+  | 'g23-battle' | 'g31-sheet';
 
 export const JUDGE_PROJECTS: JudgeProject[] = [
   'g09-character', 'g10-environment', 'g11-style',
@@ -411,6 +428,10 @@ export const JUDGE_PROJECTS: JudgeProject[] = [
   // enrolled here, so the union lied and tooth 8's doctor walk skipped the
   // battle court's manifest. Enrolled now — the walk grew STRICTER.
   'g23-battle',
+  // (60B §4) THE SHEET COURT — enrolled at birth, so tooth 8 doctors its
+  // first need and tooth 9's starvation law covers a refused sheet mint
+  // from the court's first sitting.
+  'g31-sheet',
 ];
 
 interface Need {
@@ -499,6 +520,17 @@ const NEEDS: Record<JudgeProject, Need[]> = {
   'g23-battle': [
     harnessSceneNeed('battle-species'),
     fileNeed('sessionFixture', 'the fixture session (the battle brief and the species rider)'),
+  ],
+  // (60B §4) THE SHEET COURT's seats — the hero's sheet and her anchor
+  // (the attire pair's two grounds), and both sealed sessions (the hero
+  // card's canon, the captions, the cast visuals). Enrolled in
+  // JUDGE_PROJECTS, so tooth 8 doctors the first need and tooth 9's
+  // starvation law knows a refused sheet mint by its own class.
+  'g31-sheet': [
+    roleNeed('hero-sheet'),
+    roleNeed('hero-anchor'),
+    fileNeed('sessionLive', 'the live session (the sealed hero card and the plate captions)'),
+    fileNeed('sessionFixture', 'the fixture session (the sealed cast canon)'),
   ],
   'g11-style': [
     roleNeed('vale-establishing'),

@@ -39,6 +39,7 @@ const dateWord = (ms) => (Number.isFinite(ms) && ms > 0 ? new Date(ms).toLocaleD
 // The cards: first/last sealed words per soul, derived lawfully from the log.
 import { cardsForCampaign } from 'fatescript/cards';
 import { wordsLine } from 'fatescript/wikiText';
+import { introducedCast } from './unmet.js';
 
 // One line per soul for the dramatis personae — the fates.
 function fateLine(soul) {
@@ -234,7 +235,9 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
   let soulCards = {};
   try { soulCards = cardsForCampaign(campaign).cards; } catch { soulCards = {}; }
   const words = (name) => { const line = wordsLine(soulCards[String(name || '').trim().toLowerCase()]); return line ? `<p class="words">${esc(line)}</p>` : ''; };
-  const cast = heroPlate + (campaign.codex?.cast || []).map((soul) => `<article class="plate">${latestByLabel(soul.name) ? `<img src="${esc(latestByLabel(soul.name))}" alt="${esc(soul.name)}">` : `<div class="procedural-portrait large">${esc(initials(soul.name))}</div>`}<h3>${esc(soul.name)}</h3><p class="role">${esc(soul.role)}</p><p class="fate">${esc(fateLine(soul))}</p>${words(soul.name)}</article>`).join('');
+  // THE UNMET LAW — the dramatis personae folds through the introduction
+  // ledger like every other Book surface: canon without record is absence.
+  const cast = heroPlate + introducedCast(campaign).map((soul) => `<article class="plate">${latestByLabel(soul.name) ? `<img src="${esc(latestByLabel(soul.name))}" alt="${esc(soul.name)}">` : `<div class="procedural-portrait large">${esc(initials(soul.name))}</div>`}<h3>${esc(soul.name)}</h3><p class="role">${esc(soul.role)}</p><p class="fate">${esc(fateLine(soul))}</p>${words(soul.name)}</article>`).join('');
   const regions = (campaign.codex?.regions || []).map((region) => `<article class="plate">${latestByLabel(region.name) ? `<img src="${esc(latestByLabel(region.name))}" alt="${esc(region.name)}">` : ''}<h3>${esc(region.name)}</h3><p class="role">${esc(region.state)}</p><p>${esc(region.visual)}</p></article>`).join('');
   const strip = frames.length
     ? `<section class="leaf reel-page"><h2>The Reel</h2><div class="film-strip">${frames.slice(0, 30).map((m) => `<figure class="frame"><img src="${esc(m.dataUrl)}" alt="a painted beat"></figure>`).join('')}</div></section>`

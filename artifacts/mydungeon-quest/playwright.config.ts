@@ -69,6 +69,15 @@ export default defineConfig({
     // keyed houses never stand at once.
     { name: 'g25-wonder', testMatch: /g25-wonder\.spec\.ts/, dependencies: ['dom'] },
     { name: 'g26-return', testMatch: /g26-return\.spec\.ts/, dependencies: ['g25-wonder'] },
+    // (60B §4) THE BETA CUT's three courts. G31 (TRUE IMAGE) judges the
+    // sheet store and the fresh-plate law — its instruments (the sheet
+    // questions, the attire pair) are bitten by tooth 20 in calibration
+    // first. G32 (QUIET TABLE) is deterministic and lives on the live
+    // page alone. G33 (ATELIER & THRESHOLD) walks the forge live and
+    // cites the calibrated attire pair, so it rides behind calibration.
+    { name: 'g31-sheet', testMatch: /g31-sheet\.spec\.ts/, dependencies: ['calibration'] },
+    { name: 'g32-quiet', testMatch: /g32-quiet\.spec\.ts/, dependencies: ['dom'] },
+    { name: 'g33-atelier', testMatch: /g33-atelier\.spec\.ts/, dependencies: ['calibration'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

@@ -27,6 +27,9 @@ const REQUIRED_PROJECTS = [
   'g28-book',
   // (0.10.0, Directive XII §VII.3) the two live courts sit every run.
   'g25-wonder', 'g26-return',
+  // (60B §4) THE BETA CUT — the sheet court, the quiet table, and the
+  // atelier & threshold court sit every run.
+  'g31-sheet', 'g32-quiet', 'g33-atelier',
 ];
 // Test-title needles that must appear among EXECUTED (non-skipped) tests.
 const REQUIRED_EXECUTED = [
@@ -64,6 +67,13 @@ const REQUIRED_EXECUTED = [
   // (0.10.0, Directive XII §VI.1/§VI.4) the wonder clock and the return
   // law, demanded by name so a live court can never silently skip.
   'G25:', 'G26a', 'G26b',
+  // (60B §4) THE BETA CUT — the sheet court, the quiet table, the
+  // atelier & threshold court, and the two new teeth, each demanded by
+  // its own exact name; the teeth colon-anchored like every other.
+  'G31a', 'G31b', 'G31c', 'G31d', 'G31e', 'G31f',
+  'G32a', 'G32b',
+  'G33a', 'G33b', 'G33c', 'G33d', 'G33e',
+  'tooth 20:', 'tooth 21:',
 ];
 
 let verdict;

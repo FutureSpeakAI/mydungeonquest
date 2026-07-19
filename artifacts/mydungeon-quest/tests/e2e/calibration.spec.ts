@@ -384,6 +384,77 @@ test('tooth 16: the species instrument tells the sealed beast from a crossed car
   expect(beastless.species_match, 'bad: a ground without the beast is refused').toBe(false);
 });
 
+// TOOTH 20 (60B §4) — the sheet instrument and the attire constancy
+// pair, bitten BEFORE the courts that cite them (G31a, G33a). Known
+// good: the hero's own minted sheet against her sealed canon, and the
+// anchor-beside-sheet attire pair under the TRUE attire clause. Known
+// bad, deterministic lies never crossings (the proving-loop law): a
+// synthetic soul no record ever sealed, a lettered sheet composited in
+// sharp from the real sheet's own bytes, and a synthetic attire canon
+// no wardrobe ever held. The frame-questions pin is asserted in-tooth
+// so a drifted sheet question can never sit silently.
+test('tooth 20: the sheet instrument refuses the wrong soul, the lettered plate, and the attire lie', async () => {
+  test.setTimeout(600_000);
+  const { attirePairVerdict, sheetIdentityVerdict, sheetIntegrityVerdict, sheetSoulClause } = await import('./lib/frameLaw');
+  expect(frameQuestionsDigest(), 'the frame questions are sealed by their pin (f3)').toBe(PINNED_FRAME_QUESTIONS_SHA256);
+  const m = preflightManifest('g31-sheet');
+  const sheet = topBytes(rolePlate(m, 'hero-sheet'));
+  const anchor = topBytes(rolePlate(m, 'hero-anchor'));
+  const session = JSON.parse(fs.readFileSync(path.join(HARVEST_DIR, 'live', 'session.json'), 'utf8'));
+  const card = session?.heroCard;
+  expect(card && typeof card.appearance === 'string' && card.appearance.trim() && typeof card.signature === 'string' && card.signature.trim(),
+    'the live session seals the hero card whole (appearance and signature) — the tooth judges canon, never a spec constant').toBeTruthy();
+  // ONE seat for the clause (mirrors-one-seat): the tooth calibrates the
+  // SAME wording G31a and G33a will aim, or the calibration is theater.
+  const clause = sheetSoulClause(card);
+
+  // GOOD — the sheet answers its own integrity and its own soul.
+  const integrity = await sheetIntegrityVerdict({ bytes: sheet, idSeed: 'tooth20-good-integrity', criterion: 'tooth-20-sheet' });
+  console.log(`[tooth 20] good-integrity: ${JSON.stringify(integrity)}`);
+  expect(integrity.grid_four_cells === true && integrity.free_of_lettering === true, 'good: the minted sheet holds its 2x2 grid and carries no lettering').toBe(true);
+  const identity = await sheetIdentityVerdict({ bytes: sheet, clause, idSeed: 'tooth20-good-identity', criterion: 'tooth-20-sheet' });
+  console.log(`[tooth 20] good-identity: ${JSON.stringify(identity)}`);
+  expect(identity.subject_matches === true && identity.cells_agree === true, 'good: the sheet depicts its own sealed soul in every cell').toBe(true);
+
+  // BAD — a soul no record sealed (deterministic lie, maximally separated).
+  const crossed = await sheetIdentityVerdict({
+    bytes: sheet,
+    clause: 'a hulking gray-skinned ogre of living stone, twice a man\u2019s height, tusked, draped in chained boulders',
+    idSeed: 'tooth20-bad-soul', criterion: 'tooth-20-sheet',
+  });
+  console.log(`[tooth 20] bad-soul: ${JSON.stringify(crossed)}`);
+  expect(crossed.subject_matches, 'bad: a sheet crossed against the wrong soul fails the sheet court').toBe(false);
+
+  // BAD — the same sheet bytes with lettering composited on (sharp SVG,
+  // sealed deterministic bytes; the grid beneath is untouched).
+  const meta = await sharp(sheet).metadata();
+  const w = meta.width || 1024; const h = meta.height || 1024;
+  const svg = Buffer.from(
+    `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">` +
+    `<text x="50%" y="12%" font-family="serif" font-size="${Math.round(h / 12)}" font-weight="bold" fill="#ffffff" stroke="#000000" stroke-width="4" text-anchor="middle">MODEL SHEET 04-B</text>` +
+    `<text x="50%" y="92%" font-family="serif" font-size="${Math.round(h / 16)}" fill="#000000" stroke="#ffffff" stroke-width="2" text-anchor="middle">PROPERTY OF THE HOUSE</text></svg>`
+  );
+  const lettered = await sharp(sheet).composite([{ input: svg, left: 0, top: 0 }]).png().toBuffer();
+  const letteredVerdict = await sheetIntegrityVerdict({ bytes: lettered, idSeed: 'tooth20-bad-lettered', criterion: 'tooth-20-sheet' });
+  console.log(`[tooth 20] bad-lettered: ${JSON.stringify(letteredVerdict)}`);
+  expect(letteredVerdict.free_of_lettering, 'bad: a deliberately lettered sheet fails the sheet court').toBe(false);
+
+  // THE ATTIRE PAIR — grown for the constancy courts (G31a identity rides
+  // it through the clause; G33a cites it directly). Good: the sealed
+  // anchor beside the sheet derived from it, under the TRUE attire canon.
+  const attireTruth = card.signature;
+  const goodPair = await attirePairVerdict({ aBytes: anchor, bBytes: sheet, attire: attireTruth, idSeed: 'tooth20-good-attire', criterion: 'tooth-20-attire' });
+  console.log(`[tooth 20] good-attire: ${JSON.stringify(goodPair)}`);
+  expect(goodPair.attire_consistent, 'good: the anchor and the sheet wear the sealed attire canon').toBe(true);
+  const badPair = await attirePairVerdict({
+    aBytes: anchor, bBytes: sheet,
+    attire: 'full gilded plate armor with a great horned helm and a scarlet plume',
+    idSeed: 'tooth20-bad-attire', criterion: 'tooth-20-attire',
+  });
+  console.log(`[tooth 20] bad-attire: ${JSON.stringify(badPair)}`);
+  expect(badPair.attire_consistent, 'bad: an attire canon no wardrobe held is refused').toBe(false);
+});
+
 // TOOTH 10 (0.9.0, THE WRITER'S ROOM) — the Editor's rubric, proven the
 // way tooth 11 proved the binary instrument: perfect separation on
 // planted material before the prose court trusts a single ship verdict.
@@ -408,6 +479,11 @@ test('tooth 10: the Editor\'s rubric draws blood twice and ships the clean page'
   }
   expect(probe.bites[0].flags, 'bite one names echo and cliche, in the pinned order').toEqual(['echo', 'cliche']);
   expect(probe.bites[1].flags, 'bite two names sameness and measure, in the pinned order').toEqual(['sameness', 'measure']);
+  // (60B §4) BITE THREE — the dash law and the tells lexicon, flagged in
+  // editorPrePass's own order: the four law flags first (none here, the
+  // plant is built clean of them), then dash, then tells.
+  expect(probe.bites[2].flags, 'bite three names dash and tells, in the pinned order').toEqual(['dash', 'tells']);
+  expect(probe.bites[2].reasons.some((reason: string) => /dash/i.test(reason)), 'the dash reason speaks the dash law by name').toBe(true);
   console.log(`[tooth 10] clean: flags=[${probe.clean.flags.join(', ')}] verdict=${probe.clean.verdict}`);
   expect(probe.clean.flags, 'the clean control draws no flag').toEqual([]);
   expect(probe.clean.verdict, 'the clean control ships').toBe('ship');

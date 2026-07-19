@@ -263,3 +263,76 @@ test('tooth 9: the terminality wait reads a sealed refusal in seconds and starve
     bites: true,
   });
 });
+
+// TOOTH 21 (60B §4) — THE BORROWED PAPERS. The fresh-plate law says a
+// painting rides only with papers minted for ITS OWN turn. The tooth
+// plants two doctored rows in a seeded chronicle: row A wears lawful
+// this-turn papers; row B wears papers whose origin is row A's turn —
+// borrowed papers, a deterministic lie. The render door must hang A,
+// refuse B with the honest stale line, and the sweep instrument must
+// name exactly B. If the door ever hangs the borrowed painting, G31c's
+// green is unearned and this tooth is the proof.
+test('tooth 21: borrowed papers are refused at the frame and named by the sweep', async ({ page }) => {
+  test.setTimeout(240_000);
+  const { boot, seedFixture, readCampaign } = await import('./lib/harness');
+  const { freshPlateSweep, STALE_LINE } = await import('./lib/freshPlate');
+  const sharp = (await import('sharp')).default;
+  const png = await sharp({ create: { width: 384, height: 512, channels: 3, background: { r: 70, g: 44, b: 30 } } }).png().toBuffer();
+  const dataUrl = `data:image/png;base64,${png.toString('base64')}`;
+
+  await boot(page);
+  await seedFixture(page, { boot: true });
+  const planted = await page.evaluate(async (url: string) => {
+    // The render source is the campaign row's OWN embedded logs (the journal
+    // table is the seal chain, not the feed). The row is read FRESH from the
+    // shelf inside this same breath, so the put can never roll the seal head.
+    const { db } = await import('/src/lib/db.js');
+    const campaigns = await db.campaigns.toArray();
+    const c = campaigns[campaigns.length - 1];
+    // Renderable = a dm turn with its stamp that is neither a divider row
+    // (kind) nor struck (the seed presses the X-card once — a torn page
+    // hangs no painting, so a plant there would prove nothing).
+    const rows = (Array.isArray(c?.logs) ? c.logs : []).filter((r: any) => r && r.dm && r.recordHash && !r.redacted && !r.kind);
+    if (rows.length < 2) return { ok: false, why: 'the seeded chronicle holds fewer than two renderable dm log rows' };
+    const a = rows[rows.length - 2];
+    const b = rows[rows.length - 1];
+    a.imageUrl = url;
+    a.imagePapers = { assetHash: 'tooth21-bytes-a', originTurnHash: a.recordHash, caption: 'A lawful painting of its own moment' };
+    b.imageUrl = url;
+    // THE LIE — row B rides on row A's papers: right shape, wrong turn.
+    b.imagePapers = { assetHash: 'tooth21-bytes-a', originTurnHash: a.recordHash, caption: 'A borrowed painting from another moment' };
+    await db.campaigns.put(c);
+    return { ok: true, why: '', aId: a.id ?? null, bId: b.id ?? null, aTurn: a.recordHash };
+  }, dataUrl);
+  expect(planted.ok, `the two-row plant seats: ${planted.why || 'ok'}`).toBe(true);
+
+  await page.reload();
+  await page.waitForSelector('.title-page', { timeout: 45_000 });
+  await page.locator('.book-spine:not(.new-spine)').first().click();
+  await page.waitForSelector('main.adventure-log', { timeout: 30_000 });
+
+  // The lawful plate hangs; the borrowed one is refused with the honest line.
+  await expect(page.locator('img[src^="data:image/png"]'), 'exactly ONE painting hangs — the lawful one').toHaveCount(1);
+  const staleFrame = page.locator('.empty-frame', { hasText: STALE_LINE });
+  await expect(staleFrame, 'the borrowed papers draw the honest stale line, verbatim from the law\u2019s own seat').toBeVisible({ timeout: 15_000 });
+
+  // The sweep instrument names exactly the borrowed row — never the lawful one.
+  const shelfId = await page.evaluate(async () => {
+    const { db } = await import('/src/lib/db.js');
+    const all = await db.campaigns.toArray();
+    return all[all.length - 1]?.id ?? null;
+  });
+  expect(shelfId, 'the planted chronicle stands on the shelf').toBeTruthy();
+  const campaign = await readCampaign(page, shelfId);
+  const sweep = freshPlateSweep(campaign?.logs ?? []);
+  const staleIds = sweep.stale.map((row) => row.logId);
+  expect(staleIds, 'the sweep names exactly the borrowed row').toEqual([planted.bId]);
+  expect(sweep.stale[0].detail, 'the sweep\u2019s detail names the borrowed origin').toContain(String(planted.aTurn).slice(0, 12));
+  expect(sweep.fresh.some((row) => row.logId === planted.aId), 'the lawful row stands fresh in the same sweep').toBe(true);
+
+  saveDeterministicEvidence('sabotage-21-borrowed-papers', {
+    plantedA: planted.aId, plantedB: planted.bId,
+    staleNamed: staleIds, staleDetail: sweep.stale[0]?.detail ?? null,
+    bites: true,
+  });
+});

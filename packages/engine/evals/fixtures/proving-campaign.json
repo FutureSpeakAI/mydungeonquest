@@ -1,0 +1,316 @@
+{
+  "title": "The Proving Ground",
+  "covenant": "A border march where every road answers to the Duchy and every hearth in Larkspur Vale keeps one unpaid debt alive. The pass wants closing before the first snow, and the woman with the key-shaped burn is the only one who remembers why.",
+  "tone": "Mythic, warm, and dangerous",
+  "styleBible": "Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.",
+  "homeRegion": "Larkspur Vale",
+  "spineId": "classic-epic",
+  "lines": [],
+  "veils": [],
+  "hero": {
+    "name": "Maren",
+    "sigil": "✦",
+    "ancestry": "Human",
+    "className": "Ranger",
+    "caster": "half",
+    "hitDie": 10,
+    "abilities": { "STR": 14, "DEX": 15, "CON": 13, "INT": 10, "WIS": 12, "CHA": 8 },
+    "skills": ["Perception", "Survival", "Stealth"],
+    "bearing": "Weather-worn leathers over a courier's frame, dark hair bound back with waxed cord, and a road-warden's longbow carried like a habit.",
+    "background": "A former road-warden of the Vale who can hear when a path is lying.",
+    "presentation": "feminine",
+    "pronouns": "she/her",
+    "mark": "a burn in the shape of a key"
+  },
+  "turns": [
+    {
+      "player": "Begin the chronicle.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "Larkspur Vale wakes under a thin gold rain, and the bell above the waystation rings twice for a rider nobody sent. Maren reads the road the way other people read letters, and this morning the road is lying." },
+          { "speaker": null, "text": "Three figures wait by the hearth-house: Edda, who keeps the Vale's fires and its grudges; Corin Voss, the Duchy's envoy with dust still on his seal-case; and behind the rain, a shape the old maps refuse to name — Vessarine, the Hollow Queen." }
+        ],
+        "suggestions": ["Read the lying road", "Greet Edda at the hearth", "Watch the envoy's hands"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "arc": {
+            "title": "The Proving Ground",
+            "evil_plot": "Vessarine, the Hollow Queen, is calling in every debt in the march at once, so the Vale must sell its roads to the Duchy before the snow seals the pass.",
+            "stakes": "The Vale's hearths, the road home, and one unpaid restitution.",
+            "style_bible": "Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril."
+          },
+          "beat_advance": false,
+          "cast_add": [
+            {
+              "name": "Vessarine",
+              "role": "villain",
+              "visual": "A tall pale sovereign in a gown of tarnished silver scales, a cracked porcelain half-mask over the left side of her face, ash-white hair worked into a crown of iron pins, and a mantle of crow feathers that drinks the light around her.",
+              "voice": "A cold contralto that never hurries, each word placed like a coin on a debt ledger.",
+              "goal": "Call in every debt in the march before the first snow.",
+              "secret": "The key-shaped burn on Maren's wrist matches the lock Vessarine cannot open.",
+              "voice_card": { "gender": "feminine", "age": "adult", "timbre": "cold contralto" }
+            },
+            {
+              "name": "Edda",
+              "role": "hearth-keeper of Larkspur Vale",
+              "visual": "A broad-shouldered elder with white hair braided in a crown, flour-dusted forearms, a shawl the color of banked embers, and eyes that have out-waited three bad winters.",
+              "voice": "A warm, cracked alto that turns every sentence into a hearth story.",
+              "goal": "Keep the Vale's fires lit and its debts remembered.",
+              "secret": "She holds the written proof of Corin's debt sewn into her shawl hem.",
+              "voice_card": { "gender": "feminine", "age": "elder", "timbre": "warm cracked alto" }
+            },
+            {
+              "name": "Corin Voss",
+              "role": "envoy of the Duchy",
+              "visual": "A travel-lean man in the Duchy's slate-blue riding coat, brass seal-case at his hip, close-cropped dark beard, and gloved hands that never stray far from his ledger.",
+              "voice": "A careful tenor, courteous to the exact edge of honesty.",
+              "goal": "Close the pass road deal before the snow.",
+              "secret": "He owes Edda restitution he cannot pay without the Duchy noticing.",
+              "voice_card": { "gender": "masculine", "age": "adult", "timbre": "careful tenor" }
+            }
+          ],
+          "cast_update": [],
+          "thread_add": [
+            { "label": "Corin owes Edda restitution", "kind": "debt", "holder": "Corin Voss" },
+            { "label": "The lantern oath", "kind": "promise", "holder": "Maren" }
+          ],
+          "item_add": [
+            { "name": "The ferry ledger", "kind": "document", "holder": "Maren", "note": "Every crossing the Vale still owes, in Edda's tight hand." }
+          ],
+          "purse": [
+            { "holder": "Maren", "delta": 30, "reason": "Road-warden's back pay counted out at the waystation" }
+          ],
+          "world": {
+            "region_add": {
+              "name": "Larkspur Vale",
+              "visual": "A terraced river vale of slate-roofed hearth-houses, larkspur meadows climbing to a ruined watchtower, and a gold-leafed old road stitching the terraces together under soft northern light."
+            }
+          },
+          "scene_set": { "region": "Larkspur Vale" }
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": null,
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "I ask Edda about Corin's debt.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": "Edda", "text": "“The debt stands, girl. Corin Voss swore restitution on this very hearth two winters back, and the hearth remembers longer than the Duchy does.”" },
+          { "speaker": null, "text": "Corin Voss studies his gloves while Edda speaks, and the lantern oath Maren swore on the old road feels suddenly heavier — kept now, and done with, the way a true promise ends." }
+        ],
+        "suggestions": ["Press Corin for terms", "Swear to collect the debt", "Let the hearth judge"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "thread_resolve": [
+            { "label": "The lantern oath", "outcome": "kept" }
+          ],
+          "item_transfer": [
+            { "name": "The ferry ledger", "from": "Maren", "to": "Edda" }
+          ],
+          "purse": [
+            { "holder": "Maren", "delta": -12, "reason": "Paid the road toll at the north gate" }
+          ],
+          "world": {
+            "region_add": {
+              "name": "The Duchy",
+              "visual": "A walled upland seat of slate towers and counting-houses, banners of slate-blue and brass over the toll gates, and straight paved roads that leave nothing to chance."
+            }
+          }
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": { "unit": "days", "n": 1 },
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "I whisper what the road told me.",
+      "struck": true,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "THE STRUCK SENTENCE hangs in the hearth-house air, and every fire in the Vale leans away from it." }
+        ],
+        "suggestions": ["Take it back", "Say nothing more", "Leave the hearth"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": null,
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": null,
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "We march for the pass at dawn.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": "Corin Voss", "text": "“Dawn, then. The Duchy's road is straight, but the Vale's is older — and I have learned this week which one of them lies less.”" },
+          { "speaker": null, "text": "Packs are weighed, the hearth is banked, and the larkspur meadows fold into blue shadow as the second day closes on the march." }
+        ],
+        "suggestions": ["Take the old road", "Take the Duchy road", "Split the party"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "world": null
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": { "unit": "days", "n": 1 },
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "I check the wind before we leave.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": "Edda", "text": "“Wind's from the Duchy. It usually is, this time of year — take bread, and take the debt with you.”" },
+          { "speaker": "Corin Voss", "text": "“The pass won't wait on weather, ranger. We leave within the hour — debts and all.”" },
+          { "speaker": null, "text": "Day three opens clear and cold over Larkspur Vale, and somewhere north the Hollow Queen's ledgers turn a page." }
+        ],
+        "suggestions": ["Take the bread", "Promise Edda the restitution", "Look north"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": null,
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": null,
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "We take the Duchy road at last.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "The toll gates rise out of morning haze, slate-blue banners snapping over paved stone, and the road that lied in the Vale runs honest and hard beneath the horses now." },
+          { "speaker": "Corin Voss", "text": "“Welcome to the Duchy, ranger. Mind the counting-houses — here even the wind pays toll.”" }
+        ],
+        "suggestions": ["Pay the gate toll", "Ask after the ledgers", "Watch the banners"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "scene_set": { "region": "The Duchy" },
+          "world": null
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": { "unit": "days", "n": 1 },
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "I ask the envoy to ride with us.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": "Corin Voss", "text": "“Ride with you? The Duchy pays me to count crossings, ranger — but the debt rides wherever I do, and Edda's hearth holds the proof of it. Very well. My horse, my ledger, and my word: I ride with you.”" },
+          { "speaker": null, "text": "Under the gate arch, the great brass toll-scale tips once as if weighing the bargain, its mirror-worn pans catching the morning while the counting-houses pretend not to watch." }
+        ],
+        "suggestions": ["Shake on the bargain", "Weigh his ledger", "Leave before noon"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "world": null,
+          "fixture_add": {
+            "place": "The Duchy",
+            "name": "The Brass Toll-Scale",
+            "visual": "A man-high brass toll-scale bolted to the gate arch, its twin pans polished to mirrors by a century of counted crossings."
+          },
+          "party_join": { "name": "Corin Voss" }
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": null,
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "We ride home to the Vale together.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": null, "text": "The paved road gives way to the old gold-leafed one, and the terraces of Larkspur Vale open below like a ledger finally balanced. The party rides down together as the fourth day closes." },
+          { "speaker": "Corin Voss", "text": "“Strange. Your lying road tells the truth all the way home when it has company.”" }
+        ],
+        "suggestions": ["Ride for the hearth", "Race the last mile", "Watch the ridge"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "world": null,
+          "scene_set": { "region": "Larkspur Vale" }
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": { "unit": "days", "n": 1 },
+        "entropy_use": []
+      }
+    },
+    {
+      "player": "I bid the envoy farewell at the hearth.",
+      "struck": false,
+      "dm": {
+        "narration_blocks": [
+          { "speaker": "Edda", "text": "“So the envoy rode home with you and turned straight back for his counting-houses — debts and all, the hearth heard him say it. Then I'll ride the next stretch myself, girl. The Vale's fires can spare me a week.”" },
+          { "speaker": null, "text": "By the banked hearth the bargain changes hands: the Duchy road takes its envoy back north, and the hearth-keeper shoulders her ember-colored shawl to travel at Maren's side." }
+        ],
+        "suggestions": ["Welcome Edda aboard", "Send word north", "Bank the fire"],
+        "roll_request": null,
+        "state_updates": null,
+        "combat": null,
+        "cinematic": null,
+        "story": {
+          "beat_advance": false,
+          "cast_add": [],
+          "cast_update": [],
+          "world": null,
+          "party_join": { "name": "Edda" },
+          "party_leave": { "name": "Corin Voss", "remains_at": "The Duchy" }
+        },
+        "image_cue": null,
+        "dialogue_cue": null,
+        "time_advance": null,
+        "entropy_use": []
+      }
+    }
+  ]
+}

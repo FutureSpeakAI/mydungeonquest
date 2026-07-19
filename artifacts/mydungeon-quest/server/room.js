@@ -1,11 +1,12 @@
 // ------------------------------------------------------------
-// THE WRITER'S ROOM — Directive XI.
+// THE WRITER'S ROOM — Directive XI, the table's door.
 //
-// The orchestrator behind the one door. The Director sits once per
-// beat and hands down `beat_intent` (intent, secrets, threads,
-// forbidden repeats, and the measure); the Voice tells the turn under
-// that word; the sealed result leaves whole — the curtain (Law I)
-// guarantees no seat's deliberation is ever seen from the table.
+// The orchestrator behind the one door. The room's LAW — bands,
+// courts, floors, and the pinned rubric — moved home with the parity
+// cut (fatescript/room); this file keeps what only the table can
+// hold: the provider seats and their keys, the pinned cliche lexicon
+// (fixture data, loaded here and handed to the engine's courts at
+// the door), and the convene itself.
 //
 // THE INHERITANCE: every seat reads the world through the briefing
 // the request already carries. No new context plumbing exists here —
@@ -18,102 +19,39 @@
 // nothing and counts nothing (room_ledger.director_calls stays 0).
 // ------------------------------------------------------------
 import { readFileSync } from 'node:fs';
+import {
+  MEASURES, foldProse, threadNames, validateBeatIntent, mockDirector, beatIndexOf,
+  editorEvidence, mockEditor, EDITOR_RUBRIC,
+  clicheCheck as lawClicheCheck, editorPrePass as lawEditorPrePass
+} from 'fatescript/room';
 import { plateDue } from './artDirector.js';
 import { getDmTurn, dmPlan } from './dm.js';
 import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
 
-const MEASURES = ['lean', 'standard', 'rich'];
-// LAW V — the bands, in numbers. A paragraph is one narration block.
-export const MEASURE_BANDS = { lean: [1, 2], standard: [3, 5], rich: [6, 8] };
+// The law, re-spoken through the table's door so every gate, probe,
+// and seat keeps its one import path.
+export {
+  MEASURES, MEASURE_BANDS, threadNames, validateBeatIntent, measureForBeat,
+  mockDirector, beatIndexOf, foldProse, echoCheck, jaccard, samenessCheck,
+  measureCheck, editorEvidence, EDITOR_RUBRIC, mockEditor
+} from 'fatescript/room';
 
-// The thread ledger as the briefing carries it — rows with names, or
-// bare strings. No rows at all leaves the thread court out of session.
-export function threadNames(story) {
-  const rows = Array.isArray(story?.open_threads) ? story.open_threads
-    : Array.isArray(story?.threads) ? story.threads : null;
-  if (!rows) return null;
-  return rows
-    .map((row) => (typeof row === 'string' ? row : (row && typeof row.name === 'string' ? row.name : null)))
-    .filter((name) => typeof name === 'string' && name.length);
+// LAW VI — THE CLICHE LEXICON: pinned fixture data (instrument matter,
+// not prompt law — LISTLESS LEGISLATION stands). Loaded once at the
+// door, folded by the engine's own fold, and bound as the default
+// instrument for every court this door serves.
+const CLICHE_LEXICON = Object.freeze(
+  JSON.parse(readFileSync(new URL('./cliche-lexicon.json', import.meta.url), 'utf8'))
+    .phrases.map((phrase) => foldProse(phrase)).filter(Boolean)
+);
+
+// The engine's courts, with the table's instrument bound in — callers
+// at this door judge with the pinned lexicon unless they hand their own.
+export function clicheCheck(draftText, lexicon = CLICHE_LEXICON) {
+  return lawClicheCheck(draftText, lexicon);
 }
-
-// The Director's word faces its own strict court — exactly these keys,
-// these lengths, this measure. A live seat that cannot speak lawfully
-// is replaced by the deterministic floor, never argued with.
-export function validateBeatIntent(intent, { threads = null } = {}) {
-  if (!intent || typeof intent !== 'object' || Array.isArray(intent)) {
-    return { ok: false, errors: ['beat_intent must be a single object'] };
-  }
-  const errors = [];
-  const lawful = ['beat_index', 'forbidden_repeats', 'intent', 'measure', 'secrets_held', 'threads_to_touch'];
-  for (const key of Object.keys(intent)) {
-    if (!lawful.includes(key)) errors.push(`unlawful key: ${key}`);
-  }
-  if (typeof intent.intent !== 'string' || intent.intent.length < 12 || intent.intent.length > 200) {
-    errors.push('intent must be one sentence of 12-200 characters');
-  }
-  const arrays = [['secrets_held', 4], ['threads_to_touch', 3], ['forbidden_repeats', 5]];
-  for (const [key, cap] of arrays) {
-    const rows = intent[key];
-    if (!Array.isArray(rows) || rows.length > cap || rows.some((row) => typeof row !== 'string' || !row.length || row.length > 120)) {
-      errors.push(`${key} must be an array of at most ${cap} short strings`);
-    }
-  }
-  if (!MEASURES.includes(intent.measure)) errors.push('measure must be lean, standard, or rich');
-  if (!Number.isInteger(intent.beat_index) || intent.beat_index < 0) errors.push('beat_index must seat the intent');
-  // Threads named must be threads the ledger holds — judged only when
-  // the briefing actually carries a ledger (absent evidence, out of session).
-  if (Array.isArray(threads) && Array.isArray(intent.threads_to_touch)) {
-    const held = new Set(threads);
-    for (const name of intent.threads_to_touch) {
-      if (typeof name === 'string' && !held.has(name)) errors.push(`threads_to_touch names no ledger thread: ${name}`);
-    }
-  }
-  return { ok: !errors.length, errors };
-}
-
-// LAW IV/V — the measure mapping, stated as one deterministic law:
-// arrivals (beat 0), act turns, and the final revelation run rich; the
-// quiet connective stride runs lean; most beats run standard. Rhythm
-// follows by construction: two rich beats may only touch across an
-// act turn — the named exception.
-export function measureForBeat(beats, index) {
-  const rows = Array.isArray(beats) ? beats : [];
-  if (!rows.length) return 'standard';
-  const at = Math.min(Math.max(index, 0), rows.length - 1);
-  const actTurnAt = (i) => i > 0 && (rows[i]?.act || 1) !== (rows[i - 1]?.act || 1);
-  const richAt = (i) => i === 0 || i === rows.length - 1 || actTurnAt(i);
-  if (richAt(at)) {
-    // THE RHYTHM (Law V): two rich pages may touch only across an act
-    // turn — a rich seat whose neighbor ran rich without one steps down.
-    if (at > 0 && richAt(at - 1) && !actTurnAt(at)) return 'standard';
-    return 'rich';
-  }
-  if (at % 3 === 2) return 'lean';
-  return 'standard';
-}
-
-// The deterministic Director — the mock tier's seat, and the floor the
-// live seat degrades to. Seeded entirely by the briefing: beat index,
-// spine, and the thread ledger. Byte-stable across sittings.
-export function mockDirector(input, beatIndex) {
-  const beats = input?.spine?.beats || [];
-  const at = Number.isInteger(beatIndex) ? beatIndex : 0;
-  const beat = beats[at] || beats[beats.length - 1] || {};
-  const title = typeof beat.title === 'string' && beat.title ? beat.title : 'the road ahead';
-  const goal = typeof beat.goal === 'string' && beat.goal ? beat.goal : 'carry the tale forward';
-  let line = `Advance "${title}" toward its goal: ${goal}`;
-  if (line.length > 200) line = `${line.slice(0, 199)}…`.slice(0, 200);
-  if (line.length < 12) line = 'Advance the standing chapter toward its goal.';
-  const threads = threadNames(input?.story) || [];
-  return {
-    intent: line,
-    secrets_held: [],
-    threads_to_touch: threads.slice(0, 2),
-    forbidden_repeats: [],
-    measure: measureForBeat(beats, at),
-    beat_index: at
-  };
+export function editorPrePass(turn, opts = {}) {
+  return lawEditorPrePass(turn, { lexicon: CLICHE_LEXICON, ...opts });
 }
 
 // The live Director: one strict-JSON sitting through the standing
@@ -198,137 +136,6 @@ async function directorSits(input, beatIndex, { barred = {} } = {}) {
   return mockDirector(input, beatIndex);
 }
 
-// The standing beat index as the briefing carries it. Absent evidence
-// yields null: the Director sits fresh (honestly counted) and the
-// cache never falsely matches.
-export function beatIndexOf(input) {
-  const at = input?.story?.beat?.index;
-  return Number.isInteger(at) && at >= 0 ? at : null;
-}
-
-// ------------------------------------------------------------
-// THE EDITOR — Directive XI, Laws VI–VIII. The second seat.
-// A deterministic pre-pass judges every draft for free; the judged
-// pass sits only on a flag or at the sampling law; one revision
-// maximum; a twice-refused draft SHIPS, attested. All of it behind
-// the curtain — the player never witnesses the room arguing.
-// ------------------------------------------------------------
-
-// Fold for the Editor's ear: case down, punctuation and hyphens to
-// spaces, one space between words — "fen-light" and "fen light" are
-// one sound in this court.
-export function foldProse(text) {
-  return String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-}
-
-const narrationOf = (turn) => (Array.isArray(turn?.narration_blocks)
-  ? turn.narration_blocks.map((block) => (block && typeof block.text === 'string' ? block.text : '')).join(' ')
-  : '');
-
-// LAW VI — THE ECHO CHECK. Any 8-word folded run shared verbatim with
-// the narration of the last 20 sealed pages flags. ONE shared run is
-// the pinned threshold.
-export function echoCheck(draftText, priorPages = []) {
-  const words = foldProse(draftText).split(' ').filter(Boolean);
-  if (words.length < 8) return false;
-  const seen = new Set();
-  for (const page of (Array.isArray(priorPages) ? priorPages : []).slice(-20)) {
-    const prior = foldProse(page).split(' ').filter(Boolean);
-    for (let i = 0; i + 8 <= prior.length; i += 1) seen.add(prior.slice(i, i + 8).join(' '));
-  }
-  if (!seen.size) return false;
-  for (let i = 0; i + 8 <= words.length; i += 1) {
-    if (seen.has(words.slice(i, i + 8).join(' '))) return true;
-  }
-  return false;
-}
-
-// LAW VI — THE CLICHE CHECK. The lexicon is pinned fixture data
-// (instrument matter, not prompt law — LISTLESS LEGISLATION stands).
-// More than 2 hits per 1,000 narration characters flags. Matches are
-// whole-word runs in the folded prose.
-const CLICHE_LEXICON = Object.freeze(
-  JSON.parse(readFileSync(new URL('./cliche-lexicon.json', import.meta.url), 'utf8'))
-    .phrases.map((phrase) => foldProse(phrase)).filter(Boolean)
-);
-export function clicheCheck(draftText, lexicon = CLICHE_LEXICON) {
-  const chars = String(draftText || '').length;
-  if (!chars) return { flagged: false, hits: 0 };
-  const bed = ` ${foldProse(draftText)} `;
-  let hits = 0;
-  for (const phrase of lexicon) {
-    const needle = ` ${phrase} `;
-    let at = bed.indexOf(needle);
-    while (at !== -1) { hits += 1; at = bed.indexOf(needle, at + phrase.length + 1); }
-  }
-  return { flagged: hits > (chars / 1000) * 2, hits };
-}
-
-// LAW VI — THE SUGGESTION-SAMENESS CHECK. Token-set Jaccard ≥ 0.80
-// between any two roads of the draft, or between any draft road and
-// any road of the prior turn, flags.
-export function jaccard(a, b) {
-  const setA = new Set(foldProse(a).split(' ').filter(Boolean));
-  const setB = new Set(foldProse(b).split(' ').filter(Boolean));
-  if (!setA.size && !setB.size) return 1;
-  let shared = 0;
-  for (const token of setA) if (setB.has(token)) shared += 1;
-  return shared / (setA.size + setB.size - shared);
-}
-export function samenessCheck(suggestions = [], priorSuggestions = []) {
-  const rows = (Array.isArray(suggestions) ? suggestions : []).filter((s) => typeof s === 'string' && s.trim());
-  const prior = (Array.isArray(priorSuggestions) ? priorSuggestions : []).filter((s) => typeof s === 'string' && s.trim());
-  for (let i = 0; i < rows.length; i += 1) {
-    for (let j = i + 1; j < rows.length; j += 1) if (jaccard(rows[i], rows[j]) >= 0.8) return true;
-    for (const old of prior) if (jaccard(rows[i], old) >= 0.8) return true;
-  }
-  return false;
-}
-
-// LAW VI — THE MEASURE CHECK. Outside the assigned band flags
-// `measure`; below a rich band it is named `under-measure`.
-export function measureCheck(blockCount, measure) {
-  const band = MEASURE_BANDS[measure];
-  if (!band) return null;
-  const [floor, ceiling] = band;
-  if (blockCount >= floor && blockCount <= ceiling) return null;
-  if (measure === 'rich' && blockCount < floor) return 'under-measure';
-  return 'measure';
-}
-
-// The docket — evidence drawn from what the briefing already carries:
-// assistant history rows ARE the prior sealed narration; the prior
-// turn's roads ride story.prior_suggestions additively (older clients
-// simply leave that court out of session).
-export function editorEvidence(input) {
-  const priorPages = (Array.isArray(input?.history) ? input.history : [])
-    .filter((m) => m && m.role === 'assistant' && typeof m.content === 'string' && m.content.trim())
-    .slice(-20)
-    .map((m) => m.content);
-  const rows = input?.story?.prior_suggestions;
-  const priorSuggestions = Array.isArray(rows) ? rows.filter((s) => typeof s === 'string') : [];
-  return { priorPages, priorSuggestions };
-}
-
-// LAW VI — the pre-pass whole: deterministic, free, every draft.
-// Flag order is pinned: echo, cliche, sameness, measure.
-export function editorPrePass(turn, { intent = null, priorPages = [], priorSuggestions = [], lexicon = CLICHE_LEXICON } = {}) {
-  const flags = [];
-  const prose = narrationOf(turn);
-  if (echoCheck(prose, priorPages)) flags.push('echo');
-  if (clicheCheck(prose, lexicon).flagged) flags.push('cliche');
-  if (samenessCheck(turn?.suggestions, priorSuggestions)) flags.push('sameness');
-  const measured = intent && MEASURES.includes(intent.measure)
-    ? measureCheck(Array.isArray(turn?.narration_blocks) ? turn.narration_blocks.length : 0, intent.measure)
-    : null;
-  if (measured) flags.push(measured);
-  return flags;
-}
-
-// LAW VII — the rubric, pinned byte-stable. The proving loop's
-// calibration probe judges THIS text; it may not drift.
-export const EDITOR_RUBRIC = 'You are the Editor of a living campaign. Judge the drafted page against the room: voice held steady per the cards; stakes true to the beat_intent; freshness against the recent pages and roads; fullness against the assigned measure. Verdict ship only when all four hold. Verdict revise otherwise, naming each failure as one reason with quoted evidence.';
-
 const verdictToolSchema = {
   type: 'object', additionalProperties: false, required: ['verdict', 'reasons'],
   properties: {
@@ -336,21 +143,6 @@ const verdictToolSchema = {
     reasons: { type: 'array', maxItems: 4, items: { type: 'string', maxLength: 200 }, description: 'One reason per failure, each quoting two words of evidence.' }
   }
 };
-
-const REASON_LINES = {
-  echo: 'echo: an eight-word run repeats a recent page verbatim',
-  cliche: 'cliche: stock phrasing crowds the page past the pinned density',
-  sameness: 'sameness: two roads offered are nearly the same road',
-  measure: 'measure: the page lands outside its assigned band',
-  'under-measure': 'under-measure: thin prose on a beat assigned rich'
-};
-
-// The deterministic Editor — the mock tier's judge and the floor the
-// live judge degrades to. Flags in, verdict out, byte-stable.
-export function mockEditor(flags = []) {
-  if (!flags.length) return { verdict: 'ship', reasons: [] };
-  return { verdict: 'revise', reasons: flags.map((flag) => REASON_LINES[flag] || `flagged: ${flag}`) };
-}
 
 const editorBrief = (draft, context) =>
   `[DRAFT]\n${JSON.stringify({ narration_blocks: draft.narration_blocks, suggestions: draft.suggestions })}\n[BEAT_INTENT]\n${JSON.stringify(context.intent || null)}\n[FLAGS]\n${JSON.stringify(context.flags)}\n[RECENT_PAGES]\n${JSON.stringify((context.priorPages || []).slice(-5))}\n[PRIOR_ROADS]\n${JSON.stringify(context.priorSuggestions || [])}\n[DIRECTION]\nJudge the draft and return your verdict.`;

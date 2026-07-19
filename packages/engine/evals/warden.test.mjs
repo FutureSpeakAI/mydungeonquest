@@ -9,8 +9,13 @@ const bearing = 'Mira — elder. A grey-eyed healer with rowan-stained hands. Si
 const brief = wardenBrief({ kind: 'soul', bearingText: bearing });
 assert.ok(brief.includes(bearing), 'the locked identity travels verbatim');
 assert.ok(brief.includes('IMAGE 1') && brief.includes('blessed anchor'));
-assert.ok(brief.includes('"same"') && brief.includes('"signature_present"') && brief.includes('"drift"'));
-assert.ok(wardenBrief({ kind: 'region', bearingText: 'Harrow Ford.' }).includes('geography'), 'places are judged as places');
+assert.ok(brief.includes('"same"') && brief.includes('"drift"') && brief.includes('"contains_text_or_watermark"'));
+// (TASK 54B §3) THE MAGNIFIED LOOK owns the mark question for souls — the
+// full-scene brief no longer asks it; the sharp crop does. Places keep it.
+assert.ok(!brief.includes('"signature_present"'), 'the soul brief leaves the mark to the magnified look');
+const regionBrief = wardenBrief({ kind: 'region', bearingText: 'Harrow Ford.' });
+assert.ok(regionBrief.includes('geography'), 'places are judged as places');
+assert.ok(regionBrief.includes('"signature_present"'), 'places keep the single-look landmark clause');
 
 // The parser: tolerant of fences and chatter, honest about gibberish, clamped.
 const clean = parseVerdict('{"same": true, "confidence": 0.9, "signature_present": true, "drift": []}');

@@ -132,3 +132,17 @@ export function styleDirectives(report, { cap = 3 } = {}) {
     .slice(0, cap)
     .map((entry) => COUNTER[entry.key]);
 }
+
+// ------------------------------------------------------------
+// THE HUMAN HAND at the table — the tell court in session
+// (Directive VI, Phase 10), seated home with the parity cut.
+//
+// Rows that never spoke — ticks, spans, annals — contribute
+// nothing; the court above already refuses struck rows and empty
+// mouths. The court measures; it never rewrites. The record is
+// law, including its sins.
+// ------------------------------------------------------------
+export function tellCourt(campaign) {
+  const report = tellReport(campaign?.logs || []);
+  return { report, directives: styleDirectives(report) };
+}

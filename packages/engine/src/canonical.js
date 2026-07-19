@@ -29,3 +29,9 @@ export function base64ToBytes(value) {
 export function slugify(value) {
   return String(value || 'chronicle').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'chronicle';
 }
+
+// The 'cinema' media tier was retired with film generation (July 2026).
+// Legacy rows and chronicle files may still carry the old word; every
+// data boundary funnels through this one clause so no store and no
+// exported file keeps the retired tier. Seated home with the parity cut.
+export const canonicalTier = (tier) => (tier === 'cinema' ? 'illuminated' : tier);

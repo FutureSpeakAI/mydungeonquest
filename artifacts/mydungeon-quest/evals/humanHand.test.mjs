@@ -71,7 +71,11 @@ const CAMPAIGN = {
   const book = read('src/components/Book.jsx'); // Task 58C: the tell court's face moved whole into the Book.
   assert.ok(book.includes('The human hand — the tell court'), 'the finding is visible to the patron');
   const lib = read('src/lib/tells.js');
-  assert.ok(lib.includes('fatescript/tells') && lib.includes('tellReport') && lib.includes('styleDirectives'), 'the engine\u2019s court, whole');
+  // The parity cut seated the court's session home: the lib is the
+  // engine's door, whole.
+  assert.ok(lib.includes("export * from 'fatescript/tells'"), 'the engine\u2019s court, whole');
+  assert.ok(!lib.includes('function'), 'no second court hides behind the door');
+  assert.ok(read('../../packages/engine/src/tells.js').includes('tellCourt'), 'the session sits at the one seat');
 }
 
 console.log('PASS \u2014 the human hand gate (game): the tell court measures the sealed record free and deterministic with struck rows staying struck and silent rows contributing nothing, hot families are convicted with citations while a quiet record convicts nobody, the counter-directives ride the pack capped at three hottest first so the pressure lands on the next turn, and the codex shows the patron the finding \u2014 the court measures, it never rewrites.');

@@ -116,8 +116,11 @@ const campaign = {
 //    bench seats references by the same roster.
 {
   const prompts = read('src/lib/cinema/prompts.js');
-  assert.ok(prompts.includes('bearingBlock'), 'the easel speaks bearingBlock');
-  assert.ok(prompts.includes('paintRoster'), 'the easel seats by paintRoster');
+  // The parity cut seated the easel home: the lib is the engine's door, whole.
+  assert.ok(prompts.includes("export * from 'fatescript/cinema/prompts'"), 'the easel speaks from its one seat');
+  const engineEasel = read('../../packages/engine/src/cinema/prompts.js');
+  assert.ok(engineEasel.includes('bearingBlock'), 'the easel speaks bearingBlock');
+  assert.ok(engineEasel.includes('paintRoster'), 'the easel seats by paintRoster');
   const app = read('src/App.jsx');
   assert.ok(app.includes('speaker: (dm.narration_blocks'), 'the moment carries the first voice to the roster');
   assert.ok(app.includes('sceneRoster('), 'reference anchors follow the painted, never the merely present');

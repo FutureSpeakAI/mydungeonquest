@@ -2,10 +2,11 @@ import Dexie from 'dexie';
 import { canonicalize, sha256, bytesToBase64 } from 'fatescript/canonical';
 import { db } from './db.js';
 
-// The 'cinema' media tier was retired with film generation (July 2026). Legacy
-// rows and chronicle files may still carry it; every data boundary funnels
-// through this so neither IndexedDB nor an exported file keeps the old tier.
-export const canonicalTier = (tier) => (tier === 'cinema' ? 'illuminated' : tier);
+// The 'cinema' media tier was retired with film generation (July 2026). The
+// funnel law moved home with the parity cut — the engine's canonical seat
+// owns it now; this door stays open for the table's own callers.
+import { canonicalTier } from 'fatescript/canonical';
+export { canonicalTier };
 
 async function signerFor(campaignId) {
   const existing = await db.keys.get(campaignId);

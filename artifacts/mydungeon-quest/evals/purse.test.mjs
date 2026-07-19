@@ -82,7 +82,11 @@ const CAMPAIGN = {
 //    purse and pack as projections, receipts on the sheet.
 {
   const lib = read('src/lib/ledger.js');
-  assert.ok(lib.includes('fatescript/ledger') && lib.includes('buildLedger'), 'the engine\u2019s ledger is the only fold');
+  // The parity cut seated the purse home: the lib is the engine's door,
+  // whole — one wholesale re-export, no second fold at the table.
+  assert.ok(lib.includes("export * from 'fatescript/ledger'"), 'the engine\u2019s ledger is the only fold');
+  assert.ok(!lib.includes('function'), 'no second fold hides behind the door');
+  assert.ok(read('../../packages/engine/src/ledger.js').includes('oneCoinFigure'), 'the era door stands at the one seat');
   const overlays = read('src/components/Overlays.jsx');
   assert.ok(overlays.includes('heroPurse'), 'the folio draws the projection');
   assert.ok(overlays.includes('oneCoinFigure'), 'the ribbon walks the one-coin era door (Directive XII \u00a7IV)');

@@ -96,8 +96,10 @@ const CAMPAIGN = {
 // 6. THE WIRING — the engine's fold under the lib, the ribbon on the folio.
 {
   const lib = read('src/lib/market.js');
-  assert.ok(lib.includes('fatescript/market') && lib.includes('buildMarket'), 'the engine\u2019s market is the only fold');
-  assert.ok(lib.includes('driftFor'), 'ticks call the engine\u2019s drift');
+  // The parity cut seated the slate home: the lib is the engine's door, whole.
+  assert.ok(lib.includes("export * from 'fatescript/market'"), 'the engine\u2019s market is the only fold');
+  assert.ok(!lib.includes('function'), 'no second fold hides behind the door');
+  assert.ok(read('../../packages/engine/src/market.js').includes('driftFor'), 'ticks call the engine\u2019s drift at its one seat');
   const overlays = read('src/components/Overlays.jsx');
   assert.ok(overlays.includes('regionSlate'), 'the folio draws the slate');
   assert.ok(overlays.includes('The market slate'), 'the ribbon is seated');

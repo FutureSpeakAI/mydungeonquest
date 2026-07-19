@@ -27,7 +27,10 @@ import { GAME_ROOT } from './lib/vision';
 // (58C) 116 → 119: Directive XIV seats the Open Book — the book gate, the
 // chart gate, and the table gate join the keyless check in the same
 // commit that turns the codex into six chapters.
-const PINNED_PASS_COUNT = 124;
+// (60 §2) 124 → 125: THE DESK — the desk gate joins the keyless check in
+// the same commit that seats the engine's pure verifier and re-speaks
+// the table's seal door from that one seat.
+const PINNED_PASS_COUNT = 125;
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

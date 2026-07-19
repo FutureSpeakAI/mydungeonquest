@@ -1,6 +1,11 @@
 import Dexie from 'dexie';
-import { canonicalize, sha256, bytesToBase64 } from 'fatescript/canonical';
+// THE DESK (Task 60 §2): the seal's pure half — the pen and the eye —
+// lives at the engine's desk seat now; this door re-speaks it and keeps
+// only the database half (key custody, transactions, import, fork).
+import { makeEnvelope, verifyJournal } from 'fatescript/desk';
 import { db } from './db.js';
+
+export { makeEnvelope, verifyJournal };
 
 // The 'cinema' media tier was retired with film generation (July 2026). The
 // funnel law moved home with the parity cut — the engine's canonical seat
@@ -23,17 +28,6 @@ async function signerFor(campaignId) {
     await db.keys.put(record);
     return record;
   }
-}
-
-export async function makeEnvelope({ type, i, prevHash = null, payload, ts = Date.now(), signer = null }) {
-  const unsigned = { type, i, prevHash, payload, ts };
-  const recordHash = await sha256(canonicalize(unsigned));
-  let signature = null;
-  if (signer?.signed && signer.privateKey) {
-    const sig = await crypto.subtle.sign({ name: 'Ed25519' }, signer.privateKey, new TextEncoder().encode(recordHash));
-    signature = bytesToBase64(new Uint8Array(sig));
-  }
-  return { ...unsigned, recordHash, signature };
 }
 
 export async function appendEvent(campaignId, type, payload, opts = {}) {
@@ -126,18 +120,6 @@ export async function forkChronicle(campaign) {
   await db.campaigns.put(fork);
   await appendEvent(id, 'fork', fork.forkOf);
   return await db.campaigns.get(id);
-}
-
-export async function verifyJournal(journal) {
-  const results = [];
-  let previous = null;
-  for (const record of journal) {
-    const hash = await sha256(canonicalize({ type: record.type, i: record.i, prevHash: record.prevHash, payload: record.payload, ts: record.ts }));
-    const ok = hash === record.recordHash && record.prevHash === previous;
-    results.push({ i: record.i, ok, expected: hash, actual: record.recordHash });
-    previous = record.recordHash;
-  }
-  return results;
 }
 
 function blobToDataUrl(blob) {

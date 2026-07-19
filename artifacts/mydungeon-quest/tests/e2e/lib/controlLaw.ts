@@ -63,7 +63,13 @@ async function stageOneRect(args: { bytes: Buffer; idSeed: string; criterion: st
     });
     const box = validateBox(verdict);
     if (box) {
-      const rect = clampBox({ box, width, height });
+      // padding: 0 — the engine's DEFAULT padding serves stage-two
+      // magnification of small mark boxes; on a bust whose head-and-
+      // shoulders box already spans most of the plate it devours the
+      // whole frame (61.8: 0.08−pad→0, 0.93+pad→1, exactly full-frame,
+      // four spoken invalids). The control law wants the STATED box —
+      // it carries its own margin at the crop/band lines.
+      const rect = clampBox({ box, width, height, padding: 0 });
       return { rect, width, height, probes: probe };
     }
     console.log(`[control-law] ${label}: stage one boxed nothing (probe ${probe} of 2)${probe === 1 ? ' — re-probing under a fresh salt' : ''}`);

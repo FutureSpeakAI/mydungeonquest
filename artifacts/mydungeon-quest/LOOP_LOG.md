@@ -3058,3 +3058,44 @@ verdict.mjs REQUIRED_PROJECTS + `g29-commons` (23 projects); G13 pin
 Seats spent since the halt: none yet. Next: gates (list + keyless
 check), then counted runs 61.8+ — the pre-probe rides inside every run
 by construction; three consecutive post-fix greens or the honest red.
+
+### 61.8 — counted run, RED (exit 1; 8 unexpected, 39 skipped; 23/23 projects seen)
+
+The cause split, in the court's own words:
+
+1. **FOUR construct refusals** (teeth 5 and 7; tooth 11's pair; tooth
+   12's Control B) — the Control Law's own spoken invalids: "the padded
+   face box reaches 1200px of 1200px." Stage one's box was SANE
+   (x .15, y .08, w .72, h .85 — the same settled answer on both
+   plates); the engine's clampBox DEFAULT padding (0.25, tuned for
+   stage-two magnification of small mark boxes) devoured the frame on a
+   bust-scale box: 0.08 − 0.2125 → 0, 0.93 + 0.2125 → 1, full frame
+   exactly, no strip below, no band above. The law did its work — it
+   refused to seat a lie it could not prove, loudly, instead of seating
+   a half-truth silently (61.7's disease, inverted).
+   CURE (paint-and-probe budget, never a seat): clampBox({ padding: 0 })
+   — the law wants the STATED box and carries its own 2% margin at the
+   crop and band lines. PRE-PROBE against the settled cached boxes:
+   behead strip 60px LAWFUL, crown band 72px LAWFUL, on both plates —
+   attested in the run trail.
+2. **TWO commons doors answered the SPA page** (TOOTH 17, G29:
+   GET /api/publish/mine → 200 text/html — the shelf door fell through
+   to the static fallback). The re-lay missed ONE hunk: the tag's
+   server/index.js publish mount (the import beside the vault's, the
+   raw-text record door seated BEFORE the global JSON parser, the mount
+   behind the doorkeeper). Landed now VERBATIM from the tag; the server
+   parses; the door answers JSON again.
+3. **TWO single crossings on fresh art**: tooth 16 (the good battle
+   plate refused its own sealed canon — fresh turn-salted paint) and
+   G17b (a fresh harvest plate judged subject-cut at 0.92). One
+   crossing ≠ conviction (the series' standing law): both sits re-key
+   on fresh bytes next run; only a second crossing is material.
+
+Seats: 61.8 SPENT (red). Remaining: 61.9–61.14; three consecutive
+greens still required. THE QUESTION UNDER THE RULING: stop condition
+(a) reads "a counted red on any cause other than a control's own
+failure ends the hunt." 61.8's red is MIXED — four failures were the
+controls' own (the law's own re-forge provision covers them), four
+were not (a landing omission, now cured; two single crossings). The
+bench rises to the owner: continue at 61.9, or end the hunt with the
+honest report. No flag is written until the owner rules.

@@ -17,7 +17,7 @@ The model narrates; the client rules. FateScript is the ruling half: a zero-depe
 
 ## Install & import
 
-Consumed today as a workspace package (`"fatescript": "workspace:*"`); npm publication is charted for the 1.2.0 "Long Road" release.
+Consumed today as a workspace package (`"fatescript": "workspace:*"`); npm publication remains a road for a later cut — 1.0.0 stands stable without it.
 
 ```js
 import { validateDmTurn, makeEntropy } from 'fatescript/protocol';
@@ -44,7 +44,7 @@ Every module is also re-exported from the root (`import { ... } from 'fatescript
 ## The gates
 
 ```bash
-npm run check   # fifty-seven gates, keyless, no network, in seconds
+npm run check   # fifty-eight gates, keyless, no network, in seconds
 ```
 
 Each prints its verdict in the house voice — `PASS — the saga gate: …` — and the suite only ever grows. The engine's classical behavior (protocol, rules, chronicler, living world) is additionally exercised end-to-end by the host game's keyless check (124 green verdicts) in this monorepo.

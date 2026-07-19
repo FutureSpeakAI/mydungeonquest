@@ -1,6 +1,6 @@
 {
   "name": "@workspace/mydungeon-quest",
-  "version": "0.10.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "A cinematic solo RPG that plays offline and keeps the only true copy on your device.",

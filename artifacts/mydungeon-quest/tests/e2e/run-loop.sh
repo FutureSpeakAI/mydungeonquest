@@ -11,21 +11,6 @@ FLAG=test-results/RUN_REQUESTED
 if [ -f "$FLAG" ]; then
   ITER=$(cat "$FLAG")
   rm -f "$FLAG"
-  # THE PRE-MINT (61.6, LOOP_LOG): "premint" fills the harvest pool OUT of
-  # ladder so freshly-minted material can be inspected BEFORE a numbered
-  # iteration is spent on it. Not an iteration: no run-iter artifacts, no
-  # verdict, no number consumed — the next numbered run REUSES the pool
-  # under the same paint-law reuse every run honors. Detached shells get
-  # reaped mid-suite (this file's own founding law), so the mint must ride
-  # the supervised workflow like everything else.
-  if [ "$ITER" = "premint" ]; then
-    fuser -k 5199/tcp 2>/dev/null; fuser -k 5198/tcp 2>/dev/null; sleep 1
-    echo "[proving] premint begins (harvest only, out of ladder)"
-    ./node_modules/.bin/playwright test --project=harvest --no-deps > test-results/premint.log 2>&1
-    echo "$?" > test-results/premint.exit
-    echo "[proving] premint complete exit=$(cat test-results/premint.exit)"
-    sleep infinity
-  fi
   # Free the suite's own ports if a dead run left them held. These are the
   # proving ports (5199/5198), never the live preview's.
   fuser -k 5199/tcp 2>/dev/null; fuser -k 5198/tcp 2>/dev/null; sleep 1

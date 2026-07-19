@@ -62,13 +62,7 @@ function dropcapped(text) {
   return `${esc(raw.slice(0, at))}<span class="dropcap">${esc(raw[at])}</span>${esc(raw.slice(at + 1))}`;
 }
 
-// proof: whether the book embeds the machine-readable chronicle and its
-// save-proof device. The OWNER's keepsake carries it (default). The public
-// reader passes false — a guest's rendered page holds not one struck byte;
-// the byte-preserved record lives behind the commons' own record door, one
-// honest fetch away (Directive XV §III.6: the RECORD keeps struck bytes,
-// the PAGE fells them — so the page must not smuggle the record).
-export function buildStorybook({ campaign, journal, media = [], reveals = [], pageSize = 'Letter', proof = true }) {
+export function buildStorybook({ campaign, journal, media = [], reveals = [], pageSize = 'Letter' }) {
   // THE SHELF DOOR: only this adventure's own art may bind. Rows tagged for
   // another campaign (imports, crafted files) are refused outright; untagged
   // rows are legacy export shapes and pass. Then every plate passes the
@@ -253,7 +247,7 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
   // The embedded proof: the hash-chained journal in the exact shape the
   // notary at /verify.html accepts — the keepsake carries its own evidence.
   // (Text only; art is attested inside the chain by hash, not by bytes.)
-  const proofJson = JSON.stringify({
+  const proof = JSON.stringify({
     header: {
       format: 'mydungeon.chronicle', version: 1, campaignId: campaign.id, title: campaign.title,
       exportedAt: journal[journal.length - 1]?.ts ?? null, headHash: campaign.headHash || null,
@@ -330,10 +324,10 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
   <section class="leaf seal-page"><div class="wax large">${esc(campaign.hero?.sigil || '✦')}</div><h2>Sealed, and true</h2>
     <p class="verify-statement">Made at the table of MyDungeon.Quest — every word and every plate from one told tale, kept exactly as it was lived, from the first step to the last.</p>
     <dl><dt>Begun</dt><dd>${esc(begun || '—')}</dd><dt>${campaign.sealedAt ? 'Sealed' : 'Last written'}</dt><dd>${esc((campaign.sealedAt ? dateWord(campaign.sealedAt) : dateWord(campaign.updatedAt)) || '—')}</dd><dt>Records</dt><dd>${journal.length}</dd><dt>Head hash</dt><dd>${esc(campaign.headHash || 'unsealed')}</dd><dt>Signature</dt><dd>${esc(campaign.signatureStatus || 'hash-only')}</dd></dl>
-    ${proof ? `<p><button class="proof-button" id="save-proof">Save the proof (.chronicle.json)</button></p>` : ''}
+    <p><button class="proof-button" id="save-proof">Save the proof (.chronicle.json)</button></p>
     <p class="small">Built locally by MyDungeon.Quest — Cinematic Edition. This work includes material compatible with the Systems Reference Document 5.1, licensed under Creative Commons Attribution 4.0 International.</p>
   </section>
-  ${proof ? `<script type="application/json" id="chronicle-proof">${proofJson}</script>` : ''}
+  <script type="application/json" id="chronicle-proof">${proof}</script>
   <script id="book-reader">(function(){
   if (navigator.webdriver) return; /* the binder prints; the reader is for readers */
   var leaves=[].slice.call(document.querySelectorAll('.leaf'));

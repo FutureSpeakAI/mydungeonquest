@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Download, Globe, Mic, Shield, X } from 'lucide-react';
+import { BookOpen, Download, Mic, Shield, X } from 'lucide-react';
 import { campaignJournal } from '../lib/db.js';
-import { publishStatus, minePages, publishTale, revokeTale, setTaleListing } from '../lib/publish.js';
 
 // ------------------------------------------------------------
 // THE SEALING — how a tale ends (directive §3.6). Not a game-over
@@ -77,8 +76,6 @@ export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport,
         <p className="keepsake-note"><Mic size={13} /> The episode speaks only sealed words, in real voices only — a keyless table keeps the book.</p>
       </div>}
 
-      {sealed && <CommonsPanel campaign={campaign} />}
-
       {sealed && onNextVolume && <div className="keepsakes next-volume">
         <h3>The road goes on.</h3>
         <p className="keepsake-note">The world remembers this tale — every face, every voice, every grave. Open the next volume and name the span the road takes.</p>
@@ -89,71 +86,5 @@ export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport,
         </div>
       </div>}
     </div>
-  </div>;
-}
-
-// ------------------------------------------------------------
-// THE COMMONS (Directive XV §III) — a sealed tale may be set on the
-// public shelf. The panel renders ONLY when the commons are live for a
-// named patron: a keyless table shows nothing (the loop's houses stay
-// byte-quiet), and every outcome here is a spoken line, never a silent
-// wedge. One living page per tale; unlisted unless chosen; revocable
-// at any hour.
-// ------------------------------------------------------------
-function CommonsPanel({ campaign }) {
-  const [state, setState] = useState({ phase: 'checking', page: null, error: null });
-
-  const readShelf = async () => {
-    try {
-      const status = await publishStatus();
-      if (!status.live || !status.patron) { setState({ phase: 'dormant', page: null, error: null }); return; }
-      const pages = await minePages();
-      const page = pages.find((row) => row.campaignId === campaign.id && !row.revokedAt) || null;
-      setState({ phase: page ? 'standing' : 'ready', page, error: null });
-    } catch (error) {
-      setState({ phase: 'error', page: null, error: error.message });
-    }
-  };
-  useEffect(() => { readShelf(); }, [campaign.id]);
-
-  const act = (work) => async () => {
-    setState((prev) => ({ ...prev, phase: 'busy', error: null }));
-    try { await work(); await readShelf(); }
-    catch (error) {
-      // A standing page (409) is news, not a wedge — re-read the shelf so
-      // the panel shows the page that stands; every other stumble speaks.
-      if (error.code === 409) { await readShelf(); return; }
-      setState((prev) => ({ ...prev, phase: prev.page ? 'standing' : 'ready', error: error.message }));
-    }
-  };
-
-  if (state.phase === 'dormant' || state.phase === 'checking') return null;
-  const url = state.page ? `/t/${state.page.publishId}` : null;
-  const fullUrl = url && typeof window !== 'undefined' ? `${window.location.origin}${url}` : url;
-
-  return <div className="keepsakes commons-panel">
-    <h3><Globe size={15} /> The commons.</h3>
-    {!state.page && <p className="keepsake-note">Set this tale on the public shelf. Anyone with the link may read it — no account, no name asked — and every reader's own browser re-verifies the chain. Unlisted unless you choose otherwise; you may take it down at any hour.</p>}
-    {!state.page && <div className="keepsake-row">
-      <button data-testid="publish-tale" disabled={state.phase === 'busy'} onClick={act(async () => { await publishTale(campaign.id); })}>
-        <Globe size={16} /> {state.phase === 'busy' ? 'Setting the page…' : 'Publish the tale'}
-      </button>
-    </div>}
-    {state.page && <>
-      <p className="keepsake-note">This tale stands on the public shelf. The page re-proves itself in every reader's browser.</p>
-      <p className="commons-link"><a data-testid="publish-url" href={url} target="_blank" rel="noreferrer">{fullUrl}</a></p>
-      <label className="commons-listing">
-        <input data-testid="publish-listing" type="checkbox" checked={Boolean(state.page.listed)} disabled={state.phase === 'busy'}
-          onChange={(event) => act(async () => { await setTaleListing(state.page.publishId, event.target.checked); })()} />
-        <span>List it on the commons shelf (off: link-only)</span>
-      </label>
-      <div className="keepsake-row">
-        <button data-testid="revoke-tale" className="secondary-button" disabled={state.phase === 'busy'}
-          onClick={act(async () => { await revokeTale(state.page.publishId); })}>
-          {state.phase === 'busy' ? 'Taking it down…' : 'Take the page down'}
-        </button>
-      </div>
-    </>}
-    {state.error && <p className="keepsake-note commons-error" data-testid="publish-error" role="status">The commons answered: {state.error}</p>}
   </div>;
 }

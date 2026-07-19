@@ -24,31 +24,6 @@ import { getClerkProxyHost } from './clerkProxy.js';
 export const doorOpen = () =>
   Boolean(process.env.CLERK_SECRET_KEY && process.env.CLERK_PUBLISHABLE_KEY);
 
-// THE STAGING SEAM (Directive XV §II.8) — for the commons courts alone.
-// The proving rig runs doorless, yet the commons court must walk a REAL
-// staging namespace. One seam, double-latched: it opens only when the
-// Clerk door is CLOSED (no door keys in the house) AND VAULT_STAGE_PATRON
-// names a staging patron. In any house holding door keys this is dead
-// code by construction — the published house can never seat it.
-export const stageSeamOpen = () =>
-  !doorOpen() && Boolean(process.env.VAULT_STAGE_PATRON);
-
-let stagePromise = null;
-function stagePatron() {
-  if (!stagePromise) {
-    const name = String(process.env.VAULT_STAGE_PATRON);
-    // Inscribed under a `stage:` name no Clerk subject can ever collide
-    // with; the ledger row is inert anywhere the real door stands.
-    stagePromise = inscribe(`stage:${name}`, {
-      fetchPatron: async () => ({ displayName: `Staging — ${name}`, email: null }),
-    }).catch((error) => {
-      stagePromise = null;
-      throw error;
-    });
-  }
-  return stagePromise;
-}
-
 let pool = null;
 function ledger() {
   if (!pool) pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -188,17 +163,7 @@ export function attachPatronWith(deps = {}) {
 // via the proxy host, per the workspace template), then the ledger.
 export function doorkeeper() {
   if (!doorOpen()) {
-    return async (req, _res, next) => {
-      req.patron = null;
-      // The staging seam (Directive XV §II.8): a doorless house may seat
-      // one named staging patron for the commons courts. Checked at call
-      // time like the door itself; a stumble passes as guest, loudly.
-      if (stageSeamOpen()) {
-        try { req.patron = await stagePatron(); }
-        catch (error) { console.error(`[door] the staging seam stumbled (${error.message}) — passing as guest`); }
-      }
-      next();
-    };
+    return (req, _res, next) => { req.patron = null; next(); };
   }
   const door = express.Router();
   door.use(
@@ -246,5 +211,4 @@ export function whoami(req, res) {
 export function __resetDoorForEval() {
   ledgerBound = null;
   known.clear();
-  stagePromise = null;
 }

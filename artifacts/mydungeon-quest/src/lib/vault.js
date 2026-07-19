@@ -7,7 +7,6 @@
 // same intact chain) and both spines live on. Signed-out players are never
 // synced — the vault opens to named patrons only, and a keyless fork never
 // even knocks.
-import { verifyJournal, verifySignatures } from 'fatescript/desk';
 import { db, campaignJournal } from './db.js';
 import { canonicalTier } from './seal.js';
 
@@ -76,10 +75,6 @@ export function vaultSessionChanged(patronId = null) {
 // Strikes re-derive from the journal — the redaction law's belt AND braces:
 // a strike pulled from another device falls the same logs here, by the same
 // turn-record k ↔ logs[k] alignment every consumer uses.
-// (Cross-note, Directive XV: the PUBLIC PAGE fells strikes in
-// lib/publish.js `fellStruck` — a hash court over log.recordHash, because
-// published logs interleave tick rows where ordinals lie. Two courts, two
-// alignments, each noted in the other's house.)
 export function applyStrikes(logs, journal) {
   const struckHashes = new Set((journal || []).filter((r) => r.type === 'redaction').map((r) => r.payload?.targetRecordHash).filter(Boolean));
   const turnRecords = (journal || []).filter((r) => r.type === 'turn');
@@ -338,25 +333,6 @@ export async function restoreFromVault(campaignId) {
   const response = await fetch(`/api/vault/campaign/${encodeURIComponent(campaignId)}/journal?from=0`);
   if (!response.ok) throw new Error('The vault could not hand over the journal.');
   const { records = [] } = await response.json();
-  // THE DESK SITS AT THE RESTORE DOOR (Directive XV §II.5): the vault's
-  // copy is seated only after THIS browser re-runs the chain court on the
-  // exact records handed over — a broken link, a wrong head, or a signed
-  // claim that cannot answer refuses the restore ALOUD, and nothing is
-  // written. The signature court convenes exactly when the vault claims
-  // 'signed'; the chain court always sits. (The whole-envelope downgrade
-  // door stays at the import desk — a restored-then-continued spine
-  // lawfully carries old ink under a hash-only claim, and refusing it
-  // here would refuse the player's own tale.)
-  const handed = records.map(({ campaignId: _c, ...record }) => record);
-  const verdicts = await verifyJournal(handed);
-  const broken = verdicts.find((verdict) => !verdict.ok);
-  if (broken) throw new Error(`The vault's copy does not verify — the seal is broken at record ${broken.i}. The restore is refused.`);
-  const trueHead = handed.length ? handed[handed.length - 1].recordHash : null;
-  if ((server.headHash || null) !== trueHead) throw new Error("The vault's head does not match its own journal — the restore is refused.");
-  if (server.signatureStatus === 'signed') {
-    const court = await verifySignatures(handed, server.publicKeyJwk || null);
-    if (!court.ok) throw new Error(`The vault's copy does not verify — ${court.reason}. The restore is refused.`);
-  }
   const meta = server.meta || {};
   const logs = applyStrikes(meta.logs || [], records);
   const campaign = {

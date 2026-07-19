@@ -69,11 +69,6 @@ export default defineConfig({
     // keyed houses never stand at once.
     { name: 'g25-wonder', testMatch: /g25-wonder\.spec\.ts/, dependencies: ['dom'] },
     { name: 'g26-return', testMatch: /g26-return\.spec\.ts/, dependencies: ['g25-wonder'] },
-    // (1.1.0, Directive XV §VI) THE COMMONS — the court raises its OWN
-    // doorless house on its own ports (staging seam, real ledger, real
-    // shelf) and puts it out when it rests; it rides behind g26 so its
-    // house never stands beside a keyed one.
-    { name: 'g29-commons', testMatch: /g29-commons\.spec\.ts/, dependencies: ['g26-return'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

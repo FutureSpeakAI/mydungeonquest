@@ -13,7 +13,6 @@ import { doorkeeper, doorOpen, namedOnly, whoami } from './patrons.js';
 import { initMint, mintConfigured } from './mint.js';
 import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
-import { publishRoutes } from './publish.js';
 import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport, testHerald, ownersBell } from './watchtower.js';
 import { assetlinksFor } from './dowry.js';
 import sharp from 'sharp';
@@ -92,12 +91,6 @@ app.use('/api/paint', express.json({ limit: process.env.MAX_PAINT_BYTES || '80mb
 // THE VAULT's blob door takes raw bytes, content-addressed — mounted before
 // the JSON parser so an asset body is never mis-read as a document.
 app.post('/api/vault/media/:hash', express.raw({ type: () => true, limit: process.env.MAX_VAULT_BLOB_BYTES || '25mb' }));
-// THE COMMONS' record door takes the sealed chronicle as RAW TEXT — the
-// public page later hands back the same bytes for the reader's own desk,
-// so no parser may ever re-shape what is stored (Directive XV §III). The
-// smaller JSON rooms under /api/publish (revoke, listing) arrive as
-// application/json and fall through to the global parser below.
-app.use('/api/publish', express.text({ type: 'text/plain', limit: process.env.MAX_PUBLISH_BYTES || '15mb' }));
 app.use(express.json({ limit: maxBody }));
 app.use(express.text({ type: 'text/html', limit: process.env.MAX_PDF_HTML_BYTES || '100mb' }));
 
@@ -112,10 +105,6 @@ app.use('/api', tollRoutes());
 // THE VAULT: cloud backup and cross-device restore. Fail-closed rooms —
 // named patrons only; dormant without the door and the ledger.
 app.use('/api', vaultRoutes());
-// THE COMMONS: sealed tales published as public pages. Owner rooms carry
-// their own fail-closed patron check; the /api/public doors ask nobody's
-// name and answer 410 tombstones once a page is revoked.
-app.use('/api', publishRoutes());
 
 // Burst limits (now durable — see watchtower.js) key to the NAME when one
 // was given at the door, else the address; the count survives a restart

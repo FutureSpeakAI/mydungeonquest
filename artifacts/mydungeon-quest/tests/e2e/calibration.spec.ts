@@ -510,18 +510,39 @@ test('TOOTH 17 — a forged byte flips the desk badge: perfect separation', asyn
     console.log('[tooth 17] clean sitting: verdict=true (the lawful record verifies)');
 
     // ------------------- the forged sitting: ONE letter, verdict FALSE
+    // The prose lives TWICE in the record (the journal's hashed payload
+    // and the campaign's display copy), so the forgery is tried twice:
+    // forge BOTH copies and the chain law itself must break the badge.
     const ctxForged = await browser.newContext();
     contexts.push(ctxForged);
     await ctxForged.route('**/api/public/tale/*/record', async (route) => {
       const answer = await route.fetch();
-      const body = (await answer.text()).replace('steady gold', 'steady goId');
+      const body = (await answer.text()).replaceAll('steady gold', 'steady goId');
       await route.fulfill({ response: answer, body });
     });
     const forged = await ctxForged.newPage();
     await forged.goto(`${house.base}/t/${publishId}`, { waitUntil: 'domcontentloaded' });
     await expect(forged.getByTestId('desk-badge'), 'ONE forged letter must flip the verdict — perfect separation').toHaveAttribute('data-verdict', 'false', { timeout: 90_000 });
     await expect(forged.getByTestId('desk-badge')).toContainText(/does not verify|refuses/i);
-    console.log('[tooth 17] forged sitting: verdict=false (one flipped letter, refused aloud)');
+    console.log('[tooth 17] forged sitting: verdict=false (one flipped letter in the chain, refused aloud)');
+
+    // -------------- the laundering sitting: display copy ONLY, verdict FALSE
+    // Forge just the campaign's display copy and leave the hashed journal
+    // pristine — the 61.2 sitting proved the chain court alone stays green
+    // over this, so the badge must ALSO answer for the words the page
+    // actually shows (the display-coherence court). A green badge beside
+    // forged display prose would be laundering, not verification.
+    const ctxLaunder = await browser.newContext();
+    contexts.push(ctxLaunder);
+    await ctxLaunder.route('**/api/public/tale/*/record', async (route) => {
+      const answer = await route.fetch();
+      const body = (await answer.text()).replace('steady gold', 'steady goId'); // first occurrence only — the display copy
+      await route.fulfill({ response: answer, body });
+    });
+    const laundered = await ctxLaunder.newPage();
+    await laundered.goto(`${house.base}/t/${publishId}`, { waitUntil: 'domcontentloaded' });
+    await expect(laundered.getByTestId('desk-badge'), 'a forged DISPLAY copy beside a true chain must still fell the badge').toHaveAttribute('data-verdict', 'false', { timeout: 90_000 });
+    console.log('[tooth 17] laundering sitting: verdict=false (display copy diverged from the chain, refused aloud)');
 
     // Leave no living page behind this fixed campaign id.
     await owner.request.post(`${house.base}/api/publish/${publishId}/revoke`);

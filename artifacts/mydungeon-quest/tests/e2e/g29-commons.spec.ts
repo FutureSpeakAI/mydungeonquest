@@ -41,7 +41,11 @@ test.describe('G29 — THE COMMONS', () => {
       const ctxA = await browser.newContext();
       contexts.push(ctxA);
       const pageA = await ctxA.newPage();
-      await pageA.goto(`${house.base}/`, { waitUntil: 'domcontentloaded' });
+      // The seed door only exists on the proving road (?proving=1), and the
+      // arrival curtain is skipped the same way the rig's own boot() does.
+      await pageA.addInitScript(() => { try { sessionStorage.setItem('mdq:arrived', '1'); } catch { /* private mode */ } });
+      await pageA.goto(`${house.base}/?proving=1`, { waitUntil: 'domcontentloaded' });
+      await pageA.waitForSelector('.title-page', { timeout: 45_000 });
 
       // Sweep the staged patron's shelf from prior sittings — one living
       // page per tale is the law, and this court must own its 409s.
@@ -128,7 +132,9 @@ test.describe('G29 — THE COMMONS', () => {
       const ctxB = await browser.newContext();
       contexts.push(ctxB);
       const pageB = await ctxB.newPage();
+      await pageB.addInitScript(() => { try { sessionStorage.setItem('mdq:arrived', '1'); } catch { /* private mode */ } });
       await pageB.goto(`${house.base}/`, { waitUntil: 'domcontentloaded' });
+      await pageB.waitForSelector('.title-page', { timeout: 45_000 });
       const spine = pageB.locator('.vault-shelf .vault-spine', { hasText: 'The Lantern of Bell Hollow' });
       await expect(spine, 'the away tale stands on the vault shelf').toBeVisible({ timeout: 60_000 });
       await spine.click();

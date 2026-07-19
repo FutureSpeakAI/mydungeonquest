@@ -7,17 +7,20 @@
 import 'fake-indexeddb/auto';
 import assert from 'node:assert/strict';
 
-const { publishable, publishRecordFrom, fellStruck, publicPageModel } = await import('../src/lib/publish.js');
+const { publishable, publishRecordFrom, fellStruck, publicPageModel, displayCoherence } = await import('../src/lib/publish.js');
 
 // ---------------------------------------------------------- the specimens
 const STRUCK_SENTENCE = 'The cartographer\u2019s true name is Ilvane Moor';
 const KEPT_SENTENCE = 'The lantern answers the dark with a steady gold';
 
+// The specimen journal carries the SAME words its log roll displays — a
+// real export's two copies agree, and the display-coherence court (§6)
+// holds the bench to the same honesty it demands of the app.
 const journal = [
-  { type: 'turn', i: 0, prevHash: null, recordHash: 'H0', payload: {}, ts: 1 },
-  { type: 'turn', i: 1, prevHash: 'H0', recordHash: 'H1', payload: {}, ts: 2 },
+  { type: 'turn', i: 0, prevHash: null, recordHash: 'H0', payload: { player: 'begin', dm: { narration_blocks: [{ speaker: null, text: KEPT_SENTENCE }] } }, ts: 1 },
+  { type: 'turn', i: 1, prevHash: 'H0', recordHash: 'H1', payload: { player: 'climb', dm: { narration_blocks: [{ speaker: 'Edlyn', text: 'Take the cliff stair, singer.' }] } }, ts: 2 },
   { type: 'tick', i: 2, prevHash: 'H1', recordHash: 'H2', payload: {}, ts: 3 },
-  { type: 'turn', i: 3, prevHash: 'H2', recordHash: 'H3', payload: {}, ts: 4 },
+  { type: 'turn', i: 3, prevHash: 'H2', recordHash: 'H3', payload: { player: 'press him', dm: { narration_blocks: [{ speaker: 'Halm', text: STRUCK_SENTENCE }] } }, ts: 4 },
   { type: 'redaction', i: 4, prevHash: 'H3', recordHash: 'H4', payload: { targetRecordHash: 'H3', scope: 'active_canon' }, ts: 5 },
 ];
 const sealedJournal = [...journal, { type: 'sealing', i: 5, prevHash: 'H4', recordHash: 'H5', payload: { turns: 3 }, ts: 6 }];
@@ -91,5 +94,35 @@ for (const leak of ['Lantern', 'Wren', 'Edlyn', 'Ilvane', KEPT_SENTENCE]) {
 }
 assert.equal(publicPageModel(null).refused, true, 'an unreadable record refuses rather than crashes');
 console.log('ok — the tombstone is a refusal and only a refusal');
+
+// ---------------------- 6. the display-coherence court (§III.4, amended)
+// The chain court vouches for the journal; the page shows the campaign's
+// display copy. The badge must answer for BOTH — tooth 17's laundering
+// sitting proved a forged display copy rides green past the chain court
+// alone, so the pure court here is the second lock on the same door.
+assert.equal(displayCoherence(record).coherent, true, 'a lawful record is coherent — the page shows the chain\u2019s own words');
+{
+  const forgedDisplay = JSON.parse(JSON.stringify(record));
+  const shown = forgedDisplay.campaign.logs.find((log) => log && !log.redacted && log.dm);
+  shown.dm.narration_blocks[0].text = shown.dm.narration_blocks[0].text.replace('steady gold', 'steady goId');
+  const felledVerdict = displayCoherence(forgedDisplay);
+  assert.equal(felledVerdict.coherent, false, 'ONE forged display byte fells coherence');
+  assert.equal(typeof felledVerdict.reason, 'string', 'the refusal speaks its reason');
+
+  const forgedDeed = JSON.parse(JSON.stringify(record));
+  forgedDeed.campaign.logs.find((log) => log && !log.redacted && log.dm).sent = 'a deed the player never spoke';
+  assert.equal(displayCoherence(forgedDeed).coherent, false, 'a forged spoken deed fells coherence too');
+
+  const citeless = JSON.parse(JSON.stringify(record));
+  delete citeless.campaign.logs.find((log) => log && !log.redacted && log.dm).recordHash;
+  assert.equal(displayCoherence(citeless).coherent, false, 'a citeless displayed page fells the badge — citeless pages are never used');
+
+  const strangeCite = JSON.parse(JSON.stringify(record));
+  strangeCite.campaign.logs.find((log) => log && !log.redacted && log.dm).recordHash = 'f'.repeat(64);
+  assert.equal(displayCoherence(strangeCite).coherent, false, 'a cite the chain does not hold fells the badge');
+
+  assert.equal(displayCoherence(null).coherent, false, 'an unreadable record is incoherent — fail closed');
+}
+console.log('ok — the display copy must be the chain\u2019s own words, or the badge falls');
 
 console.log('PASS publishRules.test.mjs — the commons\u2019 pure laws hold: sealed-only, envelope-only, hash-felled strikes, refusal tombstones');

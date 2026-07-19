@@ -18,6 +18,7 @@
 // ordinal court over turn-typed records; this one is the page's court.
 // Two courts, two alignments, cross-noted in both files.)
 import { exportChronicle } from './seal.js';
+import { canonicalize } from 'fatescript/canonical';
 
 // ------------------------------------------------------------- pure laws
 // Only a sealed tale may enter the commons: the journal itself must carry
@@ -91,6 +92,51 @@ export function publicPageModel(record, { revokedAt = null } = {}) {
       .filter((log) => log && !log.redacted && log.dm)
       .map((log) => ({ id: log.id, turn: log.turn, recordHash: log.recordHash || null })),
   };
+}
+
+// THE DISPLAY-COHERENCE COURT (Directive XV §III.4, amended at the 61.2
+// bench): the chain court vouches for the JOURNAL's bytes — but the page
+// SHOWS the campaign's display copy. Tooth 17's laundering sitting proved
+// the chain court alone stays green when only the display copy is forged,
+// so the badge must also answer for the words the reader actually sees:
+// every DISPLAYED row (unstruck, with a dm) must cite a journal record by
+// its own recordHash and match it canonically — both the teller's words
+// (dm) and the player's (sent). A citeless displayed row, a cite the
+// journal does not know, or one diverged byte fells the badge whole.
+// Meta stays presentation (title/shelf face may move without a reseal —
+// the vault's meta-push law); the STORY's words are the chain's or they
+// are nothing. Fail-closed: an unreadable record is incoherent.
+export function displayCoherence(record) {
+  try {
+    if (!record || typeof record !== 'object') return { coherent: false, reason: 'this record cannot be read' };
+    const journal = Array.isArray(record?.journal) ? record.journal : [];
+    const cited = new Map();
+    for (const row of journal) {
+      if (row && typeof row.recordHash === 'string' && row.payload && typeof row.payload === 'object') {
+        cited.set(row.recordHash, row.payload);
+      }
+    }
+    const logs = fellStruck(record?.campaign?.logs || [], journal);
+    for (const log of logs) {
+      if (!log || log.redacted || !log.dm) continue; // felled rows display nothing — their journal bytes stand lawfully
+      if (typeof log.recordHash !== 'string' || !log.recordHash) {
+        return { coherent: false, reason: 'a displayed page carries no citation into the chain' };
+      }
+      const payload = cited.get(log.recordHash);
+      if (!payload) {
+        return { coherent: false, reason: 'a displayed page cites a record the chain does not hold' };
+      }
+      if (canonicalize(log.dm) !== canonicalize(payload.dm ?? null)) {
+        return { coherent: false, reason: 'a displayed page\u2019s words diverge from the chain\u2019s own' };
+      }
+      if (canonicalize(log.sent ?? null) !== canonicalize(payload.player ?? null)) {
+        return { coherent: false, reason: 'a displayed page\u2019s spoken deed diverges from the chain\u2019s own' };
+      }
+    }
+    return { coherent: true };
+  } catch (error) {
+    return { coherent: false, reason: `the coherence court could not read the record (${error?.message || 'unreadable'})` };
+  }
 }
 
 // ------------------------------------------------------------ the courier
@@ -178,6 +224,12 @@ export async function fetchPublicTale(publishId) {
     let verdict;
     try { verdict = await verifyChronicle(record); }
     catch (error) { verdict = { ok: false, reason: `the desk stumbled (${error.message})` }; }
+    if (verdict?.ok) {
+      // The chain holds — now the words the page will SHOW must be the
+      // chain's own (the display-coherence court; §III.4 amended).
+      const coherence = displayCoherence(record);
+      if (!coherence.coherent) verdict = { ok: false, reason: coherence.reason };
+    }
     return { status: 'ok', meta, raw, record, verdict };
   } catch (error) {
     return { status: 'error', detail: error.message };

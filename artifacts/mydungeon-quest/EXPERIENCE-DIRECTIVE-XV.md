@@ -101,7 +101,13 @@ the commons never shows what the author struck.**
    seen-ledger never rides (standing law), so the public book binds the
    elder way: all proven art seated with its chapters. The page makes no
    Dexie writes and asks for no name.
-4. **The verify badge re-runs the full chain in the reader's own browser.**
+4. **The verify badge re-runs the full chain in the reader's own browser —
+   and answers for the words the page shows.** Every displayed row must
+   cite its journal record by hash and match it canonically; a display
+   copy that diverges from the chain fells the badge whole. *(Amended at
+   the 61.2 bench: tooth 17's laundering sitting proved the chain court
+   alone stays green over a forged display copy — a green badge beside
+   forged prose would be laundering, not verification.)*
    The page fetches the stored record verbatim and runs the desk — the whole
    chain, every link — in the visitor's browser, then shows the verdict and
    the head hash. The badge is computed where the reader stands, not

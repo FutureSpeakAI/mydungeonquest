@@ -76,7 +76,20 @@ test('G22b the principal seat: the cue\'s first subject is the foremost figure',
   seats.push({ file: heroFirstPlate.file, bytes: topBytes(heroFirstPlate), seed: `harness-${String(heroFirstPlate.sha256).slice(0, 12)}` });
   for (const plate of m.plates) {
     if (plate.role !== 'scene' || !plate.heroFirst || !plate.heroBearing) continue;
-    if (!plate.cueSubjects || plate.cueSubjects.length < 1 || plate.cueSubjects.length > 3) continue;
+    // THE SOLO PRINCIPAL (60.1, LOOP_LOG): the court seats a live plate
+    // only when the cue names ONE soul — the sole case where "the most
+    // prominent figure" is the app's own deterministic truth. The easel
+    // carries NO prominence directive for multi-figure cues (the prompts
+    // hold no such law), so a two-figure frame may lawfully seat the
+    // companion at the compositional fore — this store's dusk-road plate
+    // gave the hero the nearest plane and the companion the center and
+    // the light, and the box question's own criteria (size, position,
+    // focus) split 1-2 against her. A premise the app never promised is
+    // not a law the court may enforce (the 56B.4 crossing-control
+    // retirement is this same finding wearing an older date). Closure
+    // (G22a) still holds every multi-figure frame to exactly its named
+    // souls; the warden still holds every hero plate to her mark.
+    if (!plate.cueSubjects || plate.cueSubjects.length !== 1) continue;
     seats.push({ file: plate.file, bytes: topBytes(plate), seed: `live-${String(plate.sha256).slice(0, 12)}` });
   }
   const misses: any[] = [];

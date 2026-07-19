@@ -112,7 +112,9 @@ test.describe('G29 — THE COMMONS', () => {
         .poll(async () => plates.first().evaluate((img: HTMLImageElement) => img.naturalWidth))
         .toBeGreaterThan(0);
 
-      await pageGuest.getByRole('button', { name: /cast/i }).click();
+      // The tab's face reads "Dramatis personae" — the court holds the
+      // stable instrument (testid), not a guessed accessible name.
+      await pageGuest.getByTestId('tab-cast').click();
       const cast = pageGuest.getByTestId('public-cast');
       await expect(cast).toBeVisible();
       for (const soul of ['Wren', 'Edlyn', 'The Tidewife', 'Brother Halm']) {

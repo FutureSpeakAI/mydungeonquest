@@ -3099,3 +3099,47 @@ controls' own (the law's own re-forge provision covers them), four
 were not (a landing omission, now cured; two single crossings). The
 bench rises to the owner: continue at 61.9, or end the hunt with the
 honest report. No flag is written until the owner rules.
+
+### THE RULING ON 61.8 (the owner, 2026-07-19) — THE HUNT CONTINUES; (a) RE-ARMS SHARPENED
+
+1. **Continue at 61.9.** The halt-and-ballot is RATIFIED as standing
+   practice: when a stop condition's letter and its stated
+   justification diverge, the hunt halts and the house rules; the
+   agent never self-interprets.
+2. **The eight, classified by the house:** the four control refusals
+   are the grant's class functioning as designed, their padding defect
+   cured from the paint-and-probe budget. The two publish-door reds
+   were wounds from landing the granted work, cured by verbatim
+   restoration from the tag, and belong to the grant. Tooth 16's
+   crossing is RECLASSIFIED control-class — a constructed lie that
+   weakened on fresh bytes — and gains self-verification now under
+   condition 8's as-next-touched clause. G17b's single crossing is
+   weather under the one-crossing law.
+3. **Scope check (required before 61.9 — PERFORMED):** the clamp
+   padding constant is the production magnifier's own (engine,
+   read-only, diff-empty tag→HEAD→tree). The instrument passes a
+   literal padding: 0 at its own call-site and references the shared
+   constant nowhere — there is nothing to split; the cure is
+   instrument-only by construction. Keyless re-prove: see the gate
+   line below. No production floor moves.
+4. **From 61.9, stop condition (a) SHARPENED:** a counted run may red
+   ONLY on (i) a control self-verification refusal cured from the
+   paint-and-probe budget, or (ii) a FIRST crossing of a court that
+   greens on the next counted run. Any other cause ends the hunt. The
+   same court crossing twice within the counted window is a conviction
+   that ends the hunt. The three-green ritual is itself the recurrence
+   detector.
+5. **Condition (b) stands. No further seats exist under any law.** The
+   full Commons walk re-proves inside each counted green; zero greens
+   are banked; the three must land within 61.9–61.14.
+
+**TOOTH 16 REQUALIFIED under the as-next-touched clause:** the claim
+probe (selfVerifyingPresence — its own wording, the Control Law's probe
+protocol, two sittings at most, then the spoken invalid) proves the
+sealed beast stands on the CURRENT bytes before any counted sit; the
+crossed lie is proven by two-way kind-noun disjointness (tooth 20's
+pattern); the beastless ground is proven by the store's own class seal
+and the painter's cue staging no marsh-wolf. A refusal at any of the
+three is the construct's own spoken failure — probe-budget cure, never
+the court's conviction.
+**Keyless re-prove (the G13 token law): 139 PASS / 0 FAIL, exit 0 — no production floor moved. Gates: 121 tests in 33 files listed.**

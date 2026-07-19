@@ -19,7 +19,7 @@ import type { BinaryKind } from './lib/binaryVerdict';
 import { magnifiedMark } from './lib/magnifier';
 import { armRetractionObserver } from './lib/retraction';
 import { raiseCommonsHouse } from './lib/commonsServer';
-import { WHOLE_FACE_CLAIM, selfVerifyingBehead, selfVerifyingCrownBand } from './lib/controlLaw';
+import { WHOLE_FACE_CLAIM, selfVerifyingBehead, selfVerifyingCrownBand, selfVerifyingPresence } from './lib/controlLaw';
 import type { ControlAttestation } from './lib/controlLaw';
 
 // ============================================================
@@ -392,13 +392,44 @@ test('tooth 16: the species instrument tells the sealed beast from a crossed car
   const m = preflightManifest('g23-battle');
   expect(battleQuestionsDigest(), 'the battle questions are sealed by their pin').toBe(PINNED_BATTLE_QUESTIONS_SHA256);
   const plate = rolePlate(m, 'battle-species');
+
+  // THE CONTROL LAW (61.8 ruling) — this tooth is control-class: its
+  // known-good ground is fresh paint and both lies are constructed
+  // pairings; every construct proves itself before a counted sit.
+  // (1) THE CLAIM: the sealed beast stands on the CURRENT bytes — the
+  // 61.8 crossing was this very claim weakening on fresh paint. A
+  // refusal here is the construct's own spoken failure, cured from the
+  // paint-and-probe budget, never charged to the court.
+  await selfVerifyingPresence({ bytes: topBytes(plate), canon: battleCard().visual, idSeed: 'tooth16-claim', criterion: 'tooth-16-species', label: 'tooth16-claim-ground' });
+  // (2) THE CROSSED LIE proves noun-disjointness BOTH ways (tooth 20's
+  // pattern): a canon the battle never sealed may share no kind-noun
+  // with the sealed card, or the lie is no lie.
+  const sealedText = `${battleCard().species} ${battleCard().visual} ${battleCard().nature}`.toLowerCase();
+  for (const noun of ['automaton', 'clockwork', 'brass', 'rune', 'faceplate', 'mirrored']) {
+    expect(sealedText, `the crossed card stays alien to the sealed canon ("${noun}" must not appear)`).not.toContain(noun);
+  }
+  const crossedText = `${crossedCard().species} ${crossedCard().visual}`.toLowerCase();
+  for (const noun of ['howler', 'wolf', 'marsh', 'moss', 'muzzle']) {
+    expect(crossedText, `the sealed beast stays alien to the crossed card ("${noun}" must not appear)`).not.toContain(noun);
+  }
+  console.log('[control-law] tooth16-bad-crossed: sealed and crossed canons share no kind-noun in either direction — lie PROVEN, the control seats');
+  // (3) THE BEASTLESS GROUND: an establishing-class plate by the
+  // store's own seal, whose painter's cue stages no marsh-wolf.
+  const ground = rolePlate(m, 'vale-establishing');
+  expect(String(ground.klass), "the ground control is an establishing-class plate by the store's own seal").toMatch(/region|establish/i);
+  const groundCue = `${ground.prose || ''} ${(ground.subjects || []).join(' ')} ${(ground.cueSubjects || []).join(' ')}`.toLowerCase();
+  for (const noun of ['howler', 'marsh-wolf', 'wolf']) {
+    expect(groundCue, `the ground's own cue stages no sealed beast ("${noun}" must not appear)`).not.toContain(noun);
+  }
+  console.log(`[control-law] tooth16-bad-ground: ${ground.klass}-class plate, cue stages no sealed beast — lie PROVEN, the control seats`);
+
   const good = await speciesVerdict({ bytes: topBytes(plate), visual: battleCard().visual, idSeed: 'tooth16-good-species', criterion: 'tooth-16-species' });
   console.log(`[tooth 16] good: ${JSON.stringify(good)}`);
   expect(good.species_match, 'good: the battle plate answers its own sealed canon').toBe(true);
   const crossed = await speciesVerdict({ bytes: topBytes(plate), visual: crossedCard().visual, idSeed: 'tooth16-bad-crossed', criterion: 'tooth-16-species' });
   console.log(`[tooth 16] bad-crossed: ${JSON.stringify(crossed)}`);
   expect(crossed.species_match, 'bad: a species the battle never sealed is refused').toBe(false);
-  const beastless = await speciesVerdict({ bytes: topBytes(rolePlate(m, 'vale-establishing')), visual: battleCard().visual, idSeed: 'tooth16-bad-ground', criterion: 'tooth-16-species' });
+  const beastless = await speciesVerdict({ bytes: topBytes(ground), visual: battleCard().visual, idSeed: 'tooth16-bad-ground', criterion: 'tooth-16-species' });
   console.log(`[tooth 16] bad-ground: ${JSON.stringify(beastless)}`);
   expect(beastless.species_match, 'bad: a ground without the beast is refused').toBe(false);
 });

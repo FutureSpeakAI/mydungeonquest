@@ -136,3 +136,53 @@ export async function selfVerifyingCrownBand(args: { bytes: Buffer; idSeed: stri
     attest: { ...reforged.attest, mode: 'crown-reforged-behead', proof: `${reforged.attest.proof} (re-forged: no crown band cleared the face box)` },
   };
 }
+
+// ============================================================
+// THE CLAIM PROBE (61.8 ruling) — a calibration tooth whose known-good
+// ground is a FRESH-PAINTED plate has CONSTRUCTED that ground: the
+// paint may wander off its sealed canon, and 61.8 proved it (tooth 16's
+// good sit refused fresh bytes). Under the ruling the whole pairing is
+// control-class and gains self-verification: the claim proves itself on
+// the CURRENT bytes before any counted sit. Distinct wording, the
+// Control Law's own probe protocol, two sittings at most, then the
+// spoken invalid — a refusal here is the construct's own failure,
+// cured from the paint-and-probe budget, never charged to the court.
+// ============================================================
+
+export interface PresenceAttestation {
+  control: string;
+  probes: number;
+  found: true;
+  confidence: number;
+  proof: string;
+  at: string;
+}
+
+export async function selfVerifyingPresence(args: { bytes: Buffer; canon: string; idSeed: string; criterion: string; label: string }): Promise<PresenceAttestation> {
+  const { bytes, canon, idSeed, criterion, label } = args;
+  let last: any = null;
+  for (let probe = 1; probe <= 2; probe += 1) {
+    const verdict = await judge({
+      id: probe === 1 ? `${idSeed}-clpresence` : `${idSeed}-clpresence-r2`,
+      protocol: 'p2',
+      criterion,
+      images: [bytes],
+      question: `A creature is described by this sealed canon: ${canon}. Looking only at what is plainly visible in this image, does at least one creature answer that canon in kind and form? Independent stagings lawfully vary pose, count, camera angle, lighting, and background; such variance is never absence. Answer ONLY with JSON of the form {"found": true, "confidence": 0.0}.`,
+      schema: { found: 'boolean', confidence: 'number 0..1' },
+    });
+    last = verdict;
+    if (verdict && verdict.found === true) {
+      const attest: PresenceAttestation = {
+        control: label,
+        probes: probe,
+        found: true,
+        confidence: typeof verdict.confidence === 'number' ? verdict.confidence : -1,
+        proof: `the sealed canon stands on the current bytes (probe ${probe}, conf ${typeof verdict.confidence === 'number' ? verdict.confidence : '?'})`,
+        at: new Date().toISOString(),
+      };
+      console.log(`[control-law] ${label}: ${attest.proof} — claim PROVEN, the ground seats`);
+      return attest;
+    }
+  }
+  throw new Error(`[control-law] ${label}: two sittings could not prove the sealed canon on the current bytes (last: ${JSON.stringify(last)}) — the construct refuses to seat; re-forge the paint from the probe budget (the control's own failure, never the court's)`);
+}

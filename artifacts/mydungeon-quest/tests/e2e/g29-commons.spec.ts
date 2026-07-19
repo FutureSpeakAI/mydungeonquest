@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { seedFixture } from './lib/harness';
+import { GAME_ROOT } from './lib/vision';
 import { raiseCommonsHouse, type CommonsHouse } from './lib/commonsServer';
 
 // ============================================================
@@ -21,7 +22,7 @@ import { raiseCommonsHouse, type CommonsHouse } from './lib/commonsServer';
 //   - Revocation answers 410 at every door, and the page refuses whole.
 // ============================================================
 
-const FIXTURE = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'commons-tale.json'), 'utf8'));
+const FIXTURE = JSON.parse(fs.readFileSync(path.join(GAME_ROOT, 'tests', 'e2e', 'fixtures', 'commons-tale.json'), 'utf8'));
 // The commons plate, minted deterministic — its name is hardcoded so the
 // court can poll the shelf for exactly this byte-run.
 const PLATE_SHA = 'fd4194186c6ec8d914de76cdeee1e86aa73fece99769e843271be6fe1cc414c4';

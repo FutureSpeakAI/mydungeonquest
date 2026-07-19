@@ -8,6 +8,5 @@ description: New Anthropic model families 400 any request carrying temperature; 
 **Why:** In MyDungeon.Quest the smith sent `temperature: 0.9` — every live call 400'd and the degrade-to-mock-never-error path seated the mock floor silently. Nothing crashed; the feature simply never went live. Only an in-process probe with an instrumented fetch surfaced the 400.
 
 **How to apply:**
-- Grep for `temperature` before shipping any Anthropic call site; remove the parameter rather than tuning it.
-- KNOWN LATENT CASE: the writers' room server (`room.js` in the same app) still sends `temperature: 0` at four live sittings — its live tier likely degrades to mock today; flagged for a follow-up task in the TASK 58B report.
+- Grep for `temperature` before shipping any Anthropic call site; remove the parameter rather than tuning it. Sweep EVERY seat in a multi-provider file — a cured Director beside an uncured Editor in the same file survived two audits before an architect review caught it (cured July 2026; only OpenAI seats may keep the dial).
 - Silent-fallback architectures hide provider 400s by design: when a "live" tier mysteriously serves mock output, probe the provider call directly with an instrumented fetch and read the error body before touching prompts or schemas.

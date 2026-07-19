@@ -27,6 +27,7 @@
 - [Proving-loop lessons](proving-loop.md) — RUN_REQUESTED reads at BOOT only (write, then restart); known-bad controls must be deterministic lies, never crossings; replays verbatim; calibrate to perfect separation; extensions once, frozen.
 - [Vision-judge calibration](vision-judge-calibration.md) — replay = stability; twice-crossed controls are material; quarantine whole pairings (kind×bytes×prose); probes bind; courts recuse under custody.
 - [Mirrors need one seat](mirrors-one-seat.md) — byte-for-byte law mirrored across files WILL drift; move it to one lib both sides import, or pin cross-pointers both sides.
+- [Signature-downgrade door](signature-downgrade-door.md) — verifiers must never trust caller-declared signature status; evidence in the envelope forces the court, or tamper+re-hash+claim-unsigned launders provenance.
 - [MyDungeon writer's room](mydungeon-writers-room.md) — seats behind one door; pour only grows; captions describe, never quote; freshness door self-heals; walks DRAIN chained roll asks.
 - [MyDungeon genesis first-word](mydungeon-first-word.md) — pours dispatch before ANY paint; parallel foundries merge meters as deltas, never absolutes; wire-order courts drain pre-genesis lanes first.
 - [Pure replay witnesses are born fail-closed](mydungeon-witness-failclosed.md) — every list behind Array.isArray, names must be strings, malformed rows prove nothing; panels reading them render an explicit cannot-be-read line, never crash.

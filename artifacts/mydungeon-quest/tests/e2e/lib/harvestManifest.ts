@@ -23,6 +23,21 @@ export function sha256Hex(bytes: Buffer): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
+/** THE PAGE'S WHOLE BREATH (60.1, LOOP_LOG): a storybook plate is judged
+ * beside its chapter's WHOLE retelling (capped only to bound the ask),
+ * never an opening slice. The stretch opens where it opens and the paint
+ * falls where it falls: two sittings at the same seat — 58.7's dark bell,
+ * 60.1's dawn-against-night — proved a 200-character opening manufactures
+ * contradictions the book never wrote (the counted 60.1 plate paints the
+ * banked hearth and blue shadow the retelling reaches by its second day).
+ * The pinned question's own words ("whose retelling begins with the text
+ * quoted below") stay true under the longer quote; the pinned texts are
+ * untouched. ONE seat: the calibration bench and the G16b court both
+ * read this function — the slice law must never live twice. */
+export function pageProse(chapterProse: unknown): string {
+  return String(chapterProse).slice(0, 4000);
+}
+
 // ---------- the paint law ----------
 
 const LAW_SOURCES = [

@@ -5,7 +5,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { createHash } from 'node:crypto';
 import { GAME_ROOT } from './lib/vision';
-import { HARVEST_DIR, preflightManifest, rolePlate, topBytes } from './lib/harvestManifest';
+import { HARVEST_DIR, pageProse, preflightManifest, rolePlate, topBytes } from './lib/harvestManifest';
 import { loadManifest, plateBytes } from './lib/harness';
 import type { PlateEntry } from './lib/harness';
 import {
@@ -96,7 +96,10 @@ test('tooth 11: the calibration probe — perfect separation of known-good from 
   const pagePairs: { file: string; prose: string }[] = [];
   for (const chapter of book.chapters) {
     for (const plate of chapter.plates) {
-      if (plate.file && chapter.prose) pagePairs.push({ file: plate.file, prose: String(chapter.prose).slice(0, 200) });
+      // The page's whole breath (60.1) — the WHOLE retelling, one seat
+      // in lib/harvestManifest: an opening slice manufactured the
+      // dawn-against-night lie the judge honestly refused.
+      if (plate.file && chapter.prose) pagePairs.push({ file: plate.file, prose: pageProse(chapter.prose) });
     }
   }
   // THE QUARANTINE (58.8, LOOP_LOG) — a calibration control must be a

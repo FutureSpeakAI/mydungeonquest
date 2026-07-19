@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { HARVEST_DIR, preflightManifest, topBytes } from './lib/harvestManifest';
+import { HARVEST_DIR, pageProse, preflightManifest, topBytes } from './lib/harvestManifest';
 import { binaryVerdict } from './lib/binaryVerdict';
 import { assertBoundaryCustody, boundaryRecusal } from './lib/judgeBoundary';
 
@@ -52,7 +52,9 @@ test('G16b every storybook plate depicts its page\'s retelling', async () => {
   const pairs: { file: string; prose: string }[] = [];
   for (const chapter of book.chapters) {
     for (const plate of chapter.plates) {
-      if (plate.file && chapter.prose) pairs.push({ file: plate.file, prose: chapter.prose.slice(0, 200) });
+      // The page's whole breath (60.1) — the same seat the bench reads;
+      // the court and the bench must never measure different pairings.
+      if (plate.file && chapter.prose) pairs.push({ file: plate.file, prose: pageProse(chapter.prose) });
     }
   }
   expect(pairs.length, 'the sealed book seated at least one plate').toBeGreaterThanOrEqual(1);

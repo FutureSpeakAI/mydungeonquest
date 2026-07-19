@@ -23,7 +23,7 @@ validator (mirror them, don't loosen the validator). When a real integration
 "works but ignores the model," check whether validation is failing and a fallback
 is masking it before assuming an API/model problem.
 
-## Addendum (TASK 58B, July 2026): bounds are advisory, and courts must read the lock
+## Addendum (July 2026): bounds are advisory, and courts must read the lock
 
 - `maxLength` (and soft bounds generally) in tool schemas are ADVISORY to Anthropic models — they emit over-bound strings anyway. A bound the model reliably honors rides FOUR seats, all derived from the one fence table: schema `maxLength` + a per-property `description` ("At most N characters."), a system-law sentence binding all schema bounds (listless — names the contract, not values), and a hard-wall line in the ask.
 - Redraw/retry notes must carry the validator's refusals BY NAME as data — a fresh deal that cannot see why the last one fell keeps falling the same way. Feedback converges in 1–2 redraws where blind redraws burned the whole ceiling.

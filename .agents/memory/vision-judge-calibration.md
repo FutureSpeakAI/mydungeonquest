@@ -20,3 +20,10 @@ The framework, earned across seven red iterations of a proving loop:
 **Read the WHOLE failure table.** A multi-row separation failure block can hide a second crossing below the visible fold; excising only the seen failure costs an iteration re-discovering the hidden one.
 
 **Ledger entries expire when refactors move the store.** A large port/refactor can shift plate bytes or prose even when behavior gates stay green (prompt-assembly drift re-rolls cached paints). The stale-entry gate firing after such a change is the custodian working, not a regression: remove ALL expired entries (check every key — the gate reports only the first), and let successor pairings re-earn quarantine via the two-sitting law. Never port an old entry onto new bytes.
+
+## Courts enforce only the app's own promises (the premise law)
+Two seats crossed in one day, proving the same rule from both sides:
+- A **good control** built from material the app never claims (a chapter's opening slice beside a plate painted from a later moment in the same stretch) manufactures contradictions — the judge honestly refuses, and the control is the liar. Cure at the seat: pair the claim the app actually makes (the whole retelling), in ONE shared seat for bench and court.
+- A **court** enforcing a property the product never promises (first-named subject = most prominent figure, with no easel directive behind it) convicts the app on foundry tendency. Cure at the premise: narrow seats to where the claim IS deterministic (solo-cue plates), keep the rest under courts whose claims are real (closure, marks).
+**Why:** the instrument was honest both times — the material and the premise were the faults; excision/quarantine machinery is the wrong tool for those (it exists for instrument blindness on lawful material).
+**How to apply:** before ledgering or excising a crossing, ask first: "does the app anywhere PROMISE the property this pairing asserts?" Read the paint/prompt law for the directive; if none exists, cure the seat or the premise, never the judge.

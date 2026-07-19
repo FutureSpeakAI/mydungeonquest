@@ -3,6 +3,16 @@ import { mockDmTurn } from 'fatescript/mockDm';
 import { safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { artDirectorSits } from './artDirector.js';
+// THE DASH LAW at the deterministic doors (XVII, Article V) — the whole-turn
+// fold from the one pinned source: the engine's 0.9 mock corpus was written
+// with em dashes as lawful typography, and a deterministic tier cannot learn
+// from a revise, so the house's own tiers are folded at the SOURCE, before
+// the chair composes and the one validator seals. Pages from these doors are
+// born at zero; the pre-pass flag stays armed for every tier, and the live
+// tiers keep the whole teaching loop: flag → mandatory revise → ship-door fold.
+import { dashCheck, dashFoldTurn, proseOfTurn } from '../src/lib/voice.js';
+
+const bornAtZero = (turn) => (turn && dashCheck(proseOfTurn(turn)).flagged ? dashFoldTurn(turn) : turn);
 import { cueCourt, propLawCheck, movedItems, groundFixtures } from '../src/lib/plateroad.js';
 
 // THE CENSUS AT THE DOOR — Directive VI, Phase 11. The validator rules the
@@ -182,6 +192,18 @@ const storySchema = {
           delta: { type: 'integer', minimum: -999, maximum: 999, description: 'Non-zero. Never spend below the [STORY].purse_state balance.' },
           reason: { type: 'string', minLength: 3, maxLength: 90 }
         } } },
+        // THE QUIET TABLE (Directive XVII) — the thread ops, declared with
+        // the validator's OWN enums and bounds: a schema the model cannot
+        // see is a trap (the toolschema-validation lesson).
+        thread_add: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['label'], properties: {
+          label: { type: 'string', minLength: 3, maxLength: 90, description: 'A hook the tale now owes — unique among open threads.' },
+          kind: { type: 'string', enum: ['promise','debt','mystery','goal'] },
+          holder: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 60 }], description: 'The soul this thread binds, when one does.' }
+        } } },
+        thread_resolve: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['label','outcome'], properties: {
+          label: { type: 'string', maxLength: 90, description: 'An OPEN thread\'s exact label from [STORY].threads_state.' },
+          outcome: { type: 'string', enum: ['kept','broken','resolved'] }
+        } } },
         // THE PRESENCE CUT (Directive VII): declared because the strict
         // validator enforces the shape — a schema the model cannot see is
         // a trap. Exactly one key, and never an array.
@@ -354,6 +376,11 @@ async function openaiTurn(input, repair = null) {
  * INDIVIDUALLY, so a spent Anthropic day degrades to OpenAI (if configured
  * and unspent) before the floor, and a spent provider is never called.
  */
+// THE QUIET TABLE (XVII) — the schema is probe-able: the lockstep gate
+// walks these enums against the validator's own law, so the two can
+// never drift apart unseen.
+export const dmToolSchema = toolSchema;
+
 export function dmPlan(barred = {}) {
   if (process.env.DM_PROVIDER === 'mock') return ['mock'];
   const plan = [];
@@ -372,13 +399,13 @@ export async function getDmTurn(input, { barred = {} } = {}) {
       // LAW IX — the Art Director sits between the draft and the ONE
       // validator, at every door alike: the merged cue is judged in
       // the same seal as the rest of the turn.
-      const turn = artDirectorSits(mockDmTurn(input));
+      const turn = artDirectorSits(bornAtZero(mockDmTurn(input)));
       const validation = judgeTurn(turn, input);
       if (!validation.ok) throw new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
       return { turn, provider: 'mock' };
     } catch (error) {
       console.error(error);
-      return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', error: error.message };
+      return { turn: bornAtZero(safeFallbackTurn(input.player, input.turn)), provider: 'fallback', error: error.message };
     }
   }
 

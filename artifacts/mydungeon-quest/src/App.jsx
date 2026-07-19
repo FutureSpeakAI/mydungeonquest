@@ -52,7 +52,7 @@ import { PatronDoor } from './patron/door.jsx';
 import { burnFromVault, nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
 import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
 import { rememberRefusedPour, reportTollRefusal, setPourContext, tollRefusal } from './patron/tollNotice.js';
-import { admitPlate, cueCourt, easelOrder, emptyFrameLine, groundFixtures, movedItems, propLawCheck, seatingPlan } from './lib/plateroad.js';
+import { admitPlate, cueCourt, easelOrder, emptyFrameLine, groundFixtures, movedItems, propLawCheck, renderableTurn, seatingPlan } from './lib/plateroad.js';
 import { heroSheetJob, sheetJobs } from './lib/sheets.js';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
@@ -779,7 +779,10 @@ export default function App() {
       // log array's INDEX is not a turn once ticks ride between rows. The
       // sealed payload never includes the row object, so the stamp moves
       // no hashes; rows from before this law simply cite nothing.
-      const log = { id: crypto.randomUUID(), player: visiblePlayer, deed, sent: player, dm, ts: Date.now(), resolution, redacted: false, turn: base.turnNumber || 0, beatIndex: codex.beatIndex, room: roomLedger };
+      // THE QUIET TABLE (XVII) — what the log row carries to render surfaces
+      // passes the whitelist; court language stays in the sealed record's
+      // ledger, structurally absent here because it is never copied.
+      const log = { id: crypto.randomUUID(), player: visiblePlayer, deed, sent: player, dm: renderableTurn(dm), ts: Date.now(), resolution, redacted: false, turn: base.turnNumber || 0, beatIndex: codex.beatIndex, room: roomLedger };
       // A completing turn strands no die: the tale that just ended has no
       // roll left to make.
       let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: codex.completed ? null : dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed, roomIntent: beatIntent };

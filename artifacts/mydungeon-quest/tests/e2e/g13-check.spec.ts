@@ -36,7 +36,7 @@ import { GAME_ROOT } from './lib/vision';
 // check in the same commit that seats Experience-Directive XVII's
 // image articles: reference sheets, the slot law, the render door,
 // the vertical frame, and the struck borrow rungs.
-const PINNED_PASS_COUNT = 131;
+const PINNED_PASS_COUNT = 133; // 60B Stage Two (XVII Article V + quiet table): +2 — houseVoice, quietTable; 131 → 133
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

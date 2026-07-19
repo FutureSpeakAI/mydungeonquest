@@ -27,6 +27,10 @@ import {
 import { plateDue } from './artDirector.js';
 import { getDmTurn, dmPlan } from './dm.js';
 import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
+// THE HOUSE VOICE (XVII, Article V) — the one pinned source: dash and
+// tells scans for the pre-pass, the mandatory-revise reason, and the
+// live Editor's addendum all speak from src/lib/voice.js.
+import { dashCheck, dashFoldTurn, proseOfTurn, DASH_REASON, EDITOR_ADDENDUM } from '../src/lib/voice.js';
 
 // The law, re-spoken through the table's door so every gate, probe,
 // and seat keeps its one import path.
@@ -50,8 +54,24 @@ const CLICHE_LEXICON = Object.freeze(
 export function clicheCheck(draftText, lexicon = CLICHE_LEXICON) {
   return lawClicheCheck(draftText, lexicon);
 }
+
+// THE TELLS LEXICON (XVII, Article V) — language-model tells, pinned
+// fixture data like the cliche shelf above, judged through the SAME one
+// instrument so the density ceiling is inherited, never mirrored.
+const TELLS_LEXICON = Object.freeze(
+  JSON.parse(readFileSync(new URL('./tells-lexicon.json', import.meta.url), 'utf8'))
+    .phrases.map((phrase) => foldProse(phrase)).filter(Boolean)
+);
+
 export function editorPrePass(turn, opts = {}) {
-  return lawEditorPrePass(turn, { lexicon: CLICHE_LEXICON, ...opts });
+  const flags = lawEditorPrePass(turn, { lexicon: CLICHE_LEXICON, ...opts });
+  // XVII Article V — the deterministic house-voice scans ride the same
+  // pre-pass, before any judged look: the dash law (mandatory revise at
+  // the sitting) and the tells density court.
+  const prose = proseOfTurn(turn);
+  if (dashCheck(prose).flagged) flags.push('dash');
+  if (lawClicheCheck(prose, TELLS_LEXICON).flagged) flags.push('tells');
+  return flags;
 }
 
 // The live Director: one strict-JSON sitting through the standing
@@ -154,7 +174,7 @@ async function anthropicVerdict(draft, context) {
     body: JSON.stringify({
       model: process.env.EDITOR_MODEL || 'claude-haiku-4-5',
       max_tokens: 300, // no temperature: the family retired the dial (Directive XII §VIII)
-      system: [{ type: 'text', text: EDITOR_RUBRIC }],
+      system: [{ type: 'text', text: EDITOR_RUBRIC }, { type: 'text', text: EDITOR_ADDENDUM }],
       messages: [{ role: 'user', content: [{ type: 'text', text: editorBrief(draft, context) }] }],
       tools: [{ name: 'editor_verdict', description: "The Editor's only valid word.", input_schema: verdictToolSchema }],
       tool_choice: { type: 'tool', name: 'editor_verdict' }
@@ -174,6 +194,7 @@ async function openaiVerdict(draft, context) {
       max_tokens: 300, temperature: 0,
       messages: [
         { role: 'system', content: EDITOR_RUBRIC },
+        { role: 'system', content: EDITOR_ADDENDUM },
         { role: 'user', content: editorBrief(draft, context) }
       ],
       tools: [{ type: 'function', function: { name: 'editor_verdict', description: "The Editor's only valid word.", parameters: verdictToolSchema } }],
@@ -251,6 +272,14 @@ export async function convene(input, { barred = {} } = {}) {
   if (sealed?.turn && (flags.length || sampled)) {
     editorCalls += 1;
     verdict = await editorJudges(sealed.turn, { ...court, flags }, { barred });
+    // THE DASH LAW (XVII, Article V) — a 'dash' flag is MANDATORY REVISE:
+    // whatever the judged seat answered, the verdict is revise, and the
+    // dash law stands among its named reasons.
+    if (flags.includes('dash')) {
+      const reasons = Array.isArray(verdict.reasons) ? verdict.reasons : [];
+      if (verdict.verdict !== 'revise') verdict = { verdict: 'revise', reasons: [...reasons, DASH_REASON] };
+      else if (!reasons.some((reason) => /dash/i.test(String(reason)))) verdict = { ...verdict, reasons: [...reasons, DASH_REASON] };
+    }
     if (verdict.verdict === 'revise') {
       editorCalls += 1;
       revisions = 1;
@@ -262,6 +291,15 @@ export async function convene(input, { barred = {} } = {}) {
         artDirectorCalls += plateDue(redraft.turn) ? 1 : 0;
       }
     }
+  }
+  // THE DASH LAW's ship door — absolute and deterministic. A twice-refused
+  // draft that still carries an em dash is folded here (the fold only ever
+  // shrinks or holds length, so no validator ceiling breaks): ZERO em
+  // dashes ship, keyless or keyed. The flags then re-attest the page as
+  // it actually ships.
+  if (sealed?.turn && dashCheck(proseOfTurn(sealed.turn)).flagged) {
+    sealed = { ...sealed, turn: dashFoldTurn(sealed.turn) };
+    flags = editorPrePass(sealed.turn, court);
   }
   return {
     ...sealed,

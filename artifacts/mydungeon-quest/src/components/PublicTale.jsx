@@ -56,7 +56,11 @@ export default function PublicTale({ publishId }) {
         // seats): a visitor has no seen-ledger, and none ever rides here.
         let bookHtml = null;
         try {
-          bookHtml = buildStorybook({ campaign: model.campaign, journal: answer.record.journal, media, reveals: null, pageSize: 'Letter' });
+          // proof: false — the guest's book carries NO embedded chronicle.
+          // The record door serves the byte-preserved proof to anyone who
+          // asks; the rendered page must hold not one struck byte, and the
+          // owner's keepsake keeps its save-proof device untouched.
+          bookHtml = buildStorybook({ campaign: model.campaign, journal: answer.record.journal, media, reveals: null, pageSize: 'Letter', proof: false });
         } catch (error) {
           bookHtml = null;
           console.error(`[commons] the book would not bind: ${error.message}`);

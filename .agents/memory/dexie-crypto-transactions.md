@@ -29,4 +29,19 @@ then opens a tx that does ONLY synchronous Dexie ops (`journal.put` +
 (`__sealChain`) so head-hash reads/writes never interleave (no chain fork).
 If you ever must keep crypto inside a Dexie tx, wrap it in `Dexie.waitFor(...)`.
 Serialization ALONE does not fix it — a single seal still gaps on crypto; the
-real fix is moving crypto out of the tx.
+real fix is moving crypto out of the tx. (Current code: `appendEvent` itself
+now rides `Dexie.waitFor(makeEnvelope(...))` inside its own tx — both patterns
+stand; waitFor suits low-frequency seals, the outside-crypto wrapper the hot
+turn/media path.)
+
+## The once door (exactly-once records)
+Check-then-write across await boundaries duplicates seals: two parallel callers
+both judge a snapshot eligible, both append, and the journal carries two records
+of a once-only kind. The chain stays VALID — each seal chains on the other —
+which is exactly why nothing crashes while the audit trail silently lies (turn
+count two ahead of the one visible row). **Cure:** the guard lives INSIDE the
+writer's own transaction — an `opts.once` on `appendEvent` counts standing
+records of that type for the spine and answers null instead of writing;
+exactly-once by construction, callers stand down to the standing record.
+Snapshot checks stay as cheap pre-filters, but the DECIDING read is in the tx,
+against the row as persisted now — never the caller's snapshot.

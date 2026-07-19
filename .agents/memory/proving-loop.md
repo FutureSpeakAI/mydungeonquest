@@ -118,3 +118,9 @@ read-back (page courts green) is almost certainly the mapper.
   never re-adjudicate a recorded iteration, never invent accounting.
 
 - THE MINT LAW (standing ruling of this project, pinned in LOOP_LOG beside THE EXTENSION LAW): paint falls get at most 3 fidelity-proven re-lay ladders per artifact per iteration, instrument-only, through the app's own foundry and attestation door; capped is never a fall; all-three-fall is blocker-grade (hunt stops); a single fall under hash-identical law is variance, not defect.
+
+## Live courts in the rig (July 2026)
+- **The keyed house rises from ONE seat.** A single lib raises every live court's keyed server: hard-stop without the key, frees its own ports, spawns with a scrubbed keyed-fork env, waits for real routes, and PREFLIGHTS the provider in its own name (a sealed SSE ask asserting `provider === 'anthropic'`) before any court sits. Specs never assemble env or ports themselves.
+- **Serialize keyed houses through project dependencies.** Chain live playwright projects (`g26` depends on `g25`) so two keyed servers never stand at once — port frees and rate ledgers stay honest under one roof.
+- **Seal evidence BEFORE judgment.** Live courts write their measured runs/medians to a JSON witness on disk, then judge — a red still leaves the numbers for the post-mortem.
+- **A freshness-doored store hides rotted walk needles.** A reseed walk that only runs when its law hash moves meets EVERY surface drift since the last reseed at once — expect the first post-law-change sitting to fail in the walk, not the courts, and read the wedge as needle rot before suspecting the app.

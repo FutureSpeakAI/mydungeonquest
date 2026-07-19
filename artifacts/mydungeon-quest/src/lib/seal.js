@@ -2,10 +2,10 @@ import Dexie from 'dexie';
 // THE DESK (Task 60 §2): the seal's pure half — the pen and the eye —
 // lives at the engine's desk seat now; this door re-speaks it and keeps
 // only the database half (key custody, transactions, import, fork).
-import { makeEnvelope, verifyJournal } from 'fatescript/desk';
+import { makeEnvelope, verifyJournal, verifyChronicle } from 'fatescript/desk';
 import { db } from './db.js';
 
-export { makeEnvelope, verifyJournal };
+export { makeEnvelope, verifyJournal, verifyChronicle };
 
 // The 'cinema' media tier was retired with film generation (July 2026). The
 // funnel law moved home with the parity cut — the engine's canonical seat
@@ -81,15 +81,15 @@ export async function exportChronicle(campaignId) {
 
 export async function importChronicle(data) {
   if (data?.header?.format !== 'mydungeon.chronicle' || !Array.isArray(data.journal)) throw new Error('Invalid chronicle format');
-  // THE DOOR VERIFIES BEFORE IT OPENS (fail-closed, the Vault's own law):
-  // every record is re-hashed byte for byte against its seal and its link;
-  // one flipped byte anywhere in the chain and the whole tale is refused.
-  // Presentation state rides the campaign row, but truth lives here.
-  const verdicts = await verifyJournal(data.journal);
-  const broken = verdicts.find((verdict) => !verdict.ok);
-  if (broken) throw new Error(`the seal is broken at record ${broken.i} — this chronicle has been altered`);
-  const trueHead = data.journal.length ? data.journal[data.journal.length - 1].recordHash : null;
-  if ((data.header.headHash || null) !== trueHead) throw new Error('the head seal does not match the journal — this chronicle has been altered');
+  // THE DOOR VERIFIES BEFORE IT OPENS (fail-closed, the Vault's own law) —
+  // and it verifies at the engine's desk, one seat: chain law, head seal,
+  // the signature court, and the downgrade door. The architect's sitting
+  // caught the laundering path this door alone once allowed: tamper,
+  // re-hash the chain, re-crown the head, then claim the tale was never
+  // signed. The desk refuses the claim while the envelope carries the
+  // evidence — a public key in the header or ink on any record.
+  const verdict = await verifyChronicle(data);
+  if (!verdict.ok) throw new Error(verdict.reason);
   const id = crypto.randomUUID();
   const imported = {
     ...data.campaign, id, title: `${data.campaign.title} — restored`, readOnly: true,
@@ -98,8 +98,13 @@ export async function importChronicle(data) {
     headHash: data.header.headHash, turnCount: data.journal.length, signatureStatus: data.header.signatureStatus,
     createdAt: Date.now(), updatedAt: Date.now()
   };
-  await db.transaction('rw', db.campaigns, db.journal, db.media, async () => {
+  await db.transaction('rw', db.campaigns, db.journal, db.media, db.keys, async () => {
     await db.campaigns.put(imported);
+    // The restored spine keeps its provenance: the PUBLIC key rides forward
+    // (never the pen), so a later re-export still carries the seal's
+    // evidence and verifies whole at any desk. Continuations stay hash-only
+    // by the Vault's own law — signed:false means this seat can never sign.
+    await db.keys.put({ campaignId: id, algorithm: data.header.publicKeyJwk ? 'Ed25519' : 'SHA-256', signed: false, publicJwk: data.header.publicKeyJwk || null });
     for (const row of data.journal) await db.journal.put({ ...row, campaignId: id });
     for (const row of data.media || []) {
       const { blob, ...meta } = row;

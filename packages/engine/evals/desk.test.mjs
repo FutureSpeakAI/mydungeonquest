@@ -50,6 +50,15 @@ verdict = await verifyChronicle(tailForged);
 assert.equal(verdict.ok, false);
 assert.match(verdict.reason, /the signature does not hold at record \d+ — this chronicle has been altered/, 'the last stand: a seal no forger can mint');
 
+// --- 4b. The forger's last move — claim the tale was never signed — meets the downgrade door ---
+tailForged.header.signatureStatus = 'hash-only';
+verdict = await verifyChronicle(tailForged);
+assert.equal(verdict.ok, false);
+assert.equal(verdict.reason, 'the chronicle carries signature evidence but claims none — a downgraded seal is refused', 'the laundering path is named and shut');
+tailForged.header.publicKeyJwk = null;
+verdict = await verifyChronicle(tailForged);
+assert.equal(verdict.ok, false, 'burning the header key is not enough while any record carries ink');
+
 // --- 5. A truncated journal loses the head ---
 const truncated = structuredClone(tale);
 truncated.journal.pop();
@@ -83,6 +92,17 @@ assert.equal((await verifyJournal(bent))[1].ok, false, 'one flipped byte in the 
 const wrongPen = await verifySignatures(chain.map((row) => ({ ...row, signature: chain[0].signature })), publicKeyJwk);
 assert.equal(wrongPen.ok, false, 'a borrowed signature does not hold');
 
+// --- 6b. The honest unsigned tale still walks: no claim, no evidence, chain true ---
+const plainChain = [];
+let plainPrev = null;
+for (let i = 0; i < 2; i += 1) {
+  const record = await makeEnvelope({ type: 'turn', i, prevHash: plainPrev, payload: { player: 'a step', dm: { narration_blocks: [{ text: 'a step taken' }] } }, ts: 1784000100000 + i });
+  plainChain.push(record);
+  plainPrev = record.recordHash;
+}
+const plainTale = { header: { format: 'mydungeon.chronicle', version: 1, headHash: plainPrev, signatureStatus: 'hash-only', publicKeyJwk: null }, journal: plainChain };
+assert.equal((await verifyChronicle(plainTale)).ok, true, 'a born-unsigned tale is refused nothing');
+
 // --- 7. The fail-closed door: malformed envelopes prove nothing ---
 for (const junk of [null, 42, {}, { header: { format: 'somebody-else' }, journal: [] }, { header: { format: 'mydungeon.chronicle' }, journal: 'not-a-list' }]) {
   const refused = await verifyChronicle(junk);
@@ -90,4 +110,4 @@ for (const junk of [null, 42, {}, { header: { format: 'somebody-else' }, journal
 }
 assert.deepEqual(await verifyJournal('not-a-list'), [], 'a journal that is not a list proves nothing');
 
-console.log('PASS — the desk gate: the rich reference tale verifies whole (every record weighed, signatures and all), one flipped byte is refused with the door\u2019s own words, a re-hashing forger only moves the break until the head seal and then the signature court stop him cold, the desk\u2019s own pen round-trips pure, and malformed envelopes prove nothing.');
+console.log('PASS — the desk gate: the rich reference tale verifies whole (every record weighed, signatures and all), one flipped byte is refused with the door\u2019s own words, a re-hashing forger only moves the break until the head seal and then the signature court stop him cold, the downgrade door shuts the laundering path while any evidence rides, the born-unsigned tale still walks, the desk\u2019s own pen round-trips pure, and malformed envelopes prove nothing.');

@@ -78,7 +78,20 @@ export async function verifyChronicle(data) {
   if ((data.header.headHash || null) !== trueHead) {
     return { ok: false, reason: 'the head seal does not match the journal — this chronicle has been altered', verdicts };
   }
-  if (data.header.signatureStatus === 'signed') {
+  // THE DOWNGRADE DOOR (the architect's sitting, Task 60 §4): a forger who
+  // tampers, re-hashes the chain, and re-crowns the head still cannot mint
+  // signatures — so his last move is to claim the tale was never signed.
+  // While the envelope itself carries the evidence — a public key in the
+  // header or ink on any record — the claim is refused and the court sits.
+  // A tale with no claim and no evidence remains an honest unsigned tale:
+  // that door stays open, and what walks through it is seated as unsigned,
+  // never as signed.
+  const claimsSigned = data.header.signatureStatus === 'signed';
+  const evidence = Boolean(data.header.publicKeyJwk) || data.journal.some((record) => typeof record?.signature === 'string' && record.signature.length > 0);
+  if (!claimsSigned && evidence) {
+    return { ok: false, reason: 'the chronicle carries signature evidence but claims none — a downgraded seal is refused', verdicts };
+  }
+  if (claimsSigned) {
     const signed = await verifySignatures(data.journal, data.header.publicKeyJwk || null);
     if (!signed.ok) return { ok: false, reason: signed.reason, verdicts };
   }

@@ -34,19 +34,16 @@ import { HARVEST_DIR } from './harvestManifest';
 // ============================================================
 
 export const JUDGE_BOUNDARY: Record<string, string> = {
-  // ch1 page plate beside its page's first 200 characters: the
-  // waystation bell hangs dark-on-dark against the gnarled tree frame;
-  // the judge answered element_present=false twice, byte-stable at
-  // 0.62, while NAMING the bell — yet reads the same pixels fine under
-  // the moment binaries. 58.7/58.8 evidence pinned.
-  'page:0835536e7df9633f4c589a23cfeb9266c0c7061f117d860ef8ab90d7284c3b21:3a9e4d06770e2ded1ffab78b263c14d8ce39ef0f2bae7f0ccb2b28a29285812e': 'page binaries: judge stably blind to the dark bell (58.7/58.8)',
-  // caption-1 beside its own sealed text: a truncated, act-heavy
-  // caption over a night plate — the judge SAW the bag yet demanded the
-  // weighing act, and refused the blue-shadowed vale as its own
-  // meadows. Two fresh rolls crossed (0.72 then 0.55) and inspection
-  // seats both claims in the pixels. 58.9 evidence pinned; the G16c
-  // court roll landed the same read.
-  'caption:164b17217f1aab9f1896fa99d40fff76b132a7831f63aca57353770fbdfd5327:6e91a0cbe3062445b0872c687f2f83a0fba323954b34c1506464b507396a2b1f': 'caption binaries: night plate + truncated act-caption sits at the judge boundary (58.9)',
+  // EMPTY BY EXPIRY (60.1 shakeout, LOOP_LOG): the ledger held two
+  // entries earned under the 0.9.0 store — the dark-bell page pairing
+  // (58.7/58.8) and the night-plate act-caption pairing (58.9). Runs
+  // 59.4–59.7 matched them; the Task 60 port moved the store, and the
+  // 60.1 bench proved NEITHER key matched any standing candidate. The
+  // custodian's own law retired them: entries die with the store (or
+  // the prose) that earned them. Successor pairings inherit NOTHING —
+  // quarantine is re-earned only by the two-sitting law (two fresh
+  // rolls crossing byte-identically plus human inspection), never
+  // granted by ancestry.
 };
 
 /** The whole-pairing key: `<kind>:<sha256(bytes)>:<sha256(prose)>`. */

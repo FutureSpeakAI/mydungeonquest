@@ -153,7 +153,7 @@ async function anthropicVerdict(draft, context) {
     headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: process.env.EDITOR_MODEL || 'claude-haiku-4-5',
-      max_tokens: 300, temperature: 0,
+      max_tokens: 300, // no temperature: the family retired the dial (Directive XII §VIII)
       system: [{ type: 'text', text: EDITOR_RUBRIC }],
       messages: [{ role: 'user', content: [{ type: 'text', text: editorBrief(draft, context) }] }],
       tools: [{ name: 'editor_verdict', description: "The Editor's only valid word.", input_schema: verdictToolSchema }],
@@ -187,9 +187,12 @@ async function openaiVerdict(draft, context) {
   return JSON.parse(call.function.arguments);
 }
 
-// LAW VII — the judged pass. One temperature-zero sitting; a cheaper
-// model is sanctioned; any refusal or unlawful word falls to the
-// deterministic floor. The table is never stalled by its Editor.
+// LAW VII — the judged pass. One judged sitting at determinism's edge —
+// the Anthropic seat carries no temperature (the family retired the
+// dial; a carried dial 400s at the door and the floor seats silently),
+// the OpenAI seat still pins zero. A cheaper model is sanctioned; any
+// refusal or unlawful word falls to the deterministic floor. The table
+// is never stalled by its Editor.
 async function editorJudges(draft, context, { barred = {} } = {}) {
   const plan = dmPlan(barred);
   if (plan[0] === 'mock') return mockEditor(context.flags);

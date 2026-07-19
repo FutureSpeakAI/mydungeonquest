@@ -8,7 +8,7 @@
 // seat for the law between them.
 import 'fake-indexeddb/auto';
 import assert from 'node:assert/strict';
-import { verifyChronicle } from 'fatescript/desk';
+import { verifyChronicle, makeEnvelope } from 'fatescript/desk';
 import { db } from '../src/lib/db.js';
 import { appendEvent, exportChronicle, importChronicle, verifyJournal } from '../src/lib/seal.js';
 
@@ -45,9 +45,42 @@ crowned.header.headHash = crowned.journal[0].recordHash;
 assert.equal((await verifyChronicle(crowned)).reason, 'the head seal does not match the journal — this chronicle has been altered');
 await assert.rejects(() => importChronicle(structuredClone(crowned)), /head seal does not match/, 'one law, two mouths');
 
+// --- 4b. The laundering path end to end: tamper, re-hash, re-crown, then claim unsigned — both mouths refuse ---
+const laundered = structuredClone(exported);
+const lastSeat = laundered.journal.length - 1;
+laundered.journal[lastSeat].payload.note = 'a quieter ending';
+const forgedTail = await makeEnvelope({ type: laundered.journal[lastSeat].type, i: laundered.journal[lastSeat].i, prevHash: laundered.journal[lastSeat].prevHash, payload: laundered.journal[lastSeat].payload, ts: laundered.journal[lastSeat].ts });
+laundered.journal[lastSeat] = { ...laundered.journal[lastSeat], ...forgedTail };
+laundered.header.headHash = forgedTail.recordHash;
+laundered.header.signatureStatus = 'hash-only';
+const launderedVerdict = await verifyChronicle(laundered);
+assert.equal(launderedVerdict.ok, false);
+assert.match(launderedVerdict.reason, /a downgraded seal is refused/, 'the desk names the laundering');
+await assert.rejects(() => importChronicle(structuredClone(laundered)), /a downgraded seal is refused/, 'the import door refuses the laundering with the desk\u2019s own words');
+
+// --- 4c. The total burn imports — but seated as unsigned, never as signed ---
+// A wholesale re-authored unsigned tale is indistinguishable from a
+// born-unsigned one; that residual belongs to the format, and provenance
+// beyond the envelope is the keeper's law (the manifest pins its heads).
+// What the door guarantees: the signed CLAIM cannot be laundered — the
+// forger's prize visibly says unsigned.
+const burned = structuredClone(laundered);
+burned.header.publicKeyJwk = null;
+for (const row of burned.journal) row.signature = null;
+assert.equal((await verifyChronicle(burned)).ok, true, 'no claim, no evidence — the unsigned door stays open');
+const burnedIn = await importChronicle(structuredClone(burned));
+assert.equal(burnedIn.signatureStatus, 'hash-only', 'the forger\u2019s prize says unsigned to every eye');
+
 // --- 5. The untouched export still opens the door ---
 const restored = await importChronicle(structuredClone(exported));
 assert.ok(restored.readOnly, 'a restored tale is read-only');
 assert.equal(restored.headHash, exported.header.headHash, 'the restored spine carries the true head');
 
-console.log('PASS — the desk gate (the table\u2019s side): a tale sealed through the table\u2019s own door verifies whole at the engine\u2019s desk, the re-spoken eye keeps its old shape for the table\u2019s courts, one flipped byte is refused by both mouths with one voice, a bent head seal falls at desk and door alike, and the untouched export still opens the door read-only.');
+// --- 6. The restored spine keeps its provenance: a re-export verifies whole at the desk ---
+const reExported = await exportChronicle(restored.id);
+assert.equal(reExported.header.signatureStatus, 'signed', 'the restored spine still claims what was proven');
+assert.ok(reExported.header.publicKeyJwk, 'the public key rode forward with the restore');
+const reVerdict = await verifyChronicle(reExported);
+assert.equal(reVerdict.ok, true, `the re-export verifies whole at the desk: ${reVerdict.reason || ''}`);
+
+console.log('PASS — the desk gate (the table\u2019s side): a tale sealed through the table\u2019s own door verifies whole at the engine\u2019s desk, the re-spoken eye keeps its old shape for the table\u2019s courts, one flipped byte is refused by both mouths with one voice, the laundering path (tamper, re-hash, re-crown, claim unsigned) is refused by desk and door alike while the total burn seats visibly as unsigned, the restored spine\u2019s provenance rides its re-export, and the untouched export still opens read-only.');

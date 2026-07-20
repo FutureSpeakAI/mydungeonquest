@@ -3143,3 +3143,68 @@ and the painter's cue staging no marsh-wolf. A refusal at any of the
 three is the construct's own spoken failure — probe-budget cure, never
 the court's conviction.
 **Keyless re-prove (the G13 token law): 139 PASS / 0 FAIL, exit 0 — no production floor moved. Gates: 121 tests in 33 files listed.**
+
+### 61.9 — counted run, RED (exit 1; 2 unexpected, 39 skipped; 23/23 seen; g29-commons GREEN — the mount cure held)
+
+Classification under the SHARPENED (a), both provable from the record:
+1. **Tooth 16 — class (i) verbatim.** The claim probe refused twice
+   ({"found":false,"confidence":0.85}) and the construct spoke its own
+   invalid BEFORE any counted sit (fresh=2, replay=0 — the counted
+   sits never happened). A control self-verification refusal, cured
+   from the paint-and-probe budget. The requalification WORKED: what
+   fell as a court conviction in 61.8 fell as the construct's own
+   spoken refusal in 61.9.
+2. **G17b — class (ii), first in-window crossing.** The verdict
+   REPLAYED from cache (same fixture bytes, same 0.92). Lawful iff
+   G17b greens at 61.10 — and on replaying bytes that REQUIRES the
+   budget cure below. A 61.10 red here is a conviction that ends the
+   hunt.
+
+**EYES ON THE ART (the bench's own look, ledgered):**
+- fixture/plate-5d33a09c53.jpg (battle-species): the howlers ARE
+  present — grey, moss-matted, wolf-form, four of them circling the
+  sledge — but the canon's two SIGNATURE tells are underdelivered: no
+  bone-white blaze down any muzzle, no yellow lamplike eyes. Three
+  independent refusals under two wordings (61.8 court, 61.9 probe ×2)
+  were strict but HONEST.
+- fixture/plate-4d2dfef386.jpg (Corin Voss scene): plainly honest —
+  Corin stands at the right frame edge with a third of him off-canvas.
+  The court was right both times.
+
+**THE CURE (paint-and-probe budget, out of ladder):** both convictions
+are honest verdicts on the premint's own paints, and the sealed record
+binds every plate by assetHash (G18b) — a surgical transplant would be
+provenance tamper. The lawful cure is a FULL fixture re-walk through
+the premint door (61.6's own law: no iteration, no number consumed).
+The live pool stays untouched — the settled stage-one boxes and every
+live-plate sitting hold. Ripple accepted: fixture courts re-sit fresh
+bytes at 61.10 under clause (ii)'s per-court allowance; the pool is
+inspected BY EYE and pre-probed by the exact courts (binding cache
+replays) before any counted seat is spent.
+
+**THE CURE LANDED (premint + binding pre-probes, zero seats spent):**
+- Fixture pool evicted whole (live untouched — old mtimes attest); the
+  premint door re-walked it in 3.5m, paint law reused, 14 rows sealed.
+  One hygiene lesson burned in: `premint.exit` is UNNUMBERED — evict
+  the stale marker WITH the flag write, or a poll reads the previous
+  premint's truth as this one's (it did; caught by the empty pool and
+  the still-streaming paint traffic).
+- EYES on the re-roll: the howlers now carry the canon's tells — at
+  least two beasts with unmistakable yellow lamplike eyes, moss-matted
+  shoulders throughout, pale muzzle streaks. Corin Voss stands whole,
+  head to boots, clear of every edge. Edda dominant and centered. The
+  vale ground pure pastoral, beastless, klass region.
+- BINDING PRE-PROBES (the exact courts, out of ladder; green binds
+  green, and a red here would cost zero seats and order a re-mint
+  instead of poisoning a counted run):
+  - tooth 16: claim PROVEN probe 1 (conf 0.82); crossed lie proven
+    both directions; beastless ground proven; all three counted sits
+    correct (good true; crossed and ground false with on-point
+    mismatch reasoning). FRESH verdicts cached → replay at 61.10.
+  - G17b: both new subject plates FRESH green; the two live-tag scene
+    plates REPLAY green — proof the live pool truly never moved.
+
+**61.10 opens on a proved pool.** Under the sharpened (a): G17b must
+green (second in-window crossing = conviction); tooth 16's ladder is
+bound green; the remaining runway is 61.10–61.14 and three consecutive
+greens are still owed — the first must land by 61.12.

@@ -38,5 +38,5 @@
 - [Moved surfaces drag instruments](moved-surface-instruments.md) — a migrated component keeps classes, not pages: retarget every eval needle + court walk in the same task.
 - [One crossing ≠ conviction](e2e-one-crossing.md) — probe-clean court that reds once under parallel load: fix the rest, rerun; only a second crossing is material.
 - [MyDungeon house-voice dash law](mydungeon-house-voice.md) — deterministic tiers fold at the SOURCE door (pre-chair, pre-validator); live keeps flag→mandatory-revise→ship-door fold; sweep WITH intent.
-- [Prompt-cache anchored windows](prompt-cache-anchored-window.md) — sliding history windows silently defeat prompt caches; anchor starts stepwise, share ONE law across layers; keyed probes need call deadlines + incremental rows.
+- [Prompt-cache anchored windows](prompt-cache-anchored-window.md) — sliding windows defeat prompt caches; anchor stepwise, ONE law across layers; keyed probes need deadlines.
 - [Store seat-binding law](store-seat-binding.md) — courts join only what ONE row seals; fixture rows never meet live values (coincidence greens); verify a court's evidence path before theorizing app defects.

@@ -3412,3 +3412,104 @@ resumed window added no instrument or app code, so its diff is prose
 and the version line. Game 1.0.1 → **1.1.0**; fatescript stays 1.0.0.
 The pool's paint law, its bound verdicts, and the probe-before-seat
 discipline ride forward as standing law.
+
+## TASK 63 — THE ARMORY AND THE ART
+
+### The reconciliation before the build (house rulings, 2026-07-20)
+
+The precondition check ran pin first, narrative second. The pin was
+TRUE: keyless check exit 0, G13's letter counting **139 PASS** lines.
+The narrative was SILENT three times over: the CHANGELOG still led with
+"1.0.1 — The Beta Cut (in progress)", the Commons close (1.1.0) had no
+CHANGELOG entry, and the caching commission (d1a5ef7) landed with no
+ledger lines at all. The house's first ruling: RECONCILE FIRST, WITH
+PROVENANCE — reconstruction never simulation, every entry written from
+its committed closing report, root causes named from git history, no
+committed version labels rewritten.
+
+- THE CLOSURE CHECK that stopped the work: the Beta Cut's close proved
+  three greens (62.7–62.9: exit 0, 119 tests, zero skips, all 22
+  projects) and its closing commit (8a54742) — but NO architect's
+  sitting, anywhere: not in this ledger (58B, the 59.x window, and Task
+  60 §4 all have theirs chaptered), not in BUILD_STATUS, not as a
+  review commit in the era. Per the first ruling's own letter, the work
+  STOPPED and the house was asked.
+- THE SECOND RULING, ledgered whole: (1) the sitting convenes held-late;
+  ballot option two — declaring an off-ledger sitting the house holds
+  no evidence of — is REFUSED, and the refusal is ledgered as ballot
+  law: no future ballot may offer the house an option that consists of
+  declaring evidence it does not hold. (2) The sitting runs under the
+  Task 57 precedent for post-close sittings and the Task 60 precedent
+  as the stronger form this close failed to follow. (3) Disposition is
+  severity-conditional and nothing else: clean or refuted on house law
+  → the close stands; findings cured instrument-side or in provably
+  untraveled paths → the close stands with targeted proofs plus the
+  keyless chain; any severe in game or law bytes whose path traveled
+  during the greens → those greens are VOID on those bytes, the cure
+  lands first, and the window completes under a fresh bounded reopen
+  (three consecutive greens on current head, ceiling five). (4) A
+  second sitting convenes over d1a5ef7 in the same session — special
+  attention to every gate amendment the reordering forced and to the
+  ordering laws the briefing and prompt builders carry — targeted
+  proofs standing in for greens it never had. (5) Root causes named in
+  the ledger for both; correction notes with provenance, nothing
+  silently edited. (6) THE WHOLE RITUAL LAW is minted with mechanical
+  teeth. (7) Order: both sittings, dispositions, the reconciliation
+  entries, then Task 63 opens at P = 139 — unless the reopen triggers,
+  in which case it completes first.
+- SITTING ONE (held-late 2026-07-20; the Beta Cut, 884c499..8a54742):
+  verdict **clean**. Scope discipline held — convictions only on
+  diff-born bytes; traversal evidence strong (the reviewing architect
+  re-ran the keyless check against head: build + eval bench passing,
+  the range's own gates among them); Stage 1/2/3 laws judged seated in
+  shared runtime paths, not cosmetic; prior candidate risks remained
+  observations, not lawful convictions (the unwrapped final fallback
+  predates the range; the mock capability drift unproven as a traveled
+  failure in changed bytes). No security findings. No cures ordered.
+  THE CLOSE STANDS.
+- SITTING TWO (held-late 2026-07-20; d1a5ef7): verdict **clean**. Every
+  gate amendment judged HONEST: editorEcho retargeted its assertion to
+  the anchored-window mechanism and GAINED an explicit 20-entry-floor
+  assertion (strengthened, never loosened); watchtower's amendments are
+  purely additive telemetry assertions. The ordering laws hold: anchor
+  arithmetic stepwise-correct at the boundary, the floor enforced
+  client-side with shared constants server-side, the server never
+  trims below the client's lawful ceiling, the byte-stable prefix
+  preserved (breakpoints on system + last stable history message, the
+  dynamic tail never cached, repair appends after it), and the
+  schema/validator/systemPrompt lockstep survived. promptCache gate
+  keyless-pure, printing no counted PASS — the pin's stay at 139 was
+  lawful. Targeted proofs run tonight with every AI key unset, all
+  hold: promptCache, editorEcho, watchtower. THE CLOSE STANDS.
+- ROOT CAUSES, named per the ruling: the Beta Cut's closing sentence
+  WAS spoken over an incomplete ritual — the closer moved from the
+  third green straight to the closing commit and skipped the sitting;
+  its CHANGELOG entry gains the correction note with provenance,
+  nothing silently edited. The caching commission skipped finalization
+  entirely — sitting AND ledger — by commission, not merge loss: the
+  merge diff never contained a ledger line. The Commons close wrote
+  LOOP_LOG and BUILD_STATUS but skipped its CHANGELOG entry. Three
+  absences, one family: the ritual had no mechanical teeth.
+- THE CHRONICLE LAW and THE WHOLE RITUAL LAW are minted in GAME_NOTES'
+  non-negotiable laws (the texts there are canonical). The Whole Ritual
+  Law's teeth are born tonight as instrument work:
+  `evals/wholeRitual.test.mjs` joins the keyless chain — every closed
+  CHANGELOG version at or after 1.0.1 must carry exactly one
+  `RITUAL COMPLETE` line in this ledger (greens; sitting; sentence),
+  versions before 1.0.1 are pinned pre-law, orphan lines are refused
+  both ways, an in-progress heading may carry no line, and the gate
+  prints no counted PASS so the pin holds. A close missing its sitting
+  now refuses the sentence by itself.
+- TASK 62, one line as ordered: THE OPEN HOUSE has not run; the
+  ledger's 62.x window numbers belong to the Beta Cut (Task 60B) — the
+  collision is mapped in the CHANGELOG's chronology note.
+- THE VERSION: the caching commission takes the next lawful number,
+  **1.1.1**; package.json bumps 1.1.0 → 1.1.1 in this reconciliation
+  (no gate reads the version; the pin is untouched).
+
+RITUAL COMPLETE 1.0.1: greens 62.7-62.9 (exit 0, 119 tests, all 22 projects); sitting held-late 2026-07-20 over 884c499..8a54742, verdict clean; sentence spoken 2026-07-19 in 8a54742, correction note 2026-07-20.
+RITUAL COMPLETE 1.1.0: greens 61.15-61.17 (121/121, exit 0); sitting 2026-07-20, the seat-binding hardening round (b4df657) standing as the window's record; sentence spoken 2026-07-20 in the resumed close (dd27220/0ad3084).
+RITUAL COMPLETE 1.1.1: greens none — targeted proofs stand in per the ruling (promptCache, editorEcho, watchtower, keyless, 2026-07-20); sitting held-late 2026-07-20 over d1a5ef7, verdict clean; sentence spoken 2026-07-20 in this reconciliation.
+
+The pin stands at **P = 139**. The reconciliation commits; TASK 63
+opens on it.

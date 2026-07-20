@@ -7,6 +7,7 @@ import {
 } from './lib/harvestManifest';
 import type { TopManifest, TopPlate } from './lib/harvestManifest';
 import { markLaw } from './lib/markLaw';
+import { fixtureHero } from './lib/harness';
 import { magnifiedMark } from './lib/magnifier';
 
 // ============================================================
@@ -60,12 +61,17 @@ function attestedSeenFor(m: TopManifest, hash: string): boolean {
  * (54B §3) mark_visible left this look for the magnified instrument;
  * the protocol bump re-keys the cache lawfully (§4). */
 async function heroPlateVerdict(m: TopManifest, plate: TopPlate) {
+  // Source-aware (store seat-binding law): the fixture bust row speaks the
+  // FIXTURE canon; live rows speak the live hero. The cross-store FACE
+  // pairing itself (fixture bust vs live anchor) is the court's designed
+  // premise — both paint from harmonized canon — and stands unchanged.
+  const presentation = plate.role === 'hero-bust-fixture' ? fixtureHero().presentation : m.hero.presentation;
   return judge({
     id: `g09-a2a3-${String(plate.assetHash).slice(0, 16)}`,
     protocol: 'p2',
     criterion: 'g09-a2a3-hero-constancy',
     images: [topBytes(rolePlate(m, 'hero-anchor')), topBytes(plate)],
-    question: `Image 1 is the portrait anchor of the hero: a ${m.hero.presentation}-presenting figure. Image 2 is another plate of the same story. Answer: same_character — is the anchor's character present in image 2 (same face, hair, build, wardrobe language)? presentation_matches — does the character's gender presentation in image 2 match image 1?`,
+    question: `Image 1 is the portrait anchor of the hero: a ${presentation}-presenting figure. Image 2 is another plate of the same story. Answer: same_character — is the anchor's character present in image 2 (same face, hair, build, wardrobe language)? presentation_matches — does the character's gender presentation in image 2 match image 1?`,
     schema: { same_character: 'boolean', presentation_matches: 'boolean', confidence: 'number 0..1' }
   });
 }
@@ -75,6 +81,11 @@ function heroMarkText(m: TopManifest): string {
   return `"${m.hero.mark}" (a burn scar in the shape of a key)`;
 }
 
+/** Fixture-store seats speak the fixture canon's mark (store seat-binding law). */
+function fixtureHeroMarkText(): string {
+  return `"${fixtureHero().mark}" (a burn scar in the shape of a key)`;
+}
+
 test('G9 a1: the mark is HARD law at portrait distance — under the magnified look', async () => {
   test.setTimeout(300_000);
   const m = preflightManifest('g09-character');
@@ -82,7 +93,7 @@ test('G9 a1: the mark is HARD law at portrait distance — under the magnified l
     const plate = rolePlate(m, role);
     const look = await magnifiedMark({
       bytes: topBytes(plate),
-      markText: heroMarkText(m),
+      markText: role === 'hero-bust-fixture' ? fixtureHeroMarkText() : heroMarkText(m),
       idSeed: `g09-a1-${role}-${String(plate.assetHash).slice(0, 12)}`,
       criterion: 'g09-a1-mark-at-portrait-distance',
     });

@@ -11,6 +11,30 @@ import { GAME_ROOT } from './vision';
 // ------------------------------------------------------------
 
 export const FIXTURE_PATH = path.join(GAME_ROOT, 'tests', 'e2e', 'fixtures', 'proving-campaign.json');
+
+/** THE FIXTURE HERO — the sealed canon of the proving campaign, ONE seat.
+ * Fixture-store courts derive hero expectations HERE, never from the live
+ * manifest's m.hero (store seat-binding law, 61-close review round): the
+ * two canons coincide today by construction, and the day they diverge every
+ * cross-store join becomes a lie that greens by coincidence. Also pins the
+ * mirror (mirrors-need-one-seat): the engine eval's copy of the campaign
+ * must stay byte-identical to the harness copy, or no fixture court sits. */
+let fixtureHeroCache: { name: string; mark: string; presentation: string } | null = null;
+export function fixtureHero(): { name: string; mark: string; presentation: string } {
+  if (!fixtureHeroCache) {
+    const raw = fs.readFileSync(FIXTURE_PATH, 'utf8');
+    const twin = path.join(GAME_ROOT, '..', '..', 'packages', 'engine', 'evals', 'fixtures', 'proving-campaign.json');
+    if (fs.existsSync(twin) && fs.readFileSync(twin, 'utf8') !== raw) {
+      throw new Error('fixtureHero: the harness and engine copies of proving-campaign.json have DRIFTED — re-seat one canon before any fixture court sits');
+    }
+    const hero = JSON.parse(raw).hero;
+    if (!hero || typeof hero.name !== 'string' || typeof hero.mark !== 'string' || typeof hero.presentation !== 'string') {
+      throw new Error('fixtureHero: proving-campaign hero must carry string name/mark/presentation');
+    }
+    fixtureHeroCache = { name: hero.name, mark: hero.mark, presentation: hero.presentation };
+  }
+  return fixtureHeroCache;
+}
 // (Task 57) THE DOOM FIXTURE — a second, smaller campaign whose record
 // stages a standing battle, a sheeted party, one pre-sealed grave, and a
 // companion dying at zero. Seeded through the same sanctioned hook; never

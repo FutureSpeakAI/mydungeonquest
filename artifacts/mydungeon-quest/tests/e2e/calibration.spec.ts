@@ -6,7 +6,7 @@ import sharp from 'sharp';
 import { createHash } from 'node:crypto';
 import { GAME_ROOT } from './lib/vision';
 import { HARVEST_DIR, pageProse, preflightManifest, rolePlate, topBytes } from './lib/harvestManifest';
-import { loadManifest, plateBytes } from './lib/harness';
+import { fixtureHero, loadManifest, plateBytes } from './lib/harness';
 import type { PlateEntry } from './lib/harness';
 import {
   DUCHY_PAIR_SUBJECTS, PINNED_FRAME_QUESTIONS_SHA256,
@@ -257,12 +257,16 @@ test('tooth 12: the magnifier tooth — a markless control fails stage two; the 
   test.setTimeout(600_000);
   const m = preflightManifest('g09-character');
   const markText = `"${m.hero.mark}" (a burn scar in the shape of a key)`;
+  // Source-aware (store seat-binding law): the Edda control is a FIXTURE
+  // bust — its absence question speaks the fixture canon, never the live
+  // pin. Cache-inert: verdicts key on bytes+id+protocol, not question text.
+  const fixtureMarkText = `"${fixtureHero().mark}" (a burn scar in the shape of a key)`;
 
   // Control A — the Edda bust: a head and shoulders are PRESENT (stage
   // one must box), and the key-burn is ABSENT by construction (she is
   // not the hero) — stage two must answer false ON THE CROP.
   const edda = await magnifiedMark({
-    bytes: topBytes(rolePlate(m, 'edda-bust')), markText,
+    bytes: topBytes(rolePlate(m, 'edda-bust')), markText: fixtureMarkText,
     idSeed: 'tooth12-markless-edda', criterion: 'sabotage-12',
   });
   expect(edda.found, `the magnifier boxes the markless control (a bust wears a head): ${JSON.stringify(edda)}`).toBe(true);
@@ -315,19 +319,19 @@ test('tooth 13: the closure instrument separates honest counts from crowded lies
   };
   // Known-good: the very briefs these plates were minted from.
   expect(await sit('good-pair', pair1, DUCHY_PAIR_SUBJECTS, 'none'), 'good: the pair plate answers its own brief').toBe(true);
-  expect(await sit('good-hero-first', heroFirst, heroFirstSubjects(m.hero.name), 'none'), 'good: the hero-first plate answers its own brief').toBe(true);
+  expect(await sit('good-hero-first', heroFirst, heroFirstSubjects(fixtureHero().name), 'none'), 'good: the hero-first plate answers its own brief').toBe(true);
   expect(await sit('good-crowd-grant', pair2, DUCHY_PAIR_SUBJECTS, 'background'), 'good: a granted crowd never invents a false count').toBe(true);
   // Known-bad: deterministic lies — briefs these plates cannot answer.
-  expect(await sit('bad-crowded-brief', pair1, [m.hero.name, ...DUCHY_PAIR_SUBJECTS], 'none'), 'bad: a three-name brief against a two-soul plate').toBe(false);
-  expect(await sit('bad-lone-brief', heroFirst, [m.hero.name], 'none'), 'bad: a one-name brief against a two-soul plate').toBe(false);
-  expect(await sit('bad-crowd-excuse', heroFirst, [m.hero.name], 'background'), 'bad: the crowd grant does not excuse a prominent named soul').toBe(false);
+  expect(await sit('bad-crowded-brief', pair1, [fixtureHero().name, ...DUCHY_PAIR_SUBJECTS], 'none'), 'bad: a three-name brief against a two-soul plate').toBe(false);
+  expect(await sit('bad-lone-brief', heroFirst, [fixtureHero().name], 'none'), 'bad: a one-name brief against a two-soul plate').toBe(false);
+  expect(await sit('bad-crowd-excuse', heroFirst, [fixtureHero().name], 'background'), 'bad: the crowd grant does not excuse a prominent named soul').toBe(false);
   console.log(`[tooth 13] separation table:\n${JSON.stringify(rows, null, 2)}`);
 });
 
 test('tooth 14: the principal instrument matches the hero and refuses a stranger', async () => {
   test.setTimeout(600_000);
   const m = preflightManifest('g22-frame');
-  const clause = heroClause(m.hero);
+  const clause = heroClause(fixtureHero());
   const heroFirst = rolePlate(m, 'hero-first-scene');
   const good = await principalLook({ bytes: topBytes(heroFirst), clause, idSeed: 'tooth14-good-hero', criterion: 'tooth-14-principal' });
   console.log(`[tooth 14] good: ${JSON.stringify({ found: good.found, verdict: good.verdict })}`);

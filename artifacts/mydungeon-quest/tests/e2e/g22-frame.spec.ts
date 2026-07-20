@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { HARVEST_DIR, preflightManifest, rolePlate, topBytes } from './lib/harvestManifest';
+import { fixtureHero } from './lib/harness';
 import {
   DUCHY_PAIR_SUBJECTS, FRAME_PROTOCOL, PINNED_FRAME_QUESTIONS_SHA256,
   closureVerdict, duchyFixture, frameQuestionsDigest, heroClause, heroFirstSubjects, pairVerdict, principalLook,
@@ -42,7 +43,7 @@ test('G22a the frame is closed: every cued scene plate holds exactly its named s
   const heroFirstPlate = rolePlate(m, 'hero-first-scene');
   seats.push({ file: pair1.file, bytes: topBytes(pair1), subjects: DUCHY_PAIR_SUBJECTS, allowance: 'none', seed: `harness-${String(pair1.sha256).slice(0, 12)}` });
   seats.push({ file: pair2.file, bytes: topBytes(pair2), subjects: DUCHY_PAIR_SUBJECTS, allowance: 'none', seed: `harness-${String(pair2.sha256).slice(0, 12)}` });
-  seats.push({ file: heroFirstPlate.file, bytes: topBytes(heroFirstPlate), subjects: heroFirstSubjects(m.hero.name), allowance: 'none', seed: `harness-${String(heroFirstPlate.sha256).slice(0, 12)}` });
+  seats.push({ file: heroFirstPlate.file, bytes: topBytes(heroFirstPlate), subjects: heroFirstSubjects(fixtureHero().name), allowance: 'none', seed: `harness-${String(heroFirstPlate.sha256).slice(0, 12)}` });
   for (const plate of m.plates) {
     if (plate.role !== 'scene' || !plate.cueSubjects) continue;
     if (plate.cueSubjects.length < 1 || plate.cueSubjects.length > 3) continue;
@@ -67,13 +68,15 @@ test('G22a the frame is closed: every cued scene plate holds exactly its named s
 test('G22b the principal seat: the cue\'s first subject is the foremost figure', async () => {
   test.setTimeout(600_000);
   const m = preflightManifest('g22-frame');
-  const clause = heroClause(m.hero);
-  // The guaranteed seat: the harness hero-first plate. Live plates join
-  // when their cue names the hero FIRST — the only principal whose identity
-  // clause the manifest can attest.
-  const seats: Array<{ file: string; bytes: Buffer; seed: string }> = [];
+  // The guaranteed seat: the harness hero-first plate — a FIXTURE-store row,
+  // so its principal clause speaks the FIXTURE hero (store seat-binding law,
+  // 61-close review round: a live clause here is a cross-store join, latent
+  // only while the canons coincide). Live plates join when their cue names
+  // the hero FIRST — the only principal whose identity clause the manifest
+  // can attest; their clause speaks the live canon.
+  const seats: Array<{ file: string; bytes: Buffer; seed: string; clause: string }> = [];
   const heroFirstPlate = rolePlate(m, 'hero-first-scene');
-  seats.push({ file: heroFirstPlate.file, bytes: topBytes(heroFirstPlate), seed: `harness-${String(heroFirstPlate.sha256).slice(0, 12)}` });
+  seats.push({ file: heroFirstPlate.file, bytes: topBytes(heroFirstPlate), seed: `harness-${String(heroFirstPlate.sha256).slice(0, 12)}`, clause: heroClause(fixtureHero()) });
   for (const plate of m.plates) {
     if (plate.role !== 'scene' || !plate.heroFirst || !plate.heroBearing) continue;
     // THE SOLO PRINCIPAL (60.1, LOOP_LOG): the court seats a live plate
@@ -90,12 +93,12 @@ test('G22b the principal seat: the cue\'s first subject is the foremost figure',
     // (G22a) still holds every multi-figure frame to exactly its named
     // souls; the warden still holds every hero plate to her mark.
     if (!plate.cueSubjects || plate.cueSubjects.length !== 1) continue;
-    seats.push({ file: plate.file, bytes: topBytes(plate), seed: `live-${String(plate.sha256).slice(0, 12)}` });
+    seats.push({ file: plate.file, bytes: topBytes(plate), seed: `live-${String(plate.sha256).slice(0, 12)}`, clause: heroClause(m.hero) });
   }
   const misses: any[] = [];
   for (const seat of seats) {
     const look = await principalLook({
-      bytes: seat.bytes, clause,
+      bytes: seat.bytes, clause: seat.clause,
       idSeed: `g22b-principal-${seat.seed}`, criterion: 'g22b-frame-principal',
     });
     // Fail-closed: a boxless look is a miss — a court that cannot find a
@@ -147,8 +150,7 @@ test('G22d the painted briefs carry the frame law, and the door refuses unlawful
   // stores forged a phantom conviction the moment the live pin outgrew the
   // fixture text, and the debt hid behind calibration gating for three
   // rehearsals (gating skips hide court debt).
-  const provingHero = JSON.parse(fs.readFileSync(
-    path.resolve('..', '..', 'packages', 'engine', 'evals', 'fixtures', 'proving-campaign.json'), 'utf8')).hero;
+  const provingHero = fixtureHero(); // one seat: harness.ts owns the canon read + mirror tripwire
   expect(provingHero?.name, 'the proving campaign seals its hero').toBeTruthy();
   expect(provingHero?.mark, 'the proving campaign seals its hero mark').toBeTruthy();
   expect(prompts['hero-first-scene']).toContain(`Principal presence: ${provingHero.name}`);

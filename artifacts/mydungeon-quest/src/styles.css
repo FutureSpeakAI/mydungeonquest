@@ -648,3 +648,16 @@ a.secondary-button{display:inline-grid;place-items:center;text-decoration:none}
 .public-foot { margin-top: auto; padding-top: 26px; text-align: center; font-size: 13px; opacity: .72; }
 .public-foot a { color: inherit; }
 .public-foot p { margin: 4px 0; }
+
+/* THE GRIMOIRE SURFACES (XVIII) — picking at forge and milestone; the
+   sheet's learned list. Quiet parchment craft, no new palette. */
+.grimoire-picks .spell-pick-grid, .grimoire-ritual .spell-pick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 18px; margin: 10px 0 4px; text-align: left; }
+.spell-pick { display: flex; align-items: baseline; gap: 8px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.spell-pick.picked { background: rgba(198, 161, 91, 0.14); }
+.spell-pick input { accent-color: #c6a15b; }
+.spell-pick span { text-transform: capitalize; }
+.spell-pick small { opacity: 0.65; margin-left: auto; font-size: 0.78em; }
+.grimoire-ritual { max-width: 720px; max-height: 82vh; overflow-y: auto; }
+.grimoire-ritual .spell-pick-grid { max-height: 44vh; overflow-y: auto; padding-right: 6px; }
+.spell-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.spell-known { border: 1px solid rgba(198, 161, 91, 0.45); border-radius: 999px; padding: 2px 10px; font-size: 0.85em; text-transform: capitalize; }

@@ -103,6 +103,11 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
         spoken; the sheet keeps no rival memory worth quoting. */}
     <div className="ability-grid compact">{Object.entries(h.abilities).map(([a,v]) => <div key={a}><b>{a}</b><span>{v}</span><small>{Math.floor((v-10)/2) >= 0 ? '+' : ''}{Math.floor((v-10)/2)}</small></div>)}</div>
     <h3>Spell slots</h3><div className="slot-row">{Object.entries(h.spellSlots).length ? Object.entries(h.spellSlots).map(([lvl,slot]) => <span key={lvl}>L{lvl} {Array.from({length:slot.max},(_,i)=><i className={i<slot.current?'full':''} key={i}/>)}</span>) : <em>No prepared slots</em>}</div>
+    {/* THE GRIMOIRE (XVIII): the learned list and the held thread are
+        projections of the hero record — the tables own the numbers, the
+        sheet only speaks them. Non-casters keep the old sheet whole. */}
+    {h.spellEnergy ? <><h3>Spell energy</h3><div className="slot-row"><span>Charges {Array.from({length:h.spellEnergy.max},(_,i)=><i className={i<h.spellEnergy.current?'full':''} key={i}/>)}</span></div></> : null}
+    {Array.isArray(h.spells) && h.spells.length > 0 && <><h3>Spells known</h3><div className="spell-list">{h.spells.map((s) => <span className="spell-known" key={s}>{s}</span>)}</div>{h.concentration ? <p className="muted">Concentrating: {h.concentration} — one thread at a time; a new one asks the old to fall.</p> : null}</>}
     <h3>Conditions</h3>{h.conditions.length ? h.conditions.map((c)=><div className="condition" key={c}><b>{c}</b><span>{CONDITIONS[c]}</span></div>) : <p className="muted">No conditions.</p>}
     <h3>Inventory</h3><ul>{purse.pack.map(({ item, qty }) => <li key={item}>{qty > 1 ? `${qty}\u00d7 ${item}` : item}</li>)}</ul>
     {purse.refusals.length > 0 && <><h3>The till’s receipts</h3>{purse.refusals.map((r, i) => <p className="muted" key={i}>Refused at t.{r.turn} — {r.reason}.</p>)}</>}

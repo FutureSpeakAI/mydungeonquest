@@ -4,6 +4,10 @@ import { ITEM_KINDS, safeFallbackTurn, validateDmTurn } from 'fatescript/protoco
 // THE ONE SEAT (XVIII): the tool schema declares the kind enum and the
 // rune keys from the tables themselves — never a mirrored list.
 import { ENCHANT_TABLE } from 'fatescript/armory';
+// THE GRIMOIRE (XVIII): the schema's spell enum imports from the ONE
+// library — a mirror would drift, and a drifted enum is a trap (the
+// model emits keys the door then refuses).
+import { SPELL_TABLE } from 'fatescript/grimoire';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { artDirectorSits } from './artDirector.js';
 // THE DASH LAW at the deterministic doors (XVII, Article V) — the whole-turn
@@ -57,7 +61,19 @@ export function judgeTurn(turn, input) {
     context.day = input.story.calendar_state.day;
     context.lastRestDay = Number.isInteger(input.hero?.lastRestDay) ? input.hero.lastRestDay : null;
   }
-  if (Array.isArray(input.state?.combat?.enemies)) context.combatants = input.state.combat.enemies.map((enemy) => ({ id: enemy?.id, name: enemy?.name, hp: enemy?.hp }));
+  if (Array.isArray(input.state?.combat?.enemies)) context.combatants = input.state.combat.enemies.map((enemy) => ({ id: enemy?.id, name: enemy?.name, hp: enemy?.hp, ...(typeof enemy?.species === 'string' ? { species: enemy.species } : {}) }));
+  // THE CASTING LAW (XVIII, Article V): the refusal matrix seats from the
+  // request's own hero — learned list, slots, tank, held thread — and the
+  // sheeted casters from the briefing's sheet_state. Evidence present,
+  // court in session; absent (older sealed inputs), out of session.
+  if (input.hero && typeof input.hero === 'object') {
+    if (Array.isArray(input.hero.spells)) context.heroSpells = input.hero.spells;
+    if (input.hero.spellSlots && typeof input.hero.spellSlots === 'object') context.casterSlots = input.hero.spellSlots;
+    if (typeof input.hero.caster === 'string') context.heroCaster = input.hero.caster;
+    if (input.hero.spellEnergy && typeof input.hero.spellEnergy === 'object') context.spellEnergy = input.hero.spellEnergy;
+    if (typeof input.hero.concentration === 'string' && input.hero.concentration) context.concentration = input.hero.concentration;
+  }
+  if (Array.isArray(input.story?.sheet_state)) context.sheetCasters = input.story.sheet_state.filter((row) => Array.isArray(row?.spells));
   const validation = validateDmTurn(turn, input.entropy, context);
   const errors = validation.ok ? [] : [...validation.errors];
   const strangers = unrecordedSouls(turn, input.story?.cast || [], { hero: input.hero || null });
@@ -252,7 +268,8 @@ const storySchema = {
           species: { type: 'string', minLength: 3, maxLength: 60, description: 'Species canon seals ONCE — written once, never rewritten; a duplicate of [STORY].bestiary_state is refused by name.' },
           visual: { type: 'string', minLength: 8, maxLength: 160, description: 'The species\' paintable visual truth — the painter reads it forever.' },
           nature: { type: 'string', minLength: 3, maxLength: 90, description: 'How the species behaves — hunts, guards, flees.' },
-          threat: { type: 'integer', minimum: 1, maximum: 5, description: 'Fixes every instance\'s hit points and armor through the table\'s threat law; never state enemy stats yourself.' }
+          threat: { type: 'integer', minimum: 1, maximum: 5, description: 'Fixes every instance\'s hit points and armor through the table\'s threat law; never state enemy stats yourself.' },
+          spells: { anyOf: [ { type: 'null' }, { type: 'array', minItems: 1, maxItems: 4, items: { type: 'string', enum: Object.keys(SPELL_TABLE) } } ], description: 'OPTIONAL species spellbook — at most four grimoire keys, sealed once with the card. Only a card carrying its list may ever cast; a bookless species never does.' }
         } } ] },
         sheet_grant: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name','role','level'], properties: {
           name: { type: 'string', minLength: 2, maxLength: 60, description: "A STANDING party member's exact name (party_state; a soul joining this same turn counts). Sheets seal once — a duplicate is refused by name." },
@@ -280,7 +297,15 @@ const storySchema = {
           name: { type: 'string', minLength: 3, maxLength: 60, description: 'A held thing [STORY].trove_state places in the holder\'s hand — never a thing added this same turn (born-enchanted things use item_add.enchant).' },
           holder: { type: 'string', minLength: 1, maxLength: 60 },
           enchant: { type: 'string', enum: Object.keys(ENCHANT_TABLE), description: 'The rune\'s table key alone. One rune per notable thing, ever; the table owns the numbers.' }
-        } } ], description: 'Lay ONE rune on a held thing, by table key. The door refuses unknown keys, second runes, and unlawful seats.' }
+        } } ], description: 'Lay ONE rune on a held thing, by table key. The door refuses unknown keys, second runes, and unlawful seats.' },
+        // THE CASTING (XVIII, Article V): one op, judged at the door by
+        // the grimoire's own keys — the enum imports from the one seat.
+        cast_spell: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['caster','spell'], properties: {
+          caster: { type: 'string', minLength: 2, maxLength: 80, description: 'The hero, a sheeted companion whose craft sheet_state shows, or a standing combatant whose species card carries the spell.' },
+          spell: { type: 'string', enum: Object.keys(SPELL_TABLE), description: 'A grimoire key the caster has LEARNED — hero: the caster line in [STATE]; companion: sheet_state.spells; enemy: the species card.' },
+          target: { anyOf: [ { type: 'null' }, { type: 'string', minLength: 2, maxLength: 80 } ], description: 'The named soul or foe the spell lands on, when it lands on one — a name the record counts, never the sealed dead.' },
+          release: { anyOf: [ { type: 'null' }, { type: 'boolean', enum: [true] } ], description: 'Exactly true, and ONLY to let a held concentration fall as this cast takes the thread; the release seals its note in the ledger.' }
+        } } ], description: 'ONE cast this turn. Spends exactly one slot of the spell\'s own level (cantrips slotless; the warlock\'s tank spends a charge). A cast IS the actor\'s action — never also move that actor through npc_actions. Resolution rides the standing lanes: roll_request for player-side dice, [ENTROPY] accounted in entropy_use for enemy dice, damage/heal/condition ops carrying the row\'s numbers.' }
       }
     }
   ]

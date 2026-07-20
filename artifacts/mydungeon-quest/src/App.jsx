@@ -14,12 +14,15 @@ import { CharacterSheet, Settings, Storybook, useGallery } from './components/Ov
 import { Book } from './components/Book.jsx';
 import { tableOf } from 'fatescript/table';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
-import { applyMilestone, applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll, milestoneLevel } from 'fatescript/rules';
+import { applyCast, applyMilestone, applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll, milestoneLevel } from 'fatescript/rules';
 import { ACT_NAMES, actInfo, applyPartyMilestone, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
 import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
 // THE ARMORY (XVIII): the derived-AC settle and the attack governance
 // ride from the engine's one seat; the calendar fold stamps the rest.
 import { governAttackRoll, settleAc } from 'fatescript/armory';
+// THE GRIMOIRE (XVIII): the caster's line, the spell rows, and the picking
+// door ride from the one library — the app never re-declares a table.
+import { SPELL_TABLE, casterLineOf, knownCountsFor, maxSpellLevelFor, spellClauseFor, spellRowFor, validateSpellPicks } from 'fatescript/grimoire';
 import { calendarOf } from 'fatescript/calendar';
 import { applyCombat } from './lib/combat.js';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
@@ -160,6 +163,39 @@ function detectCast(cast = [], blocks = []) {
     const n = name.toLowerCase();
     return speakers.has(n) || prose.includes(n);
   }).slice(0, 3);
+}
+
+// THE MILESTONE PICKING SURFACE (XVIII, Article IV) — the ceremony is the
+// second and last place learning seals: the tables say how many are owed
+// at the new level, the player says which, the ONE door (validateSpellPicks)
+// says whether. A non-caster, or a level owing nothing, keeps the old
+// one-button rite byte for byte.
+function LevelRitual({ hero, onAccept }) {
+  const [picks, setPicks] = useState([]);
+  const known = Array.isArray(hero.spells) ? hero.spells : [];
+  const ceilings = knownCountsFor(hero.caster, hero.level);
+  const owedCantrips = Math.max(0, ceilings.cantrips - known.filter((key) => SPELL_TABLE[key]?.level === 0).length);
+  const owedSpells = Math.max(0, ceilings.spells - known.filter((key) => (SPELL_TABLE[key]?.level ?? 0) >= 1).length);
+  if (owedCantrips === 0 && owedSpells === 0) {
+    return <div className="ritual"><Sparkles/><span>Level {hero.level}</span><h2>The story has made you larger.</h2><button onClick={() => onAccept([])}>Accept the new name fate gives you</button></div>;
+  }
+  const table = hero.caster === 'energy' ? 'full' : hero.caster;
+  const reachable = maxSpellLevelFor(hero.caster, hero.level);
+  const rows = Object.entries(SPELL_TABLE).filter(([key, row]) => row.archetypes.includes(table) && row.level <= reachable && !known.includes(key));
+  const heldCantrips = picks.filter((key) => SPELL_TABLE[key]?.level === 0).length;
+  const heldSpells = picks.filter((key) => (SPELL_TABLE[key]?.level ?? 0) >= 1).length;
+  const toggle = (key) => setPicks((held) => held.includes(key) ? held.filter((k) => k !== key) : [...held, key]);
+  const verdict = picks.length ? validateSpellPicks({ archetype: hero.caster, level: hero.level, known, picks }) : { ok: true, errors: [] };
+  const exact = heldCantrips === owedCantrips && heldSpells === owedSpells && verdict.ok;
+  return <div className="ritual grimoire-ritual"><Sparkles/><span>Level {hero.level}</span><h2>The story has made you larger — and the book opens.</h2>
+    <p className="fine-print">The tables owe you {owedCantrips} {owedCantrips === 1 ? 'cantrip' : 'cantrips'} and {owedSpells} {owedSpells === 1 ? 'spell' : 'spells'} up to the {reachable === 1 ? 'first' : reachable === 2 ? 'second' : 'third'} circle. Mechanics from tables, flavor from the tale.</p>
+    <div className="spell-pick-grid">
+      {owedCantrips > 0 && <div><b>Cantrips ({heldCantrips}/{owedCantrips})</b>{rows.filter(([, row]) => row.level === 0).map(([key, row]) => <label key={key} className={`spell-pick${picks.includes(key) ? ' picked' : ''}`}><input type="checkbox" checked={picks.includes(key)} onChange={() => toggle(key)} /><span>{key}</span><small>{row.school}</small></label>)}</div>}
+      {owedSpells > 0 && <div><b>Spells ({heldSpells}/{owedSpells})</b>{rows.filter(([, row]) => row.level >= 1).map(([key, row]) => <label key={key} className={`spell-pick${picks.includes(key) ? ' picked' : ''}`}><input type="checkbox" checked={picks.includes(key)} onChange={() => toggle(key)} /><span>{key} · L{row.level}</span><small>{row.school}{row.concentration ? ' · concentration' : ''}</small></label>)}</div>}
+    </div>
+    {verdict.errors.length > 0 && <p className="fine-print">{verdict.errors[0]}</p>}
+    <button disabled={!exact} onClick={() => onAccept(picks)}>Seal the learning</button>
+  </div>;
 }
 
 export default function App() {
@@ -447,7 +483,11 @@ export default function App() {
       seed: turnRecord.recordHash || String(logId || ''),
       // The roster's first chair: the turn's first attributed voice. The
       // easel seats speaker → villain → bond, deterministic (bearing law).
-      speaker: (dm.narration_blocks || []).find((block) => block?.speaker)?.speaker || null
+      speaker: (dm.narration_blocks || []).find((block) => block?.speaker)?.speaker || null,
+      // THE PAINTED SPELL (XVIII, Article VI): the cast's visual clause
+      // rides its OWN field, byte for byte from the grimoire row — never
+      // through prose, which slices at 480 and would tear the bytes.
+      ...(spellClauseFor(dm.story) ? { spellClause: spellClauseFor(dm.story) } : {})
     };
     // Reference anchors follow the roster — the same painted-first seating
     // the scene prompt uses, so no staged soul spends a reference slot a
@@ -653,7 +693,11 @@ export default function App() {
       const payload = {
         campaign: { id: base.id, title: base.title, covenant: base.covenant, tone: base.tone, lines: base.lines, veils: base.veils, styleBible: base.styleBible, homeRegion: base.homeRegion },
         spine: { label: base.codex.spine.label, beats: base.codex.spine.beats },
-        history, hero: base.hero, state: { hero: base.hero, combat: base.combat },
+        // THE CASTER'S LINE (XVIII, Cache Posture §2): the casting evidence
+        // seats LAST in the [STATE] block — the dynamic tail of the
+        // never-cached user message, so slots may vary turn to turn while
+        // the cached prefix holds byte-stable.
+        history, hero: base.hero, state: { hero: base.hero, combat: base.combat, caster_line: casterLineOf(base.hero) },
         story, memory, entropy, player, resolution, turn: base.turnNumber || 0, genesis: (base.turnNumber || 0) === 0
       };
       // THE FIRST WORD (Task 54C §1): the request is initiated first, the
@@ -730,8 +774,18 @@ export default function App() {
       // combatants seat the same courts the door ran — both benches alike,
       // from the same briefing evidence and the same pre-turn combat.
       if (Array.isArray(story?.bestiary_state)) landingContext.bestiary = story.bestiary_state;
-      if (Array.isArray(base.combat?.enemies)) landingContext.combatants = base.combat.enemies.map((enemy) => ({ id: enemy?.id, name: enemy?.name, hp: enemy?.hp }));
+      if (Array.isArray(base.combat?.enemies)) landingContext.combatants = base.combat.enemies.map((enemy) => ({ id: enemy?.id, name: enemy?.name, hp: enemy?.hp, ...(typeof enemy?.species === 'string' ? { species: enemy.species } : {}) }));
       if (Array.isArray(story?.sheet_state)) landingContext.sheets = story.sheet_state.map((row) => row?.name).filter((name) => typeof name === 'string');
+      // THE CASTING LAW (XVIII, Article V): the landing bench seats the
+      // same casting evidence the server judged — the hero's learned
+      // list, slots, tank, and held thread; the sheeted casters from the
+      // same briefing rows. Both benches alike, byte for byte.
+      if (Array.isArray(base.hero?.spells)) landingContext.heroSpells = base.hero.spells;
+      if (base.hero?.spellSlots && typeof base.hero.spellSlots === 'object') landingContext.casterSlots = base.hero.spellSlots;
+      if (typeof base.hero?.caster === 'string') landingContext.heroCaster = base.hero.caster;
+      if (base.hero?.spellEnergy && typeof base.hero.spellEnergy === 'object') landingContext.spellEnergy = base.hero.spellEnergy;
+      if (typeof base.hero?.concentration === 'string' && base.hero.concentration) landingContext.concentration = base.hero.concentration;
+      if (Array.isArray(story?.sheet_state)) landingContext.sheetCasters = story.sheet_state.filter((row) => Array.isArray(row?.spells));
       // THE REST LAW (XVIII, Article III): the calendar day and the rest
       // mark seat the same once-per-day court the door ran — from the SAME
       // briefing evidence (calendar_state) and the hero the request carried.
@@ -763,7 +817,7 @@ export default function App() {
           ...propBench.refusals,
         ].join('; '));
       }
-      let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0, heroName: base.hero?.name, heroLevel: base.hero?.level });
+      let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0, heroName: base.hero?.name, heroLevel: base.hero?.level, heroConcentration: base.hero?.concentration || null });
       if (dm.state_updates?.chronicle_add) codex.chronicle = [...codex.chronicle, String(dm.state_updates.chronicle_add).slice(0, 260)];
       // THE SWORN-THREAD BEAT (Directive XII §VI.3) — the first thread the
       // tale ever swears earns one teaching line; presentation-state only.
@@ -780,6 +834,16 @@ export default function App() {
       if (milestone > hero.level) {
         hero = applyMilestone(hero, milestone);
         codex = applyPartyMilestone(codex, milestone);
+      }
+      // THE CASTING FOLD (XVIII, Article V): the hero's own tank spends at
+      // the rules seat — exactly one slot of the spell's level, the held
+      // thread honored — after the door has ruled. A refused fold returns
+      // the same hero; the ledger's note is the door's business.
+      const heroCastOp = dm.story?.cast_spell;
+      if (heroCastOp && typeof heroCastOp === 'object' && !Array.isArray(heroCastOp) && base.hero?.name
+          && String(heroCastOp.caster || '').trim().toLowerCase() === String(base.hero.name).trim().toLowerCase()) {
+        const castRow = spellRowFor(heroCastOp.spell);
+        if (castRow) hero = applyCast(hero, castRow, { release: heroCastOp.release === true });
       }
       // THE DERIVED TRUTH (XVIII, Article I) — the hero's AC settles from
       // the post-turn record at the one funnel every input path passes
@@ -1516,7 +1580,19 @@ export default function App() {
     {overlay === 'codex' && <Book campaign={current} nav={bookNav} onNav={(part) => setBookNav((held) => ({ ...held, ...part }))} recap={recap && recap.campaignId === current.id ? recap : null} reduceMotion={stillness} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Book replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} />}
     {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
     {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} />}
-    {overlay === 'level' && <div className="ritual"><Sparkles/><span>Level {current.hero.level}</span><h2>The story has made you larger.</h2><button onClick={()=>setOverlay(null)}>Accept the new name fate gives you</button></div>}
+    {overlay === 'level' && <LevelRitual hero={current.hero} onAccept={async (picks) => {
+      // THE PICKING SEAL (XVIII, Article IV): the surface was the door;
+      // the fold is a client-applied spell_learn — the hero's list grows,
+      // the ledger notes what entered the grimoire. The DM never sends
+      // this op; the schema does not know it.
+      if (picks.length) {
+        const hero = { ...current.hero, spells: [...(current.hero.spells || []), ...picks] };
+        const codex = applyStoryUpdates(current.codex, { spell_learn: { name: hero.name, spells: picks } }, { turn: current.turnNumber || 0, heroName: hero.name, heroLevel: hero.level });
+        const next = { ...current, hero, codex };
+        await saveCampaign(next); setCurrent(next);
+      }
+      setOverlay(null);
+    }} />}
     {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement — farewells, consequences, the road home. Then the wax presses, and the tale is bound.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal the Tale</button></div></div>}
     {overlay === 'sealing' && <Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
     {current.hero.hp <= 0 && !current.hero.stableAtZero && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} onFaceTheDark={async()=>{const hero={...current.hero,doomChosen:true};const next={...current,hero};await seal(current.id,'resolution',{type:'doom_declined'});await saveCampaign(next);setCurrent(next);}} onDeathSave={async()=>{const saves=current.hero.deathSaves||{successes:0,failures:0};const rr={id:`doom-hero-${saves.successes+saves.failures+1}`,label:'Death save',kind:'death_save',die:'d20',ability:null,skill:null,proficient:false,dc:10,advantage:'normal',extra_mod:0,action_id:null,actor_id:'hero',target_id:null};const result=heroRoll(current.hero,rr);setDiceResult(result);playUiSfx(current,'die');const folded=foldDeathSave(saves,result.outcome);const hero={...current.hero,deathSaves:folded.verdict==='stable'?{successes:0,failures:0}:folded.deathSaves,...(folded.verdict==='dead'?{dead:true}:{}),...(folded.verdict==='stable'?{stableAtZero:true}:{})};await seal(current.id,'resolution',{...result,deathSaves:folded.deathSaves,verdict:folded.verdict});const next={...current,hero};await saveCampaign(next);setCurrent(next);}} />}

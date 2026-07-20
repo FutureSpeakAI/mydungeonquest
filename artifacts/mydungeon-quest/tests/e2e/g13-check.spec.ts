@@ -42,7 +42,7 @@ import { GAME_ROOT } from './lib/vision';
 // face off the pipeline's OWN events), and the unmet gate (presence in
 // canon is not presence in the tale) join the keyless check in the same
 // commit that seats Articles VI, VII, and VIII of Directive XVII.
-const PINNED_PASS_COUNT = 142; // Task 63 Stage One (XVIII I–III): +3 — armory, enchant, rest; 139 → 142 (61: 136 → 139 mirror/publishRules/keyHome)
+const PINNED_PASS_COUNT = 145; // Task 63 Stage Two (XVIII IV–VI): +3 — grimoire, casting, paintedSpell; 142 → 145 (Stage One: 139 → 142 armory/enchant/rest)
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

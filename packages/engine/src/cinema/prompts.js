@@ -237,6 +237,13 @@ export function scenePrompt(campaign, cue, moment = null) {
     .sort((a, b) => ((b.since ?? -1) - (a.since ?? -1)))
     .slice(0, 3);
   const bestiaryLine = speciesCards.length ? ` Bestiary canon, sealed each: ${speciesCards.map((card) => `${card.species} — ${card.visual}`).join('; ')}.` : '';
+  // THE PAINTED SPELL (XVIII, Article VI) — one byte-stable rider: when a
+  // cast rides the turn, the spell's visual clause from the grimoire row
+  // travels the ONE road into the plate brief, bytes intact — never
+  // paraphrased, never sliced. The clause reaches here on the moment's
+  // own field (moment.spellClause), seated at the easel and mirrored at
+  // the re-lay door; this join is the only assembly path.
+  const spellLine = moment?.spellClause ? ` The spell made visible, exactly this: ${moment.spellClause}` : '';
   // THE HONEST FRAME (Directive IX) — two byte-stable riders. THE PRINCIPAL
   // CLAUSE crowns the cue's FIRST subject the composition's foremost figure,
   // spoken only when the roster paints that soul — a staged soul cannot be
@@ -257,8 +264,12 @@ export function scenePrompt(campaign, cue, moment = null) {
       ? ' The frame is closed except its granted crowd: beyond the named painted souls, only an indistinct distant background crowd may stand — unidentifiable figures, no readable face, no named soul among them.'
       : ' The frame is closed: the only figures in this frame are the named painted souls — no other person, figure, or silhouette of any kind stands in frame.')
     : '';
-  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}.${beat}${moodLine}${watchLine} ${soulLines}${stagedLine}${principalLaw} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''}${fixtureLine}${bestiaryLine} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul is the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line rides on them in frame, large and whole. Named souls are the PRINCIPAL figures of this frame — never demoted to the background, never displaced by an invented figure. Each named soul's dress, gear, and worn covering follow their identity line exactly — nothing added it does not state, nothing it states removed or undone.${markLaw}${closureLaw}`, campaign);
+  return scrubPrompt(`${campaign.codex.arc?.style_bible || campaign.styleBible}.${beat}${spellLine}${moodLine}${watchLine} ${soulLines}${stagedLine}${principalLaw} ${region ? `${region.name} region canon: ${region.visual}; state ${region.state}.` : ''}${fixtureLine}${bestiaryLine} Blight ${campaign.codex.blight}/5.${framing} Likeness law, equal in force to the moment: every named soul is the SAME person as their reference images and identity line — exact face, age, build, clothing motifs, and silhouette — and any distinguishing mark named in an identity line rides on them in frame, large and whole. Named souls are the PRINCIPAL figures of this frame — never demoted to the background, never displaced by an invented figure. Each named soul's dress, gear, and worn covering follow their identity line exactly — nothing added it does not state, nothing it states removed or undone.${markLaw}${closureLaw}`, campaign);
 }
+
+// THE PAINTED SPELL's handle for the re-lay mirror (harvest) — a pointer
+// to the one seat in the grimoire, never a copy (mirrors-one-seat law).
+export { spellClauseFor } from '../grimoire.js';
 
 // The roster, exported for the job bench: the same painted-first seating
 // the scene prompt uses, so reference anchors follow the roster — never a

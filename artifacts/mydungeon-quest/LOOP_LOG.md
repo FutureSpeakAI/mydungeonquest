@@ -3615,3 +3615,27 @@ STAGE ONE SWEEP (shape-pin fallout, recorded per the standing law):
 - evals/quietTable.test.mjs EDITED — the item_add.kind anchor list
   grew to six (armor, XVIII §I); the gate stays a literal third
   witness, so the anchor moves only when a directive moves it.
+
+STAGE TWO GATES (XVIII IV–VI, recorded per the standing law):
+- evals/grimoire.test.mjs NEW — the library floor (≥40 rows, SRD
+  shape, effects only through standing op families), the LEARN
+  ceilings as literal anchors, the picking door's refusal matrix,
+  the companion shelves, the caster's line, and lockstep probes on
+  the DM schema enum and prompt rules 48–50.
+- evals/casting.test.mjs NEW — the cast door's refusal matrix at
+  every bench (hero, sheet, enemy species card), exact single-slot
+  spend with identity on refusal, the one-thread law, the release
+  note, the tick refusal, and the one-action seeding probe bound
+  to the round court's own bytes.
+- evals/paintedSpell.test.mjs NEW — every visual clause scrub-stable
+  and riding the ONE scene-brief road byte-intact; the recorded
+  promptHash witnesses the clause; one-road source probes at the
+  easel, the engine join, and the re-lay mirror.
+- tests/e2e/harvest.spec.ts EDITED — the re-lay mirror seats
+  sceneMoment.spellClause exactly as the easel does (LAW IX's
+  mirror clause: move the seat, move the mirror).
+- evals/doom.test.mjs EDITED — the ROLE_TABLE pin gains the casting
+  column the armory grew (none/none/full/half); the four-role law
+  itself is unchanged (the instrument moves with the surface).
+- tests/e2e/g13-check.spec.ts EDITED — PINNED_PASS_COUNT 142 → 145
+  in the same commit as the three gates it pins.

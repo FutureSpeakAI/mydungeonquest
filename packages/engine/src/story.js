@@ -6,6 +6,11 @@ import { castVoiceByCard } from './cinema/casting.js';
 // law it enforces — a byte-for-byte mirror WILL drift (the standing law).
 import { ITEM_KINDS, THREAT_TABLE } from './protocol.js';
 import { ENCHANT_TABLE, armorRowFor, derivedAc, equippedRows } from './armory.js';
+// THE GRIMOIRE (XVIII, Articles IV-V): the companion shelf and the spell
+// rows ride from the one library; the sheet's slots from the one
+// arithmetic. The reducer folds; it never re-declares a table.
+import { companionSpellsFor, spellRowFor } from './grimoire.js';
+import { ROLE_TABLE, slotsForArchetype } from './rules.js';
 
 const REGION_STATES = ['thriving', 'troubled', 'corrupted', 'ruined', 'healed'];
 // The status law: a soul is exactly one of these. Anything else the DM sends
@@ -462,7 +467,14 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     } else if (next.bestiary.some((card) => canonName(card.species) === canonName(species))) {
       next.notes.push(`Species canon sealed once: ${species} already stands in the bestiary.`);
     } else {
-      next.bestiary.push({ species, visual: speciesVisual, nature: speciesNature, threat, since: Number.isInteger(meta.turn) ? meta.turn : null });
+      // THE SPECIES SPELLBOOK (XVIII, Article V): an optional spells list
+      // seals WITH the card — grimoire keys only, at most four; unlawful
+      // books fall whole and the species seals bookless (the door already
+      // spoke; the fold fails closed, never half-seats).
+      const book = Array.isArray(creatureAdd.spells)
+        ? creatureAdd.spells.map((name) => String(name).trim().toLowerCase()).filter((key) => spellRowFor(key)).slice(0, 4)
+        : null;
+      next.bestiary.push({ species, visual: speciesVisual, nature: speciesNature, threat, ...(book && book.length ? { spells: book } : {}), since: Number.isInteger(meta.turn) ? meta.turn : null });
     }
   }
 
@@ -523,6 +535,49 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     else next.party = next.party.filter((entry) => entry !== member);
   }
 
+  // THE CASTING FOLD (XVIII, Article V) — the ledger's half of a cast: a
+  // sheeted companion spends exactly one slot of the spell's own level
+  // and holds the thread HERE; the hero's tank folds at the rules seat;
+  // every release seals its note in the ledger view only, never on the
+  // table. Tick-refused like every arming of the world.
+  const castOp = updates.cast_spell;
+  if (castOp && typeof castOp === 'object' && !Array.isArray(castOp)) {
+    const castRow = spellRowFor(castOp.spell);
+    const casterName = clean(castOp.caster, 80);
+    if (meta.tick) next.notes.push('The offscreen world may not cast: cast_spell refused on a tick.');
+    else if (!castRow || !casterName) next.notes.push('Unlawful cast blocked: the grimoire holds no such spell.');
+    else {
+      const member = next.party.find((entry) => canonName(entry.name) === canonName(casterName));
+      const sheet = member?.sheet;
+      if (sheet && sheet.spellSlots) {
+        const learned = Array.isArray(sheet.spells) && sheet.spells.some((name) => canonName(name) === canonName(castRow.key));
+        const slot = castRow.level >= 1 ? sheet.spellSlots[castRow.level] : null;
+        if (!learned) next.notes.push(`Unlawful cast blocked: ${member.name} never learned ${castRow.key}.`);
+        else if (castRow.level >= 1 && (!slot || slot.current < 1)) next.notes.push(`Unlawful cast blocked: no slot of level ${castRow.level} remains for ${member.name}.`);
+        else if (castRow.concentration && sheet.concentration && castOp.release !== true) next.notes.push(`Unlawful cast blocked: ${member.name} already holds ${sheet.concentration}.`);
+        else {
+          if (slot) slot.current -= 1;
+          if (castOp.release === true && sheet.concentration) { next.notes.push(`Concentration released: ${member.name} lets ${sheet.concentration} fall.`); sheet.concentration = null; }
+          if (castRow.concentration) sheet.concentration = castRow.key;
+        }
+      } else if (castOp.release === true && meta.heroConcentration) {
+        // the hero's release: the tank folds at the rules seat; the note
+        // seals here, naming the thread that fell.
+        next.notes.push(`Concentration released: ${casterName} lets ${meta.heroConcentration} fall.`);
+      }
+    }
+  }
+
+  // THE PICKING SEAL (XVIII, Article IV) — a learning pick lands as a
+  // sealed op: the door (validateSpellPicks) ruled at the surface; the
+  // ledger records what entered the grimoire, keys only, never free text.
+  const learnOp = updates.spell_learn;
+  if (learnOp && typeof learnOp === 'object' && !Array.isArray(learnOp)) {
+    const learner = clean(learnOp.name, 80);
+    const lawfulPicks = Array.isArray(learnOp.spells) ? learnOp.spells.map((key) => String(key).trim().toLowerCase()).filter((key) => spellRowFor(key)) : [];
+    if (learner && lawfulPicks.length) next.notes.push(`Learned: ${learner} takes ${lawfulPicks.join(', ')} into the grimoire.`);
+  }
+
   // THE COMPANION-SHEET LAW (Directive X, Law VI) — one grant seals a
   // standing party member's sheet from THE ROLE TABLE: arithmetic, never
   // model numbers. Seal-once with a note; the offscreen tick may not arm
@@ -542,7 +597,7 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     else if (!grantRow) next.notes.push(`Unlawful sheet_grant blocked: ${grantName} does not stand in the party.`);
     else if (grantRow.sheet) next.notes.push(`Sheet canon sealed once: ${grantRow.name} already holds a sheet.`);
     else if (!grantSheet) next.notes.push(`Unlawful sheet_grant blocked: no honest role or level for ${grantRow.name}.`);
-    else grantRow.sheet = grantSheet;
+    else grantRow.sheet = armCasting(grantSheet);
   }
 
   // THE CONDITION LAW (Directive XII §II.3) — conditions move onto a
@@ -593,6 +648,23 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
   return next;
 }
 
+// THE CASTING COLUMN (XVIII, Article IV) — one seat arms a sheet with its
+// craft: the calling's fixed column decides full, half, or none; the shelf
+// and the slot arithmetic ride the tables. A none-column sheet returns
+// UNCHANGED — byte for byte the pre-directive shape.
+function armCasting(sheet) {
+  if (!sheet) return sheet;
+  const casting = ROLE_TABLE[String(sheet.role || '').toLowerCase()]?.casting || 'none';
+  if (casting === 'none') return sheet;
+  return {
+    ...sheet,
+    casting,
+    spells: companionSpellsFor(sheet.role, sheet.level, casting),
+    spellSlots: slotsForArchetype(casting, sheet.level),
+    concentration: sheet.concentration || null
+  };
+}
+
 // THE LOCKSTEP LAW (Directive XII §I.6) — when the hero rises, every
 // standing sheet re-seats to the same level by ROLE TABLE arithmetic.
 // Damage carries ABSOLUTE (new maximum minus the wounds already taken,
@@ -610,12 +682,23 @@ export function applyPartyMilestone(codex, level) {
     if (!fresh) continue;
     const damage = Math.max(0, (Number(sheet.maxHp) || 0) - (Number(sheet.hp) || 0));
     const atZero = (Number(sheet.hp) || 0) <= 0;
-    member.sheet = {
+    const armed = armCasting({
       ...fresh,
       hp: atZero ? 0 : Math.max(1, fresh.maxHp - damage),
       deathSaves: sheet.deathSaves || fresh.deathSaves,
-      conditions: Array.isArray(sheet.conditions) ? sheet.conditions : []
-    };
+      conditions: Array.isArray(sheet.conditions) ? sheet.conditions : [],
+      ...(sheet.concentration ? { concentration: sheet.concentration } : {})
+    });
+    // the rise re-derives slots CARRYING the spent counts, the hero's own
+    // milestone law mirrored onto the sheet (XVIII, Article IV).
+    if (armed.spellSlots && sheet.spellSlots) {
+      for (const [slotLevel, slot] of Object.entries(armed.spellSlots)) {
+        const old = sheet.spellSlots[slotLevel];
+        const spent = old ? Math.max(0, (Number(old.max) || 0) - (Number(old.current) || 0)) : 0;
+        slot.current = Math.max(0, slot.max - spent);
+      }
+    }
+    member.sheet = armed;
   }
   return next;
 }
@@ -653,13 +736,26 @@ export function storyBlock(codex) {
     party_state: (codex.party || []).map(({ name, joinedTurn }) => ({ name, joinedTurn: joinedTurn ?? null })),
     // THE DERIVED TRUTH (XVIII, Article I): each sheet speaks its armor
     // as computed truth — table rows and DEX, never a stored opinion.
-    sheet_state: (codex.party || []).filter((member) => member && member.sheet).map((member) => ({ name: member.name, role: member.sheet.role, level: member.sheet.level, hp: member.sheet.hp, ac: derivedAc(member.sheet.abilities, equippedRows(codex.trove || [], member.name)), conditions: Array.isArray(member.sheet.conditions) ? [...member.sheet.conditions] : [] })),
+    sheet_state: (codex.party || []).filter((member) => member && member.sheet).map((member) => ({
+      name: member.name, role: member.sheet.role, level: member.sheet.level, hp: member.sheet.hp,
+      ac: derivedAc(member.sheet.abilities, equippedRows(codex.trove || [], member.name)),
+      conditions: Array.isArray(member.sheet.conditions) ? [...member.sheet.conditions] : [],
+      // THE CASTING LAW (XVIII): a casting sheet speaks its craft — the
+      // learned list, slots as cur/max, and the held thread; a sheet of
+      // the none column keeps its old shape to the byte.
+      ...(member.sheet.spellSlots ? {
+        casting: member.sheet.casting || null,
+        spells: Array.isArray(member.sheet.spells) ? [...member.sheet.spells] : [],
+        slots: Object.fromEntries(Object.entries(member.sheet.spellSlots).map(([lvl, slot]) => [lvl, `${slot.current}/${slot.max}`])),
+        concentration: member.sheet.concentration || null
+      } : {})
+    })),
     fixture_state: (codex.fixtures || []).map(({ place, name }) => ({ place, name })),
     // THE BATTLE CUT (Directive X.1): the sealed bestiary rides to the
     // server court the same way — species and threat, the seal's evidence.
     // The species table already carries AC by threat band (XVIII ratifies
     // it as the enemy's whole armor law) — the briefing surfaces it.
-    bestiary_state: (codex.bestiary || []).map(({ species, threat }) => ({ species, threat, ac: THREAT_TABLE[threat]?.ac ?? null })),
+    bestiary_state: (codex.bestiary || []).map((card) => ({ species: card.species, threat: card.threat, ac: THREAT_TABLE[card.threat]?.ac ?? null, ...(Array.isArray(card.spells) ? { spells: [...card.spells] } : {}) })),
     directives: [
       ...(codex.completed ? ['The tale is sealed. Write nothing new; if asked, speak only a closing line.'] : []),
       ...(sealing ? ['SEAL THE TALE — the player has chosen to end with honor. These are denouement turns: quiet and combat-free; no new cast, no new threads; resolve what stands, let farewells be spoken, and bring the road home. If a cinematic is due, let it be the ending the tale has earned (victory, death, or bittersweet).'] : []),

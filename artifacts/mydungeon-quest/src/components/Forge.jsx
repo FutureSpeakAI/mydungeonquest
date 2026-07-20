@@ -12,6 +12,10 @@ import { smithSpin } from '../lib/smithClient.js';
 import { openSitting, blessSitting, sittingRequired } from '../lib/sitting.js';
 import { ATELIER_FIELDS, dealAppearance, rollAppearance, heroCanonSoul } from '../lib/atelier.js';
 import { dealAuditions } from '../lib/audition.js';
+// THE GRIMOIRE OPENS AT THE FORGE (XVIII, Article IV) — learning is
+// sealed here, at the surface: fixed counts from the tables, picks judged
+// by the one door (validateSpellPicks), never prose promotion.
+import { SPELL_TABLE, knownCountsFor, validateSpellPicks } from 'fatescript/grimoire';
 
 // THE FORGE REMEMBERS (G4) — a sitting's draft survives a reload. Drafts live
 // in sessionStorage (per tab; never synced, never sealed, never exported) and
@@ -293,6 +297,17 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
     return saved && typeof saved.name === 'string' ? { ...fallback, ...saved, abilities: { ...fallback.abilities, ...(saved.abilities || {}) } } : fallback;
   });
   useEffect(() => { saveDraft(HERO_DRAFT_KEY, form); }, [form]);
+  // THE GRIMOIRE'S PRUNE — a calling change re-lawfuls the held picks:
+  // rows the new archetype is not taught fall away silently, so the
+  // door below never argues with a stale checkbox.
+  useEffect(() => {
+    setForm((v) => {
+      const held = Array.isArray(v.spells) ? v.spells : [];
+      const table = v.caster === 'energy' ? 'full' : v.caster;
+      const lawful = held.filter((key) => { const row = SPELL_TABLE[key]; return row && row.level <= 1 && row.archetypes.includes(table); });
+      return lawful.length === held.length ? v : { ...v, spells: lawful };
+    });
+  }, [form.caster]);
   const pen = (key) => (event) => setForm((v) => ({ ...v, [key]: event.target.value, __sovereign: markSovereign(v, key) }));
   const setPresentation = (event) => setForm((v) => ({ ...v, presentation: event.target.value, voiceId: null, __sovereign: markSovereign(v, 'presentation') })); // a new register opens a new audition
   // The calling is one body: choosing it seats the whole sheet — bearing,
@@ -481,6 +496,35 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
         <p className="fine-print">Starting skills: {Array.isArray(form.skills) ? form.skills.join(', ') : 'Perception, Survival, Stealth'}. Every value is yours to change before play.</p>
       </>}
 
+      {(() => {
+        // THE GRIMOIRE OPENS (XVIII, Article IV): a casting calling owes
+        // exact starting counts — the tables say how many, the player says
+        // which, the one door says whether. Half-casters owe nothing at
+        // first level; their book opens at the milestones.
+        const owed = knownCountsFor(form.caster, 1);
+        if (owed.cantrips === 0 && owed.spells === 0) return null;
+        const table = form.caster === 'energy' ? 'full' : form.caster;
+        const rows = Object.entries(SPELL_TABLE).filter(([, row]) => row.archetypes.includes(table));
+        const held = Array.isArray(form.spells) ? form.spells : [];
+        const heldCantrips = held.filter((key) => SPELL_TABLE[key]?.level === 0).length;
+        const heldSpells = held.filter((key) => (SPELL_TABLE[key]?.level ?? 0) >= 1).length;
+        const toggle = (key) => setForm((v) => { const has = Array.isArray(v.spells) ? v.spells : []; return { ...v, spells: has.includes(key) ? has.filter((k) => k !== key) : [...has, key] }; });
+        const verdict = held.length ? validateSpellPicks({ archetype: form.caster, level: 1, known: [], picks: held }) : { ok: true, errors: [] };
+        return <div className="sitting-panel grimoire-picks">
+          <h3>The grimoire opens — {owed.cantrips} cantrips, {owed.spells} first-circle spells</h3>
+          <p className="fine-print">Mechanics from tables, flavor from the tale: every number a cast will ever carry lives in the spell&rsquo;s own row. Pick your starting craft; the milestones open the book again.</p>
+          <div className="spell-pick-grid">
+            <div><b>Cantrips ({heldCantrips}/{owed.cantrips})</b>
+              {rows.filter(([, row]) => row.level === 0).map(([key, row]) => <label key={key} className={`spell-pick${held.includes(key) ? ' picked' : ''}`}><input type="checkbox" checked={held.includes(key)} onChange={() => toggle(key)} /><span>{key}</span><small>{row.school}</small></label>)}
+            </div>
+            <div><b>First circle ({heldSpells}/{owed.spells})</b>
+              {rows.filter(([, row]) => row.level === 1).map(([key, row]) => <label key={key} className={`spell-pick${held.includes(key) ? ' picked' : ''}`}><input type="checkbox" checked={held.includes(key)} onChange={() => toggle(key)} /><span>{key}</span><small>{row.school}{row.concentration ? ' · concentration' : ''}</small></label>)}
+            </div>
+          </div>
+          {(heldCantrips !== owed.cantrips || heldSpells !== owed.spells) && <p className="fine-print">The chronicle waits until the counts stand exact.</p>}
+          {verdict.errors.length > 0 && <p className="fine-print">{verdict.errors[0]}</p>}
+        </div>;
+      })()}
       {sitting && <div className="sitting-panel">
         <h3>The Sitting — a face is accepted, not assigned</h3>
         <p className="fine-print">Three chairs, one identity — only the light differs. Bless one; the blessing is final, and every later painting answers to the face you accept. No sheet is minted before the blessing.</p>
@@ -490,7 +534,16 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
           </button>)}</div>
       </div>}
       <AuditionRow presentation={form.presentation} name={form.name} voiceId={form.voiceId} onBless={bless}/>
-      <button className="primary-button" onClick={() => { /* the blessing travels with the forge; the sovereign ledger stays home */ const hero = sitting ? { ...form, sitting } : { ...form }; const out = {}; for (const [key, value] of Object.entries(hero)) if (!key.startsWith('__')) out[key] = value; onBegin(out); }}>Begin the chronicle <ArrowRight/></button>
+      <button className="primary-button" disabled={(() => {
+        // the book must stand exact before the chronicle begins — the same
+        // arithmetic the door enforces, spoken as a disabled button.
+        const owed = knownCountsFor(form.caster, 1);
+        if (owed.cantrips === 0 && owed.spells === 0) return false;
+        const held = Array.isArray(form.spells) ? form.spells : [];
+        const cantrips = held.filter((key) => SPELL_TABLE[key]?.level === 0).length;
+        const leveled = held.filter((key) => (SPELL_TABLE[key]?.level ?? 0) >= 1).length;
+        return cantrips !== owed.cantrips || leveled !== owed.spells || !validateSpellPicks({ archetype: form.caster, level: 1, known: [], picks: held }).ok;
+      })()} onClick={() => { /* the blessing travels with the forge; the sovereign ledger stays home */ const hero = sitting ? { ...form, sitting } : { ...form }; const out = {}; for (const [key, value] of Object.entries(hero)) if (!key.startsWith('__')) out[key] = value; onBegin(out); }}>Begin the chronicle <ArrowRight/></button>
     </section>
   </main>;
 }

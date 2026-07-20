@@ -34,15 +34,32 @@ export const modifier = (score) => Math.floor((Number(score) - 10) / 2);
 export const proficiency = (level) => 2 + Math.floor((Math.max(1, level) - 1) / 4);
 export const levelForXp = (xp) => XP_LEVELS.reduce((level, threshold, index) => xp >= threshold ? index + 1 : level, 1);
 
-export function slotsFor(className, level) {
+// THE CASTING ARCHETYPES (XVIII, Article IV) — class names fold to an
+// archetype in ONE seat; the warlock's energy tank is its own standing
+// lane (pre-directive law) and rides beside full/half/none.
+export function casterOf(className) {
   const key = String(className || '').toLowerCase();
-  const row = FULL_CASTERS.has(key) ? FULL_SLOTS[level] : HALF_CASTERS.has(key) ? HALF_SLOTS[level] : [];
+  if (FULL_CASTERS.has(key)) return 'full';
+  if (HALF_CASTERS.has(key)) return 'half';
+  if (key === 'warlock') return 'energy';
+  return 'none';
+}
+
+// THE SLOT ARITHMETIC (XVIII, Article IV) — the same band tables that
+// govern the leveling law govern slots, by archetype, one seat. The
+// energy archetype holds a tank, not slots (its own lane).
+export function slotsForArchetype(archetype, level) {
+  const row = archetype === 'full' ? FULL_SLOTS[level] : archetype === 'half' ? HALF_SLOTS[level] : [];
   return Object.fromEntries((row || []).map((count, index) => [index + 1, { max: count, current: count }]));
+}
+
+export function slotsFor(className, level) {
+  return slotsForArchetype(casterOf(className), level);
 }
 
 export function createHero(input) {
   const className = input.className || 'Wayfarer';
-  const caster = input.caster || (FULL_CASTERS.has(className.toLowerCase()) ? 'full' : HALF_CASTERS.has(className.toLowerCase()) ? 'half' : 'none');
+  const caster = input.caster || casterOf(className);
   const abilities = input.abilities || { STR: 14, DEX: 13, CON: 15, INT: 10, WIS: 12, CHA: 8 };
   const con = abilities.CON || 12;
   const hitDie = Number(input.hitDie || 8);
@@ -58,6 +75,12 @@ export function createHero(input) {
     saves: input.saves || ['CON', 'WIS'], skills: input.skills || ['Perception', 'Survival', 'Persuasion'],
     inventory: ['Traveler’s pack'], conditions: [], spellSlots: slotsFor(className, 1),
     spellEnergy: caster === 'energy' ? { current: 3, max: 3 } : null,
+    // THE GRIMOIRE (XVIII, Article IV): the learned list — picks are
+    // validated at the forge's own picking surface (the door), sealed
+    // here as keys; a non-caster is born with the empty shelf. The held
+    // concentration (Article V) is born released.
+    spells: Array.isArray(input.spells) ? input.spells.map((key) => String(key).trim().toLowerCase()).filter(Boolean) : [],
+    concentration: null,
     deathSaves: { successes: 0, failures: 0 }, deathTouched: false, bondRescueUsed: false,
     // THE REST LAW (XVIII, Article III): the calendar day of the last
     // long rest — born null (never rested), stamped by the rest fold.
@@ -157,6 +180,9 @@ export function applyStateUpdates(hero, updates, meta = {}) {
     next.hp = next.maxHp;
     for (const slot of Object.values(next.spellSlots)) slot.current = slot.max;
     if (next.spellEnergy) next.spellEnergy.current = next.spellEnergy.max;
+    // THE CASTING LAW (XVIII, Article V): the night releases a held
+    // concentration — sleep is the one release that needs no note.
+    if (next.concentration !== undefined) next.concentration = null;
     // THE REST LAW (XVIII, Article III): the rest stamps the calendar
     // day it blessed so the door can refuse a second before the day
     // turns; an unstamped fold (older callers) keeps the standing mark.
@@ -229,6 +255,33 @@ export function spendSlot(hero, requestedLevel) {
   return usable || null;
 }
 
+// THE CASTING FOLD (XVIII, Article V) — pure and identity-on-refusal: a
+// cast spends EXACTLY one slot of the spell's own level (never the
+// upcast walk spendSlot takes for the legacy lane); cantrips are
+// slotless; the energy tank spends one charge a circle-cast. A second
+// concentration while one holds is refused WHOLE unless the same op
+// carries the release; the release itself is the sealed note's business
+// at the story fold. The refused caller receives the SAME object back —
+// identity is the refusal's signature.
+export function applyCast(hero, spellRow, { release = false } = {}) {
+  if (!hero || !spellRow || !Number.isInteger(spellRow.level)) return hero;
+  if (spellRow.concentration && hero.concentration && release !== true) return hero;
+  const next = structuredClone(hero);
+  if (spellRow.level >= 1) {
+    if (next.caster === 'energy') {
+      if (!next.spellEnergy || next.spellEnergy.current < 1) return hero;
+      next.spellEnergy.current -= 1;
+    } else {
+      const slot = next.spellSlots?.[spellRow.level];
+      if (!slot || slot.current < 1) return hero;
+      slot.current -= 1;
+    }
+  }
+  if (release === true && next.concentration) next.concentration = null;
+  if (spellRow.concentration) next.concentration = spellRow.key || null;
+  return next;
+}
+
 // THE ROUND LAW (Directive X, Law III) — the order is sealed ONCE when
 // battle opens, as an operation: device draws for the player's side
 // (d20 + DEX for the hero; companions draw plain until sheets are law),
@@ -267,11 +320,13 @@ export function rollInitiative(hero, enemies, random = Math.random) {
 // THE COMPANION-SHEET LAW (Directive X, Law VI) — THE ROLE TABLE fixes the
 // spread, the band, and the growth; hit points are arithmetic, never model
 // numbers. The sigil is the owner's mark on the roll surface.
+// THE CASTING COLUMN (XVIII, Article IV): each calling's archetype is a
+// fixed table cell — full, half, or none. No prose may promote a calling.
 export const ROLE_TABLE = {
-  guardian:   { spread: { STR: 15, DEX: 12, CON: 14, INT: 8,  WIS: 12, CHA: 10 }, bandHp: 12, perLevel: 7, sigil: '▲' },
-  skirmisher: { spread: { STR: 12, DEX: 15, CON: 12, INT: 10, WIS: 13, CHA: 10 }, bandHp: 9,  perLevel: 5, sigil: '➤' },
-  mender:     { spread: { STR: 10, DEX: 12, CON: 13, INT: 12, WIS: 15, CHA: 10 }, bandHp: 8,  perLevel: 4, sigil: '✚' },
-  trickster:  { spread: { STR: 10, DEX: 15, CON: 12, INT: 13, WIS: 10, CHA: 14 }, bandHp: 8,  perLevel: 5, sigil: '◆' }
+  guardian:   { spread: { STR: 15, DEX: 12, CON: 14, INT: 8,  WIS: 12, CHA: 10 }, bandHp: 12, perLevel: 7, sigil: '▲', casting: 'none' },
+  skirmisher: { spread: { STR: 12, DEX: 15, CON: 12, INT: 10, WIS: 13, CHA: 10 }, bandHp: 9,  perLevel: 5, sigil: '➤', casting: 'none' },
+  mender:     { spread: { STR: 10, DEX: 12, CON: 13, INT: 12, WIS: 15, CHA: 10 }, bandHp: 8,  perLevel: 4, sigil: '✚', casting: 'full' },
+  trickster:  { spread: { STR: 10, DEX: 15, CON: 12, INT: 13, WIS: 10, CHA: 14 }, bandHp: 8,  perLevel: 5, sigil: '◆', casting: 'half' }
 };
 
 // hp = bandHp(role) + (level − 1) × perLevel(role). An unlawful role or

@@ -78,7 +78,7 @@ async function fireMintLadder(page: any, campaignId: string, seat: any): Promise
     const { db } = await import('/src/lib/db.js');
     const { appendEvent } = await import('/src/lib/seal.js');
     const { Foundry } = await import('/src/lib/cinema/foundry.js');
-    const { generationSpec, scenePrompt, portraitPrompt, sceneRoster, plateMood, bearingTextFor, identityClause, heroSoul } = await import('/src/lib/cinema/prompts.js');
+    const { generationSpec, scenePrompt, portraitPrompt, sceneRoster, plateMood, bearingTextFor, identityClause, heroSoul, spellClauseFor } = await import('/src/lib/cinema/prompts.js');
     const { keyArtJob, heroBustJob, actOf, nameSeed } = await import('/src/lib/cinema/prologue.js');
     const campaign = await db.campaigns.get(id);
     if (!campaign) return { fired: false, mismatch: 'the campaign is missing from the shelf' };
@@ -122,7 +122,11 @@ async function fireMintLadder(page: any, campaignId: string, seat: any): Promise
             ? dm.image_cue.moment
             : (dm.narration_blocks || []).map((block: any) => block?.text || '').join(' ')).slice(0, 480),
           seed: log.recordHash || String(log.id || ''),
-          speaker: (dm.narration_blocks || []).find((block: any) => block?.speaker)?.speaker || null
+          speaker: (dm.narration_blocks || []).find((block: any) => block?.speaker)?.speaker || null,
+          // THE PAINTED SPELL (XVIII, Article VI) — the mirror seats the
+          // cast's visual clause exactly as the easel does; a drifted
+          // mirror would refuse every cast-turn re-lay.
+          ...(spellClauseFor(dm.story) ? { spellClause: spellClauseFor(dm.story) } : {})
         };
         const seating = sceneRoster(campaign, sceneCue, sceneMoment);
         const leadName = seating.painted[0]?.name || null;

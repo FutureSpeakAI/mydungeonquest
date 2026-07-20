@@ -4,6 +4,10 @@ import { CONDITIONS, ROLE_TABLE } from './rules.js';
 // and the tool schema read; no key list is mirrored here.
 import { ENCHANT_TABLE } from './armory.js';
 
+// THE GRIMOIRE (XVIII, Articles IV-V): the casting court reads the one
+// spell library — keys, levels, concentration — never a mirror of it.
+import { spellRowFor } from './grimoire.js';
+
 const ALLOWED_KEYS = new Set(['narration_blocks','suggestions','roll_request','state_updates','combat','cinematic','story','image_cue','dialogue_cue','time_advance','entropy_use']);
 const CINEMATIC_TYPES = new Set(['chapter','boss_reveal','discovery','ominous','level_up','death','victory']);
 const ROLL_KINDS = new Set(['check','save','attack','damage','death_save']);
@@ -302,20 +306,120 @@ function validateBestiary(story, context, errors) {
   if (!story || typeof story !== 'object') return;
   const add = story.creature_add;
   if (add === undefined || add === null) return;
-  if (!add || typeof add !== 'object' || Array.isArray(add) || Object.keys(add).some((key) => !['species', 'visual', 'nature', 'threat'].includes(key))) {
-    errors.push('creature_add must be an object with exactly species, visual, nature, and threat');
+  if (!add || typeof add !== 'object' || Array.isArray(add) || Object.keys(add).some((key) => !['species', 'visual', 'nature', 'threat', 'spells'].includes(key))) {
+    errors.push('creature_add must be an object with exactly species, visual, nature, and threat (spells optional)');
     return;
   }
   if (!(cleanText(add.species, 60) && String(add.species).trim().length >= 3)) errors.push('creature_add.species must be 3-60 chars');
   if (!(cleanText(add.visual, 160) && String(add.visual).trim().length >= 8)) errors.push('creature_add.visual must be 8-160 chars');
   if (!(cleanText(add.nature, 90) && String(add.nature).trim().length >= 3)) errors.push('creature_add.nature must be 3-90 chars');
   if (!(Number.isInteger(add.threat) && add.threat >= 1 && add.threat <= 5)) errors.push('creature_add.threat must be an integer between 1 and 5');
+  // THE SPECIES SPELLBOOK (XVIII, Article V): enemy casts come from the
+  // card — an optional list of grimoire keys, at most four, sealed once
+  // at creature_add; a species without the list never casts.
+  if (add.spells !== undefined && (!Array.isArray(add.spells) || add.spells.length < 1 || add.spells.length > 4 || add.spells.some((name) => !spellRowFor(name)))) {
+    errors.push('creature_add.spells must be 1-4 spell keys the grimoire holds');
+  }
   if (Array.isArray(context.bestiary) && cleanText(add.species, 60)) {
     if (context.bestiary.some((card) => canonKey(card?.species) === canonKey(add.species))) {
       errors.push(`creature_add duplicates a sealed species: ${String(add.species).trim()}`);
     }
   }
 }
+// THE CASTING COURT (XVIII, Article V) — ONE op: story.cast_spell
+// { caster, spell, target?, release? }. The refusal matrix at the door:
+// an unknown spell; a spell not on the caster's learned list; an empty
+// slot at the spell's level (cantrips slotless, the energy tank its own
+// lane); an illegal target; a second concentration while one holds —
+// unless this same op carries the release (the sealed note is the story
+// fold's business). Courts seat on evidence, presence-based, both
+// benches alike; bare context keeps shape law and no more.
+function validateCastSpell(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const cast = story.cast_spell;
+  if (cast === undefined || cast === null) return;
+  if (typeof cast !== 'object' || Array.isArray(cast) || Object.keys(cast).some((key) => !['caster', 'spell', 'target', 'release'].includes(key)) || !Object.hasOwn(cast, 'caster') || !Object.hasOwn(cast, 'spell')) {
+    errors.push('cast_spell must be an object carrying caster and spell (target and release optional)');
+    return;
+  }
+  if (!(cleanText(cast.caster, 80) && String(cast.caster).trim().length >= 2)) { errors.push('cast_spell.caster must be 2-80 chars'); return; }
+  const row = spellRowFor(cast.spell);
+  if (!row) { errors.push(`cast_spell names a spell the grimoire does not hold: ${String(cast.spell ?? '').trim().slice(0, 40) || '(unnamed)'}`); return; }
+  if (cast.release !== undefined && cast.release !== true) errors.push('cast_spell.release, when it rides, is exactly true');
+  if (cast.target !== undefined && cast.target !== null && !(cleanText(cast.target, 80) && String(cast.target).trim().length >= 2)) errors.push('cast_spell.target must be null or 2-80 chars');
+  const key = canonKey(cast.caster);
+  const heroSeated = typeof context.hero === 'string' && canonKey(context.hero) === key;
+  const sheetRow = Array.isArray(context.sheetCasters) ? context.sheetCasters.find((sheet) => canonKey(sheet?.name) === key) : null;
+  // the enemy bench: a standing combatant, or one spawned this same breath
+  const combatantRow = Array.isArray(context.combatants) ? context.combatants.find((foe) => canonKey(foe?.name) === key || canonKey(foe?.id) === key) : null;
+  // THE CASTER'S SEAT — judged when the full census stands (hero named and
+  // the party's names seated); a soul nowhere counted may not cast.
+  if (typeof context.hero === 'string' && Array.isArray(context.sheets) && !heroSeated && !sheetRow && !combatantRow) {
+    const sheetNamed = context.sheets.some((name) => canonKey(name) === key);
+    if (!sheetNamed) errors.push(`cast_spell.caster is nobody the record counts: ${String(cast.caster).trim()}`);
+  }
+  // THE LEARNED LAW — each bench proves the list it holds.
+  if (heroSeated && Array.isArray(context.heroSpells)) {
+    if (!context.heroSpells.some((name) => canonKey(name) === row.key)) errors.push(`${row.key} is not on the caster's learned list`);
+  }
+  if (sheetRow && Array.isArray(sheetRow.spells)) {
+    if (!sheetRow.spells.some((name) => canonKey(name) === row.key)) errors.push(`${row.key} is not on ${String(cast.caster).trim()}'s learned list`);
+  }
+  if (combatantRow) {
+    // enemy casts come from the species card, and only from it
+    const species = combatantRow.species;
+    const cards = [...(Array.isArray(context.bestiary) ? context.bestiary : [])];
+    const fresh = story.creature_add;
+    if (fresh && typeof fresh === 'object' && !Array.isArray(fresh)) cards.push(fresh);
+    if (typeof species === 'string' && cards.length) {
+      const card = cards.find((entry) => canonKey(entry?.species) === canonKey(species));
+      if (card && (!Array.isArray(card.spells) || !card.spells.some((name) => canonKey(name) === row.key))) {
+        errors.push(`the ${String(species).trim()} card carries no such spell: ${row.key}`);
+      }
+    }
+  }
+  // THE SLOT LAW — a cast spends exactly one slot of the spell's level;
+  // cantrips are slotless; the energy tank spends a charge instead.
+  if (row.level >= 1 && heroSeated) {
+    if (context.heroCaster === 'energy') {
+      if (context.spellEnergy && typeof context.spellEnergy === 'object' && !(Number(context.spellEnergy.current) >= 1)) errors.push('the energy tank is empty — no charge remains for the cast');
+    } else if (context.casterSlots && typeof context.casterSlots === 'object') {
+      const slot = context.casterSlots[row.level];
+      if (!slot || !(Number(slot.current) >= 1)) errors.push(`no slot of level ${row.level} remains for ${row.key}`);
+    }
+  }
+  if (row.level >= 1 && sheetRow && sheetRow.slots && typeof sheetRow.slots === 'object') {
+    const slot = sheetRow.slots[row.level];
+    const current = typeof slot === 'string' ? Number(slot.split('/')[0]) : Number(slot?.current);
+    if (!(current >= 1)) errors.push(`no slot of level ${row.level} remains on ${String(cast.caster).trim()}'s sheet for ${row.key}`);
+  }
+  // THE ONE THREAD — a second concentration while one holds is refused
+  // whole, unless this same op carries the release.
+  if (row.concentration && cast.release !== true) {
+    if (heroSeated && typeof context.concentration === 'string' && context.concentration) {
+      errors.push(`a second concentration while ${context.concentration} holds — carry release: true or hold the thread`);
+    }
+    if (sheetRow && typeof sheetRow.concentration === 'string' && sheetRow.concentration) {
+      errors.push(`${String(cast.caster).trim()} already holds ${sheetRow.concentration} — carry release: true or hold the thread`);
+    }
+  }
+  // THE HONEST MARK — a named target must be a soul or foe the record
+  // counts, and never the sealed dead.
+  if (typeof cast.target === 'string' && cast.target.trim() && Array.isArray(context.cast)) {
+    const targetKey = canonKey(cast.target);
+    const soul = context.cast.find((member) => canonKey(member?.name) === targetKey);
+    if (soul && canonKey(soul.status) === 'dead') errors.push(`cast_spell.target is sealed dead: ${String(cast.target).trim()}`);
+    const counted = Boolean(soul)
+      || (typeof context.hero === 'string' && canonKey(context.hero) === targetKey)
+      || (Array.isArray(context.sheets) && context.sheets.some((name) => canonKey(name) === targetKey))
+      || (Array.isArray(context.combatants) && context.combatants.some((foe) => canonKey(foe?.name) === targetKey || canonKey(foe?.id) === targetKey))
+      || (typeof story.cast_add?.name === 'string' && canonKey(story.cast_add.name) === targetKey);
+    if (!counted && typeof context.hero === 'string' && Array.isArray(context.sheets)) {
+      errors.push(`cast_spell.target is nobody the record counts: ${String(cast.target).trim()}`);
+    }
+  }
+}
+
 // THE COMPANION-SHEET LAW (Directive X, Law VI) — one additive grant seals
 // a standing party member's sheet: exactly { name, role, level }, role from
 // THE ROLE TABLE, level 1-5, an object never an array. Membership is judged
@@ -635,6 +739,7 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     validateItemEquip(payload.story, context, errors);
     validateEnchant(payload.story, context, errors);
     validateRest(payload, context, errors);
+    validateCastSpell(payload.story, context, errors);
     validateSpeakerGround(payload, context, errors);
     validateImageCue(payload, context, errors);
   }
@@ -822,6 +927,13 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
       if (enemy?.name) sameBreathActors.add(canonKey(enemy.name));
     }
     const actors = new Set();
+    // THE CASTING LAW (XVIII, Article V): a cast is THE action — the
+    // round law counts this turn's cast_spell caster as having acted,
+    // so a second motion through npc_actions is refused by name.
+    const turnCast = payload.story?.cast_spell;
+    if (turnCast && typeof turnCast === 'object' && !Array.isArray(turnCast) && typeof turnCast.caster === 'string' && canonKey(turnCast.caster)) {
+      actors.add(canonKey(turnCast.caster));
+    }
     for (const [i, action] of (combat?.npc_actions || []).entries()) {
       if (!action || typeof action !== 'object' || Array.isArray(action) || Object.keys(action).length !== 2 || Object.keys(action).some((key) => !['actor', 'action'].includes(key))) {
         errors.push(`combat.npc_actions[${i}] must be an object with exactly actor and action`);

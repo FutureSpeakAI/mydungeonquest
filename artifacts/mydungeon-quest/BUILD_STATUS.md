@@ -320,3 +320,14 @@ layer (App.jsx, components, cinema/prompts, storybook, styles, prologue).
   BRAND.md at the repo root; superseded directives archived to `docs/archive/`;
   EXPERIENCE-DIRECTIVE-III (The Audience Cut) added as the next program.
 
+
+## Task 61 — THE COMMONS (Directive XV): window CLOSED RED (2026-07-20)
+- The bar: three consecutive counted greens in seats 61.8–61.14 (extension
+  spent at 61.6; ceiling grant final). Spent: 61.8 R, 61.9 R, 61.10 R,
+  61.11 **G** (121/121, the window's first counted green), 61.12 R —
+  Anthropic credits exhausted mid-window; G26a lawfully refused to judge a
+  live sitting on a fallback tier. Two seats remained; three consecutive
+  could no longer fit. 1.1.0 does not close; version stays 1.0.1.
+- The pool (roll 8) is proven (121/121 twice); all window instrument cures
+  held; the standing report lives in LOOP_LOG.md. Resumption needs the
+  owner's pen: credits + a §VIII amendment.

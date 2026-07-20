@@ -3297,3 +3297,48 @@ keyart. Rehearsal 7: 121 passed, exit 0 — THE FIRST FULLY GREEN RUN
 OF THE WINDOW.** Cures spent from the paint-and-probe budget
 throughout; no seat consumed. 61.11 opens on a proven pool with all
 verdicts bound to replay.
+
+### 61.11 — counted run, GREEN (121 passed, 0 unexpected, 0 skipped, 13.5m)
+
+The window's FIRST counted green. Every bound verdict replayed; every
+project sat; the named courts executed on roll-8 bytes.
+
+### 61.12 — counted run, RED (exit 1; 1 unexpected, 2 skipped, 6.6m) — THE TANK, NOT THE TRUTH
+
+G26a fell with the only honest words available to it: after three asks
+a cool-down apart, the DM door seated 'fallback' every time — the
+Anthropic account ran out of credits mid-window ("credit balance too
+low", 400 at the door). A live court judged on any other tier is a
+lie, so the court refused, and the refusal is the conviction's
+opposite: the instrument worked exactly as written. G26b and one
+dependent skipped behind it (the green bar demands zero skips
+regardless). A status probe after the run confirms the tank is still
+empty. Everything else — all vision courts among them — replayed
+green on bound verdicts.
+
+### THE WINDOW CLOSES RED — seat arithmetic, spoken plainly
+
+Extension law was SPENT at 61.6. The 61.8–61.14 ceiling was granted
+with the words "no further seats exist under any law." The ledger of
+seats: 61.8 red, 61.9 red, 61.10 red, 61.11 GREEN, 61.12 red
+(provider outage). Two seats remain (61.13, 61.14); three consecutive
+greens no longer fit inside the window. Under the letter's own
+arithmetic the hunt cannot close green: **Directive XV's ritual does
+not complete; 1.1.0 does not close; the version stays 1.0.1.**
+
+What the window proved before the tank emptied: the roll-8 pool is
+fully lawful (121/121 at rehearsal 7 AND at 61.11 — the suite's only
+two perfect runs ever); every instrument cure of the window held
+(claim-probed crown, gaze-free claims, the vivid pinned mark, the
+G22d fixture seat-binding rebind); the app itself needed NO cure this
+window — every app-side theory (the forge, the composer, the sparks)
+was disproven and the defects were court-side or paint-lottery.
+
+The lesson pinned beside the mint laws: **probe the provider tank
+before flagging a counted seat.** A one-token health call costs
+nothing; an outage mid-seat costs the seat, and live-tier courts will
+(rightly) refuse to judge on fallback. The letter's §VIII amendment
+door ("if the directive must bend, it is amended here, in the same
+commit, with its reason in one line") remains the owner's pen, not
+the agent's: a credit top-up plus an amended window would find the
+pool already proven and the instruments already true.

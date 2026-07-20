@@ -140,8 +140,19 @@ test('G22d the painted briefs carry the frame law, and the door refuses unlawful
   expect(prompts['duchy-pair-1']).toContain('Principal presence: Corin Voss');
   expect(prompts['duchy-pair-1']).toContain('The frame is closed:');
   expect(typeof prompts['hero-first-scene'], 'the hero-first brief is recorded').toBe('string');
-  expect(prompts['hero-first-scene']).toContain(`Principal presence: ${m.hero.name}`);
-  expect(prompts['hero-first-scene']).toContain(m.hero.mark);
+  // (61.11, store seat-binding law) THE HERO BRIEFS ARE FIXTURE ROWS: this
+  // session record was sealed at fixture mint from the proving campaign's
+  // OWN canon, and it never re-minted since. The court binds that one row
+  // — the sealed fixture hero — never the live walk's harness pin. Joining
+  // stores forged a phantom conviction the moment the live pin outgrew the
+  // fixture text, and the debt hid behind calibration gating for three
+  // rehearsals (gating skips hide court debt).
+  const provingHero = JSON.parse(fs.readFileSync(
+    path.resolve('..', '..', 'packages', 'engine', 'evals', 'fixtures', 'proving-campaign.json'), 'utf8')).hero;
+  expect(provingHero?.name, 'the proving campaign seals its hero').toBeTruthy();
+  expect(provingHero?.mark, 'the proving campaign seals its hero mark').toBeTruthy();
+  expect(prompts['hero-first-scene']).toContain(`Principal presence: ${provingHero.name}`);
+  expect(prompts['hero-first-scene']).toContain(provingHero.mark);
   expect(prompts['hero-first-scene']).toContain('The frame is closed:');
 
   // The door, walked by the court itself — the same seated-court law the

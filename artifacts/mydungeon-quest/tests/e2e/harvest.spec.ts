@@ -22,7 +22,7 @@ import { BATTLE_CUE, battleCard } from './lib/battleLaw';
 
 test.describe.configure({ mode: 'serial' });
 
-const HERO = { name: 'Maren', mark: 'a burn in the shape of a key at the base of her throat', presentation: 'feminine', pronouns: 'she/her' };
+const HERO = { name: 'Maren', mark: 'a vivid key-shaped burn at the base of her throat', presentation: 'feminine', pronouns: 'she/her' };
 const VILLAIN = 'The Hollow Regent';
 
 function req(manifest: PlateEntry[], predicate: (entry: PlateEntry) => boolean, what: string): PlateEntry {

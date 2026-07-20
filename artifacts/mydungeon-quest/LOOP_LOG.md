@@ -3242,3 +3242,58 @@ it. CURE (instrument-only, harness constant): the mark pins its ground
 — "a burn in the shape of a key at the base of her throat" — the
 original clause preserved as a prefix for any substring court. Roll 4
 mints under the pinned canon.
+
+### Rehearsals 2–7, rolls 4–8 — the paint-and-probe road to the first full green
+
+**The claim-probed crown (rehearsals 2–3, rolls 4–5):** tooth 12's
+magnifier met a degenerate full-frame stage-one box and magnified
+nothing; the cure moved the crown to CLAIM-PROBED bands so a lying
+control must cross a probe that binds. Tooth 11 then fell honestly at
+rehearsal 4: WHOLE_FACE_CLAIM said "faces us" of an anchor looking
+away — claims must never aim at what floats with the painter's whim
+(second strike of the gaze/pose family; 61.7's mark clause was the
+first). Directional words dropped; the constant feeds the good dual
+and the behead pair alike, so Control-Law lockstep held by
+construction. The vivid pin ("a vivid key-shaped burn at the base of
+her throat") joined the canon so the key reads at anchor scale.
+
+**Rehearsal 5 (roll 6): 119/2 — ALL FOUR class-(ii) courts GREENED**
+(G9 a3/a4, G22a, G22b, G31e), proving the 61.10 falls cured on fresh
+bytes. Two new falls: G31a convicted the villain sheet honestly (an
+open-faced war-helm against "masked sovereign" canon — painter
+lottery), and G22d fell on a phantom: the hero briefs did not carry
+the harness pin.
+
+**The G22d mystery — a store seat-binding defect in the COURT, not a
+forge defect in the app.** The trail: no mark ceiling, composer
+innocent, forge sovereign-ink lawful, sparks deal WORLD fields only
+(seed 42 under proving). The break: G22d reads fixture/session.json —
+briefs SEALED at fixture mint from proving-campaign.json's own hero
+("a burn in the shape of a key") — but asserted the LIVE walk's
+m.hero.mark against them. It greened historically only while the pin
+COINCIDED with fixture canon, and the debt hid behind calibration
+gating for three rehearsals (gating skips hide court debt). The live
+walk was honest all along: the pin rides live/record.json briefs
+verbatim, genesis → campaign → brief → paint unbroken. CURE
+(instrument-only): the hero-brief clauses re-bind to the sealed
+fixture hero read from the proving campaign — one row, one seat —
+plus an ESM lesson: spec files have no __dirname; fixture paths
+resolve CWD-relative.
+
+**Rehearsal 6 (roll 7): 117/4** — G22a and G31e held; the villain
+mask landed all four cells; but roll-7's scene lottery convicted
+itself: one plate painted the mark as a formless red blotch (G9 a3/a4
+WARDEN–JUDGE CONTRADICTION — record attested SEEN, judge finds no key
+— and G22b figure-match fell with it) and the two-souls plate cropped
+Mara Vey at the frame edge (G17b). Honest paint falls; cure by
+re-roll. G22d's 45ms fall was the __dirname crash, fixed above.
+
+**Roll 8 minted under the upgraded eyes law — every court-examined
+plate class: anchor (key unmistakable), hero sheet (closeup key
+legible), both scenes (subjects whole; mark either key-shaped or
+honestly absent behind cloth), villain intro/later/sheet (masked and
+consistent), Mara Vey sheet, Stilt Gardens region + place sheet,
+keyart. Rehearsal 7: 121 passed, exit 0 — THE FIRST FULLY GREEN RUN
+OF THE WINDOW.** Cures spent from the paint-and-probe budget
+throughout; no seat consumed. 61.11 opens on a proven pool with all
+verdicts bound to replay.

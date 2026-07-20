@@ -25,7 +25,7 @@ import { judge } from './vision';
 
 export interface ControlAttestation {
   control: string;
-  mode: 'behead' | 'crown' | 'crown-reforged-behead';
+  mode: 'behead' | 'crown' | 'crown-reforged-behead' | 'crown-claim-probed';
   probes: number;
   box: { left: number; top: number; width: number; height: number };
   line: number; // behead: crop top px; crown: band bottom px
@@ -37,7 +37,7 @@ export interface ControlAttestation {
 // the beheaded control and its attested dual carry this SAME sentence,
 // aimed at the face the box-derived crop provably removes — never at a
 // mark whose anatomy floats with the painter's whim (the 61.7 lesson).
-export const WHOLE_FACE_CLAIM = 'The hero faces us, her whole face in view — eyes and brow plainly visible.';
+export const WHOLE_FACE_CLAIM = 'Her whole face is in view — eyes and brow plainly visible.';
 
 const MARGIN = (h: number) => Math.max(8, Math.round(h * 0.02));
 const MIN_STRIP = 16;
@@ -109,7 +109,7 @@ export async function selfVerifyingBehead(args: { bytes: Buffer; idSeed: string;
  * strict callers (whose lie NEEDS the subject absent) get the spoken
  * invalid; lenient callers are re-forged on the spot into a behead —
  * attested, and the caller re-aims its prose to the face. */
-export async function selfVerifyingCrownBand(args: { bytes: Buffer; idSeed: string; criterion: string; label: string; strict?: boolean }): Promise<{ bytes: Buffer; mode: 'crown' | 'crown-reforged-behead'; attest: ControlAttestation }> {
+export async function selfVerifyingCrownBand(args: { bytes: Buffer; idSeed: string; criterion: string; label: string; strict?: boolean }): Promise<{ bytes: Buffer; mode: 'crown' | 'crown-reforged-behead' | 'crown-claim-probed'; attest: ControlAttestation }> {
   const { rect, width, height, probes } = await stageOneRect(args);
   const bandBottom = rect.top - MARGIN(height);
   if (bandBottom >= MIN_STRIP) {
@@ -122,9 +122,47 @@ export async function selfVerifyingCrownBand(args: { bytes: Buffer; idSeed: stri
     return { bytes, mode: 'crown', attest };
   }
   if (args.strict) {
+    // THE CLAIM-PROBED CROWN (61.10 rehearsals, LOOP_LOG): where the
+    // face-box arithmetic refuses — a generous stage-one box riding the
+    // frame top (a bow tip, stray hair: the detector's prerogative) —
+    // the band may still prove its lie by DIRECT EVIDENCE: crop a
+    // candidate sliver from the very top and claim-probe it, two
+    // sittings, BOTH must attest no part of the subject, fail-closed on
+    // malformed answers (the witness law). The settled stage-one box is
+    // never touched; a band no probe can clean leaves the spoken
+    // invalid standing — the construct's own failure, cured from the
+    // paint-and-probe budget, never charged to the court.
+    for (const cand of [Math.round(height * 0.12), Math.round(height * 0.08)]) {
+      if (cand < MIN_STRIP) continue;
+      const sliver = await sharp(args.bytes)
+        .extract({ left: 0, top: 0, width, height: cand })
+        .png().toBuffer();
+      const confs: number[] = [];
+      let clean = true;
+      for (let probe = 1; probe <= 2 && clean; probe += 1) {
+        const verdict = await judge({
+          id: `${args.idSeed}-clcrown-${cand}${probe === 2 ? '-r2' : ''}`,
+          protocol: 'p2',
+          criterion: args.criterion,
+          images: [sliver],
+          question: 'This image is a horizontal sliver cropped from the very top of a larger painting. Looking only at what is plainly visible, is any part of a person or humanoid figure visible — body, face, head, hair, skin, hands, clothing, or carried equipment such as a bow, arrows, a quiver, or a strap? Sky, trees, branches, buildings, and empty background are not a person. Answer ONLY with JSON of the form {"found": true, "confidence": 0.0}.',
+          schema: { found: 'boolean', confidence: 'number 0..1' },
+        });
+        if (!verdict || verdict.found !== false) { clean = false; break; }
+        confs.push(typeof verdict.confidence === 'number' ? verdict.confidence : -1);
+      }
+      if (!clean) {
+        console.log(`[control-law] ${args.label}: candidate band [0..${cand}]px not proven subject-free — the probe saw the subject or spoke malformed; the next candidate speaks`);
+        continue;
+      }
+      const proof = `the band [0..${cand}]px was claim-probed twice (conf ${confs.join(', ')}) and holds no part of the subject — provably subject-free by direct evidence where the face-box arithmetic refused (box top ${rect.top}px of ${height}px)`;
+      const attest: ControlAttestation = { control: args.label, mode: 'crown-claim-probed', probes: probes + 2, box: rect, line: cand, proof, at: new Date().toISOString() };
+      console.log(`[control-law] ${args.label}: ${proof} — lie PROVEN, the control seats`);
+      return { bytes: sliver, mode: 'crown-claim-probed', attest };
+    }
     throw new Error(
       `[control-law] ${args.label}: the padded face box begins at ${rect.top}px of ${height}px — ` +
-      `no crown band clears it, and this tooth's lie needs the subject provably absent; ` +
+      `no crown band clears it, no claim-probed candidate proved subject-free, and this tooth's lie needs the subject provably absent; ` +
       `the control cannot prove its lie on this art (THE CONTROL LAW).`
     );
   }

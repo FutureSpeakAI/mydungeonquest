@@ -43,18 +43,25 @@ export function slotsFor(className, level) {
 export function createHero(input) {
   const className = input.className || 'Wayfarer';
   const caster = input.caster || (FULL_CASTERS.has(className.toLowerCase()) ? 'full' : HALF_CASTERS.has(className.toLowerCase()) ? 'half' : 'none');
-  const con = input.abilities?.CON || 12;
+  const abilities = input.abilities || { STR: 14, DEX: 13, CON: 15, INT: 10, WIS: 12, CHA: 8 };
+  const con = abilities.CON || 12;
   const hitDie = Number(input.hitDie || 8);
   const hp = Math.max(1, hitDie + modifier(con));
+  // THE DERIVED TRUTH (XVIII, Article I): AC is never stored opinion —
+  // the forge derives the unarmored law (10 + DEX, uncapped) and any
+  // stated input.ac dies here; equips re-settle it through the armory.
   return {
     id: 'hero', name: input.name || 'Nameless', sigil: input.sigil || '✦',
     ancestry: input.ancestry || 'Human', className, caster, hitDie,
-    level: 1, xp: 0, hp, maxHp: hp, ac: Number(input.ac || 12), gold: 10,
-    abilities: input.abilities || { STR: 14, DEX: 13, CON: 15, INT: 10, WIS: 12, CHA: 8 },
+    level: 1, xp: 0, hp, maxHp: hp, ac: 10 + modifier(abilities.DEX ?? 10), gold: 10,
+    abilities,
     saves: input.saves || ['CON', 'WIS'], skills: input.skills || ['Perception', 'Survival', 'Persuasion'],
     inventory: ['Traveler’s pack'], conditions: [], spellSlots: slotsFor(className, 1),
     spellEnergy: caster === 'energy' ? { current: 3, max: 3 } : null,
     deathSaves: { successes: 0, failures: 0 }, deathTouched: false, bondRescueUsed: false,
+    // THE REST LAW (XVIII, Article III): the calendar day of the last
+    // long rest — born null (never rested), stamped by the rest fold.
+    lastRestDay: null,
     background: input.background || ''
   };
 }
@@ -86,7 +93,9 @@ function tableRoll(actorId, abilities, level, conditions, request, random) {
   const mods = isDeathSave ? [] : [
     { source: ability, value: modifier(abilities[ability]) },
     ...(request.proficient ? [{ source: 'Proficiency', value: proficiency(level) }] : []),
-    ...(request.extra_mod ? [{ source: 'Other', value: Number(request.extra_mod) }] : [])
+    // A governed extra names its source (XVIII: the rune rides as a
+    // NAMED modifier); requests without one keep the standing 'Other'.
+    ...(request.extra_mod ? [{ source: request.extra_source ? String(request.extra_source).slice(0, 40) : 'Other', value: Number(request.extra_mod) }] : [])
   ];
   const total = autoFail ? 0 : selected + mods.reduce((sum, entry) => sum + entry.value, 0);
   const target = request.dc ?? (isDeathSave ? 10 : null);
@@ -123,7 +132,7 @@ export function companionRoll(name, sheet, request, random = Math.random) {
   return tableRoll(String(name ?? '').trim(), sheet.abilities, sheet.level, conditions, request, random);
 }
 
-export function applyStateUpdates(hero, updates) {
+export function applyStateUpdates(hero, updates, meta = {}) {
   if (!updates) return hero;
   const next = structuredClone(hero);
   next.hp = Math.max(0, Math.min(next.maxHp, next.hp + Number(updates.hp_delta || 0)));
@@ -136,7 +145,9 @@ export function applyStateUpdates(hero, updates) {
   }
   next.xp = Math.max(0, next.xp + Math.max(0, Number(updates.xp_gain || 0)));
   next.gold = Math.max(0, next.gold + Number(updates.gold_delta || 0));
-  if (Number.isFinite(updates.ac_set)) next.ac = Math.max(1, Math.min(30, Number(updates.ac_set)));
+  // THE DERIVED TRUTH (XVIII, Article I): the ac_set lane is retired —
+  // AC settles from the worn table rows alone (armory.settleAc); an old
+  // sealed turn carrying ac_set folds to nothing, harmless on replay.
   for (const item of updates.add_items || []) if (!next.inventory.includes(item)) next.inventory.push(String(item).slice(0, 120));
   next.inventory = next.inventory.filter((item) => !(updates.remove_items || []).includes(item));
   for (const condition of updates.add_conditions || []) if (CONDITIONS[condition] && !next.conditions.includes(condition)) next.conditions.push(condition);
@@ -146,6 +157,10 @@ export function applyStateUpdates(hero, updates) {
     next.hp = next.maxHp;
     for (const slot of Object.values(next.spellSlots)) slot.current = slot.max;
     if (next.spellEnergy) next.spellEnergy.current = next.spellEnergy.max;
+    // THE REST LAW (XVIII, Article III): the rest stamps the calendar
+    // day it blessed so the door can refuse a second before the day
+    // turns; an unstamped fold (older callers) keeps the standing mark.
+    if (Number.isInteger(meta.day)) next.lastRestDay = meta.day;
   }
   // THE MILESTONE LAW (Directive XII §I) — the level no longer derives
   // from experience. XP stays a kept ledger of deeds; the level is the

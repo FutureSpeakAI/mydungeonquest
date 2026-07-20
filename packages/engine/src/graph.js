@@ -11,7 +11,7 @@
 // ------------------------------------------------------------
 import { storyBlock } from './story.js';
 import { buildCards } from './cards.js';
-import { calendarLine } from './calendar.js';
+import { calendarLine, calendarOf } from './calendar.js';
 import { allegiancesOf } from './atlas.js';
 import { presenceOf, elsewhereOf } from './presence.js';
 
@@ -164,7 +164,11 @@ export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {})
     Number.isInteger(member.joinedTurn) ? `${member.name} — joined turn ${member.joinedTurn}` : member.name);
   let elsewhere = elsewhereOf(campaign).slice(0, 6).map((entry) =>
     `${entry.name} — in ${entry.ground}${Number.isInteger(entry.sinceTurn) ? ` since turn ${entry.sinceTurn}` : ''}`);
-  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...(ground ? { scene_ground: ground } : {}), ...pack, traveling_with: travelingWith, ...(elsewhere.length ? { elsewhere } : {}), ...(wealth ? { hero_wealth: wealth } : {}), ...(wields ? { hero_wields: wields } : {}), stated_allegiances: allegiances });
+  // THE REST LAW (XVIII, Article III): calendar_state carries the folded
+  // day as MECHANICS — the door's once-per-day court reads it on both
+  // benches. It rides after the ground (whose gate pins the second
+  // seat, right behind the calendar) and never trims.
+  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...(ground ? { scene_ground: ground } : {}), calendar_state: { day: calendarOf(campaign.logs || []).day }, ...pack, traveling_with: travelingWith, ...(elsewhere.length ? { elsewhere } : {}), ...(wealth ? { hero_wealth: wealth } : {}), ...(wields ? { hero_wields: wields } : {}), stated_allegiances: allegiances });
   let out = brief();
   while (JSON.stringify(out).length > budget && elsewhere.length) { elsewhere = elsewhere.slice(0, -1); out = brief(); }
   while (JSON.stringify(out).length > budget && allegiances.length) { allegiances = allegiances.slice(0, -1); out = brief(); }

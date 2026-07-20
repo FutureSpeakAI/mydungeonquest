@@ -101,8 +101,8 @@ assert.equal(codex.bestiary.length, 1, 'a lawless threat rating does not seal');
 assert.ok(codex.notes.some((n) => n.includes('no honest threat rating')), 'the lawless threat is a note');
 codex = applyStoryUpdates(codex, { creature_add: { species: 'Gore Crow', visual: 'A crow too large, wearing road-dust like a cloak.', nature: 'Scavenger that follows battles.', threat: 1 } }, { turn: 12, tick: true });
 assert.equal(codex.bestiary.length, 2, 'the offscreen tick MAY seal a species — the elsewhere breeds, it never moves souls');
-assert.deepEqual(storyBlock(codex).bestiary_state, [{ species: 'Marsh Howler', threat: 2 }, { species: 'Gore Crow', threat: 1 }],
-  'bestiary_state rides the block — species and threat, the seal\u2019s evidence');
+assert.deepEqual(storyBlock(codex).bestiary_state, [{ species: 'Marsh Howler', threat: 2, ac: 11 }, { species: 'Gore Crow', threat: 1, ac: 10 }],
+  'bestiary_state rides the block — species, threat, and the threat table\u2019s armor (XVIII §I), the seal\u2019s evidence');
 const oldCodex = initCodex('classic-epic');
 delete oldCodex.bestiary;
 const backfilled = applyStoryUpdates(oldCodex, { beat_advance: false }, { turn: 0 });

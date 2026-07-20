@@ -3513,3 +3513,105 @@ RITUAL COMPLETE 1.1.1: greens none — targeted proofs stand in per the ruling (
 
 The pin stands at **P = 139**. The reconciliation commits; TASK 63
 opens on it.
+
+==================================================================
+TASK 63 — THE ARMORY AND THE ART (Experience-Directive XVIII)
+==================================================================
+
+STAGE ONE — the armory, the rune, and the long rest (Articles I–III).
+
+What was raised, in the directive's order:
+- packages/engine/src/armory.js — the ONE seat of the weapon table
+  (12 SRD rows), the armor table (6 suits + shield), and the enchant
+  table (4 runes); name→row seating (longest key at word boundaries,
+  no row = flavor); equippedRows; derivedAc (dex caps null/2/0, a
+  negative dex bites medium, heavy takes none, shield lawful alone,
+  warded rides table-seated suits and shields, never below 1);
+  settleAc; governAttackRoll (far→DEX, finesse better-of, else STR;
+  the ready weapon is proficient; keen rides as a NAMED modifier;
+  the defender's table armor overrides the spoken dc; non-attacks
+  and empty hands pass through untouched).
+- protocol.js — ITEM_KINDS exported as the one seat, widened with
+  'armor'; item_add takes an optional born rune under key + seat
+  law; the item_enchant court (one rune, known key, held thing,
+  stated hand, lawful seat — presence-based); the rest court (long
+  alone, once per calendar day on context.day/lastRestDay);
+  item_equip admits armor.
+- story.js — the reducer imports ITEM_KINDS/THREAT_TABLE from
+  protocol (mirrors-one-seat; the local kind list is dead); the worn
+  law at the equip fold (weapon hand, tool hand, suit, shield — a
+  mark unseats only its own class); the item_enchant fold (tick-
+  refused, guardian notes on every unlawful shape); trove_state
+  speaks enchant when it stands; sheet_state speaks derived ac;
+  bestiary_state speaks the threat table's ac.
+- rules.js — createHero derives AC (10 + DEX mod; a stated input.ac
+  dies at the forge) and births lastRestDay: null; the ac_set lane
+  is RETIRED (folds to nothing — the gold_delta precedent, honest on
+  legacy replays); the rest fold stamps meta.day; a governed
+  extra_mod names its extra_source.
+- graph.js — the briefing carries calendar_state.day as MECHANICS after the
+  ground (whose gate pins the second seat); it never trims.
+- server/dm.js — the kind enum and rune enums import from the tables
+  ([...ITEM_KINDS], Object.keys(ENCHANT_TABLE)); item_enchant
+  declared whole; state_updates.rest declared with the validator's
+  own enum (the toolschema lesson); the judge seats day/lastRestDay
+  from calendar_state + the request's own hero.
+- systemPrompt.js — rules 45 (THE ARMORY), 46 (THE RUNE), 47 (THE
+  LONG REST) seated after rule 44; the static hero sheet no longer
+  bakes ac — the derived number rides the dynamic [STATE] block, so
+  an equip never rewrites the cached prefix. ONE lawful cache
+  invalidation, this commit alone (CACHE POSTURE).
+- App.jsx — the landing court seats day/lastRestDay from the SAME
+  briefing evidence the server read; the funnel stamps the rest day
+  from the pre-turn calendar and settles AC from the post-turn
+  trove; resolveRoll governs attack requests through the armory
+  before hero and companion dice alike (death saves untouched).
+
+TEST EDITS (the standing law — every test edit recorded):
+- evals/armory.test.mjs RAISED — tables fixed and SRD-shaped; the
+  seating law (longest key, case-blind, flavor governs nothing);
+  enum lockstep at schema/prompt/reducer; derivedAc across
+  unarmored/light/medium/heavy/shield/warded/negative-dex; the forge
+  derives and input.ac dies; attack governance (longbow DEX, finesse
+  better-of, mace STR, empty-hand passthrough, non-attack byte-
+  passthrough, keen named, table-ac dc override) with the margin
+  recomputed from sealed bytes; the worn law swaps classes apart;
+  bestiary/sheet armor spoken; the equip door admits armor, still
+  refuses documents.
+- evals/enchant.test.mjs RAISED — table bounded (4 keys, riders
+  flat-or-die only, seats ⊆ kinds); door refusals (unknown key,
+  second rune, unlawful seat, wrong hand, unheld thing, free
+  mechanics, array shape) and passes (lawful rune, warded-on-armor,
+  born-enchanted, bare-context shape law); reducer guardianship
+  (tick refusal, second-rune wound, wrong-hand silence, unlawful
+  birth seat dropped); trove_state speaks the rune, the runeless
+  keep the two-key shape; rider numbers move derivedAc from the row
+  alone.
+- evals/rest.test.mjs RAISED — restoration exact (hp, every slot)
+  and the day stamped; unstamped folds keep the mark; ac_set folds
+  to nothing; the door (long alone, same-day refusal, yesterday
+  free, bare context out of session, restless updates untouched,
+  rest-under-roll refused by the standing law); the clock unmoved by
+  rest without time_advance; prompt rule 47 and the schema's rest
+  enum in lockstep.
+- package.json "eval" chain +3 gates (armory, enchant, rest).
+- tests/e2e/g13-check.spec.ts PINNED_PASS_COUNT 139 → 142 (same
+  commit as the gates — the pin law).
+
+Mock-walk audit: the corpus sends no ac_set, no rest, no enchant; the
+new courts are presence-based, so the pinned 18-turn walk stands
+byte-identical. Legacy sealed turns carrying ac_set fold to nothing
+on replay — an honest retirement, the gold_delta precedent.
+
+STAGE ONE SWEEP (shape-pin fallout, recorded per the standing law):
+- evals/ground.test.mjs UNTOUCHED — the gate held; graph.js moved
+  calendar_state below the ground seat instead (the standing pin
+  outranks the newcomer).
+- evals/bestiary.test.mjs EDITED — the bestiary_state pin now
+  carries the threat table's armor (ac 11/10): the directive widened
+  the block, the gate's evidence widens with it.
+- evals/doom.test.mjs EDITED — the sheet_state pin now carries the
+  derived armor (Rell Marrow, DEX 12 unarmored → ac 11).
+- evals/quietTable.test.mjs EDITED — the item_add.kind anchor list
+  grew to six (armor, XVIII §I); the gate stays a literal third
+  witness, so the anchor moves only when a directive moves it.

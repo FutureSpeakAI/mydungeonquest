@@ -1,6 +1,9 @@
 import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
 import { mockDmTurn } from 'fatescript/mockDm';
-import { safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
+import { ITEM_KINDS, safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
+// THE ONE SEAT (XVIII): the tool schema declares the kind enum and the
+// rune keys from the tables themselves — never a mirrored list.
+import { ENCHANT_TABLE } from 'fatescript/armory';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { artDirectorSits } from './artDirector.js';
 // THE DASH LAW at the deterministic doors (XVII, Article V) — the whole-turn
@@ -47,6 +50,13 @@ export function judgeTurn(turn, input) {
   // present, court in session; absent, out of session, never faked.
   if (Array.isArray(input.story?.bestiary_state)) context.bestiary = input.story.bestiary_state;
   if (Array.isArray(input.story?.sheet_state)) context.sheets = input.story.sheet_state.map((row) => row?.name).filter((name) => typeof name === 'string');
+  // THE REST LAW (XVIII, Article III): the calendar day and the hero's
+  // rest mark seat the once-per-day court — evidence present, court in
+  // session; absent (older sealed inputs), out of session, never faked.
+  if (Number.isInteger(input.story?.calendar_state?.day)) {
+    context.day = input.story.calendar_state.day;
+    context.lastRestDay = Number.isInteger(input.hero?.lastRestDay) ? input.hero.lastRestDay : null;
+  }
   if (Array.isArray(input.state?.combat?.enemies)) context.combatants = input.state.combat.enemies.map((enemy) => ({ id: enemy?.id, name: enemy?.name, hp: enemy?.hp }));
   const validation = validateDmTurn(turn, input.entropy, context);
   const errors = validation.ok ? [] : [...validation.errors];
@@ -181,9 +191,10 @@ const storySchema = {
       properties: {
         item_add: { type: 'array', maxItems: 3, items: { type: 'object', additionalProperties: false, required: ['name','kind','holder','note'], properties: {
           name: { type: 'string', minLength: 3, maxLength: 60 },
-          kind: { type: 'string', enum: ['weapon','tool','keepsake','treasure','document'] },
+          kind: { type: 'string', enum: [...ITEM_KINDS] },
           holder: { type: 'string', maxLength: 60, description: 'Exact name of the soul now holding it.' },
-          note: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 90 }] }
+          note: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 90 }] },
+          enchant: { anyOf: [{ type: 'null' }, { type: 'string', enum: Object.keys(ENCHANT_TABLE) }], description: 'Born-enchanted: at most ONE rune, by table key, lawful only on the kinds its row seats. The table owns the numbers — never state them.' }
         } } },
         item_transfer: { type: 'array', maxItems: 3, items: { type: 'object', additionalProperties: false, required: ['name','from','to'], properties: {
           name: { type: 'string', minLength: 3, maxLength: 60 },
@@ -259,9 +270,17 @@ const storySchema = {
         // THE EQUIPPED LAW (Directive XII §III): one mark a turn, weapon or
         // tool, a thing trove_state already places in that hand.
         item_equip: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name','holder'], properties: {
-          name: { type: 'string', minLength: 3, maxLength: 60, description: 'A weapon or tool [STORY].trove_state already places in the holder\'s hand — never a thing added this same turn.' },
-          holder: { type: 'string', minLength: 1, maxLength: 60, description: 'The soul whose hand readies it. A new mark of the same kind lawfully unseats the standing one.' }
-        } } ], description: 'Mark ONE held weapon or tool as carried at the ready. trove_state speaks equipped: true while the mark stands.' }
+          name: { type: 'string', minLength: 3, maxLength: 60, description: 'A weapon, tool, or armor [STORY].trove_state already places in the holder\'s hand — never a thing added this same turn.' },
+          holder: { type: 'string', minLength: 1, maxLength: 60, description: 'The soul whose hand readies or body wears it. A new mark unseats only its own class.' }
+        } } ], description: 'Mark ONE held thing at the ready or worn — at most one weapon or tool in hand, one worn suit, one shield (XVIII: the worn law). trove_state speaks equipped: true while the mark stands.' },
+        // THE ENCHANT LAW (XVIII, Article II): declared with the table's
+        // OWN keys — a schema the model cannot see is a trap, and the
+        // enum imports from the one seat (never a mirror).
+        item_enchant: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name','holder','enchant'], properties: {
+          name: { type: 'string', minLength: 3, maxLength: 60, description: 'A held thing [STORY].trove_state places in the holder\'s hand — never a thing added this same turn (born-enchanted things use item_add.enchant).' },
+          holder: { type: 'string', minLength: 1, maxLength: 60 },
+          enchant: { type: 'string', enum: Object.keys(ENCHANT_TABLE), description: 'The rune\'s table key alone. One rune per notable thing, ever; the table owns the numbers.' }
+        } } ], description: 'Lay ONE rune on a held thing, by table key. The door refuses unknown keys, second runes, and unlawful seats.' }
       }
     }
   ]
@@ -273,7 +292,10 @@ const toolSchema = {
   properties: {
     narration_blocks: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'object', additionalProperties: false, required: ['text','speaker'], properties: { text: { type: 'string', maxLength: 1200 }, speaker: { anyOf: [{ type: 'string', maxLength: 80 }, { type: 'null' }], description: 'Exact cast name for a dialogue block; null for description. THE DEAD DO NOT SPEAK — never attribute dialogue to a cast member whose status is dead.' } } } },
     suggestions: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: 60, description: 'At most 6 words.' } },
-    roll_request: rollRequestSchema, state_updates: { anyOf: [{ type: 'null' }, { type: 'object' }] },
+    // THE REST LAW (XVIII, Article III): rest is declared with the
+    // validator's own enum (the toolschema-validation lesson); the
+    // object stays open — established keys keep reducer guardianship.
+    roll_request: rollRequestSchema, state_updates: { anyOf: [{ type: 'null' }, { type: 'object', properties: { rest: { anyOf: [{ type: 'null' }, { type: 'string', enum: ['long'] }], description: 'A LONG rest: the client restores hit points and every spell slot from the tables. Lawful ONCE per calendar day of world time; ride time_advance with the night. Short rests are flavor — no mechanics.' } } }] },
     combat: combatSchema, cinematic: cinematicSchema,
     story: storySchema, image_cue: imageCueSchema,
     dialogue_cue: dialogueCueSchema, time_advance: timeAdvanceSchema,

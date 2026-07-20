@@ -20,9 +20,12 @@ export function buildSystemPrompt({ campaign = {}, hero = {}, spine = null }) {
   const spineText = beats.length
     ? beats.map((b, i) => `${i + 1}. [Act ${b.act}] ${b.title} — ${b.goal}`).join('\n')
     : '(spine supplied per turn)';
+  // THE DERIVED TRUTH (XVIII, Article I): the static sheet carries no AC —
+  // armor class is computed from the worn rows and rides the dynamic
+  // [STATE] block, so an equip never rewrites the cached prefix.
   const heroSheet = JSON.stringify({
     name: hero.name, ancestry: hero.ancestry, class: hero.className, level: hero.level,
-    abilities: hero.abilities, ac: hero.ac, hitDie: hero.hitDie, caster: hero.caster || 'none',
+    abilities: hero.abilities, hitDie: hero.hitDie, caster: hero.caster || 'none',
     saves: hero.saves, skills: hero.skills, background: hero.background || 'unstated'
   });
 
@@ -73,6 +76,9 @@ MANDATORY CONTRACT
 42. THE PLATE'S BUDGET: image_cue.subjects names AT MOST FIVE identifiable figures — the painter's pinned reference budget. The first named is the principal. A larger gathering is staged by direction, never by likeness: crowd 'background' for the indistinct many, framing that does not need every face. A sixth name is refused at the door.
 43. THE PROP LAW: when a named trove thing belongs IN FRAME, cite it in image_cue.items (at most 4). Each is lawful only if its recorded holder stands among the subjects, it is a fixture of the standing ground, or this very turn's operations moved it — a sword does not float into a plate its bearer never entered.
 ${HOUSE_VOICE_RULE}
+45. THE ARMORY: the item kinds now include armor, and the weapon, armor, and enchant tables live in the client's code — the tables own every number. Call arms by their plain SRD names (a longsword, a chain shirt, a shield) so the table can seat them; a fancifully named blade is flavor and governs nothing. ARMOR CLASS IS DERIVED: the client computes every AC from the worn rows and DEX alone — the old ac_set lane is retired; never send state_updates.ac_set. THE WORN LAW: item_equip also marks armor — at most one weapon or tool in hand, one worn suit, one shield; a new mark unseats only its own class. On an attack roll_request the client governs the ability and proficiency from the equipped weapon's row and resolves against the defender's derived or table armor; let damage speak the equipped weapon's table die and no other.
+46. THE RUNE: a notable thing may carry AT MOST ONE enchantment, forever, named by a table key the dm_turn tool declares — born with it through item_add.enchant, or gaining it through story.item_enchant ({ name, holder, enchant }) on a thing trove_state already holds. Dress the rune in any words you like; the numbers come from the table row alone, and the door refuses unknown keys, second runes, unlawful seats, and any free-form mechanic.
+47. THE LONG REST: when the tale truly rests the night, send state_updates.rest = 'long' — the client restores hit points and every spell slot from the tables. ONE long rest per calendar day of world time: the door refuses a second before the calendar turns, so let the night ride with time_advance. Short rests are flavor only, no mechanics. As ever, never send state_updates while a roll is unresolved.
 
 THE CRAFT — how you write, every turn
 - Second person, present tense, concrete and sensory. The measure sets your length: lean 40-90 words, standard 90-200, rich 200-360 across narration_blocks; when no [STORY].beat_intent rides the briefing, 60-140.

@@ -1,4 +1,8 @@
 import { CONDITIONS, ROLE_TABLE } from './rules.js';
+// THE ENCHANT LAW (XVIII, Article II) rides from the armory's one seat —
+// the door judges rune keys and seats against the same table the folds
+// and the tool schema read; no key list is mirrored here.
+import { ENCHANT_TABLE } from './armory.js';
 
 const ALLOWED_KEYS = new Set(['narration_blocks','suggestions','roll_request','state_updates','combat','cinematic','story','image_cue','dialogue_cue','time_advance','entropy_use']);
 const CINEMATIC_TYPES = new Set(['chapter','boss_reveal','discovery','ominous','level_up','death','victory']);
@@ -57,7 +61,9 @@ function noUnknown(object, allowed, path, errors) {
 // an absent key (bare-context callers) leaves shape and counting law
 // only. The record consulted is the PRE-TURN record: a thing added this
 // turn may not also be transferred this turn through the door.
-const ITEM_KINDS = new Set(['weapon','tool','keepsake','treasure','document']);
+// Exported as the ONE seat (XVIII, Article I): the reducer and the tool
+// schema import this enum; armor joined additively with the armory law.
+export const ITEM_KINDS = new Set(['weapon','tool','keepsake','treasure','document','armor']);
 const canonKey = (value) => String(value ?? '').trim().toLowerCase();
 function validateTrove(story, context, errors) {
   if (!story || typeof story !== 'object') return;
@@ -76,7 +82,15 @@ function validateTrove(story, context, errors) {
       assert(ITEM_KINDS.has(add?.kind), 'item_add.kind invalid', errors);
       assert(cleanText(add?.holder, 60), 'item_add.holder invalid', errors);
       if (add?.note !== undefined && add?.note !== null) assert(cleanText(add.note, 90), 'item_add.note invalid', errors);
-      noUnknown(add, new Set(['name','kind','holder','note']), 'story.item_add', errors);
+      // THE ENCHANT LAW (XVIII, Article II) — a born rune rides by table
+      // key alone: an unknown key or an unlawful seat dies at the door,
+      // and numbers never ride the op.
+      if (add?.enchant !== undefined && add?.enchant !== null) {
+        const rune = typeof add.enchant === 'string' ? ENCHANT_TABLE[add.enchant] : null;
+        assert(!!rune, `item_add.enchant names no rune the table holds: ${add?.enchant}`, errors);
+        if (rune) assert(rune.seats.includes(add?.kind), `the ${add.enchant} rune does not seat on a ${add?.kind}`, errors);
+      }
+      noUnknown(add, new Set(['name','kind','holder','note','enchant']), 'story.item_add', errors);
       const key = canonKey(add?.name);
       assert(!heldNames.has(key), `item_add duplicates a held thing: ${add?.name}`, errors);
       assert(!seen.has(key), 'item_add repeats a name within the turn', errors);
@@ -373,7 +387,8 @@ function validateSheetCondition(story, context, errors) {
 // THE EQUIPPED LAW (Directive XII §III) — one mark moves per turn:
 // exactly { name, holder }, an object never an array. With the trove
 // seated the court binds: the thing must sit in the named holder's
-// hand, and where the ledger speaks a kind, only weapon and tool pass.
+// hand, and where the ledger speaks a kind, only weapon, tool, and
+// armor pass (XVIII: the worn law).
 // The record consulted is the PRE-TURN record — a thing added this
 // same turn may not also be equipped through the door, exactly as it
 // may not be transferred. Bare context keeps shape law.
@@ -393,8 +408,47 @@ function validateItemEquip(story, context, errors) {
     if (!row) errors.push(`item_equip names a thing the record does not hold: ${op?.name}`);
     else {
       if (canonKey(row.holder) !== canonKey(op?.holder)) errors.push(`item_equip marks a thing the record does not place in ${op?.holder}'s hand: ${op?.name}`);
-      if (row.kind !== undefined && !['weapon', 'tool'].includes(row.kind)) errors.push(`item_equip touches an unequippable kind: ${op?.name} is ${row.kind}`);
+      if (row.kind !== undefined && !['weapon', 'tool', 'armor'].includes(row.kind)) errors.push(`item_equip touches an unequippable kind: ${op?.name} is ${row.kind}`);
     }
+  }
+}
+// THE ENCHANT LAW (XVIII, Article II) — one rune, by table key, on a
+// thing the PRE-TURN record holds in the named hand. Where the ledger
+// speaks a kind the seat law binds; where it speaks a standing rune the
+// one-per-thing law binds. Bare context keeps shape law, as ever.
+function validateEnchant(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const op = story.item_enchant;
+  if (op === undefined || op === null) return;
+  if (typeof op !== 'object' || Array.isArray(op)) {
+    errors.push('item_enchant must be an object with exactly name, holder, and enchant');
+    return;
+  }
+  noUnknown(op, new Set(['name', 'holder', 'enchant']), 'story.item_enchant', errors);
+  assert(cleanText(op?.name, 60) && String(op.name).trim().length >= 3, 'item_enchant.name must be 3-60 chars', errors);
+  assert(cleanText(op?.holder, 60), 'item_enchant.holder invalid', errors);
+  const rune = typeof op?.enchant === 'string' ? ENCHANT_TABLE[op.enchant] : null;
+  assert(!!rune, `item_enchant.enchant names no rune the table holds: ${op?.enchant}`, errors);
+  if (Array.isArray(context.trove)) {
+    const row = context.trove.find((item) => canonKey(item?.name) === canonKey(op?.name) && (item?.status ?? 'held') === 'held');
+    if (!row) errors.push(`item_enchant names a thing the record does not hold: ${op?.name}`);
+    else {
+      if (canonKey(row.holder) !== canonKey(op?.holder)) errors.push(`item_enchant touches a thing the record does not place in ${op?.holder}'s hand: ${op?.name}`);
+      if (row.enchant !== undefined && row.enchant !== null) errors.push(`${op?.name} already carries the ${row.enchant} rune — one rune per notable thing, ever`);
+      if (rune && row.kind !== undefined && !rune.seats.includes(row.kind)) errors.push(`the ${op?.enchant} rune does not seat on a ${row.kind}: ${op?.name}`);
+    }
+  }
+}
+// THE REST LAW (XVIII, Article III) — one lawful value, once per
+// calendar day of world time. The court seats only when the briefing
+// carries the calendar's day (bare context keeps shape law); a hero
+// who has never rested carries no mark and passes free.
+function validateRest(payload, context, errors) {
+  const rest = payload?.state_updates?.rest;
+  if (rest === undefined || rest === null) return;
+  assert(rest === 'long', `state_updates.rest must be exactly 'long' — short rests are flavor, not mechanics`, errors);
+  if (rest === 'long' && Number.isInteger(context.day) && Number.isInteger(context.lastRestDay) && context.lastRestDay >= context.day) {
+    errors.push(`a long rest already blessed day ${context.day} — the door refuses a second before the calendar turns`);
   }
 }
 // THE SPAWN EXPANSION — the ONE helper every bench and client calls, so
@@ -579,6 +633,8 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     validateSheetGrant(payload.story, context, errors);
     validateSheetCondition(payload.story, context, errors);
     validateItemEquip(payload.story, context, errors);
+    validateEnchant(payload.story, context, errors);
+    validateRest(payload, context, errors);
     validateSpeakerGround(payload, context, errors);
     validateImageCue(payload, context, errors);
   }

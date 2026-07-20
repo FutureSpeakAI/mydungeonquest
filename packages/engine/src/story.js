@@ -1,6 +1,11 @@
 import { getSpine } from './spines.js';
 import { CONDITIONS, sheetFor } from './rules.js';
 import { castVoiceByCard } from './cinema/casting.js';
+// THE ONE SEAT (XVIII): the item-kind enum and the threat table live in
+// protocol; the armory tables live beside them. The reducer imports the
+// law it enforces — a byte-for-byte mirror WILL drift (the standing law).
+import { ITEM_KINDS, THREAT_TABLE } from './protocol.js';
+import { ENCHANT_TABLE, armorRowFor, derivedAc, equippedRows } from './armory.js';
 
 const REGION_STATES = ['thriving', 'troubled', 'corrupted', 'ruined', 'healed'];
 // The status law: a soul is exactly one of these. Anything else the DM sends
@@ -263,7 +268,6 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
   // two purse movements; a duplicate held name, a movement from a hand the
   // record does not show, and an overdraft are refused with notes — and
   // the clamp holds even for a turn that reached this fold purse-blind.
-  const ITEM_KINDS = ['weapon', 'tool', 'keepsake', 'treasure', 'document'];
   next.trove = next.trove || [];
   next.purses = next.purses || [];
   const heldThing = (name) => next.trove.find((item) => canonName(item.name) === canonName(name) && item.status === 'held');
@@ -278,9 +282,14 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
       next.notes.push(`Duplicate held thing blocked: ${name}.`);
       continue;
     }
+    const kind = ITEM_KINDS.has(add?.kind) ? add.kind : 'keepsake';
+    // THE ENCHANT LAW (XVIII, Article II) — a born rune rides only a
+    // lawful table seat; the reducer guards the door-blind paths.
+    const bornRune = typeof add?.enchant === 'string' && ENCHANT_TABLE[add.enchant]?.seats.includes(kind) ? add.enchant : null;
     next.trove.push({
-      name, kind: ITEM_KINDS.includes(add?.kind) ? add.kind : 'keepsake',
+      name, kind,
       holder: clean(add?.holder, 60), note: add?.note ? clean(add.note, 90) : null,
+      ...(bornRune ? { enchant: bornRune } : {}),
       status: 'held', since: stamp, moved: stamp
     });
   }
@@ -325,18 +334,52 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
       const equipHolder = clean(equip?.holder, 60);
       if (!thing || !equipHolder || canonName(thing.holder) !== canonName(equipHolder)) {
         next.notes.push(`Unlawful equip blocked: ${clean(equip?.name, 60) || 'an unnamed thing'} does not sit in the stated hand.`);
-      } else if (!['weapon', 'tool'].includes(thing.kind)) {
-        next.notes.push(`Unlawful equip blocked: ${thing.name} is a ${thing.kind}; only weapons and tools stand at the ready.`);
+      } else if (!['weapon', 'tool', 'armor'].includes(thing.kind)) {
+        next.notes.push(`Unlawful equip blocked: ${thing.name} is a ${thing.kind}; only weapons, tools, and armor stand at the ready.`);
       } else if (thing.equipped) {
         next.notes.push(`Already at the ready: ${thing.name} stands equipped in ${thing.holder}'s hand.`);
       } else {
-        const standing = next.trove.find((item) => item !== thing && item.status === 'held' && canonName(item.holder) === canonName(equipHolder) && item.kind === thing.kind && item.equipped);
+        // THE WORN LAW (XVIII, Article I) — the swap classes are the
+        // weapon hand, the tool hand, the worn suit, and the shield: a
+        // new mark unseats ONLY its own class (plate for leather, never
+        // the sword for the shield). The suit/shield split reads the
+        // armor table's one seat, deterministic by name.
+        const equipClass = (item) => item.kind === 'armor' ? (armorRowFor(item.name)?.kind === 'shield' ? 'shield' : 'suit') : item.kind;
+        const thingClass = equipClass(thing);
+        const standing = next.trove.find((item) => item !== thing && item.status === 'held' && canonName(item.holder) === canonName(equipHolder) && item.equipped && equipClass(item) === thingClass);
         if (standing) {
           delete standing.equipped;
           next.notes.push(`${standing.name} steps back to the pack: ${thing.name} takes its place at the ready.`);
         }
         thing.equipped = true;
         thing.moved = stamp;
+      }
+    }
+  }
+  // THE ENCHANT LAW (XVIII, Article II) — one rune, table key alone,
+  // laid on a held thing in the stated hand; the offscreen tick may
+  // not work runes. The reducer is the guardian for door-blind paths:
+  // unknown keys, second runes, and unlawful seats become notes.
+  const enchantOp = updates.item_enchant;
+  if (enchantOp && typeof enchantOp === 'object' && !Array.isArray(enchantOp)) {
+    if (meta.tick) next.notes.push('The offscreen world may not work runes: item_enchant refused on a tick.');
+    else {
+      const thing = heldThing(enchantOp?.name);
+      const enchantHolder = clean(enchantOp?.holder, 60);
+      const runeKey = typeof enchantOp?.enchant === 'string' ? enchantOp.enchant : null;
+      const rune = runeKey ? ENCHANT_TABLE[runeKey] : null;
+      if (!thing || !enchantHolder || canonName(thing.holder) !== canonName(enchantHolder)) {
+        next.notes.push(`Unlawful rune blocked: ${clean(enchantOp?.name, 60) || 'an unnamed thing'} does not sit in the stated hand.`);
+      } else if (!rune) {
+        next.notes.push(`Unlawful rune blocked: no ${clean(runeKey || '', 30) || 'nameless'} rune stands in the table.`);
+      } else if (thing.enchant) {
+        next.notes.push(`Unlawful rune blocked: ${thing.name} already carries the ${thing.enchant} rune.`);
+      } else if (!rune.seats.includes(thing.kind)) {
+        next.notes.push(`Unlawful rune blocked: the ${runeKey} rune does not seat on a ${thing.kind}.`);
+      } else {
+        thing.enchant = runeKey;
+        thing.moved = stamp;
+        next.notes.push(`The rune takes: ${thing.name} now carries the ${runeKey} rune.`);
       }
     }
   }
@@ -597,8 +640,10 @@ export function storyBlock(codex) {
       .map((thread) => `${thread.label} (${thread.kind}${thread.holder ? `, held by ${thread.holder}` : ''})`),
     threads_state: (codex.threads || []).map(({ label, status }) => ({ label, status })),
     // THE EQUIPPED LAW (Directive XII §III.5) — trove_state speaks the
-    // mark only when it is true; unmarked things keep the old two-key shape.
-    trove_state: (codex.trove || []).filter((item) => item.status === 'held').map(({ name, holder, equipped }) => (equipped ? { name, holder, equipped: true } : { name, holder })),
+    // mark only when it is true; unmarked things keep the old two-key
+    // shape. The rune (XVIII) rides the same way: spoken when it stands,
+    // structurally absent otherwise.
+    trove_state: (codex.trove || []).filter((item) => item.status === 'held').map(({ name, holder, equipped, enchant }) => ({ name, holder, ...(equipped ? { equipped: true } : {}), ...(enchant ? { enchant } : {}) })),
     purse_state: (codex.purses || []).map(({ holder, coin }) => ({ holder, coin })),
     // THE PRESENCE CUT (Directive VII.7): the standing ground rides to the
     // server court exactly as threads_state and trove_state do.
@@ -606,11 +651,15 @@ export function storyBlock(codex) {
     // THE PARTY AND THE ELSEWHERE (Directive VIII.5): the roster and the
     // sealed fixtures ride to the server court the same way.
     party_state: (codex.party || []).map(({ name, joinedTurn }) => ({ name, joinedTurn: joinedTurn ?? null })),
-    sheet_state: (codex.party || []).filter((member) => member && member.sheet).map((member) => ({ name: member.name, role: member.sheet.role, level: member.sheet.level, hp: member.sheet.hp, conditions: Array.isArray(member.sheet.conditions) ? [...member.sheet.conditions] : [] })),
+    // THE DERIVED TRUTH (XVIII, Article I): each sheet speaks its armor
+    // as computed truth — table rows and DEX, never a stored opinion.
+    sheet_state: (codex.party || []).filter((member) => member && member.sheet).map((member) => ({ name: member.name, role: member.sheet.role, level: member.sheet.level, hp: member.sheet.hp, ac: derivedAc(member.sheet.abilities, equippedRows(codex.trove || [], member.name)), conditions: Array.isArray(member.sheet.conditions) ? [...member.sheet.conditions] : [] })),
     fixture_state: (codex.fixtures || []).map(({ place, name }) => ({ place, name })),
     // THE BATTLE CUT (Directive X.1): the sealed bestiary rides to the
     // server court the same way — species and threat, the seal's evidence.
-    bestiary_state: (codex.bestiary || []).map(({ species, threat }) => ({ species, threat })),
+    // The species table already carries AC by threat band (XVIII ratifies
+    // it as the enemy's whole armor law) — the briefing surfaces it.
+    bestiary_state: (codex.bestiary || []).map(({ species, threat }) => ({ species, threat, ac: THREAT_TABLE[threat]?.ac ?? null })),
     directives: [
       ...(codex.completed ? ['The tale is sealed. Write nothing new; if asked, speak only a closing line.'] : []),
       ...(sealing ? ['SEAL THE TALE — the player has chosen to end with honor. These are denouement turns: quiet and combat-free; no new cast, no new threads; resolve what stands, let farewells be spoken, and bring the road home. If a cinematic is due, let it be the ending the tale has earned (victory, death, or bittersweet).'] : []),

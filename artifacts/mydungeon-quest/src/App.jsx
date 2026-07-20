@@ -17,6 +17,10 @@ import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } fr
 import { applyMilestone, applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll, milestoneLevel } from 'fatescript/rules';
 import { ACT_NAMES, actInfo, applyPartyMilestone, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
 import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
+// THE ARMORY (XVIII): the derived-AC settle and the attack governance
+// ride from the engine's one seat; the calendar fold stamps the rest.
+import { governAttackRoll, settleAc } from 'fatescript/armory';
+import { calendarOf } from 'fatescript/calendar';
 import { applyCombat } from './lib/combat.js';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnSpine } from './lib/db.js';
@@ -728,6 +732,13 @@ export default function App() {
       if (Array.isArray(story?.bestiary_state)) landingContext.bestiary = story.bestiary_state;
       if (Array.isArray(base.combat?.enemies)) landingContext.combatants = base.combat.enemies.map((enemy) => ({ id: enemy?.id, name: enemy?.name, hp: enemy?.hp }));
       if (Array.isArray(story?.sheet_state)) landingContext.sheets = story.sheet_state.map((row) => row?.name).filter((name) => typeof name === 'string');
+      // THE REST LAW (XVIII, Article III): the calendar day and the rest
+      // mark seat the same once-per-day court the door ran — from the SAME
+      // briefing evidence (calendar_state) and the hero the request carried.
+      if (Number.isInteger(story?.calendar_state?.day)) {
+        landingContext.day = story.calendar_state.day;
+        landingContext.lastRestDay = Number.isInteger(base.hero?.lastRestDay) ? base.hero.lastRestDay : null;
+      }
       const validation = validateDmTurn(dm, entropy, landingContext);
       // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
       // the door ran, run once more where the turn becomes record, on the
@@ -758,7 +769,7 @@ export default function App() {
       // tale ever swears earns one teaching line; presentation-state only.
       if (!(base.codex.threads || []).length && (codex.threads || []).length) teachOnce(base.id, 'thread').then((line) => line && setStatus(`✦ ${line}`)).catch(() => {});
       const heroBeforeLevel = base.hero.level;
-      let hero = applyStateUpdates(base.hero, dm.state_updates);
+      let hero = applyStateUpdates(base.hero, dm.state_updates, { day: calendarOf(base.logs || []).day });
       // THE MILESTONE LAW (Directive XII §I) — the level is the road's own:
       // the spine's milestones move it, xp stays a kept ledger of deeds.
       // Folded HERE, at the one funnel every input path passes through, so
@@ -770,6 +781,11 @@ export default function App() {
         hero = applyMilestone(hero, milestone);
         codex = applyPartyMilestone(codex, milestone);
       }
+      // THE DERIVED TRUTH (XVIII, Article I) — the hero's AC settles from
+      // the post-turn record at the one funnel every input path passes
+      // through: worn table rows and DEX alone write it, never an op's
+      // opinion, so an equip moves the number the very turn it lands.
+      hero = settleAc(hero, codex.trove || []);
       const combat = applyCombat(base.combat, dm.combat, hero, { bestiary: codex.bestiary || [], entropy, party: (base.codex.party || []).map((member) => member?.name).filter((memberName) => typeof memberName === 'string') });
       // Combat opens: one drawn blade, one accent, through the Director — it
       // yields (and is dropped) if the narrator already holds the stage.
@@ -1123,7 +1139,14 @@ export default function App() {
       ? (current.codex.party || []).find((member) => member?.sheet && ownerKey(member.name) === ownerKey(current.pendingRoll.actor_id))
       : null;
     if (sheetRow && current.pendingRoll.kind === 'death_save') return resolveCompanionDoom(sheetRow, companionRoll(sheetRow.name, sheetRow.sheet, current.pendingRoll));
-    const result = sheetRow ? companionRoll(sheetRow.name, sheetRow.sheet, current.pendingRoll) : heroRoll(current.hero, current.pendingRoll);
+    // THE ATTACK FOLD (XVIII, Article I) — the roll seat wears table law:
+    // the equipped weapon row governs ability and proficiency, the rune
+    // rides as a named modifier, and the defender's table armor overrides
+    // the spoken dc. Checks and saves pass through untouched.
+    const governedRoll = current.pendingRoll.kind === 'attack'
+      ? governAttackRoll(current.pendingRoll, { abilities: (sheetRow ? sheetRow.sheet : current.hero).abilities, trove: current.codex.trove || [], holder: sheetRow ? sheetRow.name : current.hero.name, enemies: current.combat?.enemies || [] })
+      : current.pendingRoll;
+    const result = sheetRow ? companionRoll(sheetRow.name, sheetRow.sheet, governedRoll) : heroRoll(current.hero, governedRoll);
     setDiceResult(result);
     playUiSfx(current, 'die'); // one die on parchment — dropped if a voice holds the stage
     const resolutionRecord = await seal(current.id, 'resolution', result);

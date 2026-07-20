@@ -110,7 +110,7 @@ const grantArm = storyProps?.sheet_grant?.anyOf?.find((arm) => arm?.type === 'ob
 check(sameSet(grantArm?.properties?.role?.enum || [], Object.keys(ROLE_TABLE)), 'sheet_grant.role mirrors the role table\u2019s own keys');
 
 // Item kinds — the standing mirror, re-attested.
-check(sameSet(storyProps?.item_add?.items?.properties?.kind?.enum || [], ['weapon', 'tool', 'keepsake', 'treasure', 'document']), 'item_add.kind mirrors the validator\u2019s five kinds');
+check(sameSet(storyProps?.item_add?.items?.properties?.kind?.enum || [], ['weapon', 'tool', 'keepsake', 'treasure', 'document', 'armor']), 'item_add.kind mirrors the validator\u2019s six kinds (armor seated by XVIII \u00a7I)');
 const lawfulItem = judgeTurn(threadTurn({ item_add: [{ name: 'Sealed Writ', kind: 'document', holder: 'Bram', note: null }] }), skeletal)?.errors || [];
 const canaryItem = judgeTurn(threadTurn({ item_add: [{ name: 'Sealed Writ', kind: 'relic', holder: 'Bram', note: null }] }), skeletal)?.errors || [];
 check(!lawfulItem.some((error) => /item_add/.test(error) && /kind/.test(error)), 'a schema-taught item kind walks through the court');

@@ -8,6 +8,7 @@
 export * from './protocol.js';
 export * from './story.js';
 export * from './rules.js';
+export * from './armory.js';
 export * from './cards.js';
 export * from './graph.js';
 export * from './livingWorld.js';

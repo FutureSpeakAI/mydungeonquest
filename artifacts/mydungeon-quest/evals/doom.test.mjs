@@ -90,7 +90,7 @@ codex = applyStoryUpdates(codex, { sheet_grant: { name: 'RELL marrow', role: 'me
 assert.ok(codex.notes.some((n) => n.includes('Sheet canon sealed once: Rell Marrow already holds a sheet.')),
   'the second grant is refused with a note');
 assert.equal(codex.party.find((member) => member.name === 'Rell Marrow').sheet.role, 'guardian', 'the first truth stands');
-assert.deepEqual(storyBlock(codex).sheet_state, [{ name: 'Rell Marrow', role: 'guardian', level: 2, hp: 19, conditions: [] }],
+assert.deepEqual(storyBlock(codex).sheet_state, [{ name: 'Rell Marrow', role: 'guardian', level: 2, hp: 19, ac: 11, conditions: [] }],
   'sheet_state rides the block — name, role, level, hit points, and the condition lane (Directive XII §II.4)');
 
 // ---------------------------------------------------------------

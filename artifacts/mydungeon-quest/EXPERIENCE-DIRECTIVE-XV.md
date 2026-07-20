@@ -209,5 +209,7 @@ zero skips and all teeth, the architect over the full diff, findings fixed
 or refuted — and the standing report. If the directive must bend, it is
 amended here, in the same commit, with its reason in one line.
 
+*(Amended at the 61.15 bench: the 61.12 red was environmental — the credit tank ran dry mid-window and G26a lawfully refused a fallback DM; the tank is refilled, and the window resumes for exactly three seats, 61.15–61.17 — three consecutive greens close the ritual; any red closes RED, final.)*
+
 *The vault is master. The mirror is a copy that proves itself. The commons
 is a stage, not a safe. And the key never leaves home.*

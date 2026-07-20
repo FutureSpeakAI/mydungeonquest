@@ -3342,3 +3342,27 @@ door ("if the directive must bend, it is amended here, in the same
 commit, with its reason in one line") remains the owner's pen, not
 the agent's: a credit top-up plus an amended window would find the
 pool already proven and the instruments already true.
+
+## THE RESUMED WINDOW — seats 61.15–61.17 (2026-07-20, §VIII amended)
+
+The owner's pen moved: credits refilled, Task #53 accepted, and §VIII
+now carries its one-line amendment — the 61.12 red was environmental
+(the tank, not the house), and the window resumes for exactly three
+seats. The law of the resumed window, stated before any seat is spent:
+
+- **Probe before every seat.** A status-only health call against the DM
+  door's own model (claude-sonnet-4-6) must answer 200 before a counted
+  flag is written. An outage refuses the seat, it does not burn it.
+- **Three consecutive greens close the ritual** — keyless eval green
+  with AI keys unset, the architect record over the window's full diff
+  settled, the standing report, and v1.1.0. **Any red closes RED,
+  final** — no further amendment under this task.
+- **The pool stands.** Roll 8 is proven (121/121 twice: rehearsal 7 and
+  counted 61.11) with every vision verdict bound in cache. No re-mint,
+  no premint — eviction would raze proven evidence.
+- The post-close hardening (source-aware seat binding: fixture-store
+  courts read fixture canon through one harness seat with a mirror
+  drift tripwire; commit b4df657) rides into this window as
+  already-reviewed instrument law — cache-inert by construction.
+
+Pre-seat probe, 61.15: tank answered 200 (one token, status only).

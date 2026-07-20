@@ -24,8 +24,8 @@
 - [Expo shell around the web house](expo-webview-shell.md) — WebView shell laws: door law fails OUTWARD by hostname (backslash trick!); no web arm (iframe preview); never a spinner.
 - [JSX text ignores \u escapes](jsx-unicode-escapes.md) — \u2019 etc. render literally in JSX text nodes; paste real characters there; only JS string contexts unescape.
 - [Engine folds resolve queues backwards](engine-backward-queues.md) — tail-first queue drains make same-pass duplicates resolve later-card-first; gate outcomes (one winner + named refusal + determinism), never intra-pass order.
-- [Proving-loop lessons](proving-loop.md) — RUN_REQUESTED reads at BOOT only (write, then restart); known-bad controls must be deterministic lies, never crossings; replays verbatim; calibrate to perfect separation; extensions once, frozen.
-- [Vision-judge calibration](vision-judge-calibration.md) — replay = stability; twice-crossed controls are material; quarantine whole pairings (kind×bytes×prose); probes bind; courts recuse under custody; premise law: enforce only promises the app makes.
+- [Proving-loop lessons](proving-loop.md) — RUN_REQUESTED reads at BOOT only; known-bad controls are deterministic lies; probe the provider tank before counted seats; eyes = every court-examined class; extensions once, frozen.
+- [Vision-judge calibration](vision-judge-calibration.md) — replay = stability; quarantine whole pairings; probes bind; premise law: enforce only the app's promises; claims must be pose/gaze-free.
 - [Mirrors need one seat](mirrors-one-seat.md) — byte-for-byte law mirrored across files WILL drift; move it to one lib both sides import, or pin cross-pointers both sides.
 - [Signature-downgrade door](signature-downgrade-door.md) — verifiers must never trust caller-declared signature status; evidence in the envelope forces the court, or tamper+re-hash+claim-unsigned launders provenance.
 - [MyDungeon writer's room](mydungeon-writers-room.md) — seats behind one door; pour only grows; captions describe, never quote; freshness door self-heals; walks DRAIN chained roll asks.
@@ -38,4 +38,4 @@
 - [Moved surfaces drag instruments](moved-surface-instruments.md) — a migrated component keeps classes, not pages: retarget every eval needle + court walk in the same task.
 - [One crossing ≠ conviction](e2e-one-crossing.md) — probe-clean court that reds once under parallel load: fix the rest, rerun; only a second crossing is material.
 - [MyDungeon house-voice dash law](mydungeon-house-voice.md) — deterministic tiers fold at the SOURCE door (pre-chair, pre-validator); live keeps flag→mandatory-revise→ship-door fold; sweep WITH intent.
-- [Store seat-binding law](store-seat-binding.md) — courts join only what the record seals on ONE row; unbindable = empty seat (spoken stand-down), never a broken-contract throw; new variants re-scope old courts.
+- [Store seat-binding law](store-seat-binding.md) — courts join only what ONE row seals; fixture rows never meet live values (coincidence greens); verify a court's evidence path before theorizing app defects.

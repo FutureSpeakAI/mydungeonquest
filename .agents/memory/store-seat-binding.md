@@ -12,3 +12,8 @@ description: Courts may only join evidence the record itself seals on one row; e
 - When no lawful seat exists, that is an EMPTY SEAT, not a broken contract: speak a stand-down line (console) and return after the deterministic half has run. Reserve fail-closed throws for evidence that must exist by contract (e.g. the store itself missing).
 - Kindred trap: when a store grows NEW plate variants, every older kind-blind court sweeps them by default — retarget each court's filters in the same task that adds the variant (same family as moved-surface-instruments).
 - Geometry courts: settle the element's own animations (getAnimations().finished) before asserting rects — an entrance flight (scale 1.01) reads a hair wider than the glass and convicts an honest box.
+
+## The fixture-vs-live cross-join (second strike of the family, July 2026)
+A court read hero briefs SEALED at fixture mint (from the proving campaign's own canon) but asserted them against the LIVE harness constant (`m.hero.mark`). It greened for its whole life only because the two values coincided, and the debt surfaced the day the harness pin was enriched. Two corollaries earned the hard way:
+- **Verify WHICH record a court reads before theorizing app defects.** A full forge/composer/spark investigation found the app honest; the defect was the court joining two stores. The court's complaint names its assertion, never its evidence path — read the spec's own `readFileSync` lines first.
+- **Gating skips hide court debt.** In a gated ladder (courts behind calibration), "0 failed" does NOT mean a court sat. Credit a green only to courts that EXECUTED (verdict needles / per-title counts), else a broken court rides invisible for rehearsal after rehearsal.

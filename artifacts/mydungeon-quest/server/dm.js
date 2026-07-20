@@ -8,6 +8,9 @@ import { ENCHANT_TABLE } from 'fatescript/armory';
 // library — a mirror would drift, and a drifted enum is a trap (the
 // model emits keys the door then refuses).
 import { SPELL_TABLE } from 'fatescript/grimoire';
+// THE ATLAS (63.4): the region-state enum imports from the ONE seat —
+// the fold's own table in fatescript/story — never a mirror.
+import { REGION_STATES } from 'fatescript/story';
 import { censusNote, unrecordedSouls } from 'fatescript/census';
 import { artDirectorSits } from './artDirector.js';
 // THE DASH LAW at the deterministic doors (XVII, Article V) — the whole-turn
@@ -239,6 +242,25 @@ const storySchema = {
           label: { type: 'string', maxLength: 90, description: 'An OPEN thread\'s exact label from [STORY].threads_state.' },
           outcome: { type: 'string', enum: ['kept','broken','resolved'] }
         } } },
+        // THE NEW GROUND (VIII + the toolschema-validation lesson): the
+        // validator's same-breath teach and the fold both read story.world,
+        // yet the schema never held the seat — three descriptions pointed
+        // at world.region_add while the model had no lawful way to emit it
+        // (the Thistlewick refusals, iter 63.3: two sealed sittings taught
+        // new ground at a seat the schema hid, and the door fell to the
+        // floor). Declared now with the fold's OWN tolerances; the state
+        // enum imports from the one seat (fatescript/story), never a mirror.
+        world: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, properties: {
+          blight_delta: { anyOf: [ { type: 'null' }, { type: 'integer', minimum: -5, maximum: 5 } ], description: 'How far the blight moves this turn; the fold clamps the standing value 0..5.' },
+          region_add: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name','visual'], properties: {
+            name: { type: 'string', minLength: 3, maxLength: 100, description: 'The new region\'s name — sealed once; this same turn\'s scene_set, fixture_add.place, and party_leave.remains_at may stand on it.' },
+            visual: { type: 'string', minLength: 10, maxLength: 360, description: 'The ground\'s standing look — the painter reads this clause wherever scenes stand here. Every region carries one.' }
+          } } ], description: 'Create NEW ground the record will hold from this turn on. The atlas refuses scene_set/fixture_add naming regions the record does not hold — teach the region in this same breath, or stand on standing ground.' },
+          region_update: { anyOf: [ { type: 'null' }, { type: 'object', additionalProperties: false, required: ['name','state'], properties: {
+            name: { type: 'string', minLength: 3, maxLength: 100, description: 'A region the record holds — exact name.' },
+            state: { type: 'string', enum: [...REGION_STATES], description: 'The region\'s new standing state — the fold ignores states outside its own table.' }
+          } } ] }
+        } } ], description: 'The world\'s own turn: blight movement, new ground, a region\'s state turning. Null when the world stands unchanged.' },
         // THE PRESENCE CUT (Directive VII): declared because the strict
         // validator enforces the shape — a schema the model cannot see is
         // a trap. Exactly one key, and never an array.

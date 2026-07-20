@@ -3668,3 +3668,28 @@ STAGE TWO GATES (XVIII IV–VI, recorded per the standing law):
   atelier door had wedged for caster callings; G34 court corrections
   (living mender, checkbox-state witnesses, gate-mirror bestiary, owner-
   tag contains) all green at 63.2.
+
+### 63.4 — THE HIDDEN SEAT (G26a root-caused: a schema the model cannot see)
+- The crossing: G26a refused — after three asks the door last seated
+  'fallback'. The trail: two sealed anthropic sittings, both refused as
+  'scene_set names a region the record does not hold: Thistlewick;
+  fixture_add names a place the record does not hold: Thistlewick',
+  then the floor. NOT model noise — the model was building new ground.
+- The root: the validator's atlas courts teach from this same turn's
+  story.world.region_add (scene_set, fixture_add, party_leave all read
+  the built name) and the fold reads story.world whole (blight_delta,
+  region_add, region_update) — but the STORY SCHEMA never declared a
+  world seat. Three descriptions pointed the model at world.region_add
+  while the tool held no such property: the toolschema-validation trap
+  proven again, this time from the inside (the schema's own comments
+  name the lesson). The repair sitting was guided by the exact errors
+  straight into the same invisible wall, then the door fell to the
+  floor — and the live court lawfully refused to judge a fallback.
+- The fix, one seat: REGION_STATES exported from the fold's own table
+  (fatescript/story) and imported by the writers' room — never a
+  mirror; storySchema.world declared whole with the fold's OWN
+  tolerances (all three keys the fold reads, additionalProperties
+  false, region_add requiring name+visual so new ground always
+  carries its painting clause).
+- Nothing else moved: validator untouched, fold untouched. Keyless
+  eval chain green (run with AI keys unset — the keyless-only law).

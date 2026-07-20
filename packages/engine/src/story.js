@@ -12,7 +12,7 @@ import { ENCHANT_TABLE, armorRowFor, derivedAc, equippedRows } from './armory.js
 import { companionSpellsFor, spellRowFor } from './grimoire.js';
 import { ROLE_TABLE, slotsForArchetype } from './rules.js';
 
-const REGION_STATES = ['thriving', 'troubled', 'corrupted', 'ruined', 'healed'];
+export const REGION_STATES = ['thriving', 'troubled', 'corrupted', 'ruined', 'healed'];
 // The status law: a soul is exactly one of these. Anything else the DM sends
 // is refused (noted as a wound), never written to canon. 'dead' is permanent
 // downstream — the validator forbids the dead to speak from the next turn on.

@@ -150,7 +150,7 @@ test('G9 a3/a4: at scene distance the mark is visible OR its lack is attested â€
         at: new Date().toISOString(), criterion: 'g09-a3-warden-disagreement', plate: plate.file, note: ruling.note
       }) + '\n');
     }
-    if (ruling.verdict === 'fail') failures.push({ plate: plate.file, reason: ruling.reason, verdict });
+    if (ruling.verdict === 'fail') failures.push({ plate: plate.file, reason: ruling.reason, verdict: ruling.verdict, mark_visible: look.mark_visible });
   }
   console.log(`[g09 a3] rulings: ${JSON.stringify(rulings)}`);
   expect(failures, JSON.stringify(failures, null, 2)).toEqual([]);

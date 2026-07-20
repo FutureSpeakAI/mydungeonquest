@@ -26,6 +26,19 @@ if [ -f "$FLAG" ]; then
     echo "[proving] premint complete exit=$(cat test-results/premint.exit)"
     sleep infinity
   fi
+  # THE REHEARSAL (61.10, LOOP_LOG): the full suite OUT of ladder — every
+  # judge verdict binds in cache (bytes+id+protocol) so a counted run
+  # replays what the rehearsal proved. Not an iteration: no run-iter
+  # artifacts, no verdict, no number consumed. Same supervised-workflow
+  # law as the premint — detached shells get reaped mid-suite.
+  if [ "$ITER" = "rehearse" ]; then
+    fuser -k 5199/tcp 2>/dev/null; fuser -k 5198/tcp 2>/dev/null; sleep 1
+    echo "[proving] rehearsal begins (full suite, out of ladder)"
+    ./node_modules/.bin/playwright test > test-results/rehearse.log 2>&1
+    echo "$?" > test-results/rehearse.exit
+    echo "[proving] rehearsal complete exit=$(cat test-results/rehearse.exit)"
+    sleep infinity
+  fi
   # Free the suite's own ports if a dead run left them held. These are the
   # proving ports (5199/5198), never the live preview's.
   fuser -k 5199/tcp 2>/dev/null; fuser -k 5198/tcp 2>/dev/null; sleep 1

@@ -3208,3 +3208,37 @@ replays) before any counted seat is spent.
 green (second in-window crossing = conviction); tooth 16's ladder is
 bound green; the remaining runway is 61.10–61.14 and three consecutive
 greens are still owed — the first must land by 61.12.
+
+### 61.10 — counted run, RED (exit 1; 4 unexpected, 0 skipped — the FIRST full-suite examination of the window)
+
+Tooth 16 and G17b GREENED — both cures held, bound verdicts replayed.
+The four falls (G9 a3/a4, G22a, G22b, G31e) are all FIRST in-window
+crossings, class (ii): lawful iff each greens at 61.11. All four trace
+to ONE re-lay-era live plate (an unnamed second soul behind Maren at
+0.92; the key-burn unreadable at scene distance; a caption naming the
+Stilt Gardens over a snowy gate it does not depict) — honest
+convictions, hidden until now behind 61.8/61.9's gating skips. Plus
+one instrument crash: G9 a3's fail-branch referenced a bare `verdict`
+identifier (latent — the branch first executed today); fixed
+instrument-only.
+
+**THE REHEARSAL DOOR (this session's second instrument, premint's twin):**
+the full suite OUT of ladder via flag `rehearse` — every judge verdict
+binds in cache so a counted run replays what the rehearsal proved; no
+number consumed; supervised-workflow law honored (detached shells get
+reaped). Rehearsal 1 on live-roll-2 caught THREE falls for zero seats:
+teeth 7 and 12 spoke their own crown-band invalids (the roll-2 bust's
+head touched the frame top — face box at 0px, no band can prove the
+lie), and tooth 20 refused the roll-2 sheet honestly ("burn mark in
+the shape of a key — no such mark is visible on any cell", 0.82).
+
+**Live roll 3 (eyes):** anchor superb — crown headroom restored, the
+key-burn unmistakable on her sternum; the two-subject scene superb —
+exactly its named souls, Maren foremost, mark visible at distance; the
+sheet DROPPED THE MARK AGAIN (all four cells markless). Two misses in
+a row is a pattern: the harness hero's mark was LOCATION-FREE, so the
+painter roams placement (neck → forearm → sternum) and the sheet omits
+it. CURE (instrument-only, harness constant): the mark pins its ground
+— "a burn in the shape of a key at the base of her throat" — the
+original clause preserved as a prefix for any substring court. Roll 4
+mints under the pinned canon.

@@ -7,6 +7,7 @@ import Ceremony from './components/Ceremony.jsx';
 import ChroniclePage from './components/ChroniclePage.jsx';
 import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components/Sequence.jsx';
 import { packClock, interludeRow, bandNotes } from './lib/clockAtTable.js';
+import { anchoredWindow } from './lib/historyWindow.js';
 import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
 import { CharacterSheet, Settings, Storybook, useGallery } from './components/Overlays.jsx';
@@ -635,8 +636,13 @@ export default function App() {
       // (0.9.0 review round) TWENTY ROWS, NOT FIFTEEN — the Editor's echo
       // court reads a twenty-page window (Law VI); the client must furnish
       // what the court is owed or pages sixteen-to-twenty back can never
-      // convict. The cached stable prefix keeps the wider brief cheap.
-      const history = base.logs.filter((entry) => !entry.redacted && entry.kind !== 'tick' && entry.kind !== 'span' && entry.kind !== 'annal').slice(-20).flatMap((entry) => [
+      // convict. (Task 54) THE ANCHORED WINDOW replaces the sliding
+      // slice(-20): the window start advances only in steps, never by one,
+      // so between re-anchors each turn's history is a byte-stable prefix
+      // of the next and the server-side prompt cache actually reads. The
+      // floor never furnishes fewer than the twenty entries the court is
+      // owed. A redaction lawfully invalidates the cache (rare, accepted).
+      const history = anchoredWindow(base.logs.filter((entry) => !entry.redacted && entry.kind !== 'tick' && entry.kind !== 'span' && entry.kind !== 'annal')).flatMap((entry) => [
         { role: 'user', content: entry.sent || entry.player || 'Continue.' },
         { role: 'assistant', content: (entry.dm?.narration_blocks || []).map((block) => block.text).join('\n\n') }
       ]).filter((message) => message.content);

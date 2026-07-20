@@ -26,6 +26,7 @@ delete process.env.ALERT_WEBHOOK_URL;
 const {
   rateLimit, abuseCaps, logLine,
   recordSpend, spendAllowed, spentToday, ceilingFor,
+  recordTokens, tokenReport,
   notifyOwner, ringAlarm, alarmReport, testHerald, heraldReport, watchReport,
   __resetWatchtowerForEval,
 } = await import('../server/watchtower.js');
@@ -129,6 +130,35 @@ const run = (mw, rq) => new Promise((resolve) => {
   assert.equal(await spentToday('elevenlabs', deps), 5, 'the ledger count is read');
   assert.equal(await spendAllowed('elevenlabs', deps), false, 'the durable count bars the day');
   delete process.env.SPEND_CEILING_ELEVENLABS;
+}
+
+// ---- 3b. token & cache telemetry (Task 54) ---------------------------------
+// The usage block from every real DM call tallies per provider per UTC day
+// beside the spend ledger — display/log only, never a ceiling.
+{
+  __resetWatchtowerForEval();
+  assert.deepEqual(tokenReport().byProvider, {}, 'a fresh day carries no tallies');
+  recordTokens('anthropic', 'claude-sonnet-4-6', { input_tokens: 1000, output_tokens: 500, cache_read_input_tokens: 20000, cache_creation_input_tokens: 4000 });
+  recordTokens('anthropic', 'claude-sonnet-4-6', { input_tokens: 1000, output_tokens: 500 }); // a repair attempt tallies too
+  const day = tokenReport().byProvider.anthropic;
+  assert.equal(day.calls, 2, 'every call tallies, repairs included');
+  assert.equal(day.input, 2000);
+  assert.equal(day.output, 1000);
+  assert.equal(day.cacheRead, 20000, 'cache reads are counted');
+  assert.equal(day.cacheWrite, 4000, 'cache writes are counted');
+  // sonnet rates: (2000×3 + 1000×15 + 4000×3.75 + 20000×0.3)/1e6 = 0.042
+  assert.ok(Math.abs(day.estUsd - 0.042) < 1e-9, `the dollar estimate is honest (got ${day.estUsd})`);
+  assert.equal(recordTokens('anthropic', 'x', null), null, 'a missing usage block is a no-op, never a throw');
+  assert.equal(recordTokens(null, 'x', {}), null, 'a nameless provider is a no-op');
+  // haiku bills at haiku rates
+  recordTokens('audition', 'claude-haiku-4-5', { input_tokens: 1_000_000, output_tokens: 0 });
+  assert.ok(Math.abs(tokenReport().byProvider.audition.estUsd - 1) < 1e-9, 'haiku input bills at $1/MTok');
+  // the watch report carries the tallies to the owner
+  const watched = await watchReport({ durable: () => false });
+  assert.equal(watched.tokens.byProvider.anthropic.cacheRead, 20000, 'the owner\'s watch report shows the day\'s cache reads');
+  assert.ok(watched.tokens.byProvider.anthropic.estUsd > 0, 'and the estimated dollars');
+  __resetWatchtowerForEval();
+  assert.deepEqual(tokenReport().byProvider, {}, 'the eval seam strikes the token tallies too');
 }
 
 // ---- 4. the DM's provider plan under spend ceilings ------------------------

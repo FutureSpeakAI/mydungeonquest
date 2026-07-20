@@ -11,6 +11,14 @@ import { artDirectorSits } from './artDirector.js';
 // born at zero; the pre-pass flag stays armed for every tier, and the live
 // tiers keep the whole teaching loop: flag → mandatory revise → ship-door fold.
 import { dashCheck, dashFoldTurn, proseOfTurn } from '../src/lib/voice.js';
+// THE ANCHORED WINDOW (Task 54) — the ONE shared history-window law,
+// imported by both sides of the wire so the shaped prefix stays
+// byte-stable between re-anchors and the prompt cache actually reads.
+import { anchoredWindow, HISTORY_FLOOR_MESSAGES, HISTORY_STEP_MESSAGES } from '../src/lib/historyWindow.js';
+// Token & cache telemetry: every real Anthropic call (repairs included)
+// reports its usage block to the watchtower's day-ledger beside the
+// request-count spend tally. Display/log only — never a ceiling.
+import { recordTokens } from './watchtower.js';
 
 const bornAtZero = (turn) => (turn && dashCheck(proseOfTurn(turn)).flagged ? dashFoldTurn(turn) : turn);
 import { cueCourt, propLawCheck, movedItems, groundFixtures } from '../src/lib/plateroad.js';
@@ -280,19 +288,46 @@ const toolSchema = {
 // prefix caches incrementally. Only the final user message
 // changes per turn.
 
-const MODEL = () => process.env.DM_MODEL || 'claude-sonnet-4-6';
-const GENESIS_MODEL = () => process.env.DM_MODEL_GENESIS || MODEL();
+// THE VERDICT (Task 54 §6, audition of July 20, 2026 — see
+// docs/dm-model-audition.md): claude-sonnet-5 held the whole contract
+// (4/4 post-repair valid, zero fallback turns — even with the baseline)
+// at lower cost and roughly half the latency of claude-sonnet-4-6.
+// Both haiku ids and sonnet-4-5 dropped turns to fallback and are
+// rejected. DM_MODEL still overrides.
+const MODEL = () => process.env.DM_MODEL || 'claude-sonnet-5';
+// THE GENESIS SEAT (Task 54): Session Zero is the single most demanding
+// structural turn (arc + villain + region + gear + chapter cinematic +
+// beat 1, all in one seal), so its default is pinned EXPLICITLY to the
+// strong model — it does not follow a cheaper DM_MODEL override down.
+const GENESIS_MODEL = () => process.env.DM_MODEL_GENESIS || 'claude-sonnet-5';
+
+// THE CACHE'S CANDLE (Task 54 §3): players read and listen between
+// turns, often past Anthropic's 5-minute default, so the breakpoints
+// default to the 1-hour candle (DM_CACHE_TTL=5m restores the short
+// one). Segments under the provider's minimum cacheable size simply
+// pass through uncached — no law here minds.
+const CACHE_TTL = () => (String(process.env.DM_CACHE_TTL || '1h') === '5m' ? '5m' : '1h');
+const cacheMark = () => ({ type: 'ephemeral', ttl: CACHE_TTL() });
 
 function dynamicBlocks(input) {
   return `[STATE]\n${JSON.stringify(input.state)}\n[STORY]\n${JSON.stringify(input.story)}\n[MEMORY]\n${JSON.stringify(input.memory || [])}\n[ENTROPY]\n${JSON.stringify(input.entropy)}\n${input.resolution ? `[RESOLUTION]\n${JSON.stringify(input.resolution)}\n` : ''}[PLAYER]\n${input.player}`;
 }
 
 function shapeMessages(input) {
-  const history = (Array.isArray(input.history) ? input.history : [])
-    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .slice(-30)
-    .map((m) => ({ role: m.role, content: [{ type: 'text', text: m.content.slice(0, 6000) }] }));
-  if (history.length) history[history.length - 1].content[0].cache_control = { type: 'ephemeral' };
+  // THE ANCHORED WINDOW (Task 54 §2): the server judges messages with
+  // the shared law's doubled floor/step. Its floor equals the client's
+  // widest lawful send, so a lawful client window passes whole — the
+  // server never trims below the client's ceiling, and between
+  // re-anchors one turn's shaped history is a byte-for-byte prefix of
+  // the next turn's.
+  const history = anchoredWindow(
+    (Array.isArray(input.history) ? input.history : [])
+      .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim()),
+    { floor: HISTORY_FLOOR_MESSAGES, step: HISTORY_STEP_MESSAGES },
+  ).map((m) => ({ role: m.role, content: [{ type: 'text', text: m.content.slice(0, 6000) }] }));
+  // The breakpoint rides the last STABLE history message — the final
+  // user message below carries every dynamic block and is never cached.
+  if (history.length) history[history.length - 1].content[0].cache_control = cacheMark();
   return [...history, { role: 'user', content: [{ type: 'text', text: dynamicBlocks(input) }] }];
 }
 
@@ -303,14 +338,24 @@ function shapeRequest(input) {
     // beat's 6-8 paragraphs are possible; the measure directs richness,
     // the Editor's courts keep it honest.
     max_tokens: 3200,
-    system: [{ type: 'text', text: buildSystemPrompt(input), cache_control: { type: 'ephemeral' } }],
+    system: [{ type: 'text', text: buildSystemPrompt(input), cache_control: cacheMark() }],
     messages: shapeMessages(input),
     tools: [{ name: 'dm_turn', description: 'The only valid Dungeon Master response.', input_schema: toolSchema }],
     tool_choice: { type: 'tool', name: 'dm_turn' }
   };
 }
 
-const anthropicHeaders = () => ({ 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' });
+// The eval bench and the keyed audition harness read the shaped request
+// through this seam — the exact bytes the door would send, never a mirror.
+export { shapeRequest as shapeDmRequest };
+
+const anthropicHeaders = () => ({
+  'x-api-key': process.env.ANTHROPIC_API_KEY,
+  'anthropic-version': '2023-06-01',
+  'content-type': 'application/json',
+  // The 1-hour candle rides a beta flag; the 5-minute default does not.
+  ...(CACHE_TTL() === '1h' ? { 'anthropic-beta': 'extended-cache-ttl-2025-04-11' } : {}),
+});
 
 // When a previous attempt was schema-valid per Anthropic but rejected by the
 // stricter client validator, `repair` carries that turn plus the exact
@@ -330,6 +375,10 @@ async function anthropicTurn(input, repair = null) {
   });
   if (!response.ok) throw new Error(`Anthropic ${response.status}: ${await response.text()}`);
   const json = await response.json();
+  // Task 54 §1 — the usage block is never discarded again: every call
+  // (repairs included) tallies its tokens and cache reads/writes in the
+  // watchtower's day-ledger. Telemetry only; never a ceiling, never a throw.
+  try { recordTokens('anthropic', request.model, json.usage); } catch { /* the tale never dies of its bookkeeping */ }
   return json.content?.find((item) => item.type === 'tool_use' && item.name === 'dm_turn')?.input;
 }
 

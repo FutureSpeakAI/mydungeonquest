@@ -52,11 +52,16 @@ assert.ok(docket.priorPages[0].includes('number 6'), 'the window slid: the oldes
 // window — pages sixteen-to-twenty back could never convict. The
 // furnishing law is pinned in source beside its Law VI comment, the same
 // way the curtain pinned its retired plumbing.
+// (Task 54) The sliding slice(-20) became the ANCHORED window — same
+// debt, different instrument: the shared law's floor IS the twenty
+// rows the court is owed, and the furnishing line is pinned in source.
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
 assert.ok(
-  /entry\.kind !== 'annal'\)\.slice\(-20\)/.test(appSource),
-  'the client furnishes twenty rows to the room — the echo court\'s full window (Law VI)'
+  /anchoredWindow\(base\.logs\.filter\(.*entry\.kind !== 'annal'\)\)\.flatMap/.test(appSource),
+  'the client furnishes the anchored window to the room — the echo court\'s full window (Law VI)'
 );
+const { HISTORY_FLOOR_ENTRIES } = await import('../src/lib/historyWindow.js');
+assert.equal(HISTORY_FLOOR_ENTRIES, 20, 'the anchored floor never furnishes fewer than the twenty rows the court is owed');
 
 // 3 — the measure court reads the band.
 assert.equal(measureCheck(1, 'lean'), null);

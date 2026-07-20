@@ -377,6 +377,60 @@ export async function spendAllowed(provider, deps = {}) {
   return true;
 }
 
+// ---------------------------------------------------------- token telemetry
+// Task 54 §1 — the usage block from every real DM call (repairs included)
+// tallies here per provider per UTC day, beside the request-count spend
+// ledger. In-memory + one structured log line per call; DISPLAY ONLY —
+// the ceiling above stays request-count based, and a telemetry stumble
+// never touches the turn.
+//
+// USD per million tokens, by model family. Cache writes bill at 1.25×
+// input, cache reads at 0.1× — the whole point of the anchored window.
+const TOKEN_RATES = [
+  { match: /haiku/i, in: 1, out: 5, cacheWrite: 1.25, cacheRead: 0.1 },
+  { match: /opus/i, in: 15, out: 75, cacheWrite: 18.75, cacheRead: 1.5 },
+  { match: /sonnet|claude/i, in: 3, out: 15, cacheWrite: 3.75, cacheRead: 0.3 },
+];
+const rateFor = (model) => TOKEN_RATES.find((r) => r.match.test(String(model || ''))) || TOKEN_RATES[2];
+
+let memoryTokens = { day: utcDay(), byProvider: {} };
+const tokenRowFor = (provider) => {
+  if (memoryTokens.day !== utcDay()) memoryTokens = { day: utcDay(), byProvider: {} };
+  if (!memoryTokens.byProvider[provider]) {
+    memoryTokens.byProvider[provider] = { calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0, estUsd: 0 };
+  }
+  return memoryTokens.byProvider[provider];
+};
+
+/** One call's usage block joins the day's token tally. Never throws. */
+export function recordTokens(provider, model, usage) {
+  if (!provider || !usage || typeof usage !== 'object') return null;
+  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const input = n(usage.input_tokens);
+  const output = n(usage.output_tokens);
+  const cacheRead = n(usage.cache_read_input_tokens);
+  const cacheWrite = n(usage.cache_creation_input_tokens);
+  const rate = rateFor(model);
+  const usd = (input * rate.in + output * rate.out + cacheWrite * rate.cacheWrite + cacheRead * rate.cacheRead) / 1e6;
+  const row = tokenRowFor(provider);
+  row.calls += 1;
+  row.input += input;
+  row.output += output;
+  row.cacheRead += cacheRead;
+  row.cacheWrite += cacheWrite;
+  row.estUsd = Math.round((row.estUsd + usd) * 1e6) / 1e6;
+  logLine('info', 'dm_tokens', { provider, model: String(model || ''), input, output, cacheRead, cacheWrite, estUsd: Math.round(usd * 1e6) / 1e6 });
+  return row;
+}
+
+/** The day's token tallies, per provider, for the owner's watch report. */
+export function tokenReport() {
+  if (memoryTokens.day !== utcDay()) memoryTokens = { day: utcDay(), byProvider: {} };
+  const out = {};
+  for (const [provider, row] of Object.entries(memoryTokens.byProvider)) out[provider] = { ...row };
+  return { day: memoryTokens.day, byProvider: out };
+}
+
 // ----------------------------------------------------------------- health
 // The uptime surface: fast, honest, and 200 while the table itself lives —
 // a mislaid ledger is reported, not fatal (the tale never dies of it).
@@ -408,6 +462,10 @@ export async function watchReport(deps = {}) {
     alarms: alarmReport(),
     herald: heraldReport(),
     spend,
+    // Task 54 — the day's DM token tallies (cache reads/writes included)
+    // with an estimated dollar figure. Display only; ceilings stay
+    // request-count based.
+    tokens: tokenReport(),
   };
 }
 
@@ -416,6 +474,7 @@ export function __resetWatchtowerForEval() {
   watchBound = null;
   memoryWindows.clear();
   memorySpend = { day: utcDay(), byProvider: {} };
+  memoryTokens = { day: utcDay(), byProvider: {} };
   spendCache.clear();
   ledgerPulse = { at: 0, ok: null };
   alarms.count = 0;

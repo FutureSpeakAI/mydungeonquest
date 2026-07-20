@@ -78,6 +78,10 @@ export default defineConfig({
     { name: 'g31-sheet', testMatch: /g31-sheet\.spec\.ts/, dependencies: ['calibration'] },
     { name: 'g32-quiet', testMatch: /g32-quiet\.spec\.ts/, dependencies: ['dom'] },
     { name: 'g33-atelier', testMatch: /g33-atelier\.spec\.ts/, dependencies: ['calibration'] },
+    // (Directive XVIII, Task 63 §3) THE ARMORY AND THE ART — record walks,
+    // device dice, and one attested mint; no vision verdicts, so it rides
+    // behind the dom calibration alone.
+    { name: 'g34-armory', testMatch: /g34-armory\.spec\.ts/, dependencies: ['dom'] },
     // (1.1.0, Directive XV §VI) THE COMMONS — the court raises its OWN
     // doorless house on its own ports (staging seam, real ledger, real
     // shelf) and puts it out when it rests; it rides behind g26 so its

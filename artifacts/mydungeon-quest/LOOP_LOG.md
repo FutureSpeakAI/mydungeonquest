@@ -3639,3 +3639,9 @@ STAGE TWO GATES (XVIII IV–VI, recorded per the standing law):
   itself is unchanged (the instrument moves with the surface).
 - tests/e2e/g13-check.spec.ts EDITED — PINNED_PASS_COUNT 142 → 145
   in the same commit as the three gates it pins.
+
+### TASK 63 — Section 3, the court (G34 THE ARMORY AND THE ART)
+- tests/e2e/g34-armory.spec.ts — seven sittings over the armory fixture (the doom session grown eight lawful turns; hero reborn a wizard, steel added and readied, the mender joined/sheeted/pouring): a) born grimoire renders (pips + chips) and derived AC MOVES on equip at the live funnel; b) attack fold end-to-end — spear governs STR/proficiency/keen, the defender record writes the bar, die pinned 0.5→11 (G23c dice-tray law); c) atelier picking sealed through Begin (calling select → grimoire-picks → hero.spells/spellSlots); d) a companion pour spends her own L1 slots, the release seals its note in the codex ledger ONLY (the table stays silent), and the long-rest bench restores through the app's own folds; e) companion spell save on the device under the owner's own name; f) enemy cast bound to the species card's pool (bench mirrors the keyless gate's context byte-for-byte); g) signature-spell plate — the clause rides the minted brief through the app's OWN scenePrompt/generationSpec/Foundry under the MINT-LAW ladder, and the sealed attestation binds the clause-bearing hash.
+- playwright.config.ts — g34-armory registered behind dom (no vision verdicts in this court).
+- tests/e2e/verdict.mjs — REQUIRED_PROJECTS += 'g34-armory'; REQUIRED_EXECUTED += G34a–G34g.
+- Dice disclosure: G34b/G34e pin Math.random = 0.5 via addInitScript BEFORE boot — the harness's dice tray, never a change to a shipped fold.

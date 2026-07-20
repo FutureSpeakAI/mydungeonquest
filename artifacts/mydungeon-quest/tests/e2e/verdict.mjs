@@ -31,6 +31,8 @@ const REQUIRED_PROJECTS = [
   // (60B §4) THE BETA CUT — the sheet court, the quiet table, and the
   // atelier & threshold court sit every run.
   'g31-sheet', 'g32-quiet', 'g33-atelier',
+  // (Directive XVIII §3) THE ARMORY AND THE ART sits every run.
+  'g34-armory',
 ];
 // Test-title needles that must appear among EXECUTED (non-skipped) tests.
 const REQUIRED_EXECUTED = [
@@ -74,6 +76,7 @@ const REQUIRED_EXECUTED = [
   'G31a', 'G31b', 'G31c', 'G31d', 'G31e', 'G31f',
   'G32a', 'G32b',
   'G33a', 'G33b', 'G33c', 'G33d', 'G33e',
+  'G34a', 'G34b', 'G34c', 'G34d', 'G34e', 'G34f', 'G34g',
   'tooth 20:', 'tooth 21:',
 ];
 

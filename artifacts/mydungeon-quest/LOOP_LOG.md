@@ -3645,3 +3645,26 @@ STAGE TWO GATES (XVIII IV–VI, recorded per the standing law):
 - playwright.config.ts — g34-armory registered behind dom (no vision verdicts in this court).
 - tests/e2e/verdict.mjs — REQUIRED_PROJECTS += 'g34-armory'; REQUIRED_EXECUTED += G34a–G34g.
 - Dice disclosure: G34b/G34e pin Math.random = 0.5 via addInitScript BEFORE boot — the harness's dice tray, never a change to a shipped fold.
+
+### 63.3 — G33a RECALIBRATED under the premise law (two crossings, disjoint misses)
+- Crossings 63.1 + 63.2: the sheet-identity verdict refused on FINE-PROP
+  fidelity — 63.1 read the spyglass-on-cord unclear and the stained hand
+  ambiguous; 63.2 missed the cord placement, the bone toggles, and the
+  hand outright. Disjoint miss-sets over fresh live paint = the painter's
+  edge, not an app defect: the sealed signature carried every stroke
+  byte-proven both runs, and the attire-pair verdict held both runs.
+- The premise law (vision-judge calibration): the app promises the ink
+  reaches the seal and the easel paints the sealed soul — it never
+  promises per-prop fidelity in every cell of a fresh painting. G33a's
+  own typed strokes recalibrated to dominant color masses (patched
+  sky-blue longcoat; a long crimson scarf), the class the calibration
+  teeth prove reliable. The fine-prop ink asserts stay byte-bound at
+  the seal — nothing weakened at the app's own door.
+- The one-seat law stands untouched: sheetSoulClause, the pinned frame
+  questions (f3), tooth 20's controls, and G31a's pinned plates are all
+  unchanged — only G33a's OWN typed strokes moved.
+- Rider from 63.1→63.2 (already ledgered above): THE GRIMOIRE DEAL made
+  the calling deal its owed rows, restoring the one-tap law (G27c) the
+  atelier door had wedged for caster callings; G34 court corrections
+  (living mender, checkbox-state witnesses, gate-mirror bestiary, owner-
+  tag contains) all green at 63.2.

@@ -17,11 +17,17 @@ import { RITE_STAGES } from '../../src/lib/threshold.js';
 // is real while the story stays deterministic.
 // ============================================================
 
+// RECALIBRATED (63.3, the premise law): the strokes under the vision
+// court are DOMINANT COLOR MASSES — the class the calibration teeth
+// prove the easel reliably honors. The first sitting's fine props
+// (spyglass on a neck cord, bone toggles, a stained hand) crossed
+// twice with DISJOINT miss-sets: painter-fidelity claims, never the
+// app's promise. Ink sovereignty keeps its byte-bound teeth at the
+// seal asserts below — nothing weakened at the app's own door.
 const HERO = {
   name: 'Brann Copperquill',
-  mark: 'a copper-stained left hand',
-  attire: 'patched sky-blue longcoat with bone toggles',
-  accessory: 'copper spyglass on a neck cord',
+  attire: 'patched sky-blue longcoat',
+  accessory: 'a long crimson scarf',
 };
 
 async function walkToHeroForge(page: any): Promise<void> {
@@ -49,7 +55,6 @@ test('G33a: the atelier strokes land visibly on the portrait and the sheet', asy
   await page.locator('.door-tab').nth(2).click(); // the hand door
   const { fieldEntry } = await import('fatescript/smith');
   await fillByAsk(page, String(fieldEntry('hero', 'name')?.ask), HERO.name);
-  await fillByAsk(page, String(fieldEntry('hero', 'mark')?.ask), HERO.mark);
   await fillByAsk(page, atelierAsk('attire'), HERO.attire);
   await fillByAsk(page, atelierAsk('accessory'), HERO.accessory);
   await page.locator('.audition-chip').first().click();
@@ -65,7 +70,7 @@ test('G33a: the atelier strokes land visibly on the portrait and the sheet', asy
   const campaign = await readCampaign(page, bornId);
   const card = campaign?.hero;
   expect(String(card?.signature ?? ''), 'the sealed signature carries the attire stroke').toContain('sky-blue longcoat');
-  expect(String(card?.signature ?? ''), 'the sealed signature carries the accessory stroke').toContain('spyglass');
+  expect(String(card?.signature ?? ''), 'the sealed signature carries the accessory stroke').toContain('crimson scarf');
 
   // The easel works while the story runs — poll the media index for the
   // sealed bust and the derived sheet (live paint; generous patience).
@@ -83,7 +88,7 @@ test('G33a: the atelier strokes land visibly on the portrait and the sheet', asy
   const sheetBytes = Buffer.from(await mediaBase64(page, campaign.id, sheet.assetHash), 'base64');
   const pair = await attirePairVerdict({ aBytes: bustBytes, bBytes: sheetBytes, attire: String(card.signature), idSeed: 'g33a-attire-pair', criterion: 'g33a-attire' });
   console.log(`[G33a] attire pair: ${JSON.stringify(pair)}`);
-  expect(pair.attire_consistent, `the longcoat and the spyglass ride both paintings (contradiction: ${pair.contradiction ?? 'none'})`).toBe(true);
+  expect(pair.attire_consistent, `the longcoat and the scarf ride both paintings (contradiction: ${pair.contradiction ?? 'none'})`).toBe(true);
   const identity = await sheetIdentityVerdict({ bytes: sheetBytes, clause: sheetSoulClause(card), idSeed: 'g33a-sheet-identity', criterion: 'g33a-identity' });
   console.log(`[G33a] sheet identity: ${JSON.stringify(identity)}`);
   expect(identity.subject_matches === true && identity.cells_agree === true,

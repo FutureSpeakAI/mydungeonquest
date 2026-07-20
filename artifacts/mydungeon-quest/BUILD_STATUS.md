@@ -331,3 +331,21 @@ layer (App.jsx, components, cinema/prompts, storybook, styles, prologue).
 - The pool (roll 8) is proven (121/121 twice); all window instrument cures
   held; the standing report lives in LOOP_LOG.md. Resumption needs the
   owner's pen: credits + a §VIII amendment.
+
+## Task 61 — THE COMMONS: v1.1.0 CLOSED GREEN (2026-07-20, resumed window)
+- The owner's pen moved (Task #53): credits refilled, §VIII amended in one
+  line — the 61.12 red was environmental — granting exactly three seats.
+  The resumed window ran 61.15 **G** (121/121, 16.9m), 61.16 **G**
+  (121/121, 13.3m), 61.17 **G** (121/121, 13.8m): three consecutive
+  counted greens, zero skips, every named court executed, a tank probe
+  (200) before every seat.
+- The ritual closed: keyless check green with every AI key unset — 139
+  PASS lines (the letter's 128 grew under later directives' own pin
+  moves; the intent, fully green, is met). Architect record: the
+  2026-07-19 seat-binding hardening round stands — real cross-store seats
+  cured through one fixture-canon door with a mirror-drift tripwire,
+  lawful same-store joins refuted by name; the resumed window added no
+  instrument or app code.
+- Game 1.0.1 → **1.1.0**; the engine stays 1.0.0, untouched. The mirror,
+  the publish law, the key-home law, G29, and tooth 17 stand proven under
+  the closed window.

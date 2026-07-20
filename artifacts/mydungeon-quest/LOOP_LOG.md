@@ -3366,3 +3366,49 @@ seats. The law of the resumed window, stated before any seat is spent:
   already-reviewed instrument law — cache-inert by construction.
 
 Pre-seat probe, 61.15: tank answered 200 (one token, status only).
+
+**Seat 61.15 — GREEN** (exit 0, 121 passed, 0 unexpected, 0 skipped,
+16.9m). One of three. The pool replayed its bound verdicts; the live
+courts (G25 wonder, G26 return among them) sat fresh against a healthy
+tank and held.
+
+Pre-seat probe, 61.16: tank answered 200.
+
+**Seat 61.16 — GREEN** (exit 0, 121 passed, 0 unexpected, 0 skipped,
+13.3m, `[verdict] green=true`). Two of three, consecutive.
+
+Pre-seat probe, 61.17: tank answered 200.
+
+**Seat 61.17 — GREEN** (exit 0, 121 passed, 0 unexpected, 0 skipped,
+13.8m, `[verdict] green=true`). **Three of three, consecutive — the
+resumed window closes GREEN.** The ritual's remaining rites: keyless
+eval with AI keys unset, the architect record, the standing report,
+v1.1.0.
+
+## STANDING REPORT — Directive XV closes at v1.1.0 (2026-07-20)
+
+The window that closed RED on 2026-07-19 (seat arithmetic: the credit
+tank ran dry mid-window, G26a lawfully refused to judge a live sitting
+on a fallback DM, and no seats remained) reopened under the owner's
+§VIII pen — one line, reason stated — and closed GREEN in three
+consecutive counted seats:
+
+| seat  | verdict | tests   | wall  |
+|-------|---------|---------|-------|
+| 61.15 | GREEN   | 121/121 | 16.9m |
+| 61.16 | GREEN   | 121/121 | 13.3m |
+| 61.17 | GREEN   | 121/121 | 13.8m |
+
+Zero skips, every named court executed, `[verdict] green=true` on all
+three; the tank probed 200 before each seat. Keyless check: exit 0
+with every AI key unset, **139 PASS lines** (the letter's "128" has
+lawfully grown under later directives' own pin moves; the sentence's
+intent — fully green — is met). Architect record: the 2026-07-19
+seat-binding hardening round stands as the window's record — every
+flagged site verified at source, the real cross-store joins cured
+through one fixture-canon seat (`fixtureHero()`, mirror-drift
+tripwire), the lawful same-store joins refuted with their reasons; the
+resumed window added no instrument or app code, so its diff is prose
+and the version line. Game 1.0.1 → **1.1.0**; fatescript stays 1.0.0.
+The pool's paint law, its bound verdicts, and the probe-before-seat
+discipline ride forward as standing law.

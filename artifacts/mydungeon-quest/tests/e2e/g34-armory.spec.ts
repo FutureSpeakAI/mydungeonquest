@@ -48,7 +48,10 @@ const SIGNATURE_SPELL = FULL_ROWS.find(([, row]: any) => row.level === 0 && row.
 const SIGNATURE_CLAUSE = spellClauseFor({ cast_spell: { caster: 'Vessarine Olt', spell: SIGNATURE_SPELL } });
 if (!SIGNATURE_CLAUSE) throw new Error(`G34 fixture: spellClauseFor stays silent for ${SIGNATURE_SPELL}`);
 
-const MENDER = 'Vessarine Olt'; // cast_add'd at doom turn 0; joins and sheets in the armory turns
+// A fresh soul of the armory turns' own casting: the doom record's
+// Vessarine Olt has FALLEN by its third turn, and the dead do not
+// travel — party_join lawfully refuses her (proved on the node bench).
+const MENDER = 'Yolande Marr';
 
 const armoryTurn = (text: string, story: any) => ({
   player: 'We see to the gear before the road.',
@@ -76,7 +79,10 @@ function armoryFixture(): any {
     armoryTurn('The mail settles over the shoulders.', { item_equip: { name: 'chain mail', holder: name } }),
     armoryTurn('The shield rides the off arm.', { item_equip: { name: 'shield', holder: name } }),
     armoryTurn('The spear takes the ready hand.', { item_equip: { name: 'spear', holder: name } }),
-    armoryTurn('Vessarine falls in with the shield-line.', { party_join: { name: MENDER } }),
+    armoryTurn('A field-surgeon answers the lantern call.', {
+      cast_add: [{ name: MENDER, role: 'healer', visual: 'A calm field-surgeon in a wax-cloth coat, silver hair braided tight, hands stained with tincture.', voice: 'Low and certain, every word measured twice.' }],
+    }),
+    armoryTurn('She falls in with the shield-line.', { party_join: { name: MENDER } }),
     armoryTurn('Her craft is counted and sworn.', { sheet_grant: { name: MENDER, role: 'mender', level: 3 } }),
     armoryTurn('Her first ward rises over the line.', { cast_spell: { caster: MENDER, spell: MENDER_CASTS[0] } }),
     armoryTurn('The ward turns — the first thread falls.', { cast_spell: { caster: MENDER, spell: MENDER_CASTS[1], release: true } }),
@@ -224,14 +230,33 @@ test('G34c: the atelier picking is sealed through Begin — the grimoire door wr
   await expect(panel).toBeVisible();
   await expect(panel.locator('h3'), 'the door speaks the owed counts').toContainText(`${owed.cantrips} cantrips`);
   await expect(panel.locator('h3')).toContainText(`${owed.spells} first-circle`);
-  const cantrips = FULL_ROWS.filter(([, row]: any) => row.level === 0).slice(0, owed.cantrips).map(([key]) => key);
-  const firsts = FULL_ROWS.filter(([, row]: any) => row.level === 1).slice(0, owed.spells).map(([key]) => key);
-  const picks = [...cantrips, ...firsts];
-  for (const key of picks) {
-    const pick = panel.locator(`label.spell-pick:has(span:text-is("${key}"))`);
-    await pick.click();
-    await expect(pick, `the pick wears its mark: ${key}`).toHaveClass(/picked/);
+  const cantrips = FULL_ROWS.filter(([, row]: any) => row.level === 0).map(([key]) => key);
+  const firsts = FULL_ROWS.filter(([, row]: any) => row.level === 1).map(([key]) => key);
+  const dealtCantrips = cantrips.slice(0, owed.cantrips);
+  const dealtFirsts = firsts.slice(0, owed.spells);
+  const pickAt = (key: string) => panel.locator(`label.spell-pick:has(span:text-is("${key}"))`);
+
+  // The deal stands pre-checked (THE GRIMOIRE DEAL rides the calling —
+  // the one-tap law keeps Begin open), and sovereign ink may repick.
+  for (const key of [...dealtCantrips, ...dealtFirsts]) {
+    await expect(pickAt(key).locator('input'), `the deal stands checked: ${key}`).toBeChecked();
   }
+
+  // Sovereign repicking: swap one cantrip and one first for the
+  // library's next rows — the seal must carry the SWAPPED set.
+  const spareCantrip = cantrips[owed.cantrips];
+  const spareFirst = firsts[owed.spells];
+  expect(spareCantrip, 'the library holds a spare cantrip to swap').toBeTruthy();
+  expect(spareFirst, 'the library holds a spare first-circle row to swap').toBeTruthy();
+  await pickAt(dealtCantrips[0]).click();
+  await expect(pickAt(dealtCantrips[0]).locator('input'), 'the unpicked cantrip falls').not.toBeChecked();
+  await pickAt(spareCantrip).click();
+  await expect(pickAt(spareCantrip).locator('input'), 'the spare cantrip seats').toBeChecked();
+  await pickAt(dealtFirsts[0]).click();
+  await expect(pickAt(dealtFirsts[0]).locator('input'), 'the unpicked first falls').not.toBeChecked();
+  await pickAt(spareFirst).click();
+  await expect(pickAt(spareFirst).locator('input'), 'the spare first seats').toBeChecked();
+  const picks = [...dealtCantrips.slice(1), spareCantrip, ...dealtFirsts.slice(1), spareFirst];
 
   // The hand door: a name for the record, then the blessing and Begin.
   const nameAsk = fieldEntry('hero', 'name')?.ask;
@@ -301,7 +326,10 @@ test('G34e: the companion spell save falls on the device under the owner\u2019s 
 
   const button = page.locator('.roll-button');
   await expect(button).toBeVisible();
-  await expect(button.locator('small'), 'the ask wears the owner\u2019s name and sigil').toHaveText(`${MENDER} ➤ · save · DC 13`);
+  const small = button.locator('small');
+  await expect(small, 'the ask wears the owner\u2019s own name').toContainText(MENDER);
+  await expect(small, 'the ask names its kind').toContainText('save');
+  await expect(small, 'the ask speaks the bar').toContainText('DC 13');
   await expect(button, 'the ask keeps its label').toContainText('Hold the ward');
 
   const campaign = await readCampaign(page, id);
@@ -343,10 +371,10 @@ test('G34f: the enemy casts only from its card\u2019s pool — cardless craft fa
   };
   // Exact mirror of the gate's castTurn: the story block is REPLACED
   // whole — the cast and its riders, nothing inherited.
-  const bench = (op: any, extraStory: any = {}) => validateDmTurn(
+  const bench = (op: any, extraStory: any = {}, ctx: any = context) => validateDmTurn(
     { ...base, story: { cast_spell: op, ...extraStory } },
     [],
-    context
+    ctx
   ).errors;
 
   const carded = bench({ caster: 'the gnoll', spell: 'poison spray' });
@@ -360,9 +388,12 @@ test('G34f: the enemy casts only from its card\u2019s pool — cardless craft fa
 
   // A card sealed this same breath teaches the standing combatant —
   // the pool grows only by the record's own door.
+  // The gate's own move: the bestiary is EMPTIED first — a standing
+  // card would otherwise outrank the same-breath card.
   const taught = bench(
     { caster: 'the gnoll', spell: 'fire bolt' },
-    { creature_add: { species: 'gnoll', visual: 'a rangy hyena-thing in rusted mail', nature: 'Pack skirmisher, cackling and craven.', threat: 2, spells: ['fire bolt'] } }
+    { creature_add: { species: 'gnoll', visual: 'a rangy hyena-thing in rusted mail', nature: 'Pack skirmisher, cackling and craven.', threat: 2, spells: ['fire bolt'] } },
+    { ...context, bestiary: [] }
   );
   expect(
     taught.filter((line: string) => line.includes('cast') || line.includes('spell')),

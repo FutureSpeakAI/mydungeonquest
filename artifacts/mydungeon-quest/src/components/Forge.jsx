@@ -56,6 +56,22 @@ const ask = (scope, key) => fieldEntry(scope, key).ask;
 // ------------------------------------------------------------
 const sovereignOf = (form) => new Set(Array.isArray(form.__sovereign) ? form.__sovereign : []);
 const markSovereign = (v, key) => [...new Set([...(Array.isArray(v.__sovereign) ? v.__sovereign : []), key])];
+// THE GRIMOIRE DEAL (Directive XVIII §3, bound to the one-tap law of
+// G27c): the owed rows from the same table the atelier reads — the owed
+// cantrips first, then the owed first-circle spells, in the library's
+// own order. Always lawful under validateSpellPicks, so a dealt caster
+// still walks to Chapter One in three choices; the atelier stays the
+// sovereign door for repicking.
+function dealGrimoire(caster) {
+  const owed = knownCountsFor(caster, 1);
+  if (!owed.cantrips && !owed.spells) return [];
+  const table = caster === 'energy' ? 'full' : caster;
+  const rows = Object.entries(SPELL_TABLE).filter(([, row]) => (row.archetypes || []).includes(table));
+  return [
+    ...rows.filter(([, row]) => row.level === 0).slice(0, owed.cantrips),
+    ...rows.filter(([, row]) => row.level === 1).slice(0, owed.spells),
+  ].map(([key]) => key);
+}
 function applyCandidate(v, candidate, force = []) {
   const sov = sovereignOf(v);
   const next = { ...v };
@@ -63,6 +79,15 @@ function applyCandidate(v, candidate, force = []) {
     if (sov.has(key) && !force.includes(key)) continue; // ink stands
     next[key] = value;
     sov.delete(key);
+  }
+  // The calling is one body: a candidate that RESEATS the calling deals
+  // the grimoire with it (the prune below would otherwise thin a stale
+  // deal under the owed counts and wedge the door), and a candidate
+  // that leaves a caster's hands empty gets the deal too. The player's
+  // own picks are sovereign ink and are never redealt.
+  const reseated = typeof candidate.className === 'string' && candidate.className !== v.className;
+  if (next.className && !sov.has('spells') && (reseated || !(Array.isArray(next.spells) && next.spells.length > 0))) {
+    next.spells = dealGrimoire(next.caster);
   }
   return { ...next, __sovereign: [...sov] };
 }
@@ -314,7 +339,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
   // background, abilities, skills — except where the player's ink stands.
   const setCalling = (event) => setForm((v) => {
     const cls = CLASSES.find((c) => c.className === event.target.value) || CLASSES[0];
-    const riders = { caster: cls.caster, hitDie: cls.hitDie, skills: cls.skills, abilities: rollAbilities(cls.className, randomSeed()), bearing: BEARINGS[cls.className], background: BACKGROUNDS[cls.className] };
+    const riders = { caster: cls.caster, hitDie: cls.hitDie, skills: cls.skills, abilities: rollAbilities(cls.className, randomSeed()), bearing: BEARINGS[cls.className], background: BACKGROUNDS[cls.className], spells: dealGrimoire(cls.caster) };
     return { ...applyCandidate(v, riders), className: cls.className, __sovereign: markSovereign({ ...v, __sovereign: (v.__sovereign || []).filter((k) => k !== 'className') }, 'className') };
   });
   const updateAbility = (ability, value) => setForm((f) => ({ ...f, abilities: { ...f.abilities, [ability]: Number(value) }, __sovereign: markSovereign(f, 'abilities') }));
@@ -508,7 +533,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
         const held = Array.isArray(form.spells) ? form.spells : [];
         const heldCantrips = held.filter((key) => SPELL_TABLE[key]?.level === 0).length;
         const heldSpells = held.filter((key) => (SPELL_TABLE[key]?.level ?? 0) >= 1).length;
-        const toggle = (key) => setForm((v) => { const has = Array.isArray(v.spells) ? v.spells : []; return { ...v, spells: has.includes(key) ? has.filter((k) => k !== key) : [...has, key] }; });
+        const toggle = (key) => setForm((v) => { const has = Array.isArray(v.spells) ? v.spells : []; return { ...v, spells: has.includes(key) ? has.filter((k) => k !== key) : [...has, key], __sovereign: markSovereign(v, 'spells') }; });
         const verdict = held.length ? validateSpellPicks({ archetype: form.caster, level: 1, known: [], picks: held }) : { ok: true, errors: [] };
         return <div className="sitting-panel grimoire-picks">
           <h3>The grimoire opens — {owed.cantrips} cantrips, {owed.spells} first-circle spells</h3>

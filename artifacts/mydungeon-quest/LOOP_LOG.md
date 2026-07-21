@@ -3792,3 +3792,39 @@ RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63
   the commons walk itself is G29's court on its housed ledger, and a
   keyless table keeps the commons byte-quiet by law, so a saga court
   re-walking it here would prove nothing this rig can see.
+
+### THE SEATED STORYTELLER ITEM (Directive XIX pre-Stage-Three obligation) — 2026-07-21
+
+- Queue item surfaced: #55 — "Stop newer storyteller models from quietly
+  failing in the writers' room" (recorded 2026-07-20, at 1.2.0's close).
+  Its description, ledgered: newer Anthropic families reject any request
+  carrying `temperature` (HTTP 400); the DM door was cured, but a latent
+  case was believed to sit in the retellings/episodes door of the game
+  server — if its model id ever moved to a new family, the 400 would be
+  eaten by the provider chain's silent degrade, patrons getting fallback
+  output with no error anywhere. Asked: remove or gate the dial there,
+  leave an honest trace on provider failure, pin the shape keylessly.
+- Probe-before-cure diagnosis (artifact:
+  docs/probes/chronicler-door-2026-07-21.md): the named case does not
+  stand in today's bytes. The retellings door (the chronicler's seat)
+  has NEVER carried the dial — a `-S` walk of its whole git history
+  returns nothing — and an unfiltered sweep of the entire game server
+  shows the only remaining `temperature` lines are the OpenAI
+  understudies' lawful zeros (that family still honors the dial) and
+  the smith's honest-null ATTESTATION fields in responses, not requests.
+  The writers'-room cure landed at the July 18 sitting, documented at
+  its seats in the room's own comments.
+- The live probe (keyed, out-of-band, three seats): the chronicler
+  door's exact parameter shape × claude-sonnet-5 → 200; × the elder
+  claude-sonnet-4-6 → 200 (control); the OLD defect planted
+  (temperature: 0 × claude-sonnet-5) → 400 "`temperature` is deprecated
+  for this model" — the Control Law satisfied: the probe proved its own
+  teeth before its greens were believed.
+- Verdict: NO LIVE DEFECT — no cure lands, none is owed. The honest
+  trace the item asked for already stands: the chronicler's provider
+  chain logs each fallen voice by name and its exhausted envelope
+  carries the last error's words — never a silent tier drop. The one
+  remaining ask (a keyless request-shape pin so the regression cannot
+  return) is queue item #55's own scope should the house accept it; the
+  directive commands a cure only for a live defect. The bench is not
+  sick; Stage Three's prose-court recalibration may lawfully seat.

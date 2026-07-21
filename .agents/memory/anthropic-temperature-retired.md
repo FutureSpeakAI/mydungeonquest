@@ -1,12 +1,12 @@
 ---
-name: Anthropic temperature parameter retired
-description: New Anthropic model families 400 any request carrying temperature; silent degrade paths eat the error and quietly serve fallbacks.
+name: Anthropic temperature retired
+description: Newer Anthropic model families 400 any request carrying temperature; where the dial is lawful and where it was purged.
 ---
 
-**The rule:** Do not send `temperature` (any value, including 0) in Anthropic messages requests for current model families (observed July 2026, model resolving to the claude-sonnet-5 family): the API returns 400 "temperature is deprecated for this model". If a "pinned temperature" matters to the product, declare it as evidence/metadata (honest-null for live calls that cannot set it; the mock tier may still declare its own).
+Newer Anthropic families (claude-sonnet-5 onward) reject any request carrying `temperature` — HTTP 400 `` `temperature` is deprecated for this model``. Provider-chain silent degrades EAT the 400 (patrons see fallback output, no error anywhere), so a carried dial is an invisible outage, not a loud one.
 
-**Why:** In MyDungeon.Quest the smith sent `temperature: 0.9` — every live call 400'd and the degrade-to-mock-never-error path seated the mock floor silently. Nothing crashed; the feature simply never went live. Only an in-process probe with an instrumented fetch surfaced the 400.
+**Why:** probed live 2026-07-21 (and at the July 18 room sitting before that): lawful shape × sonnet-5 → 200; the same request with `temperature: 0` planted → 400.
 
-**How to apply:**
-- Grep for `temperature` before shipping any Anthropic call site; remove the parameter rather than tuning it. Sweep EVERY seat in a multi-provider file — a cured Director beside an uncured Editor in the same file survived two audits before an architect review caught it (cured July 2026; only OpenAI seats may keep the dial).
-- Silent-fallback architectures hide provider 400s by design: when a "live" tier mysteriously serves mock output, probe the provider call directly with an instrumented fetch and read the error body before touching prompts or schemas.
+**Status 2026-07-21 (probed, court-grade):** every Anthropic seat in the MyDungeon game server is clean — DM door (cured earlier), writers' room director+editor (cured July 18, law in the seats' own comments), smith (temperature is an honest-null attestation FIELD in responses, never a request param), chronicler/retellings (never carried it; `git log -S` over its history is empty). The only `temperature` request lines left are the OpenAI understudies' lawful zeros — that family still honors the dial. Queue item #55's "latent case in the retellings door" was recorded from a stale note; probe artifact lives at `docs/probes/chronicler-door-2026-07-21.md` in the game artifact.
+
+**How to apply:** never add `temperature` to an Anthropic request. When seating a NEW Anthropic call site, probe its parameter shape × the newest family keyed (expect 200) and plant the dial once (expect 400) so the probe proves its own teeth. Expect the same family-retirement pattern on other dials; silent-degrade chains must log the fallen voice by name so a family retirement is never an invisible outage.

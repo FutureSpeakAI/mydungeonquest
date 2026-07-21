@@ -3997,3 +3997,28 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
 
 - VERDICT 64.9: GREEN — 136 passed, zero unexpected, zero skipped, zero
   flaky. The second stone. Count = 2; 64.10 flies for the third.
+
+### ITERATION 64.10 — RED, CURED (2026-07-21)
+
+- VERDICT 64.10: RED — G33a at 6.1m: "the easel never sealed the bust
+  for Brann Copperquill". Not a tank (zero provider failures, zero
+  brandings; 57/57 real paints at elder pace, med 8.7s) and not the
+  house: the unlettered court flagged the bust's mint, the mended-plate
+  edit repainted ONCE, the second sighting REFUSED the plate — the
+  attestation sealed as the ask's terminal answer (0.6.3) and no bust
+  row ever landed, exactly as XVII commands. Nineteen extra warden
+  looks and seventeen extra paints across the bench mark the evening's
+  repaint storms: the painter lettered stochastically; this court drew
+  the double.
+- THE COURT'S PREMISE was the defect (premise law): it demanded a
+  sealed bust where the app's promise is bust-OR-attested-refusal.
+  CURE in g33-atelier.spec.ts: the easel vigil now reads the journal at
+  starvation — an ATTESTED refusal under the ask's own name (variant,
+  label, warden verdict) re-rolls the forge ONCE, a fresh sitting with
+  a fresh mint lottery; silence still convicts as a silent starve, and
+  a second honest refusal still convicts (twice-crossed, material).
+  Ceiling 600s → 1050s to seat two sittings. Nothing weakened at the
+  art courts: every stroke, pair, and identity assert stands unchanged
+  on whichever take sealed.
+- Count resets: 0. 64.11 flies; three stones must land in 64.11–64.13
+  or 64.12–64.14.

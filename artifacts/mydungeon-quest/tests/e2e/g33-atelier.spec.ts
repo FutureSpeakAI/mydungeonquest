@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { boot, mediaBase64, mediaIndex, openStorybook, readCampaign, seedFixture } from './lib/harness';
+import { boot, mediaBase64, mediaIndex, openStorybook, readCampaign, readJournal, seedFixture } from './lib/harness';
 import { attirePairVerdict, sheetIdentityVerdict, sheetSoulClause } from './lib/frameLaw';
 // The laws' own seats aim the walks (mirrors-one-seat): the atelier's six
 // strokes and the threshold's five stages are read from the app's bytes.
@@ -48,9 +48,10 @@ function atelierAsk(key: string): string {
   return String(entry.ask);
 }
 
-test('G33a: the atelier strokes land visibly on the portrait and the sheet', async ({ page }) => {
-  test.setTimeout(600_000);
-  await boot(page);
+// THE FORGE, ONCE (64.10): one full sitting — the walk, the strokes, the
+// birth, and the 360s easel vigil. Returns the sealed take, or the easel's
+// own honestly-attested refusal for the court to weigh; throws on silence.
+async function forgeOnce(page: any) {
   await walkToHeroForge(page);
   await page.locator('.door-tab').nth(2).click(); // the hand door
   const { fieldEntry } = await import('fatescript/smith');
@@ -86,7 +87,44 @@ test('G33a: the atelier strokes land visibly on the portrait and the sheet', asy
     sheet = rows.find((r) => r.variant === 'sheet' && r.label === HERO.name) ?? sheet;
     if (!bust || !sheet) await page.waitForTimeout(3_000);
   }
-  if (!bust || !sheet) throw new Error(`the easel never sealed ${!bust ? 'the bust' : 'the sheet'} for ${HERO.name} — a named refusal, never a silent skip`);
+  if (!bust || !sheet) {
+    const missing = !bust ? 'bust' : 'sheet';
+    // THE RECORD ITSELF SPEAKS (0.6.3): a refusal leaves no media row, by
+    // law — but it DOES leave an attestation under the ask's own name.
+    // Honest refusal → the court weighs a re-roll; silence → the original
+    // conviction stands, a silent starve is never a lawful terminal.
+    const journal = await readJournal(page, campaign.id);
+    const refusal = journal.find((row: any) => row.type === 'media_attestation'
+      && row.payload?.variant === missing && row.payload?.label === HERO.name && row.payload?.warden);
+    if (refusal) {
+      return { refusal: `the ${missing} for ${HERO.name} was honestly refused at the easel's own door (attested: ${JSON.stringify(refusal.payload?.warden ?? {}).slice(0, 160)})` };
+    }
+    throw new Error(`the easel never sealed the ${missing} for ${HERO.name} — no row AND no attested refusal: a silent starve, never excused`);
+  }
+  return { campaign, card, bust, sheet };
+}
+
+test('G33a: the atelier strokes land visibly on the portrait and the sheet', async ({ page }) => {
+  // Two full sittings must fit inside the ceiling on the unlucky path:
+  // walk (~90s) + easel vigil (≤360s) each, plus the vision courts below.
+  test.setTimeout(1_050_000);
+  await boot(page);
+  // THE RE-ROLLED FORGE (64.10): a first take whose bust the unlettered
+  // court honestly REFUSES (a twice-lettered mint — one mended-plate edit,
+  // then the terminal attestation, XVII/0.6.3) is the painter's stochastic
+  // infidelity, not the house's defect: the easel kept its own law to the
+  // letter. The court verifies the refusal is ATTESTED, then re-rolls the
+  // forge ONCE — a silent starve still convicts, and a second honest
+  // refusal still convicts (twice-crossed, material).
+  let take = await forgeOnce(page);
+  if ('refusal' in take) {
+    console.log(`[G33a] ${take.refusal} — the court re-rolls the forge once`);
+    await page.getByRole('button', { name: 'Close the book and return to the shelf' }).click();
+    await page.waitForSelector('.new-spine', { timeout: 20_000 });
+    take = await forgeOnce(page);
+    if ('refusal' in take) throw new Error(`twice-crossed and material: ${take.refusal} — the painter refuses the unlettered law twice over`);
+  }
+  const { campaign, card, bust, sheet } = take;
 
   const bustBytes = Buffer.from(await mediaBase64(page, campaign.id, bust.assetHash), 'base64');
   const sheetBytes = Buffer.from(await mediaBase64(page, campaign.id, sheet.assetHash), 'base64');

@@ -4088,3 +4088,11 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   the 58C hearth ghost was the first. A third appearance of this
   family is blocker-grade on sight and triggers a bench-serialization
   review as instrument work before any further counted run.
+
+### ITERATION 64.13 — GREEN (2026-07-21)
+
+- VERDICT 64.13: GREEN — 136 passed, zero unexpected, zero skipped,
+  zero flaky. The ratified verbatim flight under the freeze: the cured
+  die court passed at bench load, the bust sealed on the first sitting
+  (attire pair 0.97, sheet identity 0.82), and the dom project cast no
+  shadow. The first stone. Count = 1; 64.14 flies.

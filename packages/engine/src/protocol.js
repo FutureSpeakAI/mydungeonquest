@@ -8,6 +8,11 @@ import { ENCHANT_TABLE } from './armory.js';
 // spell library — keys, levels, concentration — never a mirror of it.
 import { spellRowFor } from './grimoire.js';
 
+// THE WORLD SHAPE COURT (Directive XIX, Article VIII): the state enum
+// reads from its one seat. Function-time use only, so the story/protocol
+// import cycle stays inert.
+import { REGION_STATES } from './story.js';
+
 const ALLOWED_KEYS = new Set(['narration_blocks','suggestions','roll_request','state_updates','combat','cinematic','story','image_cue','dialogue_cue','time_advance','entropy_use']);
 const CINEMATIC_TYPES = new Set(['chapter','boss_reveal','discovery','ominous','level_up','death','victory']);
 const ROLL_KINDS = new Set(['check','save','attack','damage','death_save']);
@@ -22,6 +27,45 @@ function assert(condition, message, errors) { if (!condition) errors.push(messag
 // guardianship untouched. Context may carry threads: [{label, status}].
 const THREAD_KINDS = new Set(['promise','debt','mystery','goal']);
 const THREAD_OUTCOMES = new Set(['kept','broken','resolved']);
+// THE WORLD SHAPE COURT (Directive XIX, Article VIII) — the architect's
+// finding C, cured at the door. Every world payload is judged for shape
+// (a plain object with known keys only), bounds (the schema's own
+// fences), and strangers, all refused BY NAME; the fold's silent bend
+// retires to a last belt that writes a standing note. Presence law
+// holds: an absent or null world owes nothing, and the bounds mirror
+// the declared tool schema exactly — the door enforces what the schema
+// already promised, so no lawful payload changes meaning.
+function validateWorldShape(story, context, errors) {
+  if (!story || typeof story !== 'object' || Array.isArray(story)) return;
+  if (!Object.hasOwn(story, 'world') || story.world == null) return;
+  const world = story.world;
+  if (typeof world !== 'object' || Array.isArray(world)) { errors.push('world must be a plain object'); return; }
+  for (const key of Object.keys(world)) {
+    if (!['blight_delta', 'region_add', 'region_update'].includes(key)) errors.push(`world carries the stranger key "${key}"`);
+  }
+  if (world.blight_delta != null && (!Number.isInteger(world.blight_delta) || world.blight_delta < -5 || world.blight_delta > 5)) {
+    errors.push('world.blight_delta must be an integer between -5 and 5');
+  }
+  const add = world.region_add;
+  if (add != null) {
+    if (typeof add !== 'object' || Array.isArray(add)) errors.push('world.region_add must be a plain object');
+    else {
+      for (const key of Object.keys(add)) if (!['name', 'visual'].includes(key)) errors.push(`world.region_add carries the stranger key "${key}"`);
+      if (!(cleanText(add.name, 100) && String(add.name).trim().length >= 3)) errors.push('world.region_add.name must be 3-100 chars');
+      if (!(cleanText(add.visual, 360) && String(add.visual).trim().length >= 10)) errors.push('world.region_add.visual must be 10-360 chars');
+    }
+  }
+  const update = world.region_update;
+  if (update != null) {
+    if (typeof update !== 'object' || Array.isArray(update)) errors.push('world.region_update must be a plain object');
+    else {
+      for (const key of Object.keys(update)) if (!['name', 'state'].includes(key)) errors.push(`world.region_update carries the stranger key "${key}"`);
+      if (!(cleanText(update.name, 100) && String(update.name).trim().length >= 3)) errors.push('world.region_update.name must be 3-100 chars');
+      if (!REGION_STATES.includes(update.state)) errors.push(`world.region_update.state must be one of the standing states: ${REGION_STATES.join(', ')}`);
+    }
+  }
+}
+
 function validateThreads(story, context, errors) {
   if (!story || typeof story !== 'object') return;
   const known = context.threads || [];
@@ -737,6 +781,7 @@ function validateImageCue(payload, context, errors) {
 export function validateDmTurn(payload, entropyPool = [], context = {}) {
   const errors = [];
   if (payload && typeof payload === 'object') {
+    validateWorldShape(payload.story, context, errors);
     validateThreads(payload.story, context, errors);
     validateTrove(payload.story, context, errors);
     validatePurse(payload.story, context, errors);

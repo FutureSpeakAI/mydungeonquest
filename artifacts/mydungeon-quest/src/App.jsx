@@ -16,6 +16,9 @@ import { tableOf } from 'fatescript/table';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
 import { applyCast, applyMilestone, applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll, milestoneLevel } from 'fatescript/rules';
 import { ACT_NAMES, actInfo, applyPartyMilestone, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
+// THE SPINE MINT (Directive XIX, Article I) — the mint door and the
+// floor's rumor pool, from the story smith's one seat.
+import { mockStorySmith, sealSpineMint } from 'fatescript/storySmith';
 import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
 // THE ARMORY (XVIII): the derived-AC settle and the attack governance
 // ride from the engine's one seat; the calendar fold stamps the rest.
@@ -1112,13 +1115,31 @@ export default function App() {
     // A voice blessed at the audition is kept; otherwise the casting session
     // reads the finished forge card — presentation included.
     hero.voiceId = heroInput.voiceId || castHeroVoice(hero);
+    // THE SPINE MINT (Directive XIX, Article I) — every new volume seats
+    // ONE minted spine, attested, cached forever. A bespoke roll arrives
+    // already courted by the smith's messenger; the shelf path mints one
+    // of the nine with the floor's own rumor pool (the horizon's ground,
+    // Article VII). The mint door is fail-closed: an unlawful parcel
+    // falls back to the shelf mint, which cannot fail. Legacy campaigns
+    // carry no mint and walk untouched — the law is additive.
+    const rolled = worldDraft.bespokeSpine && worldDraft.bespokeSpine.spine ? worldDraft.bespokeSpine : null;
+    const mintSeed = Number(rolled?.seed) || nameSeed(`${worldDraft.title}:${worldDraft.covenant}`);
+    const shelfMint = () => {
+      const floorPool = mockStorySmith({ covenant: worldDraft.covenant, tone: worldDraft.tone, seed: mintSeed });
+      return sealSpineMint(null, { spine: { id: worldDraft.spineId }, rumors: floorPool.rumors, source: 'shelf', seed: mintSeed });
+    };
+    let minted = rolled
+      ? sealSpineMint(null, { spine: rolled.spine, rumors: rolled.rumors, source: rolled.provider === 'anthropic' ? 'smith' : 'mock', seed: mintSeed, provider: rolled.provider || null, model: rolled.model || null })
+      : shelfMint();
+    if (!minted.ok) minted = shelfMint();
+    const spineMint = minted.ok ? minted.mint : null;
     // The lawful init path seeds the trove from the forge keepsake,
     // cited to turn zero (Directive VI).
-    const codex = initCodex(worldDraft.spineId, hero.keepsake ? { keepsake: { name: hero.keepsake, holder: hero.name } } : {});
+    const codex = initCodex(spineMint ? spineMint.spine : worldDraft.spineId, hero.keepsake ? { keepsake: { name: hero.keepsake, holder: hero.name } } : {});
     const campaign = {
       id, title: worldDraft.title, covenant: worldDraft.covenant, tone: worldDraft.tone,
       lines: worldDraft.lines, veils: worldDraft.veils, styleBible: worldDraft.styleBible, homeRegion: worldDraft.homeRegion,
-      spineId: worldDraft.spineId, hero, codex, logs: [], combat: null, pendingRoll: null,
+      spineId: spineMint ? spineMint.spine.id : worldDraft.spineId, spineMint, hero, codex, logs: [], combat: null, pendingRoll: null,
       turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null, heroBustHash: null,
       mediaTier: settings.mediaTier, spend: { images: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };

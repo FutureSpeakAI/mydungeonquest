@@ -3723,3 +3723,24 @@ STAGE TWO GATES (XVIII IV–VI, recorded per the standing law):
   constant IS the row's source (seat-binding, mirrors-one-seat law).
 - Keyless chain green with all three cures and their benches seated.
 RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63.9 rerun per the one-crossing law); sitting 2026-07-21, two narrow parallel static reviews over the directive diff — three convictions cured (craftless sheet, same-breath target, sovereign excess) with benches seated in 3854567, one deferred by name, one declined by seat-binding; sentence spoken 2026-07-21 in this close.
+
+## TASK 64 — THE UNBOUND WORLD (Directive XIX; window 64.1–64.14)
+
+- 64 stage one: NEW GATE evals/storySmith.test.mjs — the story smith law
+  (Article I): the nine exemplars calibrate the court both ways (pass as
+  shelf, refuse as bespoke BY NAME), the refusal matrix lands by name
+  (strangers, fences, act arithmetic, reveal law, deadline order, role
+  vocabulary), the sweeps guard villainDesign and every rumor, the
+  keyless floor is deterministic in (covenant, tone, carryover, seed),
+  carryover threads reach the horizon pool, the mint refuses a second
+  seating forever, and the live tool schema is proven a MIRROR of the
+  court from the one seat (enums real, fences as bounds).
+- 64 stage one: NEW GATE evals/worldShape.test.mjs — the world shape
+  court (Article VIII, Section 5 finding C): presence discipline (absent
+  and null owe nothing), refusal matrix by name at validateDmTurn's own
+  door (stranger keys, blight bounds, region fences, one-seat state
+  enum), lawful payloads pass untouched, and the fold's silent bends
+  retire to standing notes (blight clamp names its arithmetic, dupe adds
+  and unknown grounds SPEAK, the belt still refuses unlawful states).
+- 64 stage one: eval chain grows two PASS lines; G13 pin 145 → 147 in
+  the SAME commit (Section 5.2 ladder: 147 → 149 → 153).

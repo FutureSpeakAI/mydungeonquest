@@ -8,7 +8,7 @@ import { portraitPrompt, keyArtPrompt } from '../lib/cinema/prompts.js';
 import { nameSeed } from '../lib/cinema/prologue.js';
 import { oracleWorld, oracleHero, ORACLE_WORLD, ORACLE_HERO, CLASSES, BEARINGS, BACKGROUNDS, rollAbilities } from 'fatescript/forgeRolls';
 import { FIELD_MAP, XCARD_COPY, fieldEntry, spineFromPromise, spineLabel, titleFromPromise, WORLD_KEYS, HERO_KEYS, CALLING_RIDERS } from 'fatescript/smith';
-import { smithSpin } from '../lib/smithClient.js';
+import { smithSpin, spineSpin } from '../lib/smithClient.js';
 import { openSitting, blessSitting, sittingRequired } from '../lib/sitting.js';
 import { ATELIER_FIELDS, dealAppearance, rollAppearance, heroCanonSoul } from '../lib/atelier.js';
 import { dealAuditions } from '../lib/audition.js';
@@ -196,6 +196,11 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
   // it reads the promise. The deep door's picker, once touched, outranks it.
   const sov = sovereignOf(form);
   const effSpine = sov.has('spineId') ? form.spineId : spineFromPromise(form.covenant);
+  // THE STORY SMITH (Directive XIX, Article I) — a rolled bespoke arc, if
+  // one stands. It rides the draft, outranks the promise's shape for
+  // DISPLAY, and yields the moment the shelf picker is touched.
+  const bespoke = form.bespokeSpine && form.bespokeSpine.spine ? form.bespokeSpine : null;
+  const shapeName = bespoke ? bespoke.spine.label : spineLabel(effSpine);
   const effTitle = sov.has('covenant') && !sov.has('title') ? titleFromPromise(form.covenant) : form.title;
 
   // The whole-world die: locks exactly the sovereign ink, redraws the rest.
@@ -214,6 +219,20 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
     const locked = remainderLock(form, WORLD_KEYS, key);
     const result = await smithSpin({ scope: 'field', field: key, locked, seed: randomSeed(), tier: mediaTier });
     setForm((v) => applyCandidate(v, result.candidates[0], [key]));
+  };
+  // THE STORY SMITH'S DIE (Directive XIX, Article I) — the Two Hands at
+  // the spine: pick a shelf arc, or roll a bespoke one fitted to the
+  // covenant. The messenger re-judges the parcel before it lands here;
+  // touching the shelf picker releases the roll — the player's hand
+  // always outranks the smith's.
+  const spineDie = async () => {
+    const dealt = await spineSpin({ covenant: form.covenant, tone: form.tone, seed: randomSeed(), tier: mediaTier });
+    setForm((v) => ({ ...v, bespokeSpine: dealt, __sovereign: markSovereign(v, 'spineId') }));
+  };
+  const pickShelf = (event) => {
+    const value = event.target.value;
+    if (value === '__bespoke') return;
+    setForm((v) => ({ ...v, bespokeSpine: null, spineId: value, __sovereign: markSovereign(v, 'spineId') }));
   };
   // The Oracle composes; its words are the game's hand, not the pen's.
   const oracleWrite = (patch) => setForm((v) => {
@@ -249,7 +268,7 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
   const worldCard = <article className="spin-card">
     <h3>{effTitle}</h3>
     <p>{form.covenant}</p>
-    <div className="spin-meta"><span>{spineLabel(effSpine)}</span><span>{form.tone}</span><span>Home — {form.homeRegion}</span></div>
+    <div className="spin-meta"><span>{shapeName}</span><span>{form.tone}</span><span>Home — {form.homeRegion}</span></div>
   </article>;
 
   return <main className="forge-page page-enter">
@@ -272,7 +291,7 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
         <label className="ask-row"><span className="label-line">{ask('world', 'tone')} <DiceButton label="Spin the feel" onRoll={fieldDie('tone')}/></span>
           <input value={form.tone} onChange={pen('tone')} maxLength={120}/>
         </label>
-        <p className="shape-line">{ask('world', 'shape')} — <b>{spineLabel(effSpine)}</b><small>{fieldEntry('world', 'shape').hint}</small></p>
+        <p className="shape-line">{ask('world', 'shape')} — <b>{shapeName}</b><small>{fieldEntry('world', 'shape').hint}</small></p>
         {worldCard}
         {!xcardDealt && <XCard/>}
         <div className="button-row">
@@ -299,7 +318,13 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
         <label><span className="label-line">{ask('world', 'title')} <DiceButton label="Roll a title" onRoll={fieldDie('title')}/></span><input value={sov.has('title') || !sov.has('covenant') ? form.title : effTitle} onChange={pen('title')} maxLength={80}/></label>
         <label><span className="label-line">{ask('world', 'covenant')} <DiceButton label="Roll a covenant" onRoll={fieldDie('covenant')}/></span><textarea value={form.covenant} onChange={pen('covenant')} rows="5" maxLength={2000}/></label>
         <div className="form-grid">
-          <label>{ask('world', 'spineId')}<select value={effSpine} onChange={pen('spineId')}>{SPINES.map((s) => <option key={s.id} value={s.id}>{s.label} · {s.beats.length} beats</option>)}</select></label>
+          <label><span className="label-line">{ask('world', 'spineId')} <DiceButton label="Forge a bespoke arc" onRoll={spineDie}/></span>
+            <select value={bespoke ? '__bespoke' : effSpine} onChange={pickShelf}>
+              {bespoke && <option value="__bespoke">{bespoke.spine.label} · bespoke</option>}
+              {SPINES.map((s) => <option key={s.id} value={s.id}>{s.label} · {s.beats.length} beats</option>)}
+            </select>
+            {bespoke && <small className="fine-print">A bespoke arc, forged to your covenant — pick any shelf shape to release it.</small>}
+          </label>
           <label><span className="label-line">{ask('world', 'tone')} <DiceButton label="Roll a tone" onRoll={fieldDie('tone')}/></span><input value={form.tone} onChange={pen('tone')} /></label>
           <label><span className="label-line">{ask('world', 'homeRegion')} <DiceButton label="Roll a region" onRoll={fieldDie('homeRegion')}/></span><input value={form.homeRegion} onChange={pen('homeRegion')} /></label>
           <label>{ask('world', 'linesText')}<input value={form.linesText} onChange={pen('linesText')} placeholder="comma separated" /></label>

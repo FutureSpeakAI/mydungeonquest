@@ -308,10 +308,13 @@ app.post('/api/retell', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), 
 // (it degrades to the mock smith, never errors). A malformed ask gets a
 // plain no; a lawful ask ALWAYS gets a lawful, already-judged set.
 app.post('/api/smith', rateLimit(Number(process.env.RATE_LIMIT_SMITH_MAX || 30)), abuseCaps('smith'), async (req, res) => {
-  const { validSmithAsk, smithCandidates } = await import('./smith.js');
+  const { validSmithAsk, smithCandidates, smithStorySpine } = await import('./smith.js');
   const refusal = validSmithAsk(req.body || {});
   if (refusal) return res.status(400).json({ error: refusal });
-  const { scope, field = null, locked, seed } = req.body;
+  const { scope, field = null, locked, seed, covenant = '', tone = '', carryover = null } = req.body;
+  // THE STORY SMITH (Directive XIX, Article I): the spine scope deals ONE
+  // judged { spine, rumors } — the world-forge door's bespoke roll.
+  if (scope === 'spine') return res.json(await smithStorySpine({ covenant, tone, carryover, seed: Number(seed) || 0 }));
   res.json(await smithCandidates({ scope, field, locked: locked || {}, seed: Number(seed) || 0 }));
 });
 

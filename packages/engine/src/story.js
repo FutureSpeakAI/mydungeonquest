@@ -83,8 +83,12 @@ function pushFact(list, fact) {
   return facts.slice(-MAX_FACTS);
 }
 
+// THE STORY SMITH (Directive XIX, Article I): the forge may seat a
+// bespoke spine — minted, courted, and attested at the door — so the
+// init path accepts the spine OBJECT itself as well as a shelf id.
+// Additive: every standing caller passes an id and walks unchanged.
 export function initCodex(spineId, seed = {}) {
-  const spine = getSpine(spineId);
+  const spine = spineId && typeof spineId === 'object' && !Array.isArray(spineId) ? spineId : getSpine(spineId);
   // THE POSSESSIONS CUT (Directive VI): the forge keepsake is the lawful
   // trove seed — cited to turn zero, carried from the forge. troveOf reads
   // the same truth from the hero sheet, so journal and working memory
@@ -412,16 +416,37 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
 
   const world = updates.world;
   if (world) {
-    next.blight = clamp(next.blight + (world.blight_delta || 0), 0, 5);
-    if (world.region_add && !next.regions.some((region) => canonName(region.name) === canonName(world.region_add.name))) {
-      next.regions.push({
-        id: world.region_add.id || `region-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`,
-        name: clean(world.region_add.name, 100), visual: clean(world.region_add.visual, 360), state: 'thriving'
-      });
+    // THE WORLD SHAPE COURT (Directive XIX, Article VIII) — the door
+    // (validateDmTurn's world court) now refuses malformed payloads by
+    // name before they reach this fold. What remains here is a last
+    // belt, and the belt SPEAKS: the silent bend retires in favor of a
+    // standing note in the record.
+    const stood = next.blight;
+    const delta = world.blight_delta || 0;
+    const target = stood + delta;
+    next.blight = clamp(target, 0, 5);
+    if (delta && next.blight !== target) {
+      next.notes.push(`The blight cannot leave 0..5 — held at ${next.blight} (stood ${stood}, asked ${delta > 0 ? '+' : ''}${delta}).`);
+    }
+    if (world.region_add) {
+      if (next.regions.some((region) => canonName(region.name) === canonName(world.region_add.name))) {
+        next.notes.push(`The region ${clean(world.region_add.name, 100)} already stands — the add folded away.`);
+      } else {
+        next.regions.push({
+          id: world.region_add.id || `region-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`,
+          name: clean(world.region_add.name, 100), visual: clean(world.region_add.visual, 360), state: 'thriving'
+        });
+      }
     }
     if (world.region_update) {
       const region = next.regions.find((entry) => canonName(entry.name) === canonName(world.region_update.name));
-      if (region && REGION_STATES.includes(world.region_update.state)) region.state = world.region_update.state;
+      if (!region) {
+        next.notes.push(`region_update names ${clean(world.region_update.name, 100)} — the record holds no such ground; folded away.`);
+      } else if (!REGION_STATES.includes(world.region_update.state)) {
+        next.notes.push(`region_update asks an unknown state for ${region.name} — folded away.`);
+      } else {
+        region.state = world.region_update.state;
+      }
     }
   }
 

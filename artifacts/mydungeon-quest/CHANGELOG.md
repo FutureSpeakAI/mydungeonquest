@@ -2,6 +2,10 @@
 
 > A chronology note (reconciliation, 2026-07-20): the version labels below run in build order — 1.0.1 (the Beta Cut, Task 60B) built while Task 61 THE COMMONS stood halted at 61.7; the Commons then resumed and closed as 1.1.0; the caching commission closed as 1.1.1. Window numbers diverge from task numbers in one place: the proving window 62.x belongs to the Beta Cut (Task 60B), and Task 62 THE OPEN HOUSE has not run. Nothing below is renumbered; this note is the map.
 
+## 1.3.0 — The Unbound World (in progress)
+
+**Directive XIX — the story smith, the saga, the open road (Task 64).** The compass unbinds, the ledger never does. Stage One: the story smith forges a bespoke spine fitted to the table's covenant — courted whole against the nine exemplars' own calibration (twelve to fifteen beats, acts that never descend, a reveal past the first act, deadlines marching strictly forward, an eight-word role vocabulary), swept like every player-facing string, dealt with a deterministic keyless floor, and MINTED once per volume with an honest attestation. The world shape court (the architect's finding C) seats in the turn door itself: strangers, bounds, and shapes refused by name, while the fold's silent bends retire to standing notes in the record.
+
 ## 1.2.0 — The Armory and the Art
 
 **Directive XVIII — the armory, the rune, the rest, the grimoire, the casting, the painted spell (Task 63).** The tables come home to one seat: the armory (weapons, armor, runes) and the grimoire (every spell the house deals) live in the engine's own bytes, and every court, schema enum, and fold imports from those seats — never a mirror. Armor class is DERIVED from the worn rows and the era of `ac_set` ends (the op is retired at the door); attacks are governed end-to-end from sheet bytes with rune modifiers named in the fold's own notes; the worn law holds at the equip fold — one weapon or tool in hand, one worn suit, one shield. The enchant law lays at most ONE rune per notable thing, by table key alone, and the long rest restores by the tables ONCE per calendar day of world time.

@@ -73,8 +73,12 @@ test('G33a: the atelier strokes land visibly on the portrait and the sheet', asy
   expect(String(card?.signature ?? ''), 'the sealed signature carries the accessory stroke').toContain('crimson scarf');
 
   // The easel works while the story runs — poll the media index for the
-  // sealed bust and the derived sheet (live paint; generous patience).
-  const deadline = Date.now() + 180_000;
+  // sealed bust and the derived sheet (live paint). Patience trued to the
+  // SLOWEST honest painter: with the primary's tank empty (provider-
+  // declared spend cap) the understudy needs 54–78s a plate, and the bust
+  // and its derived sheet queue behind the genesis plates — this window
+  // serves the degraded house's honest pace, never the primary's alone.
+  const deadline = Date.now() + 360_000;
   let bust: any = null; let sheet: any = null;
   while (Date.now() < deadline && (!bust || !sheet)) {
     const rows = (await mediaIndex(page, campaign.id)) as any[];

@@ -3911,3 +3911,22 @@ RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63
   the degraded house honestly keeps). G5 solo green in 2.7m with six
   plates at the understudy's pace, the memo's skip line on the record.
 - RUN_REQUESTED 64.4 — greens must be consecutive; the count restarts.
+
+### ITERATION 64.4 — red; one conviction, the family swept whole (2026-07-21)
+
+- VERDICT 64.4: red — 1 unexpected (G33a); zero skipped, zero flaky;
+  every 64.3 cure held (G5 green at the understudy's pace, tooth 22
+  green through the shared walk, G35 and G36 whole, 135 passed).
+- G33A (the fresh-mint patience family, second seat): the atelier court
+  polls the media index for the sealed bust AND its derived sheet — live
+  paints, queued behind the genesis plates. Its 180s window wore the
+  primary painter's calibration; the bust landed, the sheet was still in
+  the queue when the poll threw its named refusal. No app defect: the
+  easel seals honestly at the understudy's pace. CURE: patience trued to
+  the slowest honest painter (180s → 360s inside the court's standing
+  600s ceiling), the refusal kept by name. The family is swept WITH
+  intent: the judge's own ledger names the fresh-mint courts — G5 (the
+  genesis easel, trued at 64.3's close) and G33a (the atelier, trued
+  here) are the only two that wait on FRESH paint; every other paint
+  court replays seasoned verdicts from the harvest store.
+- RUN_REQUESTED 64.5 — the count restarts; greens must be consecutive.

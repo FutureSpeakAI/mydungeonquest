@@ -4022,3 +4022,10 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   on whichever take sealed.
 - Count resets: 0. 64.11 flies; three stones must land in 64.11–64.13
   or 64.12–64.14.
+
+### ITERATION 64.11 — GREEN (2026-07-21)
+
+- VERDICT 64.11: GREEN — 136 passed, zero unexpected, zero skipped,
+  zero flaky. First flight after the re-rolled-forge cure: the bust
+  sealed on the first sitting (no re-roll drawn), attire pair 0.97,
+  sheet identity 0.93. The first stone. Count = 1; 64.12 flies.

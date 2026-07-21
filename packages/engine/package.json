@@ -1,6 +1,6 @@
 {
   "name": "fatescript",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "The FateScript engine — the deterministic law layer for AI-governed, player-driven narratives. Give the model all of the talent and none of the authority.",
   "license": "MIT",
   "type": "module",

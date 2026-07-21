@@ -4129,3 +4129,21 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   cure's landing commit through this seal.
 - The hunt is closed. What remains is the ritual: the architect's
   sitting on the full diff, the versions, the RITUAL COMPLETE line.
+
+### TASK 64 — RITUAL COMPLETE (2026-07-21)
+
+- The three stones: 64.13, 64.14, 64.15 — three consecutive greens,
+  136 seats each, sealed inside the ruling's span; 64.16–64.17
+  returned unspent. The freeze held from the cure's landing commit
+  through this line: no game, test, question, or fixture byte moved.
+- The architect's sitting on the full diff (c8d09c9~1..HEAD, 47
+  files, ~3950 insertions): PASS — NO SEVERE FINDINGS. The smith's
+  candidate validation fail-closed; the protocol's new courts enforced
+  in validateDmTurn, not merely declared; the seal unweakened; the
+  tank memo honest with no false-exhaustion class reopened; no court
+  assert weakened. The advisory note (telemetry for unmatched provider
+  refusal shapes) is banked for a future task, not this window.
+- The versions seal the close: mydungeon-quest 1.2.0 → 1.3.0; engine
+  1.1.0 → 1.2.0; the CHANGELOG's 1.3.0 heading stands without its
+  "(in progress)".
+- RITUAL COMPLETE. The world is unbound, and the ledger holds.

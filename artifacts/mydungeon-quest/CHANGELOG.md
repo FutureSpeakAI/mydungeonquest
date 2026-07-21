@@ -2,7 +2,7 @@
 
 > A chronology note (reconciliation, 2026-07-20): the version labels below run in build order — 1.0.1 (the Beta Cut, Task 60B) built while Task 61 THE COMMONS stood halted at 61.7; the Commons then resumed and closed as 1.1.0; the caching commission closed as 1.1.1. Window numbers diverge from task numbers in one place: the proving window 62.x belongs to the Beta Cut (Task 60B), and Task 62 THE OPEN HOUSE has not run. Nothing below is renumbered; this note is the map.
 
-## 1.3.0 — The Unbound World (in progress)
+## 1.3.0 — The Unbound World
 
 **Directive XIX — the story smith, the saga, the open road (Task 64).** The compass unbinds, the ledger never does. Stage One: the story smith forges a bespoke spine fitted to the table's covenant — courted whole against the nine exemplars' own calibration (twelve to fifteen beats, acts that never descend, a reveal past the first act, deadlines marching strictly forward, an eight-word role vocabulary), swept like every player-facing string, dealt with a deterministic keyless floor, and MINTED once per volume with an honest attestation. The world shape court (the architect's finding C) seats in the turn door itself: strangers, bounds, and shapes refused by name, while the fold's silent bends retire to standing notes in the record.
 

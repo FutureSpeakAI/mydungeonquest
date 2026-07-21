@@ -144,3 +144,6 @@ with no .exit file lies in wait for the next poll), (2) rewrite the
 flag, (3) only then restart the workflow. The flag write and the
 workflow restart must never ride the same concurrent batch — boot can
 read before the write lands.
+
+## Promises are OR-shaped (64.10 lesson)
+- Many app laws terminate in result-OR-attested-refusal. A court that demands only the happy branch reds on lawful terminals (e.g. a twice-lettered mint honestly refused with its attestation sealed). Verify the attested branch by the record's own name (variant/label/verdict), then re-roll the stochastic input ONCE; silence — no row AND no attestation — still convicts, and a second honest refusal still convicts.

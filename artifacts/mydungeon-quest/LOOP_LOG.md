@@ -4096,3 +4096,11 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   die court passed at bench load, the bust sealed on the first sitting
   (attire pair 0.97, sheet identity 0.82), and the dom project cast no
   shadow. The first stone. Count = 1; 64.14 flies.
+
+### ITERATION 64.14 — GREEN (2026-07-21)
+
+- VERDICT 64.14: GREEN — 136 passed, zero unexpected, zero skipped,
+  zero flaky (attire pair 0.97, sheet identity 0.93; first-sitting
+  seal again). The second stone. Count = 2. The original window is
+  spent; per the RULING the hunt continues into the extension slots
+  once the 64.12 cure's validation artifact lands below.

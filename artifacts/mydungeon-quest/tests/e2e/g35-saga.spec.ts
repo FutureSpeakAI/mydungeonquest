@@ -18,6 +18,8 @@ import { openThreadsOf } from 'fatescript/threads';
 
 const EXPORT_DIR = path.join(process.cwd(), 'test-results', 'g35-exports');
 
+import { openKeepsakes, sealCurrentVolume, waitForWordedSuccessor } from './lib/sagaWalk';
+
 /** Reads journal rows WHOLE (the round-trip rider): a verbatim JSON
  * round-trip, never a field-by-field rebuild that drops new blocks. */
 async function journalRows(page: Page, id: string): Promise<any[]> {
@@ -56,70 +58,12 @@ async function forgeSecondVolume(page: Page, { smith }: { smith: boolean }) {
   await page.locator('button', { hasText: 'A winter passes' }).click();
 
   // The successor seats and its FIRST WORD lands (pours dispatch before any
-  // paint; the mock DM answers keyless). The court waits on the record.
-  // (Mechanics note: waitForFunction with an ASYNC predicate + interval
-  // polling resolved an unawaited-promise handle — jsonValue() read null
-  // while the row stood lawful in the db. The court now polls with the
-  // probe's own proven instrument: a one-shot evaluate in a loop.)
-  let vol2Id: string | null = null;
-  const pollDeadline = Date.now() + 120_000;
-  while (!vol2Id && Date.now() < pollDeadline) {
-    vol2Id = await page.evaluate(async (elderId: string) => {
-      const { db } = await import('/src/lib/db.js');
-      const all = await db.campaigns.toArray();
-      const next = all.find((c: any) => c.id !== elderId && c.saga && Array.isArray(c.saga.volumes) && c.saga.volumes.length > 0 && !c.sealedAt);
-      if (!next) return null;
-      const worded = (Array.isArray(next.logs) ? next.logs : []).some((l: any) => l && l.dm && l.recordHash && !l.kind);
-      return worded ? next.id : null;
-    }, elder.id);
-    if (!vol2Id) await page.waitForTimeout(1_000);
-  }
-  expect(vol2Id, 'the next volume stands with its first word sealed').toBeTruthy();
+  // paint; the mock DM answers keyless). The court waits on the record —
+  // through the ONE shared walk (lib/sagaWalk carries the instrument
+  // lesson: one-shot evaluate polls, never async+interval waitForFunction).
+  const vol2Id = await waitForWordedSuccessor(page, elder.id);
   await page.waitForSelector('main.adventure-log', { timeout: 30_000 });
   return { elder, elderOpen, elderJournalCount, vol2Id };
-}
-
-/** Walks to the keepsakes panel. A continued elder opens straight to its
- * keepsakes (the shelf's own manner for finished books with successors);
- * a first visit needs the tale-told knock. Several .keepsakes nodes may
- * seat inside the risen ceremony — a bare locator.waitFor() strict-throws
- * on plurality and lies "absent"; the court takes the first, always. */
-async function openKeepsakes(page: Page) {
-  const keeps = page.locator('.keepsakes').first();
-  try {
-    await keeps.waitFor({ timeout: 8_000 });
-  } catch {
-    await page.locator('button', { hasText: /keepsake/i }).first().click({ timeout: 15_000 });
-    await keeps.waitFor({ timeout: 15_000 });
-  }
-}
-
-/** Seals the volume through the same wax the first one wore — the app's
- * OWN ceremony press. A fresh successor is neither near its end nor
- * completed, so the live table hangs no seal door for it (by design);
- * the court stages `completed` in the record (the doom-court device) and
- * walks the tale-told door. The ceremony may auto-rise for a completed
- * tale (the milestone surface) — both doors are the app's own. */
-async function sealCurrentVolume(page: Page, id: string) {
-  await page.evaluate(async (campaignId: string) => {
-    const { db } = await import('/src/lib/db.js');
-    const row = await db.campaigns.get(campaignId);
-    row.completed = true;
-    await db.campaigns.put(row);
-  }, id);
-  await page.reload();
-  await page.waitForSelector('.title-page', { timeout: 45_000 });
-  await page.locator('.book-spine:not(.new-spine)', { hasText: '— Volume' }).first().click();
-  await page.waitForSelector('main.adventure-log', { timeout: 30_000 });
-  const press = page.locator('.press-seal');
-  try {
-    await press.waitFor({ timeout: 8_000 }); // the ceremony rose on its own
-  } catch {
-    await page.locator('.tale-told button', { hasText: 'Seal the chronicle' }).click();
-    await press.waitFor({ timeout: 15_000 });
-  }
-  await press.click();
-  await page.waitForSelector('.keepsakes.next-volume', { timeout: 60_000 });
 }
 
 test('G35a the volume door: the sealed tale forges its successor through the mock smith — minted, cited, carried', async ({ page }) => {

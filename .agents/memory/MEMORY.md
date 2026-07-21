@@ -40,3 +40,6 @@
 - [MyDungeon house-voice dash law](mydungeon-house-voice.md) — deterministic tiers fold at the SOURCE door (pre-chair, pre-validator); live keeps flag→mandatory-revise→ship-door fold; sweep WITH intent.
 - [Prompt-cache anchored windows](prompt-cache-anchored-window.md) — sliding windows defeat prompt caches; anchor stepwise, ONE law across layers; keyed probes need deadlines.
 - [Store seat-binding law](store-seat-binding.md) — courts join only what ONE row seals; fixture rows never meet live values (coincidence greens); verify a court's evidence path before theorizing app defects.
+- [Playwright instrument traps](playwright-instrument-traps.md) — async+interval waitForFunction resolves promise handles; bare waitFor strict-throws on plurality ("absent" lie); dual-door beats blind clicks.
+- [ShellExec session traps](shell-session-traps.md) — nohup background dies with the session (frozen logs); `cd && A & B` strands B in the old cwd; pkill -f self-matches.
+- [MyDungeon court door manners](mydungeon-court-doors.md) — continued elders open straight to keepsakes; unstarted tales hang no seal door (stage completed); forge is two-step; pick rows by createdAt.

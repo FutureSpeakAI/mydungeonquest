@@ -20,7 +20,7 @@ const FIRST_WORD_PINNED_MS = 12_000;
 // most four whispers, one recap per sitting, stillness for those who ask.
 
 test('G5 the prologue pours sealed and the loop turns', async ({ page }) => {
-  test.setTimeout(300_000);
+  test.setTimeout(420_000); // headroom for the understudy painter's honest pace (see the settle window below)
   // (54C §3.2) THE WIRE LEDGER — every /api/dm and /api/paint request is
   // recorded at initiation, live off the page itself, so the first-word law
   // is asserted on the network, not inferred from pixels. Each paint's lane
@@ -174,7 +174,11 @@ test('G5 the prologue pours sealed and the loop turns', async ({ page }) => {
     const illuminated = Array.from(document.querySelectorAll('main.adventure-log .illustration-panel figcaption'))
       .some((node) => (node.textContent || '').includes('illuminated'));
     return !stillPainting && illuminated;
-  }, { timeout: 180_000 });
+    // Patience trued to the SLOWEST honest painter: when the primary's
+    // tank is empty (provider-declared spend cap), the understudy needs
+    // 54–78s a plate — the empty-tank memo skips the dead probe, and this
+    // window serves the degraded house's honest pace, not the primary's.
+  }, { timeout: 270_000 });
   const groups: string[][] = await page.evaluate(() =>
     Array.from(document.querySelectorAll('main.adventure-log .turn-entry')).map((entry) =>
       Array.from(entry.children).map((child) => String((child as HTMLElement).className || child.tagName).split(/\s+/)[0]))

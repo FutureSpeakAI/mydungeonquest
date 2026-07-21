@@ -40,6 +40,19 @@ function withTimeout(promise, ms, message) {
 // Walk a provider chain (preferred → … → mock), returning the first success.
 // Each fall-through is logged so the console shows why a paid provider was
 // skipped; mock is the guaranteed floor, needs no timeout, and never throws.
+//
+// THE EMPTY TANK MEMO: a provider that answers with its OWN spend/quota
+// refusal (429 / RESOURCE_EXHAUSTED / spending cap) is out of coin at the
+// source — re-asking it per plate only crawls every chain behind its own
+// backoff (a capped key turned each paint into a 55–75s wait; the bench
+// caught it as G5's easel never settling). The house notes the empty tank
+// and SKIPS that provider for a cooldown window — the Watchtower's spend
+// law, extended to the provider's own word: degrade at once, never crawl,
+// mock the guaranteed floor. The memo is in-memory by design: a restart
+// forgets, and the next ask after the window re-probes honestly.
+const EXHAUST_COOLDOWN_MS = Number(process.env.PROVIDER_EXHAUST_COOLDOWN_MS || 600000);
+const exhaustedUntil = new Map();
+const QUOTA_SHAPE = /\b429\b|RESOURCE_EXHAUSTED|spending cap|quota exceeded|insufficient_quota/i;
 async function runChain(kind, body) {
   const chain = providerChains()[kind];
   const budget = PROVIDER_BUDGET_MS[kind] || 90000;
@@ -51,6 +64,7 @@ async function runChain(kind, body) {
       // simply skipped — the chain degrades to the next artisan (ultimately
       // the mock floor) instead of draining the budget.
       if (provider.name !== 'mock' && !(await spendAllowed(provider.name))) { lastError = new Error(`${provider.name} daily ceiling reached`); continue; }
+      if (provider.name !== 'mock' && (exhaustedUntil.get(provider.name) || 0) > Date.now()) { lastError = new Error(`${provider.name} tank empty (provider-declared, cooling down)`); continue; }
       const call = provider[kind](body);
       const result = provider.name === 'mock' ? await call : await withTimeout(call, budget, `${provider.name} ${kind} timed out after ${budget}ms`);
       if (provider.name !== 'mock') recordSpend(provider.name);
@@ -58,6 +72,10 @@ async function runChain(kind, body) {
     } catch (error) {
       lastError = error;
       console.error(`[${kind}] provider ${provider.name} failed: ${error.message}`);
+      if (provider.name !== 'mock' && QUOTA_SHAPE.test(String(error.message || ''))) {
+        exhaustedUntil.set(provider.name, Date.now() + EXHAUST_COOLDOWN_MS);
+        console.error(`[${kind}] ${provider.name} declared its tank empty — skipped for ${Math.round(EXHAUST_COOLDOWN_MS / 60000)} min`);
+      }
     }
   }
   throw lastError || new Error(`No ${kind} provider available`);

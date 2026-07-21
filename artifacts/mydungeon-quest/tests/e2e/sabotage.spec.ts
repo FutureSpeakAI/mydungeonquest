@@ -360,6 +360,7 @@ test('tooth 21: borrowed papers are refused at the frame and named by the sweep'
 test('tooth 22: a broken inter-volume citation is refused by the desk, by name', async ({ page }) => {
   test.setTimeout(240_000);
   const { seedFixture } = await import('./lib/harness');
+  const { openKeepsakes, waitForWordedSuccessor, sealCurrentVolume } = await import('./lib/sagaWalk');
   await seedFixture(page, { sealed: true });
   const elderId = await page.evaluate(async () => {
     const { db } = await import('/src/lib/db.js');
@@ -368,26 +369,17 @@ test('tooth 22: a broken inter-volume citation is refused by the desk, by name',
   });
 
   // The road goes on through the shelf mint (deterministic; the smith's own
-  // ask is G35a's court, not this tooth's lie).
-  await page.locator('button', { hasText: /keepsake/i }).first().click();
+  // ask is G35a's court, not this tooth's lie). The walk rides the ONE
+  // shared lib — the mint lands the successor on its LIVE table, which
+  // hangs no keepsake door (G35c's lesson), so sealing it means the staged
+  // doom-court device and the app's own tale-told wax, never a blind knock.
+  await openKeepsakes(page);
   await page.waitForSelector('.keepsakes.next-volume', { timeout: 15_000 });
   await page.locator('button', { hasText: 'A winter passes' }).click();
-  const vol2Handle = await page.waitForFunction(async (elder: string) => {
-    const { db } = await import('/src/lib/db.js');
-    const all = await db.campaigns.toArray();
-    const next = all.find((c: any) => c.id !== elder && c.saga && !c.sealedAt);
-    if (!next) return null;
-    const worded = (Array.isArray(next.logs) ? next.logs : []).some((l: any) => l && l.dm && l.recordHash && !l.kind);
-    return worded ? next.id : null;
-  }, elderId, { timeout: 120_000, polling: 1_000 });
-  const vol2Id = (await vol2Handle.jsonValue()) as string;
+  const vol2Id = await waitForWordedSuccessor(page, elderId);
 
   // Seal the successor with the same wax, then carry the saga out whole.
-  await page.locator('button', { hasText: /keepsake/i }).first().click();
-  const press = page.locator('.press-seal');
-  await press.waitFor({ timeout: 15_000 });
-  await press.click();
-  await page.waitForSelector('.keepsakes.next-volume', { timeout: 60_000 });
+  await sealCurrentVolume(page, vol2Id);
 
   const saga = await page.evaluate(async ({ elder, vol2 }: { elder: string; vol2: string }) => {
     const { exportChronicle } = await import('/src/lib/seal.js');

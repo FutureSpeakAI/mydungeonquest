@@ -3874,3 +3874,40 @@ RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63
   unset).
 - RUN_REQUESTED 64.3 — the window demands three consecutive greens,
   ceiling 64.14.
+
+### ITERATION 64.3 — red; two convictions, both cured (2026-07-21)
+
+- VERDICT 64.3: red — 2 unexpected (G5, tooth 22); 35 seats skipped
+  behind G5's dom gate (the eyes counted every missing court by name).
+- TOOTH 22 (second crossing on this tree — material, as the law says):
+  the tooth rode the same broken instrument G35 shed — an async
+  predicate with interval polling resolving an unawaited handle — so its
+  successor wait returned at once, and the follow-on keepsake knock
+  fired into the mint's own transition. The successor lands on its LIVE
+  table, which hangs no keepsake door at all (G35c's lesson); the button
+  the knock had caught detached and never returned; 240s burned. CURE:
+  the volume road's proven doors moved to ONE seat —
+  tests/e2e/lib/sagaWalk.ts (openKeepsakes, waitForWordedSuccessor,
+  sealCurrentVolume) — and G35 and the tooth now walk the same bytes
+  (the mirrors law). Tooth 22 green in 19.2s; the G35 bench 5/5 in 1.0m
+  on the shared lib.
+- G5 (the easel settle): the primary painter's key is spend-capped at
+  the SOURCE (Gemini 429 RESOURCE_EXHAUSTED — the provider's own word,
+  not the Watchtower's ledger). Two truths, two seats:
+  (1) every paint burned a dead probe of the empty tank first — the
+  house now keeps THE EMPTY TANK MEMO in the provider chain: a provider
+  that declares its own spend/quota refusal is skipped for a cooldown
+  window (PROVIDER_EXHAUST_COOLDOWN_MS, default ten minutes) — the
+  Watchtower's spend law extended to the provider's own declaration;
+  degrade at once, never crawl; mock the guaranteed floor; the memo
+  forgets on restart so the next window re-probes honestly.
+  (2) the REAL pace: the understudy painter (OpenAI) honestly needs
+  54–78s a plate where the primary took 8–15s — the settle window was
+  calibrated to the primary. Under bench load the last plate landed
+  past the 180s window and the court called it a wedge. CURE: G5's
+  patience trued to the slowest honest painter — settle 180s → 270s,
+  court ceiling 300s → 420s — with the order assertions untouched (the
+  premise law: the court demands the app's own promises, at the pace
+  the degraded house honestly keeps). G5 solo green in 2.7m with six
+  plates at the understudy's pace, the memo's skip line on the record.
+- RUN_REQUESTED 64.4 — greens must be consecutive; the count restarts.

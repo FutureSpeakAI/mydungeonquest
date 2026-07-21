@@ -3992,3 +3992,8 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   spent; no counted iteration risked on a dry tank.
 - VERDICT 64.8: GREEN — 136 passed, zero unexpected, zero skipped, zero
   flaky. The first stone of the three. Count = 1; 64.9 flies next.
+
+### ITERATION 64.9 — GREEN (2026-07-21)
+
+- VERDICT 64.9: GREEN — 136 passed, zero unexpected, zero skipped, zero
+  flaky. The second stone. Count = 2; 64.10 flies for the third.

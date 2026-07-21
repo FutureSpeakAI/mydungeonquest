@@ -3957,3 +3957,28 @@ RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63
   the house.
 - RUN_REQUESTED 64.7 — the count restarts; greens must be consecutive.
 EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared its tank empty; 1 [speak] openai declared its tank empty; — the understudy's branding came through a sibling chain; the memo keys by provider NAME, so one transient refusal in any chain silenced the painter in all of them. The narrowed shape cures every chain at once.
+
+### ITERATION 64.7 — red twice-told; the tank itself is dry (2026-07-21)
+
+- The first 64.7 bench was SEVERED mid-flight — the container died under
+  it (G33a had already crossed at 7.7s; no verdict was written; a severed
+  run concludes nothing). Re-armed and re-run whole on the same tree.
+- VERDICT 64.7 (the whole run): red — 1 unexpected (G33a at 8.7s, the
+  vision door itself); 135 passed; zero skipped, zero flaky.
+- THE TRUTH, quoted by the memo's new tongue: the understudy's refusal is
+  "insufficient_quota — You exceeded your current quota" (TRUE spend
+  exhaustion, not a transient), and the elder painter stands at its
+  monthly spending cap. Both real painters dry; 142 paints floored to
+  mock in milliseconds; G33a's bust and sheet minted as procedural SVGs,
+  and the vision court's own door refused them by name at the attire
+  pair (Task 52 §0.5 — no silent downgrades). Eight seconds, honestly.
+- 64.6's entry TRUED: those 17 "transient" refusals were the quota wall
+  ARRIVING mid-bench, not a passing squall. The narrowed shape stands on
+  its own right (transients must never brand a tank), and in 64.7 it
+  read the truth correctly — the branding was lawful. 64.6's root moves
+  from "memo overreach" to "the tank ran dry mid-bench"; the memo's old
+  bare-429 shape merely made the drought look like a bug.
+- CURE: none in code — the court is right to refuse, the memo is right
+  to brand, and the house is right to degrade. The cure is FUEL, and
+  whose coin buys it is the owner's word, now asked. The window holds
+  open at 64.7; no flag flies until the owner speaks.

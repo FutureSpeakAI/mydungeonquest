@@ -329,8 +329,23 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
     setForm((v) => {
       const held = Array.isArray(v.spells) ? v.spells : [];
       const table = v.caster === 'energy' ? 'full' : v.caster;
-      const lawful = held.filter((key) => { const row = SPELL_TABLE[key]; return row && row.level <= 1 && row.archetypes.includes(table); });
-      return lawful.length === held.length ? v : { ...v, spells: lawful };
+      const allowed = held.filter((key) => { const row = SPELL_TABLE[key]; return row && row.level <= 1 && row.archetypes.includes(table); });
+      // …and the owed ceilings hold per circle: a reseat that owes fewer
+      // rows (or none) drops the excess, sovereign ink included — the
+      // calling's own table outranks the pen. Begin demands EXACT counts,
+      // and at zero owed the grimoire panel is closed: an excess row
+      // would otherwise stand invisible and unremovable.
+      const owed = knownCountsFor(v.caster, 1);
+      const lawful = [
+        ...allowed.filter((key) => SPELL_TABLE[key].level === 0).slice(0, owed.cantrips),
+        ...allowed.filter((key) => SPELL_TABLE[key].level === 1).slice(0, owed.spells),
+      ];
+      if (lawful.length === held.length) return v;
+      // Erased ink is no ink: a prune that EMPTIES the grimoire drops the
+      // pen's mark with it, so the next caster reseat deals a fresh lawful
+      // hand (the one-tap law) instead of honoring an empty sovereign seat.
+      const sov = (Array.isArray(v.__sovereign) ? v.__sovereign : []).filter((k) => k !== 'spells' || lawful.length > 0);
+      return { ...v, spells: lawful, __sovereign: sov };
     });
   }, [form.caster]);
   const pen = (key) => (event) => setForm((v) => ({ ...v, [key]: event.target.value, __sovereign: markSovereign(v, key) }));
@@ -563,8 +578,10 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
         // the book must stand exact before the chronicle begins — the same
         // arithmetic the door enforces, spoken as a disabled button.
         const owed = knownCountsFor(form.caster, 1);
-        if (owed.cantrips === 0 && owed.spells === 0) return false;
         const held = Array.isArray(form.spells) ? form.spells : [];
+        // zero owed = zero held: the prune clears the excess at the reseat,
+        // and the door refuses the one frame between (exactness, not trust).
+        if (owed.cantrips === 0 && owed.spells === 0) return held.length > 0;
         const cantrips = held.filter((key) => SPELL_TABLE[key]?.level === 0).length;
         const leveled = held.filter((key) => (SPELL_TABLE[key]?.level ?? 0) >= 1).length;
         return cantrips !== owed.cantrips || leveled !== owed.spells || !validateSpellPicks({ archetype: form.caster, level: 1, known: [], picks: held }).ok;

@@ -170,4 +170,29 @@ assert.ok(dmSource.includes(mirrorBytes) && appSource.includes(mirrorBytes), 'bo
 const promptSource = readFileSync(at('../src/lib/systemPrompt.js'), 'utf8');
 assert.ok(promptSource.includes('49. THE CASTING'), 'the casting law speaks in the prompt');
 
+// --- 8. The craftless sheet: seated in the party, absent from the bench ---
+{
+  // Rell rides context.sheets, and the caster bench is seated EMPTY — she
+  // keeps no craft, so the door refuses BY NAME. Before this seat she was
+  // fail-open: the census passed her while every learned/slot/thread court
+  // keyed on a sheetCasters row she never had.
+  refusedWith(castTurn({ caster: 'Rell Marrow', spell: 'fire bolt' }), baseContext(), 'keeps no craft on the sheet', 'the craftless sheet');
+  // …and the refusal is presence-based like every court: an unseated
+  // caster bench proves nothing.
+  const unseated = baseContext(); delete unseated.sheetCasters;
+  assert.equal(verdict(castTurn({ caster: 'Rell Marrow', spell: 'fire bolt' }), unseated).ok, true, 'an unseated caster bench proves nothing (presence law)');
+}
+
+// --- 9. The same-breath target: a soul this turn's cast_add introduces ---
+{
+  // cast_add is an ARRAY by schema and fold; the target census must read
+  // it as one (an object-shaped read refused every lawful same-breath
+  // target with "nobody the record counts").
+  const turn = castTurn(
+    { caster: 'Elaria', spell: 'cure wounds', target: 'Brother Hollis' },
+    { story: { cast_add: [{ name: 'Brother Hollis', visual: 'A dust-robed friar with rope-burned hands.', voice: 'paper-dry hush', goal: 'Atone for the bell he rang', secret: 'He rang it gladly' }] } }
+  );
+  assert.equal(verdict(turn, baseContext()).ok, true, 'a target introduced by this same turn\u2019s cast_add is counted');
+}
+
 console.log('PASS: the casting law holds — every bench refuses by name, one slot per cast with identity on refusal, one thread of concentration, the ledger speaks the release, and a cast is the actor\u2019s whole action');

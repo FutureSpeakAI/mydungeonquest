@@ -356,7 +356,17 @@ function validateCastSpell(story, context, errors) {
   // the party's names seated); a soul nowhere counted may not cast.
   if (typeof context.hero === 'string' && Array.isArray(context.sheets) && !heroSeated && !sheetRow && !combatantRow) {
     const sheetNamed = context.sheets.some((name) => canonKey(name) === key);
-    if (!sheetNamed) errors.push(`cast_spell.caster is nobody the record counts: ${String(cast.caster).trim()}`);
+    if (!sheetNamed) {
+      errors.push(`cast_spell.caster is nobody the record counts: ${String(cast.caster).trim()}`);
+    } else if (Array.isArray(context.sheetCasters)) {
+      // THE CRAFTLESS SHEET — seated in the party, absent from the caster
+      // bench: she keeps no craft, and the cast is refused BY NAME. Before
+      // this seat the sheeted non-caster was fail-open — the census passed
+      // her while every learned/slot/thread court above keyed on a
+      // sheetCasters row she never had. Judged only when the bench itself
+      // is seated (presence law): bare context proves nothing.
+      errors.push(`${String(cast.caster).trim()} keeps no craft on the sheet — the grimoire refuses the cast`);
+    }
   }
   // THE LEARNED LAW — each bench proves the list it holds.
   if (heroSeated && Array.isArray(context.heroSpells)) {
@@ -413,7 +423,7 @@ function validateCastSpell(story, context, errors) {
       || (typeof context.hero === 'string' && canonKey(context.hero) === targetKey)
       || (Array.isArray(context.sheets) && context.sheets.some((name) => canonKey(name) === targetKey))
       || (Array.isArray(context.combatants) && context.combatants.some((foe) => canonKey(foe?.name) === targetKey || canonKey(foe?.id) === targetKey))
-      || (typeof story.cast_add?.name === 'string' && canonKey(story.cast_add.name) === targetKey);
+      || (Array.isArray(story.cast_add) ? story.cast_add : []).some((add) => typeof add?.name === 'string' && canonKey(add.name) === targetKey);
     if (!counted && typeof context.hero === 'string' && Array.isArray(context.sheets)) {
       errors.push(`cast_spell.target is nobody the record counts: ${String(cast.target).trim()}`);
     }

@@ -3693,3 +3693,32 @@ STAGE TWO GATES (XVIII IV–VI, recorded per the standing law):
   carries its painting clause).
 - Nothing else moved: validator untouched, fold untouched. Keyless
   eval chain green (run with AI keys unset — the keyless-only law).
+
+### 63.7 — THE ARCHITECT'S ROUND (three convictions, one deferral, one declination)
+- The sitting: two parallel NARROW static reviews (engine protocol; the
+  forge and its courts), each reading the task's own diff — no suites
+  run, no servers started. Both returned inside ten minutes; the broad
+  single-sitting pattern (wedged twice, cancelled twice) is retired.
+- Conviction A (HIGH): THE CRAFTLESS SHEET — cast_spell's census passed
+  any name on context.sheets, but the learned/slot/thread courts keyed
+  on a sheetCasters row a non-caster companion never had: fail-open.
+  Cured at the census block — seated party name, seated caster bench,
+  no row = refused BY NAME ('keeps no craft on the sheet'), presence-
+  lawed so a bare context still proves nothing. Bench: casting eval §8.
+- Conviction B (HIGH): THE SAME-BREATH TARGET — the target census read
+  story.cast_add as a single object where schema, fold, and every other
+  seat read an ARRAY; every lawful same-turn cast target was refused as
+  'nobody the record counts'. Cured to the array read. Bench: §9.
+- Conviction D (MEDIUM): THE SOVEREIGN EXCESS — a pen-marked grimoire
+  outlived its calling: a full→half reseat kept sovereign wizard rows
+  while the owed-zero panel hid them and Begin's short-circuit shipped
+  them. Cured at BOTH seats: the reseat prune enforces owed ceilings
+  per circle (and an emptied grimoire drops the pen's mark, so the next
+  caster reseat deals one-tap again); Begin refuses held rows even at
+  zero owed (the one-frame belt). Bench: the forge eval's reseat law.
+- Deferred by name: the fold still folds story.world with silent clamps
+  and no validateWorld court (pre-existing, seated as its own task).
+  Declined by name: the 'fixture constants' claim on the armory court —
+  the court's fixture writes the very row it asserts against; the
+  constant IS the row's source (seat-binding, mirrors-one-seat law).
+- Keyless chain green with all three cures and their benches seated.

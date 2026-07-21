@@ -3956,4 +3956,4 @@ RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63
   honest verdict — the loop proves the painters' tanks with the rest of
   the house.
 - RUN_REQUESTED 64.7 — the count restarts; greens must be consecutive.
-EVIDENCE:       1 [paint] gemini declared its tank empty;
+EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared its tank empty; 1 [speak] openai declared its tank empty; — the understudy's branding came through a sibling chain; the memo keys by provider NAME, so one transient refusal in any chain silenced the painter in all of them. The narrowed shape cures every chain at once.

@@ -90,12 +90,21 @@ test('G3 deep forge: five fields whose dice change the values; the oracle fills 
     // The die must change the value. A random table may deal the same card
     // twice in a row, so the roll is proven across up to three throws —
     // the CONTROL is under test, not the odds. (Design note in LOOP_LOG.md.)
+    // 64.12: each throw now WAITS for the value to speak (up to 2s,
+    // polled) before counting its miss — the old fixed 150ms single read
+    // raced the die's landing under parallel-bench load and once counted
+    // three phantom misses. The assert is untouched: the die must still
+    // move the value; a die that holds still through three real waits
+    // convicts exactly as before.
     const before = await control.inputValue();
     let changed = false;
     for (let attempt = 0; attempt < 3 && !changed; attempt += 1) {
       await die.click();
-      await page.waitForTimeout(150);
-      changed = (await control.inputValue()) !== before;
+      const throwDeadline = Date.now() + 2_000;
+      while (Date.now() < throwDeadline && !changed) {
+        changed = (await control.inputValue()) !== before;
+        if (!changed) await page.waitForTimeout(100);
+      }
     }
     expect(changed, `die on "${field.label}" changes the value`).toBe(true);
   }

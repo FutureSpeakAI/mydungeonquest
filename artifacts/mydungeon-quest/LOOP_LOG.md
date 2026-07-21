@@ -4029,3 +4029,24 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   zero flaky. First flight after the re-rolled-forge cure: the bust
   sealed on the first sitting (no re-roll drawn), attire pair 0.97,
   sheet identity 0.93. The first stone. Count = 1; 64.12 flies.
+
+### ITERATION 64.12 — RED, INSTRUMENT CURED (2026-07-21)
+
+- VERDICT 64.12: RED — G3 deep forge ([dom]): 'die on "The world's
+  look" changes the value' counted three misses in 4.7s, and the dom
+  project's shadow skipped 35 dependent courts. Nothing in the app
+  changed since 64.11's green (the diff was a test file and this
+  ledger): the die law stands as it stood through nine green benches.
+- ROOT: the court's own instrument. Each throw was read ONCE, 150ms
+  after the tap — under a four-worker bench with vision judges at the
+  CPU, the die's landing can outrun a fixed sleep, and a same-card
+  deal (the pool deals uniformly and may repeat) spends a throw with
+  no wait at all. Three phantom misses crossed once. One crossing is
+  not conviction, but a provable instrument race is cured on sight
+  (the instrument-trap family): each throw now polls the value up to
+  2s before counting its miss. The assert is untouched — a die that
+  holds still through three real waits convicts exactly as before.
+- Count stands at 0. The window holds only 64.13–64.14 — three
+  consecutive greens no longer fit inside the ceiling of fourteen;
+  the owner is asked for the window's one frozen extension while
+  64.13 flies.

@@ -9,7 +9,7 @@
 // the prompt. Deterministic in its inputs; the pack keeps storyBlock's
 // exact contract keys and only ADDS a compact `scene` note.
 // ------------------------------------------------------------
-import { storyBlock } from './story.js';
+import { standingsOf, storyBlock } from './story.js';
 import { buildCards } from './cards.js';
 import { calendarLine, calendarOf } from './calendar.js';
 import { allegiancesOf } from './atlas.js';
@@ -168,9 +168,31 @@ export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {})
   // day as MECHANICS — the door's once-per-day court reads it on both
   // benches. It rides after the ground (whose gate pins the second
   // seat, right behind the calendar) and never trims.
-  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...(ground ? { scene_ground: ground } : {}), calendar_state: { day: calendarOf(campaign.logs || []).day }, ...pack, traveling_with: travelingWith, ...(elsewhere.length ? { elsewhere } : {}), ...(wealth ? { hero_wealth: wealth } : {}), ...(wields ? { hero_wields: wields } : {}), stated_allegiances: allegiances });
+  // THE OPEN ROAD SEATS (XIX, Articles IV–VI) — fixed positions between
+  // the elsewhere and the wealth line, cache-stable bytes. Open ambitions
+  // ride as BARE texts (the resolve court matches verbatim — no citation
+  // suffix to echo) and never fall: the player's own word is not famine's
+  // to eat. The nearest-full clocks seat bounded to three (deterministic:
+  // fewest segments left, then label); the strongest standings bounded to
+  // four, each score the fold's own sum (standingsOf — no second
+  // arithmetic). Famine grows by exactly ONE tier: the elsewhere falls
+  // first, then the standings, then the stated allegiances, then the
+  // wealth line — and every floor above them stands unmoved.
+  const openAmbitions = (campaign.codex?.ambitions || [])
+    .filter((row) => row && row.status === 'open' && typeof row.text === 'string' && row.text)
+    .map((row) => row.text);
+  const openClocks = (campaign.codex?.clocks || [])
+    .filter((row) => row && row.status === 'open' && typeof row.label === 'string')
+    .map((row) => ({ row, done: Array.isArray(row.ticks) ? row.ticks.length : 0 }))
+    .sort((a, b) => (a.row.segments - a.done) - (b.row.segments - b.done) || String(a.row.label).localeCompare(String(b.row.label)))
+    .slice(0, 3)
+    .map(({ row, done }) => `${row.label} — ${done}/${row.segments}${done >= row.segments ? ' — FILLED: resolve this turn' : ''}${row.ambition ? ` (bound to: ${row.ambition})` : ''}`);
+  let standings = standingsOf(campaign.codex || {}).slice(0, 4)
+    .map((seat) => `${seat.faction} — ${seat.score > 0 ? '+' : ''}${seat.score}`);
+  const brief = () => ({ calendar: calendarLine(campaign.logs || []), ...(ground ? { scene_ground: ground } : {}), calendar_state: { day: calendarOf(campaign.logs || []).day }, ...pack, traveling_with: travelingWith, ...(elsewhere.length ? { elsewhere } : {}), ...(openAmbitions.length ? { open_ambitions: openAmbitions } : {}), ...(openClocks.length ? { open_clocks: openClocks } : {}), ...(standings.length ? { standings } : {}), ...(wealth ? { hero_wealth: wealth } : {}), ...(wields ? { hero_wields: wields } : {}), stated_allegiances: allegiances });
   let out = brief();
   while (JSON.stringify(out).length > budget && elsewhere.length) { elsewhere = elsewhere.slice(0, -1); out = brief(); }
+  while (JSON.stringify(out).length > budget && standings.length) { standings = standings.slice(0, -1); out = brief(); }
   while (JSON.stringify(out).length > budget && allegiances.length) { allegiances = allegiances.slice(0, -1); out = brief(); }
   if (JSON.stringify(out).length > budget && (wealth || wields)) { wealth = null; wields = null; out = brief(); }
   return out;

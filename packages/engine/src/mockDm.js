@@ -282,5 +282,61 @@ function fitToMeasure(turn, input) {
 }
 
 export function mockDmTurn(input) {
-  return fitToMeasure(rawMockDmTurn(input), input);
+  return fitToMeasure(openRoadDuties(rawMockDmTurn(input), input), input);
+}
+
+// THE OPEN ROAD DUTIES (Directive XIX, Articles IV & V) — the mock teller
+// pays the two debts the door will not waive, whatever the script says: a
+// declared ambition seals VERBATIM the very turn it is spoken, and a clock
+// the briefing's own evidence shows FILLED resolves rather than standing
+// silent. One seat, after the script and before the measure, so every
+// scripted branch stays lawful under the new courts.
+function openRoadDuties(turn, input) {
+  const declared = typeof input?.story?.declaration === 'string' && input.story.declaration.trim() ? input.story.declaration : null;
+  const filled = (Array.isArray(input?.story?.clocks_state) ? input.story.clocks_state : [])
+    .filter((row) => row && row.status === 'open' && Number.isInteger(row.ticks) && Number.isInteger(row.segments) && row.ticks >= row.segments)
+    .slice(0, 2);
+  const walk = openRoadWalk(input);
+  if (!declared && !filled.length && !walk) return turn;
+  const story = turn.story && typeof turn.story === 'object' ? { ...turn.story } : {};
+  if (declared) story.ambition_add = [{ text: declared }];
+  if (filled.length) story.clock_resolve = filled.map((row) => ({ label: row.label, outcome: 'lapsed' }));
+  return { ...turn, story: { ...story, ...(walk || {}) } };
+}
+
+// THE OPEN ROAD WALK (Directive XIX; G36's table) — on a MINTED world
+// (every forged world mints a horizon now; bespoke and shelf alike) the
+// mock teller walks every open-road primitive at fixed turns,
+// deterministically: a clock opens and ticks with cited reasons to its
+// fill (the duty seat above resolves it honestly the turn the briefing
+// shows it filled), a standing shifts for a stated reason, a thread opens
+// FROM the horizon carrying its citation, and the spine bends once for
+// the played road's own reason. Legacy and fixture worlds carry no
+// horizon and never see this walk — every sealed elder court replays
+// byte-identical.
+function openRoadWalk(input) {
+  const rumors = Array.isArray(input?.story?.rumors_state) ? input.story.rumors_state.filter((text) => typeof text === 'string' && text) : [];
+  if (!rumors.length) return null;
+  const turn = Number.isInteger(input?.turn) ? input.turn : -1;
+  if (turn === 2) return {
+    clock_open: [{ label: 'The reckoning at the ford', segments: 4 }],
+    standing_shift: [{ faction: 'The River Guild', delta: 2, reason: 'You held the ford when it counted' }]
+  };
+  if (turn === 3) return { clock_tick: [
+    { label: 'The reckoning at the ford', reason: 'The water rises under the pilings' },
+    { label: 'The reckoning at the ford', reason: 'Torches gather on the far bank' }
+  ] };
+  if (turn === 5) return { clock_tick: [
+    { label: 'The reckoning at the ford', reason: 'The horns sound down the valley' },
+    { label: 'The reckoning at the ford', reason: 'The banners crest the ridge' }
+  ] };
+  if (turn === 6) return { thread_add: [{ label: 'The whisper at the ford', kind: 'mystery', rumor: rumors[0] }] };
+  if (turn === 8) {
+    const beats = Array.isArray(input?.spine?.beats) ? input.spine.beats : [];
+    const index = Number.isInteger(input?.story?.beat?.index) ? input.story.beat.index : 0;
+    const bend = beats.length > index + 1 ? beats[beats.length - 1] : null;
+    if (!bend) return null;
+    return { spine_amend: { act: bend.act, beat: bend.title, goal: 'The road bends through the ford the table bloodied', reason: 'The table made the ford its own war and the ending must answer for it' } };
+  }
+  return null;
 }

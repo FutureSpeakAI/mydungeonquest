@@ -35,9 +35,13 @@ const REQUIRED_PROJECTS = [
   'g34-armory',
   // (Directive XIX, Stage Two) the saga court sits by name.
   'g35-saga',
+  // (Directive XIX, Stage Three) the open road court sits by name.
+  'g36-open-road',
 ];
 // Test-title needles that must appear among EXECUTED (non-skipped) tests.
 const REQUIRED_EXECUTED = [
+  // (Directive XIX, Stage Three) the open road court's tables, by name.
+  'G36a', 'G36b',
   // (iteration 54.4's discovery) 'G9a' matched NOTHING: the a-court titles
   // are spelled "G9 a1" / "G9 a2" / "G9 a3/a4" — the needle made every
   // verdict false-negative on that court and the loop unwinnable from

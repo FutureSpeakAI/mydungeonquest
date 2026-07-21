@@ -61,6 +61,7 @@ export default function TravelersChart({ campaign, gallery, onOpenPlace }) {
       <p className="chart-route">{chart.route.length
         ? <>The road so far: {chart.route.map((stand, i) => <span key={i}>{i > 0 ? ' → ' : ''}{stand.ground}{Number.isInteger(stand.turn) ? <span className="cite"> (turn {stand.turn})</span> : null}</span>)}</>
         : 'The road has not yet been walked.'}</p>
+      {(chart.edge_rumors || []).length > 0 && <p className="muted chart-edge-rumors">At the vellum's edge, rumor only — never geography: {chart.edge_rumors.map((rumor, i) => <span key={i} className="edge-rumor">{i > 0 ? ' · ' : ''}“{rumor}”</span>)}</p>}
       <p className="muted chart-vellum-note">Beyond these grounds the vellum stays blank — the record does not guess, so neither does the chart.</p>
     </figcaption>
   </figure>;

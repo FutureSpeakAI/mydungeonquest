@@ -20,7 +20,7 @@
 // ------------------------------------------------------------
 import { readFileSync } from 'node:fs';
 import {
-  MEASURES, foldProse, threadNames, validateBeatIntent, mockDirector, beatIndexOf,
+  MEASURES, foldProse, threadNames, ambitionNames, validateBeatIntent, mockDirector, beatIndexOf,
   editorEvidence, mockEditor, EDITOR_RUBRIC,
   clicheCheck as lawClicheCheck, editorPrePass as lawEditorPrePass
 } from 'fatescript/room';
@@ -35,7 +35,7 @@ import { dashCheck, dashFoldTurn, proseOfTurn, DASH_REASON, EDITOR_ADDENDUM } fr
 // The law, re-spoken through the table's door so every gate, probe,
 // and seat keeps its one import path.
 export {
-  MEASURES, MEASURE_BANDS, threadNames, validateBeatIntent, measureForBeat,
+  MEASURES, MEASURE_BANDS, threadNames, ambitionNames, validateBeatIntent, measureForBeat,
   mockDirector, beatIndexOf, foldProse, echoCheck, jaccard, samenessCheck,
   measureCheck, editorEvidence, EDITOR_RUBRIC, mockEditor
 } from 'fatescript/room';
@@ -90,13 +90,14 @@ const intentToolSchema = {
     intent: { type: 'string', minLength: 12, maxLength: 200, description: 'One sentence: what this beat must accomplish this turn.' },
     secrets_held: { type: 'array', maxItems: 4, items: { type: 'string', maxLength: 120 }, description: 'Truths the narration may know but must not say.' },
     threads_to_touch: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 120 }, description: 'EXACT names of open threads from the briefing that are overdue for payoff.' },
+    ambitions_served: { type: 'array', maxItems: 3, items: { type: 'string', maxLength: 200 }, description: 'EXACT texts of open ambitions from the briefing this beat serves — at least one whenever any stand open.' },
     forbidden_repeats: { type: 'array', maxItems: 5, items: { type: 'string', maxLength: 120 }, description: 'Motifs recently overused; the Voice must refuse them.' },
     measure: { type: 'string', enum: MEASURES, description: 'lean: quiet connective. standard: most beats. rich: arrivals, revelations, act turns.' }
   }
 };
 
 const directorBrief = (input, beatIndex) =>
-  `[SPINE]\n${JSON.stringify(input.spine || null)}\n[BEAT_INDEX]\n${beatIndex}\n[STORY]\n${JSON.stringify(input.story || null)}\n[DIRECTION]\nSit as the Director of this campaign. Hand down beat_intent for the standing beat — one intent sentence, secrets to hold, open threads (exact ledger names only) overdue for motion, motifs to forbid, and the measure by its law: lean for quiet connective beats, standard for most, rich for arrivals, revelations, and act turns.`;
+  `[SPINE]\n${JSON.stringify(input.spine || null)}\n[BEAT_INDEX]\n${beatIndex}\n[STORY]\n${JSON.stringify(input.story || null)}\n[DIRECTION]\nSit as the Director of this campaign. Hand down beat_intent for the standing beat — one intent sentence, secrets to hold, open threads (exact ledger names only) overdue for motion, the open ambitions this beat serves (exact texts — at least one whenever any stand open), motifs to forbid, and the measure by its law: lean for quiet connective beats, standard for most, rich for arrivals, revelations, and act turns.`;
 
 async function anthropicIntent(input, beatIndex) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -143,12 +144,13 @@ async function directorSits(input, beatIndex, { barred = {} } = {}) {
   const plan = dmPlan(barred);
   if (plan[0] === 'mock') return mockDirector(input, beatIndex);
   const threads = threadNames(input?.story);
+  const ambitions = ambitionNames(input?.story);
   for (const provider of plan) {
     if (provider === 'mock') break;
     try {
       const raw = provider === 'anthropic' ? await anthropicIntent(input, beatIndex) : await openaiIntent(input, beatIndex);
       const seated = { ...raw, beat_index: Number.isInteger(beatIndex) ? beatIndex : 0 };
-      if (validateBeatIntent(seated, { threads }).ok) return seated;
+      if (validateBeatIntent(seated, { threads, ambitions }).ok) return seated;
     } catch (error) {
       console.error('The Director lost its voice:', error?.message || error);
     }
@@ -236,14 +238,15 @@ export async function convene(input, { barred = {} } = {}) {
   const beatIndex = beatIndexOf(input);
   const carried = input?.story?.beat_intent;
   const threads = threadNames(input?.story);
+  const ambitions = ambitionNames(input?.story);
   let intent = null;
   let directorCalls = 0;
-  if (carried && Number.isInteger(beatIndex) && carried.beat_index === beatIndex && validateBeatIntent(carried, { threads }).ok) {
+  if (carried && Number.isInteger(beatIndex) && carried.beat_index === beatIndex && validateBeatIntent(carried, { threads, ambitions }).ok) {
     intent = carried;
   } else {
     directorCalls = 1;
     intent = await directorSits(input, beatIndex, { barred });
-    if (!validateBeatIntent(intent, { threads }).ok) intent = mockDirector(input, beatIndex);
+    if (!validateBeatIntent(intent, { threads, ambitions }).ok) intent = mockDirector(input, beatIndex);
   }
   // The Director's word rides the one briefing block the Voice already
   // reads — no second channel exists.

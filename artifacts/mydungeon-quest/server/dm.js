@@ -1,6 +1,6 @@
 import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
 import { mockDmTurn } from 'fatescript/mockDm';
-import { ITEM_KINDS, safeFallbackTurn, validateDmTurn } from 'fatescript/protocol';
+import { ITEM_KINDS, safeFallbackTurn, validateDmTurn, AMBITION_OUTCOMES, CLOCK_SEGMENTS, CLOCK_OUTCOMES, STANDING_DELTAS } from 'fatescript/protocol';
 // THE ONE SEAT (XVIII): the tool schema declares the kind enum and the
 // rune keys from the tables themselves — never a mirrored list.
 import { ENCHANT_TABLE } from 'fatescript/armory';
@@ -52,6 +52,16 @@ export function judgeTurn(turn, input) {
   if (Array.isArray(input.story?.party_state)) context.party = input.story.party_state.map((member) => member?.name).filter((memberName) => typeof memberName === 'string');
   if (Array.isArray(input.story?.presence_state)) context.presence = input.story.presence_state;
   if (Array.isArray(input.story?.fixture_state)) context.fixtures = input.story.fixture_state;
+  // THE OPEN ROAD (XIX, Articles IV–VII): the four new courts seat the
+  // same conditional way. The declaration is THREE-VALUED: an ABSENT
+  // `declaration` key (an elder sealed input) leaves the court out of
+  // session; a NULL one is the client attesting no declaration stood;
+  // a STRING one forces the verbatim seal.
+  if (Object.hasOwn(input.story || {}, 'declaration')) context.declaredAmbition = typeof input.story.declaration === 'string' && input.story.declaration.trim() ? input.story.declaration : null;
+  if (Array.isArray(input.story?.ambitions_state)) context.openAmbitions = input.story.ambitions_state.filter((text) => typeof text === 'string');
+  if (Array.isArray(input.story?.clocks_state)) context.openClocks = input.story.clocks_state;
+  if (Array.isArray(input.story?.rumors_state)) context.rumors = input.story.rumors_state.filter((text) => typeof text === 'string');
+  if (Array.isArray(input.spine?.beats)) context.spine = { beats: input.spine.beats, beatIndex: Number.isInteger(input.story?.beat?.index) ? input.story.beat.index : null };
   // THE BATTLE CUT (Directive X): the sealed bestiary and the standing
   // combatants seat their courts the same conditional way — evidence
   // present, court in session; absent, out of session, never faked.
@@ -236,12 +246,49 @@ const storySchema = {
         thread_add: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['label'], properties: {
           label: { type: 'string', minLength: 3, maxLength: 90, description: 'A hook the tale now owes — unique among open threads.' },
           kind: { type: 'string', enum: ['promise','debt','mystery','goal'] },
-          holder: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 60 }], description: 'The soul this thread binds, when one does.' }
+          holder: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 60 }], description: 'The soul this thread binds, when one does.' },
+          rumor: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 200 }], description: 'When this thread opens FROM the horizon: the exact rumor text from [STORY].rumors_state — the pool rotates, the thread carries the citation.' }
         } } },
         thread_resolve: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['label','outcome'], properties: {
           label: { type: 'string', maxLength: 90, description: 'An OPEN thread\'s exact label from [STORY].threads_state.' },
           outcome: { type: 'string', enum: ['kept','broken','resolved'] }
         } } },
+        // THE OPEN ROAD (XIX, Articles IV–VII): the four new courts'
+        // seats, declared with the validator's OWN enums (the toolschema-
+        // validation lesson — a hidden seat is a trap, a mirrored enum is
+        // a slower one).
+        ambition_add: { type: 'array', maxItems: 1, items: { type: 'object', additionalProperties: false, required: ['text'], properties: {
+          text: { type: 'string', minLength: 12, maxLength: 200, description: 'The player\'s declared ambition, BYTE-IDENTICAL to [STORY].declaration — never invented, never rewritten.' }
+        } }, description: 'Seal the player\'s declared ambition the turn it is spoken — exactly when [STORY].declaration carries one, never otherwise.' },
+        ambition_resolve: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['text','outcome'], properties: {
+          text: { type: 'string', maxLength: 200, description: 'An OPEN ambition\'s exact text from [STORY].open_ambitions.' },
+          outcome: { type: 'string', enum: [...AMBITION_OUTCOMES], description: 'achieved: won in the fiction. renounced: the player let it go. lost: the world closed it.' }
+        } } },
+        clock_open: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['label','segments'], properties: {
+          label: { type: 'string', minLength: 3, maxLength: 90, description: 'The undertaking\'s name — unique among open clocks.' },
+          segments: { type: 'integer', enum: [...CLOCK_SEGMENTS], description: '4 short, 6 standard, 8 long.' },
+          ambition: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 200 }], description: 'The open ambition this clock serves — its exact text, when it serves one.' }
+        } } },
+        clock_tick: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['label','reason'], properties: {
+          label: { type: 'string', maxLength: 90, description: 'An OPEN clock\'s exact label from [STORY].open_clocks.' },
+          reason: { type: 'string', minLength: 3, maxLength: 160, description: 'What this turn concretely did to advance it.' }
+        } }, description: 'ONE segment per tick, with its stated reason. AT MOST TWO clock operations a turn, all kinds together; never tick past full.' },
+        clock_resolve: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['label','outcome'], properties: {
+          label: { type: 'string', maxLength: 90, description: 'An OPEN clock\'s exact label.' },
+          outcome: { type: 'string', enum: [...CLOCK_OUTCOMES], description: 'struck: it came to pass. averted: turned aside. lapsed: the moment quietly passed.' }
+        } }, description: 'A clock [STORY].open_clocks shows FILLED must resolve THIS turn.' },
+        standing_shift: { type: 'array', maxItems: 2, items: { type: 'object', additionalProperties: false, required: ['faction','delta','reason'], properties: {
+          faction: { type: 'string', minLength: 3, maxLength: 80, description: 'The faction whose regard truly moved this turn.' },
+          delta: { type: 'integer', enum: [...STANDING_DELTAS] },
+          reason: { type: 'string', minLength: 3, maxLength: 160, description: 'The concrete event that moved it — this turn\'s own.' }
+        } }, description: 'Factions remember. The client sums the sealed shifts; never state a standing number in prose.' },
+        spine_amend: { anyOf: [{ type: 'null' }, { type: 'object', additionalProperties: false, required: ['act','beat','reason'], properties: {
+          act: { type: 'integer', minimum: 1, maximum: 3 },
+          beat: { type: 'string', maxLength: 120, description: 'The NOT-YET-REACHED beat\'s exact title.' },
+          title: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 100 }], description: 'The reshaped title, when the bend renames it.' },
+          goal: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 300 }], description: 'The reshaped goal, when the bend redirects it.' },
+          reason: { type: 'string', minLength: 12, maxLength: 200, description: 'Why the played tale demands this bend.' }
+        } } ], description: 'The one lawful bend: reshape a FUTURE beat\'s title or goal when the player\'s choices have outrun the spine. One a turn, one per act, never the beat you stand on nor any behind you.' },
         // THE NEW GROUND (VIII + the toolschema-validation lesson): the
         // validator's same-breath teach and the fold both read story.world,
         // yet the schema never held the seat — three descriptions pointed

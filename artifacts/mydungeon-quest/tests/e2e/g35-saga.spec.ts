@@ -48,7 +48,7 @@ async function forgeSecondVolume(page: Page, { smith }: { smith: boolean }) {
   expect(elderOpen.length, 'the elder tale left at least one thread unpaid — the seed of continuation').toBeGreaterThan(0);
   const elderJournalCount = (await journalRows(page, elder.id)).length;
 
-  await page.locator('button', { hasText: /keepsake/i }).first().click();
+  await openKeepsakes(page);
   await page.waitForSelector('.keepsakes.next-volume', { timeout: 15_000 });
   const ask = page.locator('.smith-forge-ask input');
   if (smith) await ask.check();
@@ -57,25 +57,67 @@ async function forgeSecondVolume(page: Page, { smith }: { smith: boolean }) {
 
   // The successor seats and its FIRST WORD lands (pours dispatch before any
   // paint; the mock DM answers keyless). The court waits on the record.
-  const handle = await page.waitForFunction(async (elderId: string) => {
-    const { db } = await import('/src/lib/db.js');
-    const all = await db.campaigns.toArray();
-    const next = all.find((c: any) => c.id !== elderId && c.saga && Array.isArray(c.saga.volumes) && c.saga.volumes.length > 0 && !c.sealedAt);
-    if (!next) return null;
-    const worded = (Array.isArray(next.logs) ? next.logs : []).some((l: any) => l && l.dm && l.recordHash && !l.kind);
-    return worded ? next.id : null;
-  }, elder.id, { timeout: 120_000, polling: 1_000 });
-  const vol2Id = (await handle.jsonValue()) as string;
+  // (Mechanics note: waitForFunction with an ASYNC predicate + interval
+  // polling resolved an unawaited-promise handle — jsonValue() read null
+  // while the row stood lawful in the db. The court now polls with the
+  // probe's own proven instrument: a one-shot evaluate in a loop.)
+  let vol2Id: string | null = null;
+  const pollDeadline = Date.now() + 120_000;
+  while (!vol2Id && Date.now() < pollDeadline) {
+    vol2Id = await page.evaluate(async (elderId: string) => {
+      const { db } = await import('/src/lib/db.js');
+      const all = await db.campaigns.toArray();
+      const next = all.find((c: any) => c.id !== elderId && c.saga && Array.isArray(c.saga.volumes) && c.saga.volumes.length > 0 && !c.sealedAt);
+      if (!next) return null;
+      const worded = (Array.isArray(next.logs) ? next.logs : []).some((l: any) => l && l.dm && l.recordHash && !l.kind);
+      return worded ? next.id : null;
+    }, elder.id);
+    if (!vol2Id) await page.waitForTimeout(1_000);
+  }
   expect(vol2Id, 'the next volume stands with its first word sealed').toBeTruthy();
   await page.waitForSelector('main.adventure-log', { timeout: 30_000 });
   return { elder, elderOpen, elderJournalCount, vol2Id };
 }
 
-/** Seals the CURRENT volume through the same wax the first one wore. */
-async function sealCurrentVolume(page: Page) {
-  await page.locator('button', { hasText: /keepsake/i }).first().click();
+/** Walks to the keepsakes panel. A continued elder opens straight to its
+ * keepsakes (the shelf's own manner for finished books with successors);
+ * a first visit needs the tale-told knock. Several .keepsakes nodes may
+ * seat inside the risen ceremony — a bare locator.waitFor() strict-throws
+ * on plurality and lies "absent"; the court takes the first, always. */
+async function openKeepsakes(page: Page) {
+  const keeps = page.locator('.keepsakes').first();
+  try {
+    await keeps.waitFor({ timeout: 8_000 });
+  } catch {
+    await page.locator('button', { hasText: /keepsake/i }).first().click({ timeout: 15_000 });
+    await keeps.waitFor({ timeout: 15_000 });
+  }
+}
+
+/** Seals the volume through the same wax the first one wore — the app's
+ * OWN ceremony press. A fresh successor is neither near its end nor
+ * completed, so the live table hangs no seal door for it (by design);
+ * the court stages `completed` in the record (the doom-court device) and
+ * walks the tale-told door. The ceremony may auto-rise for a completed
+ * tale (the milestone surface) — both doors are the app's own. */
+async function sealCurrentVolume(page: Page, id: string) {
+  await page.evaluate(async (campaignId: string) => {
+    const { db } = await import('/src/lib/db.js');
+    const row = await db.campaigns.get(campaignId);
+    row.completed = true;
+    await db.campaigns.put(row);
+  }, id);
+  await page.reload();
+  await page.waitForSelector('.title-page', { timeout: 45_000 });
+  await page.locator('.book-spine:not(.new-spine)', { hasText: '— Volume' }).first().click();
+  await page.waitForSelector('main.adventure-log', { timeout: 30_000 });
   const press = page.locator('.press-seal');
-  await press.waitFor({ timeout: 15_000 });
+  try {
+    await press.waitFor({ timeout: 8_000 }); // the ceremony rose on its own
+  } catch {
+    await page.locator('.tale-told button', { hasText: 'Seal the chronicle' }).click();
+    await press.waitFor({ timeout: 15_000 });
+  }
   await press.click();
   await page.waitForSelector('.keepsakes.next-volume', { timeout: 60_000 });
 }
@@ -90,7 +132,10 @@ test('G35a the volume door: the sealed tale forges its successor through the moc
   // (deterministic in seed, covenant, carryover) — never the shelf echo,
   // never a silent key-shaped skip.
   expect(vol2.spineMint, 'the volume mint rides the record').toBeTruthy();
-  expect(vol2.spineMint.source, 'the bespoke arc came through the mock smith — the keyless floor').toBe('mock');
+  // The mint speaks its source through its ATTESTATION (sealSpineMint's
+  // own shape) — the top-level key never existed; the first settled run
+  // proved the old needle read an empty seat.
+  expect(vol2.spineMint.attestation?.source, 'the bespoke arc came through the mock smith — the keyless floor').toBe('mock');
   expect(vol2.spineMint.spine?.id, 'the minted spine IS the seated spine').toBe(vol2.spineId);
   expect(vol2.spineId, 'the bespoke spine is its own arc, not the elder\u2019s echo').not.toBe(elder.spineId);
   const beats = vol2.spineMint.spine?.beats || [];
@@ -132,7 +177,7 @@ test('G35a the volume door: the sealed tale forges its successor through the moc
   expect(elderAfter.headHash, 'the elder head seal did not move').toBe(elder.headHash);
   expect(elderAfter.sealedAt, 'the elder wax stands').toBeTruthy();
   expect(elderAfter.turnCount, 'the elder chain grew by nothing').toBe(elder.turnCount);
-  console.log(`[g35a] Volume II minted (source=${vol2.spineMint.source}, spine=${vol2.spineId}); genesis cites ${String(elder.headHash).slice(0, 12)}…; ${elderOpen.length} thread(s) crossed carried`);
+  console.log(`[g35a] Volume II minted (source=${vol2.spineMint.attestation?.source}, spine=${vol2.spineId}); genesis cites ${String(elder.headHash).slice(0, 12)}…; ${elderOpen.length} thread(s) crossed carried`);
 });
 
 test('G35b the Book carries the world forward — the carried weather renders its citation', async ({ page }) => {
@@ -154,20 +199,36 @@ test('G35b the Book carries the world forward — the carried weather renders it
 test('G35c the desk walks the whole saga: both volumes verify and the linkage holds', async ({ page }) => {
   test.setTimeout(240_000);
   const { elder, vol2Id } = await forgeSecondVolume(page, { smith: false });
-  await sealCurrentVolume(page);
+  console.log('[g35c-mark] forged');
+  await sealCurrentVolume(page, vol2Id);
+  console.log('[g35c-mark] sealed');
 
   // The desk's saga walk, over the app's OWN bytes: both chronicles through
   // the export door, the manifest grown from the genesis row's sealed
   // manifest by exactly the newly sealed volume's seat — never hand-invented.
-  const out = await page.evaluate(async ({ elderId, vol2 }: { elderId: string; vol2: string }) => {
-    const { exportChronicle, verifySaga } = await import('/src/lib/seal.js');
+  // (Walked in marked steps so a wedge names its own room.)
+  const head = await page.evaluate(async (vol2: string) => {
     const { db, campaignJournal } = await import('/src/lib/db.js');
     const row = await db.campaigns.get(vol2);
     const genesis = (await campaignJournal(vol2)).find((r: any) => r.type === 'genesis');
-    const manifest = { ...genesis.payload.manifest, volumes: [...genesis.payload.manifest.volumes, { index: row.saga.taleIndex, title: row.title, headHash: row.headHash }] };
-    const chronicles = [await exportChronicle(elderId), await exportChronicle(vol2)];
-    return JSON.parse(JSON.stringify({ verdict: await verifySaga({ manifest, chronicles }), sealedHead: row.headHash }));
-  }, { elderId: elder.id, vol2: vol2Id });
+    return JSON.parse(JSON.stringify({ sealedHead: row.headHash, manifest: { ...genesis.payload.manifest, volumes: [...genesis.payload.manifest.volumes, { index: row.saga.taleIndex, title: row.title, headHash: row.headHash }] } }));
+  }, vol2Id);
+  console.log('[g35c-mark] manifest grown');
+  const elderExport = await page.evaluate(async (id: string) => {
+    const { exportChronicle } = await import('/src/lib/seal.js');
+    return JSON.parse(JSON.stringify(await exportChronicle(id)));
+  }, elder.id);
+  console.log('[g35c-mark] elder exported');
+  const vol2Export = await page.evaluate(async (id: string) => {
+    const { exportChronicle } = await import('/src/lib/seal.js');
+    return JSON.parse(JSON.stringify(await exportChronicle(id)));
+  }, vol2Id);
+  console.log('[g35c-mark] successor exported');
+  const out = await page.evaluate(async ({ manifest, chronicles, sealedHead }: any) => {
+    const { verifySaga } = await import('/src/lib/seal.js');
+    return JSON.parse(JSON.stringify({ verdict: await verifySaga({ manifest, chronicles }), sealedHead }));
+  }, { manifest: head.manifest, chronicles: [elderExport, vol2Export], sealedHead: head.sealedHead });
+  console.log('[g35c-mark] saga verified');
 
   expect(out.sealedHead, 'the second volume sealed with its own head').toMatch(/^[0-9a-f]{64}$/);
   expect(out.verdict.ok, `the desk walks the saga green: ${out.verdict.reason || 'ok'}`).toBe(true);
@@ -206,11 +267,19 @@ test('G35d the heir rises mid-world: the memorial is permanent, the debts inheri
   await page.waitForSelector('.audition-chip', { timeout: 30_000 });
   await page.locator('.audition-chip').first().click();
   await page.locator('button', { hasText: 'Begin the chronicle' }).click();
-  await page.waitForFunction(async (id: string) => {
-    const { db } = await import('/src/lib/db.js');
-    const row = await db.campaigns.get(id);
-    return !!(row && row.hero && !row.hero.dead);
-  }, campaignId, { timeout: 30_000, polling: 500 });
+  // (Same instrument law as the volume-door poll: async predicate +
+  // interval polling is the broken pairing — a one-shot evaluate loop.)
+  let heirRisen = false;
+  const heirDeadline = Date.now() + 30_000;
+  while (!heirRisen && Date.now() < heirDeadline) {
+    heirRisen = await page.evaluate(async (id: string) => {
+      const { db } = await import('/src/lib/db.js');
+      const row = await db.campaigns.get(id);
+      return !!(row && row.hero && !row.hero.dead);
+    }, campaignId);
+    if (!heirRisen) await page.waitForTimeout(500);
+  }
+  expect(heirRisen, 'the heir stands where the fallen stood').toBe(true);
 
   const after = await readCampaign(page, campaignId);
   expect(after.hero.name, 'a new hand holds the road').not.toBe(fallen);
@@ -261,9 +330,9 @@ test('G35e the sealed first volume still exports, verifies, and stands untouched
   await page.waitForSelector('main.adventure-log', { timeout: 30_000 });
 
   // The ceremony still serves the sealed tale — and the road door stands
-  // open again: sealing closed a volume, never the world.
-  await page.locator('button', { hasText: /keepsake/i }).first().click();
-  await page.waitForSelector('.keepsakes', { timeout: 15_000 });
+  // open again: sealing closed a volume, never the world. A continued elder
+  // opens straight to its keepsakes — the court accepts either door.
+  await openKeepsakes(page);
   await expect(page.locator('.keepsakes.next-volume'), 'the road door still stands — the world is unbound').toBeVisible();
 
   fs.mkdirSync(EXPORT_DIR, { recursive: true });
@@ -290,3 +359,4 @@ test('G35e the sealed first volume still exports, verifies, and stands untouched
   expect(verdict.ok, `the exported chronicle verifies: ${verdict.reason || 'ok'}`).toBe(true);
   console.log(`[g35e] elder exports (${(exported.journal || []).length} rows), verifies, head ${String(elder.headHash).slice(0, 12)}… untouched; the road door stands`);
 });
+

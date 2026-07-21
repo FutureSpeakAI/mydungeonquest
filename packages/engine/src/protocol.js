@@ -27,6 +27,13 @@ function assert(condition, message, errors) { if (!condition) errors.push(messag
 // guardianship untouched. Context may carry threads: [{label, status}].
 const THREAD_KINDS = new Set(['promise','debt','mystery','goal']);
 const THREAD_OUTCOMES = new Set(['kept','broken','resolved']);
+// THE OPEN ROAD (Directive XIX, Articles IV–VII) — the enums of the four
+// new courts, exported as the ONE SEAT: the dm_turn tool schema imports
+// these, never a mirror of them (the toolschema-validation lesson).
+export const AMBITION_OUTCOMES = new Set(['achieved','renounced','lost']);
+export const CLOCK_SEGMENTS = new Set([4, 6, 8]);
+export const CLOCK_OUTCOMES = new Set(['struck','averted','lapsed']);
+export const STANDING_DELTAS = new Set([-2, -1, 1, 2]);
 // THE WORLD SHAPE COURT (Directive XIX, Article VIII) — the architect's
 // finding C, cured at the door. Every world payload is judged for shape
 // (a plain object with known keys only), bounds (the schema's own
@@ -78,7 +85,17 @@ function validateThreads(story, context, errors) {
       assert(cleanText(add?.label, 90) && String(add.label).trim().length >= 3, 'thread_add.label must be 3-90 chars', errors);
       if (add?.kind !== undefined) assert(THREAD_KINDS.has(add.kind), 'thread_add.kind invalid', errors);
       if (add?.holder !== undefined && add.holder !== null) assert(cleanText(add.holder, 60), 'thread_add.holder invalid', errors);
-      noUnknown(add, new Set(['label','kind','holder']), 'story.thread_add', errors);
+      // THE HORIZON CITATION (XIX, Article VII) — a thread may cite the
+      // rumor it opens; when the horizon's own evidence rides the context,
+      // the citation must name a rumor the pool actually holds.
+      if (add?.rumor !== undefined && add.rumor !== null) {
+        assert(cleanText(add.rumor, 200), 'thread_add.rumor invalid', errors);
+        if (Array.isArray(context.rumors)) {
+          const pool = new Set(context.rumors.map((rumor) => String(rumor).trim().toLowerCase()));
+          assert(pool.has(String(add.rumor).trim().toLowerCase()), `thread_add cites a rumor the horizon does not hold: ${add.rumor}`, errors);
+        }
+      }
+      noUnknown(add, new Set(['label','kind','holder','rumor']), 'story.thread_add', errors);
       const key = String(add?.label || '').trim().toLowerCase();
       assert(!openLabels.has(key), `thread_add duplicates an open thread: ${add?.label}`, errors);
       assert(!seen.has(key), 'thread_add repeats a label within the turn', errors);
@@ -93,6 +110,168 @@ function validateThreads(story, context, errors) {
       assert(THREAD_OUTCOMES.has(close?.outcome), 'thread_resolve.outcome must be kept | broken | resolved', errors);
       noUnknown(close, new Set(['label','outcome']), 'story.thread_resolve', errors);
       if (known.length) assert(openLabels.has(String(close?.label || '').trim().toLowerCase()), `thread_resolve targets no open thread: ${close?.label}`, errors);
+    }
+  }
+}
+
+// THE DECLARATION LAW (Directive XIX, Article IV) — the player's declared
+// ambition becomes record the very turn it is spoken, byte-identical.
+// Presence law is three-valued here: an ABSENT declaredAmbition key is a
+// bare context and owes nothing; a NULL one is the caller attesting no
+// declaration stood — an ambition_add then is the teller inventing the
+// player's word, refused by name; a STRING one forces the verbatim seal —
+// dropped or rewritten declarations are refused by name. This court runs
+// even against a null story: a null story DROPS a standing declaration.
+function validateAmbitions(story, context, errors) {
+  const seated = story && typeof story === 'object' && !Array.isArray(story) ? story : {};
+  const adds = seated.ambition_add;
+  if (adds !== undefined && adds !== null) {
+    assert(Array.isArray(adds) && adds.length <= 1, 'ambition_add seals at most one declaration a turn', errors);
+    for (const add of Array.isArray(adds) ? adds : []) {
+      assert(cleanText(add?.text, 200) && String(add.text).trim().length >= 12, 'ambition_add.text must be 12-200 chars', errors);
+      noUnknown(add, new Set(['text']), 'story.ambition_add', errors);
+    }
+  }
+  if (Object.hasOwn(context, 'declaredAmbition')) {
+    const declared = typeof context.declaredAmbition === 'string' && context.declaredAmbition.trim() ? context.declaredAmbition : null;
+    const rows = Array.isArray(adds) ? adds : [];
+    if (declared === null) {
+      if (rows.length) errors.push("ambition_add without a declaration — an ambition is the player's own word, never the teller's");
+    } else if (!rows.length) {
+      errors.push(`the turn drops the declared ambition — it must seal "${declared}" verbatim as ambition_add`);
+    } else if (rows.length !== 1 || String(rows[0]?.text) !== declared) {
+      errors.push("ambition_add rewrites the declaration — the sealed text must be byte-identical to the player's own words");
+    }
+  }
+  const closes = seated.ambition_resolve;
+  if (closes !== undefined && closes !== null) {
+    assert(Array.isArray(closes) && closes.length <= 2, 'ambition_resolve must be an array of at most 2', errors);
+    const open = Array.isArray(context.openAmbitions)
+      ? new Set(context.openAmbitions.map((text) => String(text).trim().toLowerCase()))
+      : null;
+    for (const close of Array.isArray(closes) ? closes : []) {
+      assert(cleanText(close?.text, 200), 'ambition_resolve.text invalid', errors);
+      assert(AMBITION_OUTCOMES.has(close?.outcome), 'ambition_resolve.outcome must be achieved | renounced | lost', errors);
+      noUnknown(close, new Set(['text','outcome']), 'story.ambition_resolve', errors);
+      if (open) assert(open.has(String(close?.text || '').trim().toLowerCase()), `ambition_resolve targets no open ambition: ${close?.text}`, errors);
+    }
+  }
+}
+
+// THE CLOCK LAW (Directive XIX, Article V) — long undertakings as sealed
+// segmented clocks. At most TWO clock operations a turn across all three
+// kinds; a tick past full is refused by name; and while a FILLED clock
+// stands in the briefing's own evidence, a turn that leaves it silent is
+// refused whole — this last court runs even against a null story.
+// Context may carry openClocks: [{ label, segments, ticks, status }] with
+// ticks as the standing COUNT; absent, only shape and counting law bind.
+function validateClocks(story, context, errors) {
+  const seated = story && typeof story === 'object' && !Array.isArray(story) ? story : {};
+  const opens = seated.clock_open, ticks = seated.clock_tick, closes = seated.clock_resolve;
+  const countOf = (rows) => (Array.isArray(rows) ? rows.length : 0);
+  const total = countOf(opens) + countOf(ticks) + countOf(closes);
+  assert(total <= 2, `at most two clock operations a turn (received ${total})`, errors);
+  const openRows = Array.isArray(context.openClocks)
+    ? context.openClocks.filter((row) => row && row.status === 'open' && typeof row.label === 'string')
+    : null;
+  const byLabel = (label) => openRows?.find((row) => String(row.label).trim().toLowerCase() === String(label || '').trim().toLowerCase());
+  if (opens !== undefined && opens !== null) {
+    assert(Array.isArray(opens) && opens.length <= 2, 'clock_open must be an array of at most 2', errors);
+    for (const open of Array.isArray(opens) ? opens : []) {
+      assert(cleanText(open?.label, 90) && String(open.label).trim().length >= 3, 'clock_open.label must be 3-90 chars', errors);
+      assert(CLOCK_SEGMENTS.has(open?.segments), 'clock_open.segments must be 4, 6, or 8', errors);
+      if (open?.ambition !== undefined && open.ambition !== null) {
+        assert(cleanText(open.ambition, 200), 'clock_open.ambition invalid', errors);
+        if (Array.isArray(context.openAmbitions)) {
+          const owned = new Set(context.openAmbitions.map((text) => String(text).trim().toLowerCase()));
+          assert(owned.has(String(open.ambition).trim().toLowerCase()), `clock_open.ambition names no open ambition: ${open.ambition}`, errors);
+        }
+      }
+      noUnknown(open, new Set(['label','segments','ambition']), 'story.clock_open', errors);
+      if (openRows) assert(!byLabel(open?.label), `clock_open duplicates an open clock: ${open?.label}`, errors);
+    }
+  }
+  const closeRows = Array.isArray(closes) ? closes : [];
+  if (ticks !== undefined && ticks !== null) {
+    assert(Array.isArray(ticks) && ticks.length <= 2, 'clock_tick must be an array of at most 2', errors);
+    const asked = new Map();
+    for (const tick of Array.isArray(ticks) ? ticks : []) {
+      assert(cleanText(tick?.label, 90), 'clock_tick.label invalid', errors);
+      assert(cleanText(tick?.reason, 160) && String(tick.reason).trim().length >= 3, 'clock_tick.reason must be 3-160 chars', errors);
+      noUnknown(tick, new Set(['label','reason']), 'story.clock_tick', errors);
+      if (openRows) {
+        const clock = byLabel(tick?.label);
+        if (!clock) { errors.push(`clock_tick targets no open clock: ${tick?.label}`); continue; }
+        const key = String(tick.label).trim().toLowerCase();
+        const stood = Number.isInteger(clock.ticks) ? clock.ticks : 0;
+        const now = (asked.get(key) || 0) + 1;
+        asked.set(key, now);
+        assert(stood + now <= clock.segments, `clock_tick past full refused: "${clock.label}" holds ${stood} of ${clock.segments}`, errors);
+      }
+    }
+  }
+  if (closes !== undefined && closes !== null) {
+    assert(Array.isArray(closes) && closes.length <= 2, 'clock_resolve must be an array of at most 2', errors);
+    for (const close of closeRows) {
+      assert(cleanText(close?.label, 90), 'clock_resolve.label invalid', errors);
+      assert(CLOCK_OUTCOMES.has(close?.outcome), 'clock_resolve.outcome must be struck | averted | lapsed', errors);
+      noUnknown(close, new Set(['label','outcome']), 'story.clock_resolve', errors);
+      if (openRows) assert(byLabel(close?.label), `clock_resolve targets no open clock: ${close?.label}`, errors);
+    }
+  }
+  if (openRows) {
+    for (const clock of openRows) {
+      const stood = Number.isInteger(clock.ticks) ? clock.ticks : 0;
+      if (Number.isInteger(clock.segments) && stood >= clock.segments) {
+        const resolved = closeRows.some((close) => String(close?.label || '').trim().toLowerCase() === String(clock.label).trim().toLowerCase());
+        assert(resolved, `a filled clock stands silent: "${clock.label}" must resolve this turn`, errors);
+      }
+    }
+  }
+}
+
+// THE STANDING LAW (Directive XIX, Article VI) — factions remember, as
+// sealed shift rows only. Shape court: at most two shifts a turn, each a
+// named faction, a delta from the lawful steps, and its stated reason.
+// No score crosses this door — the score exists only as the fold's sum.
+function validateStandings(story, context, errors) {
+  if (!story || typeof story !== 'object' || Array.isArray(story)) return;
+  const shifts = story.standing_shift;
+  if (shifts === undefined || shifts === null) return;
+  assert(Array.isArray(shifts) && shifts.length <= 2, 'standing_shift must be an array of at most 2', errors);
+  for (const shift of Array.isArray(shifts) ? shifts : []) {
+    assert(cleanText(shift?.faction, 80) && String(shift.faction).trim().length >= 3, 'standing_shift.faction must be 3-80 chars', errors);
+    assert(STANDING_DELTAS.has(shift?.delta), 'standing_shift.delta must be -2, -1, +1, or +2', errors);
+    assert(cleanText(shift?.reason, 160) && String(shift.reason).trim().length >= 3, 'standing_shift.reason must be 3-160 chars', errors);
+    noUnknown(shift, new Set(['faction','delta','reason']), 'story.standing_shift', errors);
+  }
+}
+
+// THE SPINE'S ONE BEND (Directive XIX, Article IV) — the story may change
+// shape around the player's choices, lawfully: one spine_amend, naming an
+// act, a stated reason, and a NOT-YET-REACHED beat of that act, reshaping
+// its title or its goal. The once-per-act CAP lives in the fold (standing
+// note); this door judges shape and, when context carries the spine
+// (spine: { beats: [{ act, title }], beatIndex }), the target itself.
+function validateSpineAmend(story, context, errors) {
+  if (!story || typeof story !== 'object' || Array.isArray(story)) return;
+  if (!Object.hasOwn(story, 'spine_amend') || story.spine_amend == null) return;
+  const amend = story.spine_amend;
+  if (typeof amend !== 'object' || Array.isArray(amend)) { errors.push('spine_amend must be a plain object'); return; }
+  noUnknown(amend, new Set(['act','reason','beat','title','goal']), 'story.spine_amend', errors);
+  assert(Number.isInteger(amend.act) && amend.act >= 1 && amend.act <= 3, 'spine_amend.act must be 1, 2, or 3', errors);
+  assert(cleanText(amend.reason, 200) && String(amend.reason).trim().length >= 12, 'spine_amend.reason must be a stated reason of 12-200 chars', errors);
+  assert(cleanText(amend.beat, 120), 'spine_amend.beat must name a spine beat', errors);
+  assert((amend.title !== undefined && amend.title !== null) || (amend.goal !== undefined && amend.goal !== null), 'spine_amend must reshape something: a title or a goal', errors);
+  if (amend.title != null) assert(cleanText(amend.title, 100), 'spine_amend.title invalid', errors);
+  if (amend.goal != null) assert(cleanText(amend.goal, 300), 'spine_amend.goal invalid', errors);
+  const spine = context.spine;
+  if (spine && Array.isArray(spine.beats) && spine.beats.length) {
+    const index = spine.beats.findIndex((beat) => String(beat?.title || '').trim().toLowerCase() === String(amend.beat || '').trim().toLowerCase());
+    if (index < 0) errors.push(`spine_amend names a beat the spine does not hold: ${amend.beat}`);
+    else {
+      if (Number.isInteger(amend.act) && spine.beats[index]?.act !== amend.act) errors.push(`spine_amend.act does not match the named beat: ${amend.beat} stands in act ${spine.beats[index]?.act}`);
+      if (Number.isInteger(spine.beatIndex) && index <= spine.beatIndex) errors.push(`the played road does not rewrite — spine_amend refused for the reached beat: ${amend.beat}`);
     }
   }
 }
@@ -783,6 +962,10 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
   if (payload && typeof payload === 'object') {
     validateWorldShape(payload.story, context, errors);
     validateThreads(payload.story, context, errors);
+    validateAmbitions(payload.story, context, errors);
+    validateClocks(payload.story, context, errors);
+    validateStandings(payload.story, context, errors);
+    validateSpineAmend(payload.story, context, errors);
     validateTrove(payload.story, context, errors);
     validatePurse(payload.story, context, errors);
     validateScene(payload.story, context, errors, payload);

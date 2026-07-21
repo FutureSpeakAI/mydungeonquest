@@ -109,7 +109,14 @@ export async function openNextVolume(campaign, { years = 3, spineId = null, seal
   // replay — working memory and record agree at the first word of every
   // volume, not only the first. (A v2 packet's trove outranks the seed —
   // the record's rows seat whole.)
-  const { codex: opened, saga } = openNextTale({ packet, spineId: spineMint ? spineMint.spine : spine, seed: campaign.hero?.keepsake ? { keepsake: { name: campaign.hero.keepsake, holder: campaign.hero.name } } : {} });
+  // THE HORIZON RIDES THE MINT (XIX, Article VII): the new volume's rumor
+  // pool seeds from ITS OWN mint's swept rumors — never carried over from
+  // the elder volume. A fresh road earns a fresh horizon.
+  const nextSeed = {
+    ...(campaign.hero?.keepsake ? { keepsake: { name: campaign.hero.keepsake, holder: campaign.hero.name } } : {}),
+    ...(Array.isArray(spineMint?.rumors) && spineMint.rumors.length ? { rumors: spineMint.rumors } : {})
+  };
+  const { codex: opened, saga } = openNextTale({ packet, spineId: spineMint ? spineMint.spine : spine, seed: nextSeed });
 
   // THE MANIFEST GROWS BY ONE — the sealed elder joins the bound volumes.
   const priorEntry = { index: campaign.saga?.taleIndex ?? 0, title: campaign.title, headHash: campaign.headHash };

@@ -79,7 +79,9 @@ check(chaliceErrors.some((error) => /equip/i.test(error)), `a treasure is refuse
 // The thread ops — newly declared; enums, bounds, and closed keys mirror.
 const threadAddItems = storyProps?.thread_add?.items || null;
 check(!!threadAddItems && threadAddItems.additionalProperties === false, 'thread_add is declared closed, mirroring the validator\u2019s noUnknown');
-check(sameSet(Object.keys(threadAddItems?.properties || {}), ['label', 'kind', 'holder']), 'thread_add teaches exactly label, kind, holder');
+check(sameSet(Object.keys(threadAddItems?.properties || {}), ['label', 'kind', 'holder', 'rumor']), 'thread_add teaches exactly label, kind, holder, rumor (the horizon citation, XIX Article VII)');
+const rumorArms = threadAddItems?.properties?.rumor?.anyOf || [];
+check(rumorArms.some((arm) => arm?.type === 'string' && arm?.maxLength === 200) && rumorArms.some((arm) => arm?.type === 'null'), 'thread_add.rumor is taught as the optional citation the fold holds: null, or the rumor\u2019s own words within 200');
 check(sameSet(threadAddItems?.properties?.kind?.enum || [], ['promise', 'debt', 'mystery', 'goal']), 'thread_add.kind mirrors the validator\u2019s four kinds exactly');
 check(threadAddItems?.properties?.label?.minLength === 3 && threadAddItems?.properties?.label?.maxLength === 90, 'thread_add.label mirrors the validator\u2019s 3\u201390 bounds');
 check(storyProps?.thread_add?.maxItems === 2, 'thread_add mirrors the validator\u2019s ceiling of two');

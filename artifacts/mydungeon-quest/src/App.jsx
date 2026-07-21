@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, ChevronRight, DoorOpen, Download, Dices, Feather, FileUp, Flame, HeartPulse, Menu, MessageCircleWarning, Pause, Play, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords, X } from 'lucide-react';
+import { BookOpen, ChevronRight, DoorOpen, Download, Dices, Feather, FileUp, Flag, Flame, HeartPulse, Menu, MessageCircleWarning, Pause, Play, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords, X } from 'lucide-react';
 import { WorldForge, HeroForge, clearForgeDrafts } from './components/Forge.jsx';
 import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
@@ -16,6 +16,12 @@ import { tableOf } from 'fatescript/table';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
 import { applyCast, applyMilestone, applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll, milestoneLevel } from 'fatescript/rules';
 import { ACT_NAMES, actInfo, applyPartyMilestone, applyStoryUpdates, chapterInfo, initCodex, requestSeal, romanNumeral, storyBlock } from 'fatescript/story';
+
+// THE DECLARATION AFFORDANCE (XIX, Article IV) — one-shot: the composer
+// arms it, the very next ask consumes it (byte-identical text), and every
+// other ask attests null. Module-scoped so the story assembly reads it
+// without threading a new parameter through every playTurn seat.
+let pendingDeclaration = null;
 // THE SPINE MINT (Directive XIX, Article I) — the mint door and the
 // floor's rumor pool, from the story smith's one seat.
 import { mockStorySmith, sealSpineMint } from 'fatescript/storySmith';
@@ -673,6 +679,13 @@ export default function App() {
       if (base.roomIntent && Number.isInteger(base.roomIntent.beat_index) && base.roomIntent.beat_index === base.codex.beatIndex) {
         story = { ...story, beat_intent: base.roomIntent };
       }
+      // THE DECLARATION RIDES THE ASK (XIX, Article IV) — ONE-SHOT: the
+      // composer arms it, this ask consumes it, and every other ask
+      // attests null. This client ALWAYS seats the key — the door's
+      // three-valued court reads absence only from elder sealed inputs.
+      const declared = typeof pendingDeclaration === 'string' && pendingDeclaration.trim() ? pendingDeclaration.trim() : null;
+      pendingDeclaration = null;
+      story = { ...story, declaration: declared };
       // THE EDITOR'S DOCKET (Directive XI, Law VI) — the prior turn's
       // roads ride additively so the room's sameness court holds its
       // cross-evidence; redacted pages surrender their roads with the rest.
@@ -798,6 +811,14 @@ export default function App() {
         landingContext.day = story.calendar_state.day;
         landingContext.lastRestDay = Number.isInteger(base.hero?.lastRestDay) ? base.hero.lastRestDay : null;
       }
+      // THE OPEN ROAD AT THE LANDING (XIX, Articles IV–VII): the same
+      // four courts the door ran, from the SAME briefing evidence and the
+      // ask's own declaration — both benches in lockstep, byte for byte.
+      if (Object.hasOwn(story || {}, 'declaration')) landingContext.declaredAmbition = typeof story.declaration === 'string' && story.declaration.trim() ? story.declaration : null;
+      if (Array.isArray(story?.ambitions_state)) landingContext.openAmbitions = story.ambitions_state.filter((text) => typeof text === 'string');
+      if (Array.isArray(story?.clocks_state)) landingContext.openClocks = story.clocks_state;
+      if (Array.isArray(story?.rumors_state)) landingContext.rumors = story.rumors_state.filter((text) => typeof text === 'string');
+      if (Array.isArray(base.codex?.spine?.beats)) landingContext.spine = { beats: base.codex.spine.beats, beatIndex: Number.isInteger(base.codex.beatIndex) ? base.codex.beatIndex : null };
       const validation = validateDmTurn(dm, entropy, landingContext);
       // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
       // the door ran, run once more where the turn becomes record, on the
@@ -1120,7 +1141,12 @@ export default function App() {
     const spineMint = minted.ok ? minted.mint : null;
     // The lawful init path seeds the trove from the forge keepsake,
     // cited to turn zero (Directive VI).
-    const codex = initCodex(spineMint ? spineMint.spine : worldDraft.spineId, hero.keepsake ? { keepsake: { name: hero.keepsake, holder: hero.name } } : {});
+    const codex = initCodex(spineMint ? spineMint.spine : worldDraft.spineId, {
+      ...(hero.keepsake ? { keepsake: { name: hero.keepsake, holder: hero.name } } : {}),
+      // THE HORIZON (XIX, Article VII): the pool seeds from the mint's own
+      // swept rumors — the shelf mint carries the floor pool's six.
+      ...(Array.isArray(spineMint?.rumors) && spineMint.rumors.length ? { rumors: spineMint.rumors } : {})
+    });
     const campaign = {
       id, title: worldDraft.title, covenant: worldDraft.covenant, tone: worldDraft.tone,
       lines: worldDraft.lines, veils: worldDraft.veils, styleBible: worldDraft.styleBible, homeRegion: worldDraft.homeRegion,
@@ -1961,14 +1987,19 @@ function ownerTag(campaign, pending) {
 
 function Composer({ campaign, busy, reduceMotion, onSubmit, onSuggestion, onRoll, onXCard }) {
   const [text,setText]=useState(''); const pending=campaign.pendingRoll;
-  const send=()=>{if(text.trim()){onSubmit(text);setText('');}};
+  // THE DECLARATION AFFORDANCE (XIX, Article IV): armed, the very words
+  // of this message become the declared ambition — the ask carries them
+  // byte-identical, the door holds the DM to the verbatim seal. One shot:
+  // send consumes the arm, and the toggle falls quiet again.
+  const [declareArmed, setDeclareArmed] = useState(false);
+  const send=()=>{if(text.trim()){if(declareArmed){pendingDeclaration=text.trim();setDeclareArmed(false);}onSubmit(text);setText('');}};
   // THE ROADS STAY OPEN — suggestions read the latest TURN, never a tick or
   // span row: a time-advancing turn appends its divider after itself, and
   // the divider must not swallow the roads the turn offered.
   const latest=[...campaign.logs].reverse().find((l)=>!l.redacted && !l.kind);
   return <section className="composer-wrap">
     {latest?.dm?.suggestions && !pending && <SuggestionRow key={latest.id} suggestions={latest.dm.suggestions} disabled={busy} onPick={onSuggestion} reduceMotion={reduceMotion} />}
-    {pending ? <button className="roll-button" onClick={onRoll} disabled={busy}><Dices/><span><small>{ownerTag(campaign, pending)}{pending.kind} · DC {pending.dc ?? 'hidden'}</small>{pending.label}</span><b>Roll {pending.die}</b></button> : <div className="composer"><button className="x-card" onClick={onXCard} disabled={busy} title="Remove the last scene from active canon"><MessageCircleWarning/></button><textarea value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}} placeholder="What do you do?" rows="1" disabled={busy}/><button onClick={send} disabled={busy||!text.trim()}><Feather/></button></div>}
+    {pending ? <button className="roll-button" onClick={onRoll} disabled={busy}><Dices/><span><small>{ownerTag(campaign, pending)}{pending.kind} · DC {pending.dc ?? 'hidden'}</small>{pending.label}</span><b>Roll {pending.die}</b></button> : <div className="composer"><button className="x-card" onClick={onXCard} disabled={busy} title="Remove the last scene from active canon"><MessageCircleWarning/></button><textarea value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}} placeholder="What do you do?" rows="1" disabled={busy}/><button className={`declare-toggle${declareArmed ? ' armed' : ''}`} onClick={()=>setDeclareArmed((armed)=>!armed)} disabled={busy} title={declareArmed ? 'This message will be sealed as your declared ambition' : 'Declare this message as an ambition'} aria-pressed={declareArmed}><Flag/></button><button onClick={send} disabled={busy||!text.trim()}><Feather/></button></div>}
   </section>;
 }
 

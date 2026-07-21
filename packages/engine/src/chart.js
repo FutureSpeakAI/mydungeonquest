@@ -16,6 +16,7 @@ import { rowsOf } from './rows.js';
 import { parsePlacement, buildAtlas, positionOf, placesOf } from './atlas.js';
 import { calendarOf } from './calendar.js';
 import { travelRecord } from './presence.js';
+import { horizonRumors } from './story.js';
 
 const canon = (name) => String(name ?? '').trim().toLowerCase();
 
@@ -95,5 +96,9 @@ export function chartOf(campaign) {
     const to = positionOf(atlas, road.b);
     return from && to ? { a: road.a, b: road.b, label: road.label, crossings: road.crossings, x1: from.x, y1: from.y, x2: to.x, y2: to.y } : null;
   }).filter(Boolean);
-  return { origin: atlas.origin, medallions, roads, route: travels.route, ground: travels.ground };
+  // THE HORIZON'S EDGE (XIX, Article VII): the blank vellum may carry up
+  // to three unresolved rumors — whispers at the edge of the map, marked
+  // as rumor by the renderer, never geography: no medallion, no road, no
+  // position. The pool rotates as rumors open into cited threads.
+  return { origin: atlas.origin, medallions, roads, route: travels.route, ground: travels.ground, edge_rumors: horizonRumors(campaign?.codex) };
 }

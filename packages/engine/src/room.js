@@ -35,15 +35,24 @@ export function threadNames(story) {
     .filter((name) => typeof name === 'string' && name.length);
 }
 
+// The open ambitions as the briefing carries them — open_ambitions rides
+// BARE ledger texts (no citation suffix), so the served-name court and
+// the mock's seat match verbatim. No rows at all, court out of session.
+export function ambitionNames(story) {
+  const rows = Array.isArray(story?.open_ambitions) ? story.open_ambitions : null;
+  if (!rows) return null;
+  return rows.filter((text) => typeof text === 'string' && text.length);
+}
+
 // The Director's word faces its own strict court — exactly these keys,
 // these lengths, this measure. A live seat that cannot speak lawfully
 // is replaced by the deterministic floor, never argued with.
-export function validateBeatIntent(intent, { threads = null } = {}) {
+export function validateBeatIntent(intent, { threads = null, ambitions = null } = {}) {
   if (!intent || typeof intent !== 'object' || Array.isArray(intent)) {
     return { ok: false, errors: ['beat_intent must be a single object'] };
   }
   const errors = [];
-  const lawful = ['beat_index', 'forbidden_repeats', 'intent', 'measure', 'secrets_held', 'threads_to_touch'];
+  const lawful = ['ambitions_served', 'beat_index', 'forbidden_repeats', 'intent', 'measure', 'secrets_held', 'threads_to_touch'];
   for (const key of Object.keys(intent)) {
     if (!lawful.includes(key)) errors.push(`unlawful key: ${key}`);
   }
@@ -65,6 +74,31 @@ export function validateBeatIntent(intent, { threads = null } = {}) {
     const held = new Set(threads);
     for (const name of intent.threads_to_touch) {
       if (typeof name === 'string' && !held.has(name)) errors.push(`threads_to_touch names no ledger thread: ${name}`);
+    }
+  }
+  // THE AMBITIONS SERVED (XIX, Article IV) — the one lawful bump of the
+  // Director's protocol. The key's SHAPE is optional-backward (an elder
+  // intent carries no key and stays lawful when nothing stands), but the
+  // OBLIGATION is presence-lawed through the briefing's own evidence:
+  // when open ambitions ride, the intent must serve at least one, by its
+  // exact ledger text; when the briefing attests none stand, a served
+  // name is refused. Bare evidence (null): court out of session.
+  if (intent.ambitions_served !== undefined) {
+    const rows = intent.ambitions_served;
+    if (!Array.isArray(rows) || rows.length > 3 || rows.some((row) => typeof row !== 'string' || !row.length || row.length > 200)) {
+      errors.push('ambitions_served must be an array of at most 3 short strings');
+    }
+  }
+  if (Array.isArray(ambitions)) {
+    const served = Array.isArray(intent.ambitions_served) ? intent.ambitions_served.filter((row) => typeof row === 'string') : [];
+    if (ambitions.length) {
+      const open = new Set(ambitions.map((text) => String(text).trim().toLowerCase()));
+      if (!served.length) errors.push('ambitions stand open — ambitions_served must name at least one');
+      for (const name of served) {
+        if (!open.has(String(name).trim().toLowerCase())) errors.push(`ambitions_served names no open ambition: ${name}`);
+      }
+    } else if (served.length) {
+      errors.push('ambitions_served without open ambitions — the briefing attests none stand');
     }
   }
   return { ok: !errors.length, errors };
@@ -104,10 +138,14 @@ export function mockDirector(input, beatIndex) {
   if (line.length > 200) line = `${line.slice(0, 199)}…`.slice(0, 200);
   if (line.length < 12) line = 'Advance the standing chapter toward its goal.';
   const threads = threadNames(input?.story) || [];
+  // XIX Article IV: when the briefing carries open ambitions, the floor
+  // serves the first — deterministic, and lawful under its own court.
+  const ambitions = ambitionNames(input?.story) || [];
   return {
     intent: line,
     secrets_held: [],
     threads_to_touch: threads.slice(0, 2),
+    ambitions_served: ambitions.slice(0, 1),
     forbidden_repeats: [],
     measure: measureForBeat(beats, at),
     beat_index: at

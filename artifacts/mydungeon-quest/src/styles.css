@@ -661,3 +661,10 @@ a.secondary-button{display:inline-grid;place-items:center;text-decoration:none}
 .grimoire-ritual .spell-pick-grid { max-height: 44vh; overflow-y: auto; padding-right: 6px; }
 .spell-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .spell-known { border: 1px solid rgba(198, 161, 91, 0.45); border-radius: 999px; padding: 2px 10px; font-size: 0.85em; text-transform: capitalize; }
+
+/* THE OPEN ROAD (Directive XIX) — the declaration toggle and the Book's
+   new Debts panels. The armed toggle must read as a held intention. */
+.composer .declare-toggle { color: var(--ink-soft, #8a8577); }
+.composer .declare-toggle.armed { color: var(--ember, #c96f2f); background: color-mix(in srgb, currentColor 14%, transparent); border-radius: 6px; }
+.thread-row .clock-tick, .thread-row .standing-shift, .thread-row .amend-reason { display: block; opacity: 0.75; }
+.chart-edge-rumors .edge-rumor { font-style: italic; }

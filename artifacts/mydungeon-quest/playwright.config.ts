@@ -92,6 +92,9 @@ export default defineConfig({
     // genesis first word); it boots its own seeds, so it rides behind the
     // dom pass like the other self-seeding courts.
     { name: 'g35-saga', testMatch: /g35-saga\.spec\.ts/, dependencies: ['dom'] },
+    // (Directive XIX, Stage Three) THE OPEN ROAD COURT — live keyless walk;
+    // same dom pass as the other self-seeding courts.
+    { name: 'g36-open-road', testMatch: /g36-open-road\.spec\.ts/, dependencies: ['dom'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

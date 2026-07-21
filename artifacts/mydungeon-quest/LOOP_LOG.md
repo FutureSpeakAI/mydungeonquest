@@ -3828,3 +3828,49 @@ RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63
   return) is queue item #55's own scope should the house accept it; the
   directive commands a cure only for a live defect. The bench is not
   sick; Stage Three's prose-court recalibration may lawfully seat.
+
+### STAGE THREE SEATS — the four gates, the saga, and the open road (2026-07-21)
+
+- The keyless chain walked 149 → 153: declaration, clocks, standings,
+  horizon — Articles IV–VII judged at the engine's own doors, G13's pin
+  sealing the ladder complete (145 → 147 → 149 → 153 per Section 5.2).
+- G35 THE SAGA sits five and G36 THE OPEN ROAD sits two, all green on
+  the settled tree (G35 full bench 5/5; G36a+G36b direct-keyed runs).
+  Every red on this road was the court's own instrument or its door
+  manners — never the app's law. Named, per the root-cause rule:
+  1. The volume-door poll and the heir wait both rode waitForFunction
+     with an ASYNC predicate + interval polling — that pairing resolves
+     an unawaited promise handle, jsonValue() reading null while the
+     successor row stood lawful in the record. Both seats poll by
+     one-shot evaluates now. (64.2's instant G35 reds were this
+     instrument, not the bench.)
+  2. G35a/G36a premise: the mint seats its source at attestation.source
+     — no top-level seat exists; the assert was red-by-birth from Stage
+     Two, masked by the same instrument. The smith probed lawful across
+     2000 seeds — bespoke and shelf paths never refuse.
+  3. The campaign pick rode uuid (primary-key) order; the court now
+     picks createdAt-max, the record's own newest.
+  4. The forge walk trued to the Deep Forge door's two steps (world →
+     Forge the hero → audition chip → Begin the chronicle).
+  5. G35c: no seal door hangs on an unstarted successor — by design
+     (nearEnd or completed only). The court stages `completed` (the
+     doom-court device) and walks the app's OWN wax: the tale-told door
+     or the ceremony risen on its own — both accepted.
+  6. G35e: a continued elder opens straight to its keepsakes — the
+     shelf's own manner once a successor stands. And the court's bare
+     locator.waitFor() STRICT-THROWS on the plural .keepsakes seats: the
+     instrument lied "absent" while the door stood open, then knocked on
+     a covered door for the full ceiling. One helper (openKeepsakes)
+     serves both callers now — accept a risen door, knock only when
+     owed.
+  7. The mock DM's open-road walk comment trued: EVERY forged world
+     mints a horizon (shelf mints carry floor rumors too); only
+     legacy/fixture worlds without a rumor pool skip the walk. Elder
+     sealed courts replay byte-identical.
+- REPLAY: the Director-protocol bump is named here so the window
+  re-judges g24-prose on its own bench — no spec seat changed.
+- Keyless `npm run check` green after the walk-comment true-up (the
+  eval hard-asserts provider === 'mock'; the bench ran with every AI key
+  unset).
+- RUN_REQUESTED 64.3 — the window demands three consecutive greens,
+  ceiling 64.14.

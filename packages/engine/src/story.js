@@ -97,6 +97,12 @@ export function initCodex(spineId, seed = {}) {
   const keepsake = seed.keepsake && String(seed.keepsake.name || '').trim()
     ? [{ name: clean(seed.keepsake.name, 60), kind: 'keepsake', holder: clean(seed.keepsake.holder, 60), note: null, status: 'held', since: 0, moved: 0 }]
     : [];
+  // THE HORIZON (XIX, Article VII): the smith's swept rumors seed the
+  // pool at the forge — seed.rumors, sealed with the spine's own mint.
+  // No rumors, no pool: an empty horizon is an absence honestly recorded.
+  const rumorPool = Array.isArray(seed.rumors)
+    ? seed.rumors.filter((text) => typeof text === 'string' && text.trim()).slice(0, 6).map((text) => ({ text: clean(text, 200), status: 'unopened', opened_turn: null }))
+    : [];
   return {
     version: 1,
     spine: structuredClone(spine),
@@ -111,6 +117,14 @@ export function initCodex(spineId, seed = {}) {
     threads: [],
     trove: keepsake,
     purses: [],
+    // THE OPEN ROAD (Directive XIX, Articles IV–VII): declared ambitions,
+    // long clocks, the standings ledger (shift ROWS — a score exists only
+    // as the fold's own sum), the spine's lawful bends, and the horizon.
+    ambitions: [],
+    clocks: [],
+    standings: [],
+    spineAmendments: [],
+    rumorPool,
     scene: null,
     // THE PARTY AND THE ELSEWHERE (Directive VIII): who travels with the
     // hero, and the sealed fixtures of every place. The hero is the
@@ -122,6 +136,34 @@ export function initCodex(spineId, seed = {}) {
     bestiary: [],
     completed: false
   };
+}
+
+// THE STANDING SUM (XIX, Article VI) — the ONE arithmetic. A faction's
+// score is the sum of its cited shift rows and exists nowhere else; the
+// briefing and the Book both read this fold, never their own math.
+// Sorted strongest-first by |score|, ties by name — byte-stable.
+export function standingsOf(codex) {
+  const rows = Array.isArray(codex?.standings) ? codex.standings : [];
+  const seats = new Map();
+  for (const row of rows) {
+    const key = canonName(row?.faction);
+    if (!key) continue;
+    const seat = seats.get(key) || { faction: row.faction, score: 0, shifts: [] };
+    seat.score += Number.isInteger(row?.delta) ? row.delta : 0;
+    seat.shifts.push({ ...row });
+    seats.set(key, seat);
+  }
+  return [...seats.values()].sort((a, b) => Math.abs(b.score) - Math.abs(a.score) || String(a.faction).localeCompare(String(b.faction)));
+}
+
+// THE HORIZON'S EDGE (XIX, Article VII) — the unopened rumors, bounded,
+// in pool order: what the chart's blank vellum may whisper. Marked as
+// rumor by every reader; never geography, never a medallion.
+export function horizonRumors(codex, cap = 3) {
+  return (Array.isArray(codex?.rumorPool) ? codex.rumorPool : [])
+    .filter((row) => row && row.status === 'unopened' && typeof row.text === 'string')
+    .slice(0, Math.max(0, cap))
+    .map((row) => row.text);
 }
 
 // SEAL THE TALE — the honored early ending (directive §3.6). The player may
@@ -260,7 +302,17 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
       next.notes.push(`Duplicate open thread blocked: ${label}.`);
       continue;
     }
-    next.threads.push({ label, kind: THREAD_KINDS.includes(add.kind) ? add.kind : 'promise', holder: add.holder ? clean(add.holder, 60) : null, status: 'open', outcome: null });
+    // THE HORIZON CITATION (XIX, Article VII): a thread may open FROM a
+    // rumor — the citation rides the row whole, and the cited rumor leaves
+    // the pool so the chart's edge seats the next whisper.
+    const citedRumor = add.rumor ? clean(add.rumor, 200) : null;
+    next.threads.push({ label, kind: THREAD_KINDS.includes(add.kind) ? add.kind : 'promise', holder: add.holder ? clean(add.holder, 60) : null, status: 'open', outcome: null, rumor: citedRumor });
+    if (citedRumor) {
+      next.rumorPool = next.rumorPool ?? [];
+      const pooled = next.rumorPool.find((row) => row.status === 'unopened' && canonName(row.text) === canonName(citedRumor));
+      if (pooled) { pooled.status = 'opened'; pooled.opened_turn = Number.isInteger(meta.turn) ? meta.turn : null; }
+      else next.notes.push(`The cited rumor is not on the horizon — the thread stands, the pool holds: ${citedRumor}.`);
+    }
   }
   for (const close of (updates.thread_resolve || []).slice(0, 2)) {
     const open = next.threads.find((thread) => canonName(thread.label) === canonName(clean(close?.label, 90)) && thread.status === 'open');
@@ -270,6 +322,91 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     }
     open.status = close.outcome; open.outcome = close.outcome;
   }
+
+  // THE OPEN ROAD (Directive XIX, Articles IV–VII) — the declaration, the
+  // clocks, the standings, and the spine's one lawful bend. The door
+  // refuses malformed ops by name; these belts SPEAK when an unlawful op
+  // reaches the record purse-blind. Old codexes backfill empty seats.
+  next.ambitions = next.ambitions ?? [];
+  for (const add of (updates.ambition_add || []).slice(0, 1)) {
+    const text = clean(add?.text, 200);
+    if (!text) continue;
+    if (next.ambitions.some((row) => canonName(row.text) === canonName(text) && row.status === 'open')) {
+      next.notes.push(`The ambition already stands open: ${text}.`);
+      continue;
+    }
+    next.ambitions.push({ text, status: 'open', outcome: null, declared_turn: Number.isInteger(meta.turn) ? meta.turn : null, resolved_turn: null });
+  }
+  const AMBITION_ENDS = ['achieved', 'renounced', 'lost'];
+  for (const close of (updates.ambition_resolve || []).slice(0, 2)) {
+    const open = next.ambitions.find((row) => canonName(row.text) === canonName(clean(close?.text, 200)) && row.status === 'open');
+    if (!open || !AMBITION_ENDS.includes(close?.outcome)) {
+      next.notes.push(`Unlawful ambition resolve blocked: ${clean(close?.text, 200) || 'unnamed'}.`);
+      continue;
+    }
+    open.status = close.outcome; open.outcome = close.outcome;
+    open.resolved_turn = Number.isInteger(meta.turn) ? meta.turn : null;
+  }
+  next.clocks = next.clocks ?? [];
+  const CLOCK_SPANS = [4, 6, 8];
+  const CLOCK_ENDS = ['struck', 'averted', 'lapsed'];
+  let clockBudget = 2;
+  for (const open of updates.clock_open || []) {
+    if (clockBudget <= 0) { next.notes.push('The clock budget is spent — an open folded away.'); continue; }
+    clockBudget -= 1;
+    const label = clean(open?.label, 90);
+    if (!label || !CLOCK_SPANS.includes(open?.segments)) { next.notes.push(`Unlawful clock blocked: ${label || 'unnamed'}.`); continue; }
+    if (next.clocks.some((row) => canonName(row.label) === canonName(label) && row.status === 'open')) { next.notes.push(`Duplicate open clock blocked: ${label}.`); continue; }
+    next.clocks.push({ label, segments: open.segments, ambition: open.ambition ? clean(open.ambition, 200) : null, ticks: [], status: 'open', outcome: null, opened_turn: Number.isInteger(meta.turn) ? meta.turn : null, resolved_turn: null });
+  }
+  for (const tick of updates.clock_tick || []) {
+    if (clockBudget <= 0) { next.notes.push('The clock budget is spent — a tick folded away.'); continue; }
+    clockBudget -= 1;
+    const clock = next.clocks.find((row) => canonName(row.label) === canonName(clean(tick?.label, 90)) && row.status === 'open');
+    const reason = clean(tick?.reason, 160);
+    if (!clock || !reason) { next.notes.push(`Unlawful clock tick blocked: ${clean(tick?.label, 90) || 'unnamed'}.`); continue; }
+    if (clock.ticks.length >= clock.segments) { next.notes.push(`The clock stands filled — a tick past full folded away: ${clock.label}.`); continue; }
+    clock.ticks.push({ turn: Number.isInteger(meta.turn) ? meta.turn : null, reason });
+  }
+  for (const close of updates.clock_resolve || []) {
+    if (clockBudget <= 0) { next.notes.push('The clock budget is spent — a resolve folded away.'); continue; }
+    clockBudget -= 1;
+    const clock = next.clocks.find((row) => canonName(row.label) === canonName(clean(close?.label, 90)) && row.status === 'open');
+    if (!clock || !CLOCK_ENDS.includes(close?.outcome)) { next.notes.push(`Unlawful clock resolve blocked: ${clean(close?.label, 90) || 'unnamed'}.`); continue; }
+    clock.status = 'resolved'; clock.outcome = close.outcome;
+    clock.resolved_turn = Number.isInteger(meta.turn) ? meta.turn : null;
+  }
+  next.standings = next.standings ?? [];
+  const STANDING_STEPS = [-2, -1, 1, 2];
+  for (const shift of (updates.standing_shift || []).slice(0, 2)) {
+    const faction = clean(shift?.faction, 80);
+    const reason = clean(shift?.reason, 160);
+    if (!faction || !reason || !STANDING_STEPS.includes(shift?.delta)) { next.notes.push(`Unlawful standing shift blocked: ${faction || 'unnamed'}.`); continue; }
+    next.standings.push({ faction, delta: shift.delta, reason, turn: Number.isInteger(meta.turn) ? meta.turn : null });
+  }
+  next.spineAmendments = next.spineAmendments ?? [];
+  const amend = updates.spine_amend;
+  if (amend && typeof amend === 'object' && !Array.isArray(amend)) {
+    const act = Number.isInteger(amend.act) ? amend.act : null;
+    const reason = clean(amend.reason, 200);
+    const beatName = clean(amend.beat, 120);
+    const beats = next.spine?.beats || [];
+    const index = beats.findIndex((beat) => canonName(beat?.title) === canonName(beatName));
+    if (!act || !reason || !beatName || (amend.title == null && amend.goal == null)) {
+      next.notes.push('Unlawful spine amendment blocked: act, stated reason, beat, and a reshaped title or goal are all required.');
+    } else if (next.spineAmendments.some((row) => row.act === act)) {
+      next.notes.push(`The spine bends once an act — a second amendment in act ${act} refused.`);
+    } else if (index < 0 || beats[index].act !== act) {
+      next.notes.push(`spine_amend names no beat of act ${act}: ${beatName || 'unnamed'}.`);
+    } else if (index <= (next.beatIndex ?? 0)) {
+      next.notes.push(`The played road does not rewrite — spine_amend refused for the reached beat: ${beats[index].title}.`);
+    } else {
+      if (amend.title != null) beats[index].title = clean(amend.title, 100);
+      if (amend.goal != null) beats[index].goal = clean(amend.goal, 300);
+      next.spineAmendments.push({ act, beat: beatName, title: amend.title != null ? clean(amend.title, 100) : null, goal: amend.goal != null ? clean(amend.goal, 300) : null, reason, turn: Number.isInteger(meta.turn) ? meta.turn : null });
+    }
+  }
+  next.rumorPool = next.rumorPool ?? [];
 
   // THE POSSESSIONS CUT (Directive VI) — named things and per-holder coin
   // as sealed operations. The reducer is the canon guard: at most three
@@ -753,6 +890,15 @@ export function storyBlock(codex) {
     // structurally absent otherwise.
     trove_state: (codex.trove || []).filter((item) => item.status === 'held').map(({ name, holder, equipped, enchant }) => ({ name, holder, ...(equipped ? { equipped: true } : {}), ...(enchant ? { enchant } : {}) })),
     purse_state: (codex.purses || []).map(({ holder, coin }) => ({ holder, coin })),
+    // THE OPEN ROAD STATES (XIX, Articles IV–VII): the door's own
+    // evidence, riding to every court exactly as threads_state does.
+    // Ambitions ride as BARE open texts (the resolve court matches
+    // verbatim); clocks as structured open rows with ticks as the
+    // standing COUNT; the horizon as the same bounded whisper the
+    // chart's edge seats — the citation court binds to what rode.
+    ambitions_state: (codex.ambitions || []).filter((row) => row && row.status === 'open' && typeof row.text === 'string').map((row) => row.text),
+    clocks_state: (codex.clocks || []).filter((row) => row && row.status === 'open' && typeof row.label === 'string').map(({ label, segments, ticks }) => ({ label, segments, ticks: Array.isArray(ticks) ? ticks.length : 0, status: 'open' })),
+    rumors_state: horizonRumors(codex),
     // THE PRESENCE CUT (Directive VII.7): the standing ground rides to the
     // server court exactly as threads_state and trove_state do.
     scene_state: codex.scene ? { region: codex.scene.region, sinceTurn: codex.scene.sinceTurn ?? null } : null,

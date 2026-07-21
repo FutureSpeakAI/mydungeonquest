@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Film, ScrollText } from 'lucide-react';
 import { db } from '../lib/db.js';
-import { ACT_NAMES, romanNumeral } from 'fatescript/story';
+import { ACT_NAMES, romanNumeral, standingsOf } from 'fatescript/story';
 import { rowsOf } from 'fatescript/rows';
 import { cardsForCampaign } from 'fatescript/cards';
 import { roomForTurn, SCRIBES } from '../lib/scriptorium.js';
@@ -326,6 +326,49 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
             <b>{thread.label}</b>
             <small>{thread.holder ? `held by ${thread.holder} — ` : ''}{citeOf(thread) || 'carried forward'}</small>
           </div>))}</div>; })()}
+    {(campaign.codex.ambitions || []).length > 0 && <>
+      <h3>Ambitions — the player's own word</h3>
+      <div className="thread-list">{campaign.codex.ambitions.map((ambition, i) =>
+        <div key={`ambition-${i}`} className={`thread-row ambition-row${ambition.status === 'open' ? '' : ' thread-closed'}`}>
+          <span className="thread-kind">ambition</span>
+          <b>{ambition.text}</b>
+          <small>{Number.isInteger(ambition.declared_turn) ? `declared turn ${ambition.declared_turn}` : 'declared at the table'}</small>
+          {ambition.status !== 'open' && <span className="outcome">{ambition.outcome}{Number.isInteger(ambition.resolved_turn) ? `, turn ${ambition.resolved_turn}` : ''}</span>}
+        </div>)}</div>
+    </>}
+    {(campaign.codex.clocks || []).length > 0 && <>
+      <h3>Clocks — the long undertakings</h3>
+      <div className="thread-list">{campaign.codex.clocks.map((clock, i) =>
+        <div key={`clock-${i}`} className={`thread-row clock-row${clock.status === 'open' ? '' : ' thread-closed'}`}>
+          <span className="thread-kind">{(clock.ticks || []).length}/{clock.segments}</span>
+          <b>{clock.label}</b>
+          {clock.ambition && <small>bound to: {clock.ambition}</small>}
+          {(clock.ticks || []).map((tick, j) => <small key={`tick-${j}`} className="clock-tick">{Number.isInteger(tick.turn) ? `turn ${tick.turn} — ` : ''}{tick.reason}</small>)}
+          {clock.status !== 'open' && <span className="outcome">{clock.outcome}{Number.isInteger(clock.resolved_turn) ? `, turn ${clock.resolved_turn}` : ''}</span>}
+        </div>)}</div>
+    </>}
+    {standingsOf(campaign.codex).length > 0 && <>
+      <h3>Standings — how the powers regard you</h3>
+      <div className="thread-list">{standingsOf(campaign.codex).map((seat, i) =>
+        <div key={`standing-${i}`} className="thread-row standing-row">
+          <span className="thread-kind">{seat.score > 0 ? `+${seat.score}` : String(seat.score)}</span>
+          <b>{seat.faction}</b>
+          {soulsSwornTo(campaign.codex.cast || [], seat.faction).length > 0 && <small>sworn here: {soulsSwornTo(campaign.codex.cast || [], seat.faction).map((edge) => edge.name).join(', ')}</small>}
+          {seat.shifts.map((shift, j) => <small key={`shift-${j}`} className="standing-shift">{shift.delta > 0 ? `+${shift.delta}` : String(shift.delta)}{Number.isInteger(shift.turn) ? ` (turn ${shift.turn})` : ''} — {shift.reason}</small>)}
+        </div>)}</div>
+    </>}
+    {/* THE ROAD BENT (XIX, Article IV) — a sealed spine amendment renders
+        its stated reason here, cited to its turn: the future rewritten in
+        the open, never silently. */}
+    {Array.isArray(campaign.codex?.spineAmendments) && campaign.codex.spineAmendments.length > 0 && <>
+      <h3>The road bent — the spine amended in play</h3>
+      <div className="thread-list">{campaign.codex.spineAmendments.map((bend, i) =>
+        <div key={`amend-${i}`} className="thread-row amend-row">
+          <span className="thread-kind">act {bend.act}</span>
+          <b>{bend.beat}</b>
+          <small className="amend-reason">{bend.reason}{Number.isInteger(bend.turn) ? ` (turn ${bend.turn})` : ''}</small>
+        </div>)}</div>
+    </>}
     </div>}
 
     {chapter === 'party' && <div className="book-page" data-page="party">

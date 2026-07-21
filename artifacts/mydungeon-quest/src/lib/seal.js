@@ -2,10 +2,10 @@ import Dexie from 'dexie';
 // THE DESK (Task 60 §2): the seal's pure half — the pen and the eye —
 // lives at the engine's desk seat now; this door re-speaks it and keeps
 // only the database half (key custody, transactions, import, fork).
-import { makeEnvelope, verifyJournal, verifyChronicle } from 'fatescript/desk';
+import { makeEnvelope, verifyJournal, verifyChronicle, verifySaga } from 'fatescript/desk';
 import { db } from './db.js';
 
-export { makeEnvelope, verifyJournal, verifyChronicle };
+export { makeEnvelope, verifyJournal, verifyChronicle, verifySaga };
 
 // The 'cinema' media tier was retired with film generation (July 2026). The
 // funnel law moved home with the parity cut — the engine's canonical seat

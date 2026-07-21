@@ -13,6 +13,7 @@
 // No database, no browser, no provider: node's own webcrypto suffices,
 // and a keyless machine can sit this desk.
 import { canonicalize, sha256, bytesToBase64, base64ToBytes } from './canonical.js';
+import { validateSagaManifest } from './saga.js';
 
 export async function makeEnvelope({ type, i, prevHash = null, payload, ts = Date.now(), signer = null }) {
   const unsigned = { type, i, prevHash, payload, ts };
@@ -96,4 +97,46 @@ export async function verifyChronicle(data) {
     if (!signed.ok) return { ok: false, reason: signed.reason, verdicts };
   }
   return { ok: true, reason: null, verdicts };
+}
+
+// THE SAGA AT THE DESK (Task 64, Article II) — the desk walks a whole saga
+// the way it walks a chain. The manifest passes its court; every chronicle
+// verifies whole; every head matches the seal the manifest binds; and every
+// volume past the first cites its elder's head in its genesis — the FIRST
+// word of its journal, or the walk refuses by name (which volume, which
+// citation). A manifest whose first volume claims the root (index 0) may
+// not carry a genesis citation — a saga cannot begin before its manifest
+// tells. Elder sagas bound mid-chain (base index > 0) keep that door open.
+export async function verifySaga({ manifest, chronicles } = {}) {
+  const court = validateSagaManifest(manifest);
+  if (!court.ok) return { ok: false, reason: court.errors[0], errors: court.errors, volumes: [] };
+  const rows = Array.isArray(chronicles) ? chronicles : [];
+  if (rows.length !== manifest.volumes.length) {
+    return { ok: false, reason: `the manifest binds ${manifest.volumes.length} volume(s) but ${rows.length} chronicle(s) came to the desk`, errors: [], volumes: [] };
+  }
+  const volumes = [];
+  for (let seat = 0; seat < rows.length; seat += 1) {
+    const bound = manifest.volumes[seat];
+    const name = `volume ${seat + 1} (${bound.title})`;
+    const verdict = await verifyChronicle(rows[seat]);
+    if (!verdict.ok) return { ok: false, reason: `${name}: ${verdict.reason}`, errors: [], volumes };
+    if ((rows[seat].header?.headHash || null) !== bound.headHash) {
+      return { ok: false, reason: `${name} does not match the manifest's head seal — the manifest binds a different telling`, errors: [], volumes };
+    }
+    const genesis = (rows[seat].journal || []).find((record) => record?.type === 'genesis') || null;
+    if (seat === 0) {
+      if (genesis && bound.index === 0) {
+        return { ok: false, reason: `the manifest's first volume carries a genesis citation — the saga begins earlier than the manifest tells`, errors: [], volumes };
+      }
+    } else {
+      if (!genesis) return { ok: false, reason: `${name} carries no genesis citation — the chain cannot be walked`, errors: [], volumes };
+      if (genesis.i !== 0) return { ok: false, reason: `${name}'s genesis citation is not its first word`, errors: [], volumes };
+      const cited = genesis.payload?.priorVolume?.headHash || null;
+      if (cited !== manifest.volumes[seat - 1].headHash) {
+        return { ok: false, reason: `${name} does not cite volume ${seat}'s head seal — the chain breaks between ${manifest.volumes[seat - 1].title} and ${bound.title}`, errors: [], volumes };
+      }
+    }
+    volumes.push({ index: bound.index, title: bound.title, ok: true });
+  }
+  return { ok: true, reason: null, errors: [], volumes };
 }

@@ -33,7 +33,9 @@ import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnS
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
 import { reconcileLegacyPurse } from './lib/reconcile.js';
 import { teachOnce } from './lib/teaching.js';
-import { sealLegacy, openNextVolume } from './lib/saga.js';
+import { sealLegacy, openNextVolume, volumeCarryover } from './lib/saga.js';
+import { foldSuccession } from 'fatescript/saga';
+import { spineSpin } from './lib/smithClient.js';
 import { beginGenesis } from './lib/genesis.js';
 import { riteOpen, riteWalk } from './lib/threshold.js';
 import { ThresholdRite } from './components/Threshold.jsx';
@@ -1097,24 +1099,7 @@ export default function App() {
   const beginCampaign = async (heroInput) => {
     primeNarration(); // the Begin tap blesses the throat before Chapter I speaks
     const id = crypto.randomUUID();
-    const hero = {
-      ...createHero(heroInput), bearing: (heroInput.bearing || '').slice(0, 200),
-      // THE TENOR LAW: stated identity travels with the hero forever.
-      presentation: ['feminine', 'masculine', 'neutral'].includes(heroInput.presentation) ? heroInput.presentation : null,
-      pronouns: (heroInput.pronouns || '').slice(0, 30) || null,
-      mark: (heroInput.mark || '').slice(0, 80) || null,
-      // THE POSSESSIONS CUT (Directive VI): the forge keepsake rides the
-      // sheet, so the trove's journal replay and the codex seed agree.
-      keepsake: (heroInput.keepsake || '').slice(0, 60) || null,
-      // THE ATELIER CANON (XVII, Article VIII) — the six strokes seal as two
-      // sentences the anchor and the sheet both read from this one seat; a
-      // legacy hero (no strokes) seals null and composes from bearing as ever.
-      appearance: composeAppearance(heroInput) || null,
-      signature: composeSignature(heroInput) || null
-    };
-    // A voice blessed at the audition is kept; otherwise the casting session
-    // reads the finished forge card — presentation included.
-    hero.voiceId = heroInput.voiceId || castHeroVoice(hero);
+    const hero = forgeHeroSheet(heroInput);
     // THE SPINE MINT (Directive XIX, Article I) — every new volume seats
     // ONE minted spine, attested, cached forever. A bespoke roll arrives
     // already courted by the smith's messenger; the shelf path mints one
@@ -1405,13 +1390,44 @@ export default function App() {
   // the second press before React ever re-renders, so a double tap can
   // never forge two volumes.
   const openingVolumeRef = useRef(false);
-  const openNext = async (years) => {
+  // THE HEIR LAW (Directive XIX, Article III) — a new hand takes the road
+  // mid-tale: the world's record continues untouched, the fallen keep
+  // their memorial and their marks, the open threads become inherited
+  // weather cited to the fall, and the Book notes the chapter break
+  // through the standing notes lane. The heir walks the standing forge;
+  // the Tenor and anchor laws apply to the heir untouched.
+  const beginHeir = async (heroInput) => {
+    if (!current || current.readOnly) return;
+    primeNarration(); // the heir's Begin tap blesses the throat like any genesis
+    const fallen = current.hero;
+    const reason = fallen?.dead ? 'fell' : 'retired';
+    const heir = forgeHeroSheet(heroInput);
+    const turn = current.turnNumber || 0;
+    const codex = foldSuccession(current.codex, { fallen: { name: fallen.name, className: fallen.className, voiceId: fallen.voiceId ?? null }, heir: { name: heir.name }, turn, reason });
+    await seal(current.id, 'succession', { fallen: { name: fallen.name, className: fallen.className, level: fallen.level ?? null }, heir: { name: heir.name, className: heir.className }, turn, reason });
+    const next = { ...current, hero: heir, codex, updatedAt: Date.now() };
+    await saveCampaign(next); setCurrent(next); setFlow('table');
+    clearForgeDrafts(); // the heir stood from the same forge; the sitting's draft burns
+    setStatus(`✦ ${heir.name} rises — the world holds, and the debts stand.`);
+  };
+
+  const openNext = async (years, { smith = false } = {}) => {
     if (!current?.sealedAt || current.readOnly || busy) return;
     if (openingVolumeRef.current) return;
     openingVolumeRef.current = true;
     try {
       playUiSfx(current, 'seal');
-      const { campaign: nextVolume, span } = await openNextVolume(current, { years, seal });
+      // THE SMITH AT THE VOLUME DOOR (Directive XIX, Articles I + II) — the
+      // next arc may be forged from what this tale left unpaid. The parcel
+      // is courted by the messenger; any trouble falls closed to the shelf
+      // mint inside the opener, which cannot fail.
+      let bespoke = null;
+      if (smith) {
+        try {
+          bespoke = await spineSpin({ covenant: current.covenant || '', tone: current.tone || '', carryover: await volumeCarryover(current), seed: nameSeed(`${current.title}:volume:${(current.saga?.taleIndex ?? 0) + 2}`), tier: current.mediaTier });
+        } catch { bespoke = null; }
+      }
+      const { campaign: nextVolume, span } = await openNextVolume(current, { years, seal, bespoke });
       setOverlay(null);
       setCurrent(nextVolume); setFlow('table');
       setStatus(`✦ ${span} ${nextVolume.saga.worldTitle} turns a new page.`);
@@ -1512,6 +1528,7 @@ export default function App() {
 
   if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
   if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
+  if (flow === 'heir') return <HeroForge world={{ title: current?.title || 'The world', covenant: current?.covenant || '', tone: current?.tone || '' }} mediaTier={settings.mediaTier} onBack={() => setFlow('table')} onBegin={beginHeir} />;
   if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={stillness} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={async (campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } campaign = await reconcileLegacyPurse(campaign); /* the era door's one write (§IV.5) — before the table seats, so no turn can race it */ setCurrent(campaign); setFlow('table'); greetTale(campaign); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} onDemoDraw={drawDemoTale} status={status} /></>;
   if (!current) return null;
 
@@ -1616,7 +1633,7 @@ export default function App() {
     }} />}
     {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement — farewells, consequences, the road home. Then the wax presses, and the tale is bound.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal the Tale</button></div></div>}
     {overlay === 'sealing' && <Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
-    {current.hero.hp <= 0 && !current.hero.stableAtZero && <Epitaph campaign={current} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} onFaceTheDark={async()=>{const hero={...current.hero,doomChosen:true};const next={...current,hero};await seal(current.id,'resolution',{type:'doom_declined'});await saveCampaign(next);setCurrent(next);}} onDeathSave={async()=>{const saves=current.hero.deathSaves||{successes:0,failures:0};const rr={id:`doom-hero-${saves.successes+saves.failures+1}`,label:'Death save',kind:'death_save',die:'d20',ability:null,skill:null,proficient:false,dc:10,advantage:'normal',extra_mod:0,action_id:null,actor_id:'hero',target_id:null};const result=heroRoll(current.hero,rr);setDiceResult(result);playUiSfx(current,'die');const folded=foldDeathSave(saves,result.outcome);const hero={...current.hero,deathSaves:folded.verdict==='stable'?{successes:0,failures:0}:folded.deathSaves,...(folded.verdict==='dead'?{dead:true}:{}),...(folded.verdict==='stable'?{stableAtZero:true}:{})};await seal(current.id,'resolution',{...result,deathSaves:folded.deathSaves,verdict:folded.verdict});const next={...current,hero};await saveCampaign(next);setCurrent(next);}} />}
+    {current.hero.hp <= 0 && !current.hero.stableAtZero && <Epitaph campaign={current} onHeir={current.readOnly ? null : () => setFlow('heir')} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} onFaceTheDark={async()=>{const hero={...current.hero,doomChosen:true};const next={...current,hero};await seal(current.id,'resolution',{type:'doom_declined'});await saveCampaign(next);setCurrent(next);}} onDeathSave={async()=>{const saves=current.hero.deathSaves||{successes:0,failures:0};const rr={id:`doom-hero-${saves.successes+saves.failures+1}`,label:'Death save',kind:'death_save',die:'d20',ability:null,skill:null,proficient:false,dc:10,advantage:'normal',extra_mod:0,action_id:null,actor_id:'hero',target_id:null};const result=heroRoll(current.hero,rr);setDiceResult(result);playUiSfx(current,'die');const folded=foldDeathSave(saves,result.outcome);const hero={...current.hero,deathSaves:folded.verdict==='stable'?{successes:0,failures:0}:folded.deathSaves,...(folded.verdict==='dead'?{dead:true}:{}),...(folded.verdict==='stable'?{stableAtZero:true}:{})};await seal(current.id,'resolution',{...result,deathSaves:folded.deathSaves,verdict:folded.verdict});const next={...current,hero};await saveCampaign(next);setCurrent(next);}} />}
   </div>;
 }
 
@@ -1973,10 +1990,32 @@ function CombatBanner({ combat }) {
 // saves through the open door, three-and-three, each die landing on stage.
 // Three successes stand stable at zero; three failures seal the epitaph
 // final — no intervention, no resurrection, no take-backs.
-function Epitaph({ campaign, onIntervene, onFaceTheDark, onDeathSave }) {
+// One seat shapes a hero sheet from the forge's card — the Tenor law
+// (stated identity travels forever), the possessions cut (the keepsake
+// rides the sheet), the atelier canon (the six strokes seal as two
+// sentences), and the casting session all ride it. Begin and the heir
+// door read the same law; a voice blessed at the audition is kept.
+function forgeHeroSheet(heroInput) {
+  const hero = {
+    ...createHero(heroInput), bearing: (heroInput.bearing || '').slice(0, 200),
+    presentation: ['feminine', 'masculine', 'neutral'].includes(heroInput.presentation) ? heroInput.presentation : null,
+    pronouns: (heroInput.pronouns || '').slice(0, 30) || null,
+    mark: (heroInput.mark || '').slice(0, 80) || null,
+    keepsake: (heroInput.keepsake || '').slice(0, 60) || null,
+    appearance: composeAppearance(heroInput) || null,
+    signature: composeSignature(heroInput) || null
+  };
+  hero.voiceId = heroInput.voiceId || castHeroVoice(hero);
+  return hero;
+}
+
+function Epitaph({ campaign, onIntervene, onFaceTheDark, onDeathSave, onHeir }) {
   const hero = campaign.hero;
   const saves = hero.deathSaves || { successes: 0, failures: 0 };
-  if (hero.dead) return <div className="epitaph"><span>{hero.sigil}</span><p>The road ends here. The record keeps the name.</p><h1>{hero.name}</h1><p className="doom-tally">Three failures. The seal is permanent.</p></div>;
+  if (hero.dead) return <div className="epitaph"><span>{hero.sigil}</span><p>The road ends here. The record keeps the name.</p><h1>{hero.name}</h1><p className="doom-tally">Three failures. The seal is permanent.</p>
+    {/* THE HEIR LAW (XIX, Article III): permadeath is a chapter break, not a burned book. */}
+    {onHeir && <><p className="heir-call">The world holds. The debts stand. A new hand may take the road.</p><button className="heir-rise" onClick={onHeir}>An heir rises</button></>}
+  </div>;
   const walking = hero.deathTouched || hero.doomChosen;
   return <div className="epitaph"><span>{hero.sigil}</span><p>{walking ? 'The dark leans close. Roll, and be counted.' : 'An epitaph waits, but fate has not yet closed its hand.'}</p><h1>{hero.name}</h1>
     {walking

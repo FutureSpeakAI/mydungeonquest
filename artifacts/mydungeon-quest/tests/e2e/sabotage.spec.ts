@@ -345,3 +345,90 @@ test('tooth 21: borrowed papers are refused at the frame and named by the sweep'
     bites: true,
   });
 });
+
+// TOOTH 22 (Directive XIX) — THE BROKEN CHAIN. The saga desk swears it
+// refuses any break between volumes BY NAME (which volume, which
+// citation). The tooth forges a REAL two-volume saga through the app's
+// own doors, seals both, proves the desk walks the true pair green
+// (the Control Law: the control proves its own lie before it seats),
+// then breaks the inter-volume citation in a COPY — the genesis row's
+// cited head swapped for a stranger no volume ever wore. The chains
+// are signed, so the tampered citation also breaks the row's own seal;
+// the desk must refuse either way, naming the accused volume. If it
+// ever walks the broken copy green, G35c's green is unearned and this
+// tooth is the proof.
+test('tooth 22: a broken inter-volume citation is refused by the desk, by name', async ({ page }) => {
+  test.setTimeout(240_000);
+  const { seedFixture } = await import('./lib/harness');
+  await seedFixture(page, { sealed: true });
+  const elderId = await page.evaluate(async () => {
+    const { db } = await import('/src/lib/db.js');
+    const all = await db.campaigns.toArray();
+    return all[all.length - 1].id;
+  });
+
+  // The road goes on through the shelf mint (deterministic; the smith's own
+  // ask is G35a's court, not this tooth's lie).
+  await page.locator('button', { hasText: /keepsake/i }).first().click();
+  await page.waitForSelector('.keepsakes.next-volume', { timeout: 15_000 });
+  await page.locator('button', { hasText: 'A winter passes' }).click();
+  const vol2Handle = await page.waitForFunction(async (elder: string) => {
+    const { db } = await import('/src/lib/db.js');
+    const all = await db.campaigns.toArray();
+    const next = all.find((c: any) => c.id !== elder && c.saga && !c.sealedAt);
+    if (!next) return null;
+    const worded = (Array.isArray(next.logs) ? next.logs : []).some((l: any) => l && l.dm && l.recordHash && !l.kind);
+    return worded ? next.id : null;
+  }, elderId, { timeout: 120_000, polling: 1_000 });
+  const vol2Id = (await vol2Handle.jsonValue()) as string;
+
+  // Seal the successor with the same wax, then carry the saga out whole.
+  await page.locator('button', { hasText: /keepsake/i }).first().click();
+  const press = page.locator('.press-seal');
+  await press.waitFor({ timeout: 15_000 });
+  await press.click();
+  await page.waitForSelector('.keepsakes.next-volume', { timeout: 60_000 });
+
+  const saga = await page.evaluate(async ({ elder, vol2 }: { elder: string; vol2: string }) => {
+    const { exportChronicle } = await import('/src/lib/seal.js');
+    const { db, campaignJournal } = await import('/src/lib/db.js');
+    const row = await db.campaigns.get(vol2);
+    const genesis = (await campaignJournal(vol2)).find((r: any) => r.type === 'genesis');
+    // The manifest is the app's OWN sealed bytes grown by the newly sealed
+    // volume's seat — the tooth invents nothing but the lie itself.
+    const manifest = { ...genesis.payload.manifest, volumes: [...genesis.payload.manifest.volumes, { index: row.saga.taleIndex, title: row.title, headHash: row.headHash }] };
+    return JSON.parse(JSON.stringify({ manifest, chronicles: [await exportChronicle(elder), await exportChronicle(vol2)], trueHead: genesis.payload.priorVolume.headHash }));
+  }, { elder: elderId, vol2: vol2Id });
+
+  // THE CONTROL LAW — the unbroken pair proves green BEFORE the lie seats…
+  const control = await page.evaluate(async (pack: any) => {
+    const { verifySaga } = await import('/src/lib/seal.js');
+    return JSON.parse(JSON.stringify(await verifySaga({ manifest: pack.manifest, chronicles: pack.chronicles })));
+  }, saga);
+  expect(control.ok, `the unbroken saga walks green at the desk: ${control.reason || 'ok'}`).toBe(true);
+  expect(control.volumes.length, 'the control seats both volumes').toBe(2);
+  // …and the planted citation proves its OWN lie: a head no volume ever wore.
+  const strangerHead = 'f'.repeat(64);
+  expect(saga.trueHead, 'the true citation is a real head seal').toMatch(/^[0-9a-f]{64}$/);
+  expect(strangerHead !== saga.trueHead, `the planted citation provably differs from the true head (${String(saga.trueHead).slice(0, 12)}…)`).toBe(true);
+  console.log(`[control-law] tooth22-broken-citation: control pair GREEN; planted head ${strangerHead.slice(0, 12)}… provably ≠ true head ${String(saga.trueHead).slice(0, 12)}… — lie PROVEN, the control seats`);
+
+  // THE LIE — the citation breaks in a copy; the shelf rows never move.
+  const broken = JSON.parse(JSON.stringify(saga.chronicles));
+  const genesisRow = (broken[1].journal || []).find((r: any) => r.type === 'genesis');
+  expect(genesisRow, 'the copy carries the genesis to break').toBeTruthy();
+  genesisRow.payload.priorVolume.headHash = strangerHead;
+
+  const verdict = await page.evaluate(async (pack: any) => {
+    const { verifySaga } = await import('/src/lib/seal.js');
+    return JSON.parse(JSON.stringify(await verifySaga({ manifest: pack.manifest, chronicles: pack.broken })));
+  }, { manifest: saga.manifest, broken });
+  expect(verdict.ok, 'the desk refuses the broken saga').toBe(false);
+  expect(String(verdict.reason || ''), 'the refusal names the accused volume by seat and title').toMatch(/^volume 2 \(/);
+  expect(verdict.volumes.some((v: any) => v.index === 0 && v.ok), 'the elder seat verified before the break was met — the refusal is the successor\u2019s alone').toBe(true);
+
+  saveDeterministicEvidence('sabotage-22-broken-citation', {
+    trueHead: saga.trueHead, planted: strangerHead,
+    controlGreen: control.ok, refusal: verdict.reason, bites: true,
+  });
+});

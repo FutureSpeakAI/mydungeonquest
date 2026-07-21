@@ -42,7 +42,7 @@ import { GAME_ROOT } from './lib/vision';
 // face off the pipeline's OWN events), and the unmet gate (presence in
 // canon is not presence in the tale) join the keyless check in the same
 // commit that seats Articles VI, VII, and VIII of Directive XVII.
-const PINNED_PASS_COUNT = 147; // Task 64 Stage One (XIX I+VIII): +2 — storySmith, worldShape; 145 → 147 (Task 63: 139 → 142 → 145; ladder ahead: 147 → 149 → 153 per Section 5.2)
+const PINNED_PASS_COUNT = 149; // Task 64 Stage Two (XIX II+III): +2 — sagaChain, heir; 147 → 149 (Stage One: 145 → 147; ladder ahead: 149 → 153 per Section 5.2)
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

@@ -18,6 +18,7 @@ import { publishStatus, minePages, publishTale, revokeTale, setTaleListing } fro
 export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport, onPodcast, onNextVolume, audioBusy, onClose }) {
   const [stats, setStats] = useState(null);
   const [pressing, setPressing] = useState(false);
+  const [smith, setSmith] = useState(false); // the volume door's bespoke ask (XIX, Article I)
   const sealed = Boolean(campaign.sealedAt);
 
   useEffect(() => {
@@ -82,10 +83,17 @@ export default function Ceremony({ campaign, onPressSeal, onStorybook, onExport,
       {sealed && onNextVolume && <div className="keepsakes next-volume">
         <h3>The road goes on.</h3>
         <p className="keepsake-note">The world remembers this tale — every face, every voice, every grave. Open the next volume and name the span the road takes.</p>
+        {/* THE SMITH AT THE VOLUME DOOR (Directive XIX, Article I) — the
+            next arc may be bespoke, forged from what this tale left unpaid.
+            The mark is an ask, never a demand: unchecked, the shelf stands. */}
+        <label className="smith-forge-ask">
+          <input type="checkbox" checked={smith} onChange={(event) => setSmith(event.target.checked)} />
+          <span>The story smith forges the next arc from what this tale left unpaid</span>
+        </label>
         <div className="keepsake-row">
-          <button className="secondary-button" onClick={() => onNextVolume(1)}>A winter passes</button>
-          <button className="secondary-button" onClick={() => onNextVolume(3)}>Three winters pass</button>
-          <button className="secondary-button" onClick={() => onNextVolume(9)}>Nine winters pass</button>
+          <button className="secondary-button" onClick={() => onNextVolume(1, { smith })}>A winter passes</button>
+          <button className="secondary-button" onClick={() => onNextVolume(3, { smith })}>Three winters pass</button>
+          <button className="secondary-button" onClick={() => onNextVolume(9, { smith })}>Nine winters pass</button>
         </div>
       </div>}
     </div>

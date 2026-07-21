@@ -87,6 +87,11 @@ export default defineConfig({
     // shelf) and puts it out when it rests; it rides behind g26 so its
     // house never stands beside a keyed one.
     { name: 'g29-commons', testMatch: /g29-commons\.spec\.ts/, dependencies: ['g26-return'] },
+    // (Directive XIX, Stage Two) G35 THE SAGA COURT — keyless on the rig's
+    // own app server (the mock smith is the floor, the mock DM pours the
+    // genesis first word); it boots its own seeds, so it rides behind the
+    // dom pass like the other self-seeding courts.
+    { name: 'g35-saga', testMatch: /g35-saga\.spec\.ts/, dependencies: ['dom'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
   ],
   webServer: {

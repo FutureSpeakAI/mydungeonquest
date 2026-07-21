@@ -33,6 +33,8 @@ const REQUIRED_PROJECTS = [
   'g31-sheet', 'g32-quiet', 'g33-atelier',
   // (Directive XVIII §3) THE ARMORY AND THE ART sits every run.
   'g34-armory',
+  // (Directive XIX, Stage Two) the saga court sits by name.
+  'g35-saga',
 ];
 // Test-title needles that must appear among EXECUTED (non-skipped) tests.
 const REQUIRED_EXECUTED = [
@@ -78,6 +80,9 @@ const REQUIRED_EXECUTED = [
   'G33a', 'G33b', 'G33c', 'G33d', 'G33e',
   'G34a', 'G34b', 'G34c', 'G34d', 'G34e', 'G34f', 'G34g',
   'tooth 20:', 'tooth 21:',
+  // (Directive XIX, Stage Two) THE SAGA COURT — five courts and the
+  // broken-chain tooth, each demanded by its own exact name.
+  'G35a', 'G35b', 'G35c', 'G35d', 'G35e', 'tooth 22:',
 ];
 
 let verdict;

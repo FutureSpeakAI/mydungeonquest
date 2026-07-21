@@ -293,17 +293,39 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
       // client-side and never rides a journal turn, so the pure replay
       // cannot see it. One hand writes the words; this panel only repeats
       // them, matched by label, shown only where a fall actually stands.
-      const grief = new Map(rowsOf(campaign.codex?.threads).filter((t) => t?.fallNote).map((t) => [String(t.label || '').trim().toLowerCase(), t.fallNote]));
-      return ledger.length === 0
+      const canonLabel = (label) => String(label || '').trim().toLowerCase();
+      const codexThreads = rowsOf(campaign.codex?.threads);
+      const grief = new Map(codexThreads.filter((t) => t?.fallNote).map((t) => [canonLabel(t.label), t.fallNote]));
+      // THE CARRIED WEATHER (Directive XIX, Articles II + III) — a next
+      // volume's threads arrive through the sealed packet, and an heir's
+      // debts arrive through the succession fold; neither rides a journal
+      // turn of THIS volume, so the pure replay cannot see them. Same
+      // pattern as the fall note: the reducer's own testimony renders
+      // BESIDE the replay ledger, every row cited to its origin — the
+      // volume it crossed from, the hand it fell from — never invented.
+      const weather = new Map(codexThreads.filter((t) => t?.carried || t?.inherited).map((t) => [canonLabel(t.label), t]));
+      const carriedOnly = codexThreads.filter((t) => (t?.carried || t?.inherited) && (t?.status ?? 'open') === 'open' && !ledger.some((row) => canonLabel(row.label) === canonLabel(t.label)));
+      const citeOf = (row) => [
+        row?.carried ? `carried from Volume ${row.carried.fromVolume}` : null,
+        row?.inherited ? `inherited from ${row.inherited.from}, who ${row.inherited.reason === 'retired' ? 'laid down the road' : 'fell'} on turn ${row.inherited.turn}` : null
+      ].filter(Boolean).join(' — ');
+      return (ledger.length === 0 && carriedOnly.length === 0)
       ? <p className="muted">Nothing sworn yet — when a promise, debt, mystery, or goal enters the tale, it is registered here and the tale must answer it.</p>
       : <div className="thread-list">{ledger.map((thread, i) =>
           <div key={i} className={`thread-row${thread.status === 'open' ? '' : ' settled'}`}>
             <span className="thread-kind">{thread.kind}</span>
             <b>{thread.label}</b>
             <small>{thread.holder ? `held by ${thread.holder} — ` : ''}sworn turn {thread.openedTurn}</small>
-            {grief.has(String(thread.label || '').trim().toLowerCase()) && <small className="thread-fall">{grief.get(String(thread.label || '').trim().toLowerCase())}</small>}
+            {weather.has(canonLabel(thread.label)) && <small className="thread-carried">{citeOf(weather.get(canonLabel(thread.label)))}</small>}
+            {grief.has(canonLabel(thread.label)) && <small className="thread-fall">{grief.get(canonLabel(thread.label))}</small>}
             {thread.status !== 'open' && <span className="outcome">{thread.outcome}, turn {thread.closedTurn}</span>}
-          </div>)}</div>; })()}
+          </div>)
+        .concat(carriedOnly.map((thread, i) =>
+          <div key={`carried-${i}`} className="thread-row carried-weather">
+            <span className="thread-kind">{thread.kind || 'promise'}</span>
+            <b>{thread.label}</b>
+            <small>{thread.holder ? `held by ${thread.holder} — ` : ''}{citeOf(thread) || 'carried forward'}</small>
+          </div>))}</div>; })()}
     </div>}
 
     {chapter === 'party' && <div className="book-page" data-page="party">

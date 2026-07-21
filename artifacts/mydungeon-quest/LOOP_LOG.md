@@ -3744,3 +3744,51 @@ RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63
   and unknown grounds SPEAK, the belt still refuses unlawful states).
 - 64 stage one: eval chain grows two PASS lines; G13 pin 145 → 147 in
   the SAME commit (Section 5.2 ladder: 147 → 149 → 153).
+
+### Stage Two — the saga and the heir (2026-07-21)
+
+- 64 stage two: NEW GATE evals/sagaChain.test.mjs — the saga law (Article
+  II): openNextVolume forges the successor inside the same world (the
+  manifest grown by the elder's head seal, the genesis cited at index
+  zero, the carryover crossing whole with citations), verifySaga walks
+  manifest court, count, per-seat chronicle, head-vs-seat, and the
+  citation chain — refusing each break BY NAME (calibrated green first; a
+  root wearing a genesis; a later volume without one; the lying citation
+  on a lawful chain; the manifest head swap) — and the legacy packet
+  rides whole-row, stranger future blocks surviving the crossing.
+- 64 stage two: NEW GATE evals/heir.test.mjs — the two hands law (Article
+  III): foldSuccession seals the permanent memorial in the cast fold's
+  own words (status dead, memorial mark, hero of this tale), open threads
+  inherit annotated {from, turn, reason} keep-first, the world record
+  continues untouched, and the succession row is append-only in the chain.
+- 64 stage two: eval chain grows two PASS lines; G13 pin 147 → 149 in the
+  SAME commit (Section 5.2 ladder: 147 → 149 → 153).
+- 64 stage two: NEW COURT tests/e2e/g35-saga.spec.ts (project g35-saga,
+  five seats) + tooth 22 in sabotage.spec.ts, registered in
+  REQUIRED_PROJECTS and REQUIRED_EXECUTED the same commit: the volume
+  door walked at the app's own ceremony (the proving rig floors the
+  smith's ask to the MOCK smith — mint attested, genesis cited, threads
+  carried), the Book's carried weather speaking its citation, verifySaga
+  green across both sealed volumes, the heir rising mid-world after a
+  seeded fall (memorial, inherited debts, succession row, Book
+  testimony), and the elder volume byte-stable at the export door beside
+  its successor.
+
+### Stage Two design notes (the notary's seat)
+
+- Tooth 22 breaks the inter-volume citation in a COPY of the real,
+  SIGNED chronicles — so the tampered genesis also breaks its own row
+  seal, and the desk's refusal may land at the row-seal court rather
+  than the bare citation comparator. That is the honest door: re-chaining
+  a signed copy to isolate the comparator would be exactly the
+  provenance-laundering the signature-downgrade law forbids the desk to
+  trust. The tooth therefore demands the refusal NAME the accused volume
+  (`volume 2 (…)`) whichever seat catches the break; the bare comparator
+  on a lawfully-chained volume is proven in the sagaChain gate with
+  unsigned envelopes. No criterion sentence is weakened.
+- G35e reads "still exports and publishes untouched" as the export walk
+  plus the publish contract's own preconditions held byte-stable (sealed,
+  head seal unmoved, signature posture unmoved, chain count unchanged) —
+  the commons walk itself is G29's court on its housed ledger, and a
+  keyless table keeps the commons byte-quiet by law, so a saga court
+  re-walking it here would prove nothing this rig can see.

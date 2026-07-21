@@ -4104,3 +4104,15 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   seal again). The second stone. Count = 2. The original window is
   spent; per the RULING the hunt continues into the extension slots
   once the 64.12 cure's validation artifact lands below.
+
+### VALIDATION ARTIFACT — THE 64.12 CURE UNDER LOAD (2026-07-21)
+
+- Per the RULING's third clause, before the extension slots open: the
+  racing court reproduced at bench load — twelve verbatim flights of
+  'G3 deep forge' across four parallel workers (npx playwright test
+  tests/e2e/g02-forge.spec.ts --project=dom --no-deps --repeat-each=12
+  --workers=4 -g "G3 deep forge"), no byte moved, the freeze intact.
+- RESULT, ATTESTED: 12/12 GREEN in 22.4s — sixty die-courts proven
+  (five fields a flight), zero phantom misses, zero real misses. The
+  cured instrument reads the die's landing under contention; the cure
+  is VALIDATED, the banking stands, and 64.15 arms.

@@ -20,11 +20,13 @@ dm_turn enters the record per turn, however many minds deliberate.
 
 **The bespoke spine.** On live keys, forging a world — or a new volume —
 may call the story smith: one temperature-bounded model call (the pinned
-`SMITH_TEMPERATURE`, no other dial) returning a bespoke spine as strict
-JSON in exactly the shape the spine gates already check — `id`, `label`,
-`revealIdx`, fifteen `beats` in three ascending acts of five (each beat
-`act`, `key`, `title`, `goal`), `deadlines` with ascending `byBeat` and
-roles from the cast law's own vocabulary — plus a `villainDesign` clause
+`SMITH_TEMPERATURE`, no other dial — declared honest-null on any family
+that has retired the parameter, per the standing smith precedent)
+returning a bespoke spine as strict JSON in exactly the shape the nine
+exemplars already hold — `id`, `label`, `revealIdx` past the first act,
+twelve to fifteen `beats` across three ascending acts (each beat `act`,
+`key`, `title`, `goal`), `deadlines` with ascending `byBeat` and
+roles from the exemplars' own vocabulary — plus a `villainDesign` clause
 fitted to the covenant and, for later volumes, to the carryover the Saga
 Law defines. The story smith's seat is a new engine module beside the
 smith (`storySmith.js`), importing the sweeps and the temperature from

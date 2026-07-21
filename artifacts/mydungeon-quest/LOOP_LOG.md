@@ -3930,3 +3930,30 @@ RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63
   here) are the only two that wait on FRESH paint; every other paint
   court replays seasoned verdicts from the harvest store.
 - RUN_REQUESTED 64.5 — the count restarts; greens must be consecutive.
+
+### ITERATION 64.6 — red; the house's own memo overreached (2026-07-21)
+
+- VERDICT 64.6: red — 1 unexpected (G33a, the sheet-identity seat); zero
+  skipped, zero flaky; the attire pair judged fresh and green (0.92).
+- THE CHAIN OF DISEASE, proven in the run's own log: under bench load the
+  understudy painter answered some asks with TRANSIENT per-minute rate
+  refusals (17 failures logged, 1 in the green bench before it); the
+  EMPTY TANK MEMO's quota shape carried a bare \b429\b, conflated a
+  transient refusal with true spend exhaustion, and branded the
+  understudy empty for ten minutes — both real painters memo-skipped,
+  and 43 paints floored to the mock painter in milliseconds (the log
+  wears two tank-empty declarations where the green bench wears one).
+  G33a's bust and derived sheet minted as procedural placeholders, and
+  the identity court honestly refused storm-grey eyes that were never
+  painted. The memo — not the easel, not the judge — was the accused.
+- CURE: the quota shape narrowed to TRUE exhaustion declarations alone
+  (RESOURCE_EXHAUSTED / spending cap / insufficient_quota / exceeded
+  your current quota); transient rate refusals keep per-ask
+  fall-through — one ask degrades, the next re-probes honestly; and the
+  memo's set-line now QUOTES the refusal it believed, so a future bench
+  reads the branding's cause off its own log. The identity court stays
+  exactly as strict as it stood: under a truly empty tank a red is the
+  honest verdict — the loop proves the painters' tanks with the rest of
+  the house.
+- RUN_REQUESTED 64.7 — the count restarts; greens must be consecutive.
+EVIDENCE:       1 [paint] gemini declared its tank empty;

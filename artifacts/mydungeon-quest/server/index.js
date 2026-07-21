@@ -52,7 +52,13 @@ function withTimeout(promise, ms, message) {
 // forgets, and the next ask after the window re-probes honestly.
 const EXHAUST_COOLDOWN_MS = Number(process.env.PROVIDER_EXHAUST_COOLDOWN_MS || 600000);
 const exhaustedUntil = new Map();
-const QUOTA_SHAPE = /\b429\b|RESOURCE_EXHAUSTED|spending cap|quota exceeded|insufficient_quota/i;
+// TRUE exhaustion declarations ONLY. A transient per-minute rate refusal
+// (openai "Rate limit reached … requests per min") self-heals in seconds
+// and must keep per-ask fall-through — one ask degrades, the next
+// re-probes. A bare \b429\b once sat in this shape and branded the
+// understudy empty off a transient refusal, flooring a whole bench to
+// mock placeholders (iteration 64.6's conviction).
+const QUOTA_SHAPE = /RESOURCE_EXHAUSTED|spending cap|insufficient_quota|exceeded your current quota/i;
 async function runChain(kind, body) {
   const chain = providerChains()[kind];
   const budget = PROVIDER_BUDGET_MS[kind] || 90000;
@@ -74,7 +80,7 @@ async function runChain(kind, body) {
       console.error(`[${kind}] provider ${provider.name} failed: ${error.message}`);
       if (provider.name !== 'mock' && QUOTA_SHAPE.test(String(error.message || ''))) {
         exhaustedUntil.set(provider.name, Date.now() + EXHAUST_COOLDOWN_MS);
-        console.error(`[${kind}] ${provider.name} declared its tank empty — skipped for ${Math.round(EXHAUST_COOLDOWN_MS / 60000)} min`);
+        console.error(`[${kind}] ${provider.name} declared its tank empty — skipped for ${Math.round(EXHAUST_COOLDOWN_MS / 60000)} min (believed: ${String(error.message || '').slice(0, 100)})`);
       }
     }
   }

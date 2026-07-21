@@ -135,3 +135,12 @@ read-back (page courts green) is almost certainly the mapper.
 - **Playwright ESM specs have no `__dirname`.** Fixture paths resolve CWD-relative (cwd = the artifact/config dir); a `__dirname` reference is a 45ms ReferenceError fall that reads like a court refusal until the report is parsed.
 
 **Fixture souls can be dead — bench the fold before courting them.** When a court appends turns to a standing fixture record (doom runs especially), the soul it names may already be dead by that turn: `party_join`/`sheet_grant` lawfully refuse the dead, and the refusal surfaces far downstream (a missing sheet, an empty panel) rather than at the append. Before spending a loop iteration, bench the WHOLE chain in node (initCodex + applyStoryUpdates over the fixture's turns plus the appended ones) and read the refusal notes; prefer minting a FRESH soul (cast_add with visual+voice) over reusing a fixture name whose fate the record already sealed.
+
+## The flag is CONSUMED at boot (2026-07-21)
+The loop deletes RUN_REQUESTED when it reads it at boot — after any
+environment kill mid-run, the flag is GONE, not stale. Recovery order:
+(1) clear partial run-iter files for the killed iteration (a 36KB log
+with no .exit file lies in wait for the next poll), (2) rewrite the
+flag, (3) only then restart the workflow. The flag write and the
+workflow restart must never ride the same concurrent batch — boot can
+read before the write lands.

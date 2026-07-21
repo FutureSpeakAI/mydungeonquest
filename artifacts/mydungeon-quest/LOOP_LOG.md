@@ -4050,3 +4050,41 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   consecutive greens no longer fit inside the ceiling of fourteen;
   the owner is asked for the window's one frozen extension while
   64.13 flies.
+
+### RULING ON 64 — THE FROZEN EXTENSION IS DRAWN, TO 64.17 (owner, 2026-07-21)
+
+- The window's one extension is SPENT: slots 64.15–64.17 exist; no
+  further seats for this task under any law after 64.17. Eligibility
+  confirmed on the 64.12 diagnosis (die law unchanged through nine
+  green benches, no game defect open, cure landed); the window banks
+  that cure and nothing else.
+- THE FREEZE runs from the cure's landing commit through close: no
+  game code, test code, question text, or fixture byte moves. 64.13's
+  verbatim flight is ratified under the 57.4 precedent and runs inside
+  the freeze.
+- CURED-ON-SIGHT BECOMES VALIDATED before the extension slots open: a
+  targeted reproduction harness run at bench load proving the racing
+  court no longer phantom-misses, its result attested in this ledger.
+  The extension law banks validated cures; the validation artifact
+  precedes the banking (owed before 64.15 arms, not before 64.13/14).
+- THE STRIKE STRUCTURE: within 64.13–64.14 exactly one stochastic red
+  is tolerated, and only if it is neither a recurrence of the cured
+  race nor any new defect in game or law bytes — a recurrence anywhere
+  means the cure failed, close red; a new defect anywhere closes red.
+  Any red inside 64.15–64.17 ends the hunt: one strike, close red.
+  Environment-killed runs rerun under the one-crossing law, uncounted.
+- Three consecutive greens may complete anywhere within 64.13–64.17;
+  unused slots return unspent.
+
+### ITERATION 64.12 — ADDENDUM UNDER THE RULING (2026-07-21)
+
+- THE RACE MECHANISM, NAMED: a single fixed-150ms read raced the die's
+  asynchronous landing (React state flush) under four-worker bench
+  load — the instrument read a stale value before the deal rendered
+  and spent throws against it; three phantom misses convicted an
+  innocent die. The cure polls each throw up to 2s before counting a
+  miss; the assert is untouched.
+- SERIES RECORD: this is the SECOND bench-load race in the series —
+  the 58C hearth ghost was the first. A third appearance of this
+  family is blocker-grade on sight and triggers a bench-serialization
+  review as instrument work before any further counted run.

@@ -3722,3 +3722,4 @@ STAGE TWO GATES (XVIII IV–VI, recorded per the standing law):
   the court's fixture writes the very row it asserts against; the
   constant IS the row's source (seat-binding, mirrors-one-seat law).
 - Keyless chain green with all three cures and their benches seated.
+RITUAL COMPLETE 1.2.0: greens 63.7-63.9 (128/128 each, exit 0, one env-killed 63.9 rerun per the one-crossing law); sitting 2026-07-21, two narrow parallel static reviews over the directive diff — three convictions cured (craftless sheet, same-breath target, sovereign excess) with benches seated in 3854567, one deferred by name, one declined by seat-binding; sentence spoken 2026-07-21 in this close.

@@ -4116,3 +4116,16 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   (five fields a flight), zero phantom misses, zero real misses. The
   cured instrument reads the die's landing under contention; the cure
   is VALIDATED, the banking stands, and 64.15 arms.
+
+### ITERATION 64.15 — GREEN. THE THIRD STONE — THE WINDOW SEALS (2026-07-21)
+
+- VERDICT 64.15: GREEN — 136 passed, zero unexpected, zero skipped,
+  zero flaky (attire pair 0.95, sheet identity 0.93; first-sitting
+  seal). Third consecutive green: 64.13, 64.14, 64.15 — the three
+  stones stand inside the ruling's span, the first extension slot the
+  only one touched.
+- Slots 64.16–64.17 RETURN UNSPENT per the ruling's fifth clause. The
+  freeze held: no game, test, question, or fixture byte moved from the
+  cure's landing commit through this seal.
+- The hunt is closed. What remains is the ritual: the architect's
+  sitting on the full diff, the versions, the RITUAL COMPLETE line.

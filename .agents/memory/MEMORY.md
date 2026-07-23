@@ -19,7 +19,8 @@
 - [MyDungeon seen ledger & fresh cards](mydungeon-seen-ledger.md) — reveals are device-local (never sealed/synced/exported); card ladder skips seen art (replays exempt); scene paints are turn-salted; chained overlays need keyed remounts.
 - [MyDungeon storybook retelling](mydungeon-storybook-retelling.md) — played-order runs; seen-only art seated with its stretch; pages must prove cites; hero face by stable key, oldest-bust fallback.
 - [Fable 5 cut drops](fable5-cut-drops.md) — full-tree zips: diff & lift only deltas, keep our lockfile, never import their .agents; absences are intentions (SW retirement needs a destructor, not deletion).
-- [GitHub org push rights](github-org-push-rights.md) — PUSH_REJECTED on a provable fast-forward = agent token lacks org-repo write; probe publicly, then hand the push to the user's pane.
+- [GitHub push refusals](github-org-push-rights.md) — PUSH_REJECTED wraps ALL GitHub prose (scope, secrets, size); diagnose by orphan probe + prefix bisection; workflow files need the workflow scope on EVERY lane.
+- [Git history-rewrite traps](git-history-rewrite-traps.md) — filter-branch: clean index vs HEAD first, gate on outcomes not piped rc, restore worktree casualties from pre-captured blobs; untouched prefixes keep shas.
 - [Metro vs sibling Vite crawl race](metro-vite-crawl-race.md) — a sibling Vite re-optimizing .vite/deps mid-crawl kills Metro's watcher (ENOENT); let Vite settle, then restart expo.
 - [Expo shell around the web house](expo-webview-shell.md) — WebView shell laws: door law fails OUTWARD by hostname (backslash trick!); no web arm (iframe preview); never a spinner.
 - [JSX text ignores \u escapes](jsx-unicode-escapes.md) — \u2019 etc. render literally in JSX text nodes; paste real characters there; only JS string contexts unescape.

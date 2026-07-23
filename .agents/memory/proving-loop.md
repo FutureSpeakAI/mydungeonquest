@@ -147,3 +147,6 @@ read before the write lands.
 
 ## Promises are OR-shaped (64.10 lesson)
 - Many app laws terminate in result-OR-attested-refusal. A court that demands only the happy branch reds on lawful terminals (e.g. a twice-lettered mint honestly refused with its attestation sealed). Verify the attested branch by the record's own name (variant/label/verdict), then re-roll the stochastic input ONCE; silence — no row AND no attestation — still convicts, and a second honest refusal still convicts.
+
+## The G13 pin basis
+G13 pins `\bPASS\b` WORD occurrences in the check stdout — not `^PASS` lines. run.mjs alone prints several mid-line PASS words in one console.table row (148 lines vs 154 words in the same run). **Why:** bumping the pin from a line-count reads low and reds the loop. **How to apply:** when a gate joins the chain, measure with `grep -o "\\bPASS\\b" | wc -l` before moving the literal.

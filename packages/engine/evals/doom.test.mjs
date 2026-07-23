@@ -49,10 +49,10 @@ assert.deepEqual(grantErrors(grant({ name: 'Gorlan the Uninvited' }), { cast: []
 // II. THE ROLE TABLE — fixed law, and the arithmetic cited row by row.
 // ---------------------------------------------------------------
 assert.deepEqual(ROLE_TABLE, {
-  guardian:   { spread: { STR: 15, DEX: 12, CON: 14, INT: 8,  WIS: 12, CHA: 10 }, bandHp: 12, perLevel: 7, sigil: '▲' },
-  skirmisher: { spread: { STR: 12, DEX: 15, CON: 12, INT: 10, WIS: 13, CHA: 10 }, bandHp: 9,  perLevel: 5, sigil: '➤' },
-  mender:     { spread: { STR: 10, DEX: 12, CON: 13, INT: 12, WIS: 15, CHA: 10 }, bandHp: 8,  perLevel: 4, sigil: '✚' },
-  trickster:  { spread: { STR: 10, DEX: 15, CON: 12, INT: 13, WIS: 10, CHA: 14 }, bandHp: 8,  perLevel: 5, sigil: '◆' }
+  guardian:   { spread: { STR: 15, DEX: 12, CON: 14, INT: 8,  WIS: 12, CHA: 10 }, bandHp: 12, perLevel: 7, sigil: '▲', casting: 'none' },
+  skirmisher: { spread: { STR: 12, DEX: 15, CON: 12, INT: 10, WIS: 13, CHA: 10 }, bandHp: 9,  perLevel: 5, sigil: '➤', casting: 'none' },
+  mender:     { spread: { STR: 10, DEX: 12, CON: 13, INT: 12, WIS: 15, CHA: 10 }, bandHp: 8,  perLevel: 4, sigil: '✚', casting: 'full' },
+  trickster:  { spread: { STR: 10, DEX: 15, CON: 12, INT: 13, WIS: 10, CHA: 14 }, bandHp: 8,  perLevel: 5, sigil: '◆', casting: 'half' }
 }, 'the role table is fixed law — four roles, spread and growth in code');
 const HP_LAW = [
   ['guardian', 1, 12], ['guardian', 3, 26], ['guardian', 5, 40],
@@ -95,7 +95,7 @@ codex = applyStoryUpdates(codex, { sheet_grant: { name: 'RELL marrow', role: 'me
 assert.ok(codex.notes.some((n) => n.includes('Sheet canon sealed once: Rell Marrow already holds a sheet.')),
   'the second grant is refused with a note');
 assert.equal(codex.party.find((member) => member.name === 'Rell Marrow').sheet.role, 'guardian', 'the first truth stands');
-assert.deepEqual(storyBlock(codex).sheet_state, [{ name: 'Rell Marrow', role: 'guardian', level: 2, hp: 19, conditions: [] }],
+assert.deepEqual(storyBlock(codex).sheet_state, [{ name: 'Rell Marrow', role: 'guardian', level: 2, hp: 19, ac: 11, conditions: [] }],
   'sheet_state rides the block — name, role, level, hit points, and the condition lane (Directive XII §II.4)');
 
 // ---------------------------------------------------------------

@@ -137,7 +137,7 @@ export const FEATURES = [
     id: 'chronicle-graph', category: 1, tier: 'wired',
     name: 'ChronicleGraph & the context pack',
     detail: 'A knowledge graph rebuildable from the record alone; [STORY] is a budgeted, scene-first pack (scene full, one-hop ties full, villain always, the rest slims) with contract keys preserved.',
-    probes: [{ mod: 'packages/engine/src/graph.js', check: (m) => typeof m.buildContextPack === 'function' }, { src: `${GAME}/src/App.jsx`, needle: 'buildContextPack' }]
+    probes: [{ mod: 'packages/engine/src/graph.js', check: (m) => typeof m.buildContextPack === 'function' }, { mod: 'packages/engine/src/graph.js', check: (m) => typeof m.buildBriefing === 'function' }, { src: `${GAME}/src/App.jsx`, needle: 'buildBriefing' }]
   },
   {
     id: 'wiki-codex', category: 1, tier: 'wired',
@@ -280,6 +280,14 @@ export const FEATURES = [
     name: 'The Proving Ground',
     detail: 'The whole suite — engine gates, game gates, the salon — runs keyless in CI on every push. PASS only grows; weakening a gate is the one forbidden move.',
     probes: [{ file: '.github' }, { src: 'package.json', needle: 'check:salon' }]
+  },
+
+  {
+    id: 'push-lane', category: 4, tier: 'tool',
+    name: 'The Push Lane — the Proving Ground rides every push',
+    detail: 'The keyless chain runs on every push and every pull_request: both suites whole (engine via `pnpm --filter fatescript run check`, table via `npm run check` in its own house), Node 22, corepack-enabled pnpm 10.26.1, frozen lockfile, not one AI key. Directive XX, Phase 0; gate `pushLane`.',
+    contract: [{ file: '.github/workflows/check.yml' }, { src: '.github/workflows/check.yml', needle: 'pull_request' }, { file: `${GAME}/evals/pushLane.test.mjs` }, { src: `${GAME}/package.json`, needle: 'pushLane.test.mjs' }],
+    wiring: []
   },
 
   // ————— VI. SAGA GROUNDWORK (Directive V) —————

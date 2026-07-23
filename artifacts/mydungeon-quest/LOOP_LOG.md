@@ -4147,3 +4147,47 @@ EVIDENCE (64.6 tank-empty declarations, by chain):  1 [paint] gemini declared it
   1.1.0 → 1.2.0; the CHANGELOG's 1.3.0 heading stands without its
   "(in progress)".
 - RITUAL COMPLETE. The world is unbound, and the ledger holds.
+
+RITUAL COMPLETE 1.3.0: greens 64.13-64.15 (136 seats each, zero skips, zero flaky; slots 64.16-64.17 returned unspent under the freeze); sitting 2026-07-21 on the full diff (c8d09c9~1..HEAD, 47 files) — PASS, no severe findings, the provider-refusal telemetry advisory banked; sentence spoken 2026-07-21 in the Task 64 close (mydungeon-quest 1.3.0, engine 1.2.0).
+
+### TASK 65, PHASE 0 — THE PUSH LANE (2026-07-23)
+
+- Three review cures, landed exactly: the 1.3.0 ritual sentence above (the
+  wholeRitual grammar now finds its one machine-readable line); the engine
+  bestiary twin's bestiary_state expectation synchronized with the table's
+  (armor rides the threat table, XVIII §I); the engine doom twin's ROLE
+  table (casting aptitude: guardian none, skirmisher none, mender full,
+  trickster half) and its sheet_state (Rell Marrow at ac 11) synchronized
+  the same way. Only assertions moved; each twin keeps its own header and
+  import paths. A fresh clone of the public repo now proves both keyless
+  suites whole — the engine chain past its bestiary gate, the game chain
+  past wholeRitual and the fourteen gates behind it.
+- The Push Lane law: .github/workflows/check.yml stands at the monorepo
+  root — every push and every pull_request runs BOTH keyless suites (the
+  engine via `pnpm --filter fatescript run check`, the table via
+  `npm run check` inside artifacts/mydungeon-quest) on Node 22 with
+  corepack-enabled pnpm 10.26.1 and a frozen-lockfile install, and not one
+  AI key set anywhere: the chain is keyless by law. The .gitignore lines
+  that kept workflows out of git are removed; the lane is tracked.
+- The gate: evals/pushLane.test.mjs — keyless, network-free — proves the
+  lane stands at the root, opens on both doors, names both suite commands,
+  carries no AI key, and that this ledger holds exactly one RITUAL
+  COMPLETE 1.3.0 sentence. Chained newest in the table's eval; one PASS
+  line.
+- The honest boundary: the actual GitHub delivery of the workflow file
+  rides the owner's workflow-scoped token — the house's own push lanes
+  lack the workflow OAuth scope by construction — and branch protection
+  over the lane is the owner's GitHub-side step. The Directive XX document
+  arrives from the owner as a companion file.
+- The pins move by exactly the +1 the gate adds: G13's literal 153 → 154;
+  the Port-parity pin 125 → 126 green verdicts in both repos'
+  BUILD_STATUS. The engine stays fifty-eight — no engine gate moved, only
+  two stale twin assertions synchronized. Proven whole: engine check exit
+  0 (58 PASS), game check exit 0 keyless with the pushLane line newest.
+- One standing red surfaced while proving the muster: the chronicle-graph
+  row's wiring needle still read buildContextPack in App.jsx, but the
+  Directive XIX rebuild seated the live table on buildBriefing — the
+  briefing law that builds the pack inside the engine. The needle
+  retargets to the seat that stands, and the row gains a probe (the
+  engine must export buildBriefing) rather than losing one — a moved
+  surface, not a lost law; the buildContextPack probe is untouched.

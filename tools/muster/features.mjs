@@ -303,6 +303,13 @@ export const FEATURES = [
     contract: [{ src: `${GAME}/server/toll.js`, needle: 'usage_events_once' }, { src: `${GAME}/server/toll.js`, needle: 'ON CONFLICT (user_id, kind, campaign_id, turn)' }, { file: `${GAME}/evals/tally.test.mjs` }, { src: `${GAME}/package.json`, needle: 'tally.test.mjs' }],
     wiring: [{ src: `${GAME}/server/index.js`, needle: 'dmDebitKey' }, { src: `${GAME}/server/index.js`, needle: 'retellDebitKey' }]
   },
+  {
+    id: 'tempo-law', category: 4, tier: 'wired',
+    name: 'The Tempo Law — the brush paints where the story turns',
+    detail: 'A pure court in the engine judges the per-turn scene plate from sealed evidence alone — this turn\'s validated dm_turn, the codex, the turn index, the player\'s setting — no clock, no randomness, no model, every reason cited to the very turn it judges. Three cadences: every (byte-faithful to today), turning (boundaries, cues, introductions, movement, first blood, cinematics, genesis), sparse (the marked three alone). The easel consults one bridge for the scene job and only that job; a held frame is display, not a minting — no plate row, no attestation. Existing campaigns read absence as every; fresh forges open at turning; the surface speaks house words. Directive XX, Phase 3; gate `tempo`.',
+    contract: [{ mod: 'packages/engine/src/tempo.js', check: (m) => typeof m.tempoCourt === 'function' && typeof m.tempoSetting === 'function' }, { src: `${GAME}/src/lib/tempo.js`, needle: 'fatescript/tempo' }, { file: `${GAME}/evals/tempo.test.mjs` }, { src: `${GAME}/package.json`, needle: 'tempo.test.mjs' }],
+    wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'tempoVerdict.paints' }, { src: `${GAME}/src/App.jsx`, needle: "tempo: 'turning'" }, { src: `${GAME}/src/components/Overlays.jsx`, needle: 'Where the story turns' }]
+  },
 
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {

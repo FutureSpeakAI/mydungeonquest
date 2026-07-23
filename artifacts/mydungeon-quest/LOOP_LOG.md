@@ -4275,3 +4275,48 @@ port-parity pin moves 127 → 128 in both shelves and names tally twinless
 honest-tally row with its contract and wiring probes. Proven whole:
 engine check exit 0 (58 PASS), game check exit 0 keyless at 156 with the
 tally line newest.
+
+### TASK 65, PHASE 3 — THE TEMPO LAW (2026-07-23)
+
+Experience Directive XX, Law IV — the roadmap's tempo law, built at last.
+The illuminated tier paints where the story turns, not where the clock
+ticks. The pure court sits in the engine and nowhere else: sealed
+evidence alone — this turn's validated dm_turn, the codex, the turn
+index, the setting — answering { paints, reason } with no clock, no
+randomness, no model, and every reason cited to the very turn it judges;
+a turn judged alone answers exactly as in the walk, for the court never
+reaches backward or forward. Three cadences: every, byte-faithful to
+today, the court answering paint on every single walk; turning, where
+beat boundaries, image cues, introductions, region movement, combat's
+first round, cinematics, and genesis earn the brush; sparse, keeping
+only genesis, the boundaries, and the explicit cue. The easel consults
+the court through one bridge for the per-turn scene plate and only that
+plate — key art above the writ, busts, region plates, and sheets below
+it, each on its own cue and law; the parchment tier keeps its costless
+woodcut rhythm and never reaches the room. A held frame is display, not
+a minting: no job seated, no plate row, no attestation, no warden or
+slot work — the standing plate holds the table honestly, never a
+recycled painting re-attested as new, and the plateroad door itself
+refuses paperless mints. Cadence is the player's setting in house words
+— Every turn, Where the story turns, The great turnings — existing
+campaigns keeping every (absence reads as today's cadence; no ground
+moves silently mid-beta), fresh forges opening at turning, the cadence
+behind its own door alone — never riding the shared settings object,
+so no unrelated toggle carries a stale cadence across campaigns —
+written only on an explicit choice, and a pre-tempo save loading
+untouched under the back-compat court's deep-freeze walk. Anchor, Slot,
+Warden, plateroad attestation, Foundry cache keys, the Binder's Door,
+server/dm.js, protocol, seal, and the rules tables untouched entirely —
+what paints, paints exactly as lawfully as today. Two twin gates chained
+newest: the engine's tempo twin (deterministic verdicts across the
+sealed fixture under all three cadences, byte-stable repeats, reasons
+cited to their own turns, malformed evidence proving nothing) and the
+game's tempo gate (the court consulted for the scene job alone, turning
+painting exactly the turning points and holding honestly between them,
+every reproducing today's stream, forge and default laws, the frozen
+pre-tempo walk). The shared shelf moves 128 → 130 green verdicts with
+the engine at fifty-nine gates; G13 pins 156 → 157; the muster gains the
+tempo-law row. Proven whole: engine check exit 0 (59 PASS) with the
+tempo twin printing, game check exit 0 keyless at exactly 157 with tempo
+newest and mediaGate, firstWord, plateroad, easel, foundry, tally,
+pensClock, and pushLane all green.

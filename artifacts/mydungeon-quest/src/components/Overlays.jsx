@@ -173,7 +173,7 @@ function OwnersBell() {
   </>;
 }
 
-export function Settings({ campaign, settings, onChange, onDownloadAudio, audioBusy, onClose }) {
+export function Settings({ campaign, settings, onChange, onTempo, onDownloadAudio, audioBusy, onClose }) {
   const toll = useToll();
   // Honest hints, spoken only when the gateway truly stands: a guest at a lit
   // house is told plainly the paints wait behind the door; a hearth or
@@ -190,6 +190,11 @@ export function Settings({ campaign, settings, onChange, onDownloadAudio, audioB
     <h3>Foundry tier</h3><div className="tier-grid">{[
       ['parchment','Parchment','Procedural woodcut art, instant, free — and silent.'],['illuminated','Illuminated','Painted stills, voiced narration, music only at the turning points.']
     ].map(([id,label,desc])=><button className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{label}</b><span>{desc}{id==='illuminated' && paintsBehindDoor ? ' The house paints for named patrons — give your name at the door.' : ''}</span></button>)}</div>
+    <h3>The tempo of the brush</h3><div className="tier-grid">{[
+      ['every','Every turn','Each turn lands with its own painted plate — the standing cadence, unchanged.'],
+      ['turning','Where the story turns','New chapters, first meetings, new ground, first blood, and scenes the Dungeon Master calls for earn the brush; quiet turns hold the standing plate.'],
+      ['sparse','The great turnings','Only genesis, a new chapter, and a scene the Dungeon Master calls for — the rarest, boldest book.']
+    ].map(([id,label,desc])=><button className={(campaign.tempo||'every')===id?'selected':''} key={id} onClick={()=>onTempo(id)}><b>{label}</b><span>{desc}</span></button>)}</div>
     <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Music {campaign.spend?.music||0}/8</span></div>
     <TollSection toll={toll} />
     {onDownloadAudio && <>

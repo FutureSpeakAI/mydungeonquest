@@ -44,3 +44,4 @@
 - [Playwright instrument traps](playwright-instrument-traps.md) — async+interval waitForFunction resolves promise handles; bare waitFor strict-throws on plurality ("absent" lie); dual-door beats blind clicks.
 - [ShellExec session traps](shell-session-traps.md) — nohup background dies with the session (frozen logs); `cd && A & B` strands B in the old cwd; pkill -f self-matches.
 - [MyDungeon court door manners](mydungeon-court-doors.md) — continued elders open straight to keepsakes; unstarted tales hang no seal door (stage completed); forge is two-step; pick rows by createdAt.
+- [Settings-spread piggyback](settings-spread-piggyback.md) — per-record fields never ride a shared settings spread through a generic mirror; give them their own door and gate the absence.

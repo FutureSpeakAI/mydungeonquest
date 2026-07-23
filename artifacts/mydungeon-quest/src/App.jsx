@@ -76,6 +76,7 @@ import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
 import { rememberRefusedPour, reportTollRefusal, setPourContext, tollRefusal } from './patron/tollNotice.js';
 import { admitPlate, cueCourt, easelOrder, emptyFrameLine, groundFixtures, movedItems, propLawCheck, renderableTurn, seatingPlan } from './lib/plateroad.js';
 import { heroSheetJob, sheetJobs } from './lib/sheets.js';
+import { sceneVerdict, TEMPO_SETTINGS } from './lib/tempo.js';
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
 // Task #50 — the recap greets a RETURN to the table, never the first seat,
@@ -442,6 +443,17 @@ export default function App() {
       const updated = { ...current, sky: next.sky }; setCurrent(updated); await saveCampaign(updated);
     }
   };
+  // THE TEMPO LAW — the brush's cadence is the tale's OWN field, written by
+  // its own door alone. It never rides the shared settings object, so no
+  // unrelated toggle can carry a stale cadence into this campaign (or any
+  // other), and a pre-tempo save is written only by an explicit choice made
+  // at its own table; absence reads as 'every' everywhere it is read.
+  const persistTempo = async (id) => {
+    if (!current || !TEMPO_SETTINGS.includes(id)) return;
+    if ((current.tempo || 'every') === id) return; // explicit change only
+    const updated = { ...current, tempo: id };
+    setCurrent(updated); await saveCampaign(updated);
+  };
 
   const queueMedia = useCallback(async (campaign, turnRecord, dm, logId) => {
     if (campaign.mediaTier === 'parchment') return;
@@ -458,6 +470,20 @@ export default function App() {
     // (cache-keyed by act), darker as the stakes rise. Genesis reuses the
     // plate painted during the Prologue Render.
     jobs.push(keyArtJob(campaign, actOf(campaign)));
+    // THE TEMPO LAW (Directive XX, Law IV) — the court of the brush sits at
+    // the easel's door and judges ONLY the per-turn scene plate: key art
+    // above and busts, region plates, sheets, and beat cards below keep
+    // their own cues and laws, and the parchment tier never reaches this
+    // room. The court reads sealed evidence alone — this turn's dm, the
+    // codex, the turn's own index, the campaign's tempo — and a held frame
+    // is display, not a minting: no job seated, no plate row, no
+    // attestation, no warden or slot work; the standing plate or woodcut
+    // simply holds the table.
+    const tempoTurnIndex = Number.isInteger(turnRecord?.i)
+      ? turnRecord.i
+      : campaign.logs.findIndex((entry) => entry.id === logId);
+    const tempoVerdict = sceneVerdict(campaign, dm, tempoTurnIndex);
+    if (tempoVerdict.paints) {
     // Every turn earns a scene plate. The DM often returns a null image_cue, so
     // synthesize one from the opening narration and the active region — the point
     // of the illuminated tier is that each beat is painted, not just the rare
@@ -531,6 +557,7 @@ export default function App() {
       species: speciesInFrame
     }).plan;
     jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', ...(sceneMoment.prose ? { moment: { prose: sceneMoment.prose } } : {}), referenceLabels: scenePlan.map((seat) => seat.name), seating: scenePlan, ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
+    } // the tempo court's writ ends here — every easel law below is untouched
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
       if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name], ...(variant === 'bust' ? {} : { warden: { kind: 'soul', bearingText: bearingTextFor(campaign, soul.name) } }) }, priority: variant === 'bust' ? 0 : 6 });
@@ -1152,7 +1179,7 @@ export default function App() {
       lines: worldDraft.lines, veils: worldDraft.veils, styleBible: worldDraft.styleBible, homeRegion: worldDraft.homeRegion,
       spineId: spineMint ? spineMint.spine.id : worldDraft.spineId, spineMint, hero, codex, logs: [], combat: null, pendingRoll: null,
       turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null, heroBustHash: null,
-      mediaTier: settings.mediaTier, spend: { images: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
+      mediaTier: settings.mediaTier, tempo: 'turning', spend: { images: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };
     clearForgeDrafts(); // the chronicle has begun; the sitting's draft burns
     await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
@@ -1642,7 +1669,7 @@ export default function App() {
     {cinematic && <Cinematic key={`${cinematic.cinematic?.type}:${cinematic.cinematic?.title}:${cinematic.beatIndex ?? 'b'}:${cinematic.replay ? 'replay' : 'live'}`} cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={stillness} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} replay={Boolean(cinematic.replay)} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
     {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
     {overlay === 'codex' && <Book campaign={current} nav={bookNav} onNav={(part) => setBookNav((held) => ({ ...held, ...part }))} recap={recap && recap.campaignId === current.id ? recap : null} reduceMotion={stillness} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Book replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} />}
-    {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
+    {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onTempo={persistTempo} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
     {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} />}
     {overlay === 'level' && <LevelRitual hero={current.hero} onAccept={async (picks) => {
       // THE PICKING SEAL (XVIII, Article IV): the surface was the door;

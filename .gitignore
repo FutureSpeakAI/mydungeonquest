@@ -48,3 +48,4 @@ Thumbs.db
 .cache/
 .local/
 tools/salon/corpus/
+attached_assets/*.zip

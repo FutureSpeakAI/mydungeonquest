@@ -94,6 +94,16 @@ const TOLL_DDL = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS usage_events_user_month ON usage_events (user_id, created_at)`,
+  // THE HONEST TALLY (Directive XX, Law III) — additive only: columns and a
+  // guard are ADDED in the same bootstrap style as everything above; no row
+  // is ever dropped, deleted, or rewritten. Every existing line stays lawful
+  // and counts exactly as before (null campaign, null turn — outside the
+  // guard). The guard is PARTIAL: it stands only where both halves of the
+  // natural key are known, so legacy lines and keyless debits never collide
+  // with it or with each other.
+  `ALTER TABLE usage_events ADD COLUMN IF NOT EXISTS campaign_id TEXT`,
+  `ALTER TABLE usage_events ADD COLUMN IF NOT EXISTS turn INTEGER`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS usage_events_once ON usage_events (user_id, kind, campaign_id, turn) WHERE campaign_id IS NOT NULL AND turn IS NOT NULL`,
 ];
 
 // The ledger of use binds itself, after (and only after) the visitors' book.
@@ -284,22 +294,58 @@ export function innkeeper(kind, deps = {}) {
  * never billed (the law), guests are never debited (their paid pours were
  * refused at the door), and a slipped debit is loud but never claws back a
  * response already poured.
+ *
+ * THE HONEST TALLY (Directive XX, Law III): a page tallies once. When the
+ * door already holds the natural key — patron, kind, campaign, turn — the
+ * line lands under the partial guard, and a second landing (a closed
+ * wire's retry, a double click, a receipt replay) is a no-op that resolves
+ * 'once': an honest word distinct from a first landing, never a second
+ * line, never a second page off the taste. A debit whose door knows no
+ * campaign or turn inserts exactly as it always has — the key is only
+ * ever carried, never invented, and half a key is no key.
  */
 export function debit(req, kind, provider, deps = {}) {
   if (!req.grant?.metered || !req.patron) return Promise.resolve('untolled');
   if (AI_KINDS.has(kind) && !realWork(provider)) return Promise.resolve('stand-in');
   const query = deps.query || runQuery;
+  const slipped = (error) => {
+    console.error(`[toll] a debit slipped the ledger (${kind}): ${error.message}`);
+    return 'slipped';
+  };
+  const campaignId =
+    typeof deps.key?.campaignId === 'string' && deps.key.campaignId ? deps.key.campaignId : null;
+  const turn = Number.isInteger(deps.key?.turn) ? deps.key.turn : null;
+  if (campaignId !== null && turn !== null) {
+    return query(
+      'INSERT INTO usage_events (user_id, kind, provider, campaign_id, turn) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id, kind, campaign_id, turn) WHERE campaign_id IS NOT NULL AND turn IS NOT NULL DO NOTHING',
+      [req.patron.id, kind, provider || 'house', campaignId, turn],
+    )
+      .then((result) => (result && result.rowCount === 0 ? 'once' : 'tolled'))
+      .catch(slipped);
+  }
   return query('INSERT INTO usage_events (user_id, kind, provider) VALUES ($1, $2, $3)', [
     req.patron.id,
     kind,
     provider || 'house',
   ])
     .then(() => 'tolled')
-    .catch((error) => {
-      console.error(`[toll] a debit slipped the ledger (${kind}): ${error.message}`);
-      return 'slipped';
-    });
+    .catch(slipped);
 }
+
+// The keys a door already holds, read and never invented: the DM payload
+// carries its campaign id and turn number on every pour; the Chronicler's
+// payload carries its chapter index (and no campaign identity today — so
+// its debit lands unguarded exactly as before, honestly). A missing or
+// malformed half reads null, and debit writes the guarded line only when
+// BOTH halves stand.
+export const dmDebitKey = (body) => ({
+  campaignId: typeof body?.campaign?.id === 'string' && body.campaign.id ? body.campaign.id : null,
+  turn: Number.isInteger(body?.turn) ? body.turn : null,
+});
+export const retellDebitKey = (body) => ({
+  campaignId: typeof body?.campaign?.id === 'string' && body.campaign.id ? body.campaign.id : null,
+  turn: Number.isInteger(body?.chapter?.index) ? body.chapter.index : null,
+});
 
 // ------------------------------------------------- entitlements ⇄ Stripe
 /**

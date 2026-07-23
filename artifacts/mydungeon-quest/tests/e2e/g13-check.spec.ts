@@ -46,7 +46,9 @@ import { GAME_ROOT } from './lib/vision';
 // horizon join (the ladder complete: 145 → 147 → 149 → 153 per Section 5.2).
 // (65 Phase 0) 153 → 154: the pushLane gate joins the keyless check in the
 // same commit that tracks the workflow lane.
-const PINNED_PASS_COUNT = 155; // Task 65 Phase 1 (Directive XX): +1 — the pensClock gate joins the keyless check in the same commit that binds the pen to the wall clock; 154 → 155
+// (65 Phase 1) 154 → 155: the pensClock gate joins the keyless check in the
+// same commit that binds the pen to the wall clock.
+const PINNED_PASS_COUNT = 156; // Task 65 Phase 2 (Directive XX): +1 — the tally gate joins the keyless check in the same commit that teaches the ledger of use its natural key; 155 → 156
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

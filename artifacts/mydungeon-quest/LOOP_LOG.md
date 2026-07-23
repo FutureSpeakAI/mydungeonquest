@@ -4242,3 +4242,36 @@ the turn never thrown away.
   fifty-eight untouched. The muster gains the pens-clock row with its
   contract and wiring probes. Proven whole: engine check exit 0 (58 PASS),
   game check exit 0 keyless at 155 with the pensClock line newest.
+
+### TASK 65, PHASE 2 — THE HONEST TALLY (2026-07-23)
+
+Experience Directive XX, Law III — a page tallies once. The ledger of use
+learned the natural key of a pour: patron, kind, campaign, turn. The walk
+is purely additive in the toll's own bootstrap style — two nullable
+columns and one PARTIAL unique guard, standing only where both halves of
+the key are known — so every existing row stays lawful, counts exactly as
+before, and never collides with the guard or with keyless lines. The
+debit's guarded insert is conflict-tolerant: a second landing of the same
+page — a closed wire's retry, a double click, a receipt replay — lands
+nothing and answers 'once', an honest word distinct from a first landing;
+a page never received is never the page that empties the taste. The doors
+pass only what they already hold: the DM door its campaign id and turn
+(they ride every pour, streamed or plain), the Chronicler its chapter
+index and NO campaign identity, because its wire carries none today —
+nothing is invented, so that debit inserts byte-for-byte as it always
+has. Media, podcast, and pdf debits keep no turn and change nothing; the
+SSE close path keeps debiting exactly as it did — the key is what makes
+the disconnected wire's retry free, the stronger cure than withholding.
+The innkeeper's counting, the lifetime taste, the monthly quotas, the
+grants, and the Stripe paths are untouched in behavior; dm.js shaping,
+protocol, seal, and the rules tables untouched entirely. The tally gate
+judges it all on the toll's own seams — pinned insert shapes (guarded and
+legacy, byte-for-byte), the guard's arithmetic on a stand-in ledger, the
+closed-wire script leaving the taste down exactly one with the sixth turn
+still pouring, the byte-faithful legacy path, and the additive-only walk
+over a seeded ledger that counts identically after. Chained newest; the
+port-parity pin moves 127 → 128 in both shelves and names tally twinless
+(the engine keeps no toll); G13 pins 155 → 156; the muster gains the
+honest-tally row with its contract and wiring probes. Proven whole:
+engine check exit 0 (58 PASS), game check exit 0 keyless at 156 with the
+tally line newest.

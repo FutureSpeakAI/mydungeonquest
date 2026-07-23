@@ -35,3 +35,5 @@ A 402 refusal is remembered as an intent in sessionStorage (module state dies at
 - patrons.js must NEVER import toll.js (toll imports patrons — circular). No bustGrant needed: inscription always precedes the first pour of a process, so no stale grant exists.
 - Eval bench back-compat: `deps.fetchName` (name-only) still honored via shim; new stubs use `deps.fetchPatron` → `{ displayName, email }`.
 - Agent lane truth: the production DB is READ-ONLY to the agent — owner seats reach prod only via env+code riding a publish, or the user's own pane edit.
+
+- **The honest tally (Directive XX, Law III):** debits are idempotent by natural key (user_id, kind, campaign_id, turn) under a PARTIAL unique guard (`usage_events_once`, both halves NOT NULL); a duplicate landing answers `'once'`, first landing `'tolled'`. Keys are CARRIED, never invented — half a key is no key (lands the legacy 3-param insert byte-identical to before, rowCount never read). The dm wire carries campaign.id + turn on every pour; the retell wire (engine buildChronicleRequest) carries NO campaign id — its debit lands legacy by design until the wire itself grows identity.

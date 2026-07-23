@@ -11,7 +11,7 @@ import { adapters, providerChains } from './adapters/index.js';
 import { CLERK_PROXY_PATH, clerkProxyMiddleware } from './clerkProxy.js';
 import { doorkeeper, doorOpen, namedOnly, whoami } from './patrons.js';
 import { initMint, mintConfigured } from './mint.js';
-import { innkeeper, debit, tollRoutes, tollWebhook } from './toll.js';
+import { innkeeper, debit, dmDebitKey, retellDebitKey, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
 import { publishRoutes } from './publish.js';
 import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport, testHerald, ownersBell } from './watchtower.js';
@@ -302,14 +302,19 @@ app.post('/api/dm', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), abus
     finally { clearInterval(heartbeat); }
     if (!closed) { res.write(`event: turn\ndata: ${JSON.stringify(result)}\n\n`); res.end(); }
     // A turn told by a real voice is one line in the ledger of use;
-    // stand-ins are never billed (debit itself keeps that law).
-    debit(req, 'dm', result.provider);
+    // stand-ins are never billed (debit itself keeps that law). THE HONEST
+    // TALLY (Directive XX, Law III): the natural key the payload already
+    // carries rides the debit, so the identical turn replayed over a closed
+    // wire's retry lands 'once' — the page never received is never the page
+    // that empties the taste. The close path keeps debiting exactly as it
+    // did; the key is the cure, not withholding.
+    debit(req, 'dm', result.provider, { key: dmDebitKey(req.body) });
     recordSpend(result.provider === 'anthropic' || result.provider === 'openai' ? result.provider : null);
     return;
   }
   const { convene } = await import('./room.js');
   const result = await convene(req.body || {}, { barred });
-  debit(req, 'dm', result.provider);
+  debit(req, 'dm', result.provider, { key: dmDebitKey(req.body) });
   recordSpend(result.provider === 'anthropic' || result.provider === 'openai' ? result.provider : null);
   res.json(result);
 });
@@ -322,7 +327,7 @@ app.post('/api/retell', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), 
   const result = await getChroniclePassage(req.body || {});
   // A decline is not a retelling — only a passage spoken by a real voice
   // is debited (`provider: 'exhausted'` declines carry no passage).
-  if (!result.declined) { debit(req, 'retell', result.provider); recordSpend(result.provider === 'anthropic' ? result.provider : null); }
+  if (!result.declined) { debit(req, 'retell', result.provider, { key: retellDebitKey(req.body) }); recordSpend(result.provider === 'anthropic' ? result.provider : null); }
   res.json(result);
 });
 

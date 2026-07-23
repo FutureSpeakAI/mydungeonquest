@@ -296,6 +296,13 @@ export const FEATURES = [
     contract: [{ file: `${GAME}/server/clock.js` }, { src: `${GAME}/server/clock.js`, needle: 'DM_TIMEOUT_GENESIS_MS' }, { file: `${GAME}/evals/pensClock.test.mjs` }, { src: `${GAME}/package.json`, needle: 'pensClock.test.mjs' }],
     wiring: [{ src: `${GAME}/server/dm.js`, needle: 'withClock' }, { src: `${GAME}/server/room.js`, needle: 'withClock' }]
   },
+  {
+    id: 'honest-tally', category: 4, tier: 'wired',
+    name: 'The Honest Tally — a page tallies once',
+    detail: 'The ledger of use knows the natural key of a pour — patron, kind, campaign, turn — under a PARTIAL unique guard added by a purely additive bootstrap walk (nullable columns; legacy and keyless rows never collide). A second landing of the same page — a closed wire\'s retry, a double click, a receipt replay — is a no-op that answers \'once\' and never empties the taste; the doors pass only the keys their payloads truly hold, never inventing identity the wire does not carry. Directive XX, Phase 2; gate `tally`.',
+    contract: [{ src: `${GAME}/server/toll.js`, needle: 'usage_events_once' }, { src: `${GAME}/server/toll.js`, needle: 'ON CONFLICT (user_id, kind, campaign_id, turn)' }, { file: `${GAME}/evals/tally.test.mjs` }, { src: `${GAME}/package.json`, needle: 'tally.test.mjs' }],
+    wiring: [{ src: `${GAME}/server/index.js`, needle: 'dmDebitKey' }, { src: `${GAME}/server/index.js`, needle: 'retellDebitKey' }]
+  },
 
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {

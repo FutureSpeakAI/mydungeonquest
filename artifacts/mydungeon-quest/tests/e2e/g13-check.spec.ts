@@ -44,7 +44,9 @@ import { GAME_ROOT } from './lib/vision';
 // commit that seats Articles VI, VII, and VIII of Directive XVII.
 // (64 Stage Three) 149 → 153: XIX IV–VII — declaration, clocks, standings,
 // horizon join (the ladder complete: 145 → 147 → 149 → 153 per Section 5.2).
-const PINNED_PASS_COUNT = 154; // Task 65 Phase 0 (Directive XX): +1 — the pushLane gate joins the keyless check in the same commit that tracks the workflow lane; 153 → 154
+// (65 Phase 0) 153 → 154: the pushLane gate joins the keyless check in the
+// same commit that tracks the workflow lane.
+const PINNED_PASS_COUNT = 155; // Task 65 Phase 1 (Directive XX): +1 — the pensClock gate joins the keyless check in the same commit that binds the pen to the wall clock; 154 → 155
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

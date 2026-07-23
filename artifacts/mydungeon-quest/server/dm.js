@@ -29,6 +29,13 @@ import { anchoredWindow, HISTORY_FLOOR_MESSAGES, HISTORY_STEP_MESSAGES } from '.
 // reports its usage block to the watchtower's day-ledger beside the
 // request-count spend tally. Display/log only — never a ceiling.
 import { recordTokens } from './watchtower.js';
+// THE PEN'S CLOCK (XX, Law II): the wall-clock bound rides ONLY the
+// transport — the race around each attempt's await — never the shaped
+// request (buildSystemPrompt, shapeMessages, dynamicBlocks, shapeRequest,
+// cache_control, model seats, max_tokens stand untouched; the promptCache
+// gate is witness). A timed-out attempt is that attempt's plain failure;
+// the standing catch advances the ladder toward the mock floor.
+import { dmBudgetMs, withClock } from './clock.js';
 
 const bornAtZero = (turn) => (turn && dashCheck(proseOfTurn(turn)).flagged ? dashFoldTurn(turn) : turn);
 import { cueCourt, propLawCheck, movedItems, groundFixtures } from '../src/lib/plateroad.js';
@@ -583,7 +590,10 @@ export async function getDmTurn(input, { barred = {} } = {}) {
   let repair = null;
   for (let attempt = 0; plan.includes('anthropic') && attempt < 2; attempt += 1) {
     try {
-      const turn = artDirectorSits(await anthropicTurn(input, repair));
+      // THE PEN'S CLOCK: budget read at call time; the genesis turn alone
+      // burns the longer candle. The race bounds the awaiting, nothing else.
+      const budget = dmBudgetMs(Boolean(input.genesis));
+      const turn = artDirectorSits(await withClock(anthropicTurn(input, repair), budget, `anthropic dm attempt timed out after ${budget}ms`));
       const validation = judgeTurn(turn, input);
       if (validation.ok) return { turn, provider: 'anthropic', repaired: attempt > 0 };
       lastError = new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
@@ -599,7 +609,9 @@ export async function getDmTurn(input, { barred = {} } = {}) {
     let repairO = null;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        const turn = artDirectorSits(await openaiTurn(input, repairO));
+        // THE PEN'S CLOCK: the fallback seat is bounded by the same law.
+        const budget = dmBudgetMs(Boolean(input.genesis));
+        const turn = artDirectorSits(await withClock(openaiTurn(input, repairO), budget, `openai dm attempt timed out after ${budget}ms`));
         const validation = judgeTurn(turn, input);
         if (validation.ok) return { turn, provider: 'openai', repaired: attempt > 0, fellBackFrom: 'anthropic' };
         lastError = new Error(`Invalid DM turn (openai): ${validation.errors.join('; ')}`);

@@ -4191,3 +4191,54 @@ RITUAL COMPLETE 1.3.0: greens 64.13-64.15 (136 seats each, zero skips, zero flak
   retargets to the seat that stands, and the row gains a probe (the
   engine must export buildBriefing) rather than losing one — a moved
   surface, not a lost law; the buildContextPack probe is untouched.
+
+### TASK 65, PHASE 1 — THE PEN'S CLOCK (2026-07-23)
+
+**The commission.** Experience Directive XX, Law II — the easel's clock
+reaches the pen. The media chains have ridden PROVIDER_BUDGET_MS since the
+watchtower rose; the writer's room still trusted its wire, and a stalled
+provider could hold the table for minutes. Now every model call the room
+makes — the Director's sitting, each Anthropic and OpenAI DM attempt, the
+Editor's judged pass, the redraft's attempts — is wall-clock bounded:
+DM_TIMEOUT_MS (default 75s) for ordinary calls, DM_TIMEOUT_GENESIS_MS
+(default 120s) for the genesis turn's DM attempts alone, both read at call
+time. A timeout is that attempt's PLAIN FAILURE — the standing catches
+advance the ladder at once (mock intent, mock verdict, fallback turn); the
+room degrades in seconds, never crawls.
+
+**The seat.** One new module, server/clock.js (the mirrors-one-seat law):
+dmBudgetMs(genesis) and withClock(promise, ms, message) — the same
+promise-race the media chains ride at server/index.js, with one refinement:
+the raced-out loser is swallowed, so a wire that rejects after the clock
+ruled rings no unhandled-rejection alarm. The clock rides ONLY the
+transport — dm.js wraps its two attempt loops, room.js wraps the Director's
+and the Editor's provider calls — and not one byte of the shaped request
+moved (buildSystemPrompt, shapeMessages, dynamicBlocks, shapeRequest,
+cache_control, model seats, max_tokens; the promptCache gate stands witness
+untouched). The mock seats need no clock; the SSE heartbeat and the
+empty-tank cooldown stand as they stood. PEN_CEILING states the room's
+worst case as arithmetic: one Director sitting (at most 2 provider
+attempts), at most 4 DM attempts, one judged pass (at most 2 attempts), at
+most 4 redraft attempts — summed budgets bound the whole room.
+
+**The court.** evals/pensClock.test.mjs — keyless, network-free, budgets of
+tens of milliseconds, stalling seats as promises that NEVER settle, so only
+the clock itself can bring a walk home. Proven: the ladder advances past a
+stalled Anthropic seat within budget plus slack and the OpenAI seat answers
+sound; every seat stalled still returns the lawful fallback, bounded, the
+clock's own number in the error; the genesis candle burns for genesis DM
+attempts and ONLY those — on the same genesis walk the Director's and the
+Editor's timeout messages name the ordinary budget; both knobs read from
+the env at call time; a loser that rejects late leaks no unhandled
+rejection; and the whole worst-case room walks at exactly the ceiling — 2
+director + 8 dm + 2 editor calls on the recording wire, echo-forced revise,
+the mock intent byte-equal to mockDirector's, the mock verdict a revise,
+the turn never thrown away.
+
+- The pins move by exactly the +1 the gate adds: G13's literal 154 → 155;
+  the Port-parity pin 126 → 127 green verdicts in both repos' BUILD_STATUS,
+  and the twinless list grows five → six — pensClock races the table's own
+  provider fetches; the engine keeps no wire to bound. The engine stays
+  fifty-eight untouched. The muster gains the pens-clock row with its
+  contract and wiring probes. Proven whole: engine check exit 0 (58 PASS),
+  game check exit 0 keyless at 155 with the pensClock line newest.

@@ -12,3 +12,5 @@ description: The room/curtain/pour laws, the G24 prose court shape, the prose-st
 **Harness walk manners:** the composer textarea LEAVES the DOM while a roll ask stands (the roll button takes its seat). One rollIfAsked per step is not enough — resolutions can carry CHAINED asks. Drain `while (await rollIfAsked(page))` until quiet, then wait `.composer textarea:not([disabled])` before acting. Symptom otherwise: fill retries forever on disabled-then-detached composer.
 
 **Probe-shells dodge the spec-loader:** standalone .mjs tools run by execSync from specs keep court logic out of the playwright ESM loader's reach; specs stay thin clients that furnish exactly what the court is owed.
+
+**Court lever — forcing the revise→redraft walk deterministically:** seed `input.history` with an assistant row equal to `safeFallbackTurn(player, turn).narration_blocks[0].text`. An all-stalled walk's fallback draft then shares the full 8-word echo run with certainty, so the judged pass and the single redraft both fire without touching editor internals (used by the pensClock worst-case ceiling court).

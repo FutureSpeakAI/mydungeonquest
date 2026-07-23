@@ -289,6 +289,13 @@ export const FEATURES = [
     contract: [{ file: '.github/workflows/check.yml' }, { src: '.github/workflows/check.yml', needle: 'pull_request' }, { file: `${GAME}/evals/pushLane.test.mjs` }, { src: `${GAME}/package.json`, needle: 'pushLane.test.mjs' }],
     wiring: []
   },
+  {
+    id: 'pens-clock', category: 4, tier: 'wired',
+    name: "The Pen's Clock — the easel's clock reaches the pen",
+    detail: 'Every model call the writer\'s room makes — the Director\'s sitting, each DM attempt, the Editor\'s judged pass, the redraft\'s attempts — is wall-clock bounded through DM_TIMEOUT_MS (75s) and, for genesis DM attempts alone, DM_TIMEOUT_GENESIS_MS (120s), both read at call time. A timeout is that attempt\'s plain failure; the ladder advances to the deterministic floor — the room never crawls. The clock rides ONLY the transport; the shaped request is untouched (promptCache stands witness). Directive XX, Phase 1; gate `pensClock`.',
+    contract: [{ file: `${GAME}/server/clock.js` }, { src: `${GAME}/server/clock.js`, needle: 'DM_TIMEOUT_GENESIS_MS' }, { file: `${GAME}/evals/pensClock.test.mjs` }, { src: `${GAME}/package.json`, needle: 'pensClock.test.mjs' }],
+    wiring: [{ src: `${GAME}/server/dm.js`, needle: 'withClock' }, { src: `${GAME}/server/room.js`, needle: 'withClock' }]
+  },
 
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {

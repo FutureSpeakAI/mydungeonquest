@@ -31,6 +31,12 @@ import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
 // tells scans for the pre-pass, the mandatory-revise reason, and the
 // live Editor's addendum all speak from src/lib/voice.js.
 import { dashCheck, dashFoldTurn, proseOfTurn, DASH_REASON, EDITOR_ADDENDUM } from '../src/lib/voice.js';
+// THE PEN'S CLOCK (XX, Law II): the Director's sitting and the Editor's
+// judged pass are wall-clock bounded on the transport alone — a timed-out
+// seat is that attempt's plain failure, and the standing catch resolves
+// to the deterministic floor. The table is never stalled by its planner
+// or its judge; both always ride the ordinary budget, never the genesis one.
+import { dmBudgetMs, withClock } from './clock.js';
 
 // The law, re-spoken through the table's door so every gate, probe,
 // and seat keeps its one import path.
@@ -148,7 +154,11 @@ async function directorSits(input, beatIndex, { barred = {} } = {}) {
   for (const provider of plan) {
     if (provider === 'mock') break;
     try {
-      const raw = provider === 'anthropic' ? await anthropicIntent(input, beatIndex) : await openaiIntent(input, beatIndex);
+      const budget = dmBudgetMs();
+      const raw = await withClock(
+        provider === 'anthropic' ? anthropicIntent(input, beatIndex) : openaiIntent(input, beatIndex),
+        budget, `${provider} director sitting timed out after ${budget}ms`
+      );
       const seated = { ...raw, beat_index: Number.isInteger(beatIndex) ? beatIndex : 0 };
       if (validateBeatIntent(seated, { threads, ambitions }).ok) return seated;
     } catch (error) {
@@ -222,7 +232,11 @@ async function editorJudges(draft, context, { barred = {} } = {}) {
   for (const provider of plan) {
     if (provider === 'mock') break;
     try {
-      const raw = provider === 'anthropic' ? await anthropicVerdict(draft, context) : await openaiVerdict(draft, context);
+      const budget = dmBudgetMs();
+      const raw = await withClock(
+        provider === 'anthropic' ? anthropicVerdict(draft, context) : openaiVerdict(draft, context),
+        budget, `${provider} editor pass timed out after ${budget}ms`
+      );
       if (raw && (raw.verdict === 'ship' || raw.verdict === 'revise') && Array.isArray(raw.reasons)) {
         return { verdict: raw.verdict, reasons: raw.reasons.filter((row) => typeof row === 'string').slice(0, 4) };
       }

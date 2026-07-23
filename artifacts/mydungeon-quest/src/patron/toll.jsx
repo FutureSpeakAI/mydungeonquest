@@ -14,7 +14,7 @@
 // Stripe-hosted rooms for anything that touches a card. No card ever crosses
 // this table.
 import { useEffect, useState } from 'react';
-import { doorBuilt } from './door.jsx';
+import { doorBuilt } from './doorBuilt.jsx';
 import { clearRefusedPour, dismissTollNotice, subscribeTollNotice, takeRefusedPour } from './tollNotice.js';
 
 const SEAT_WORDS = {

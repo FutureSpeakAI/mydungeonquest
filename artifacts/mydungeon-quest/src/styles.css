@@ -668,3 +668,8 @@ a.secondary-button{display:inline-grid;place-items:center;text-decoration:none}
 .composer .declare-toggle.armed { color: var(--ember, #c96f2f); background: color-mix(in srgb, currentColor 14%, transparent); border-radius: 6px; }
 .thread-row .clock-tick, .thread-row .standing-shift, .thread-row .amend-reason { display: block; opacity: 0.75; }
 .chart-edge-rumors .edge-rumor { font-style: italic; }
+
+/* THE LEAN DOOR (XX, Law V) — the veil while a lazy surface is cut:
+   quiet chrome in the house's own light, never narration. */
+.lean-veil { padding: 3rem 1.5rem; text-align: center; font-style: italic; opacity: 0.75; }
+.door-veil { min-height: 100vh; }

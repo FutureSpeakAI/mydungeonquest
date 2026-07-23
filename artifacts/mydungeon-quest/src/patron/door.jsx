@@ -18,7 +18,11 @@ import { publishableKeyFromHost } from '@clerk/react/internal';
 import { Link, Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 
 const envKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-export const doorBuilt = Boolean(envKey);
+// THE ONE SEAT (lean door, XX Law V): doorBuilt lives in doorBuilt.js — the
+// same question, asked without lifting this module — and is re-exported here
+// so elder courts that ask the door directly keep their walk.
+import { doorBuilt } from './doorBuilt.jsx';
+export { doorBuilt };
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 // Canonical key resolution (resolves per-hostname so one build can serve

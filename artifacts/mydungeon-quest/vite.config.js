@@ -21,6 +21,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    target: 'es2022'
+    target: 'es2022',
+    // Terser is the honest lightening (lean door): the same timber planed
+    // finer — nothing hidden in a second synchronous chunk.
+    minify: 'terser',
+    // THE LEAN DOOR (XX, Law V) — the build writes its own manifest so the
+    // lean-door gate can read the entry chunk's true weight from the house's
+    // own ledger (dist/.vite/manifest.json), never from guesswork.
+    manifest: true
   }
 });

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Download, Heart, ScrollText, Shield, Sparkles, X } from 'lucide-react';
 import { CONDITIONS } from 'fatescript/rules';
 import { db } from '../lib/db.js';
-import { doorBuilt } from '../patron/door.jsx';
+import { doorBuilt } from '../patron/doorBuilt.jsx';
 import { TollSection, useToll } from '../patron/toll.jsx';
 import { resolveSheetFace } from '../lib/sheetFace.js';
 import { heroPurse, oneCoinFigure } from '../lib/ledger.js';
@@ -10,31 +10,12 @@ import { regionSlate } from '../lib/market.js';
 import { chartRibbon } from '../lib/atlas.js';
 import { composeReport } from '../lib/errata.js';
 import { HOUSE_VERSION } from '../lib/houseConfig.js';
+import { Frame, useGallery } from './gallery.jsx';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
 // Codex reads as a gallery of the world's real faces, not initials.
-export function useGallery(campaign) {
-  const [gallery, setGallery] = useState({});
-  useEffect(() => {
-    let urls = [], alive = true;
-    (async () => {
-      // (Directive XIV) The table itself now wears faces on a chip — the
-      // hook must stand quietly when no tale is open yet.
-      if (!campaign) { if (alive) setGallery({}); return; }
-      const rows = await db.media.where('campaignId').equals(campaign.id).toArray();
-      const latest = {};
-      for (const row of rows) {
-        if (row.kind !== 'paint' || !row.blob || !row.label) continue;
-        if (!latest[row.label] || latest[row.label].createdAt < row.createdAt) latest[row.label] = row;
-      }
-      const out = {};
-      for (const [label, row] of Object.entries(latest)) { const u = URL.createObjectURL(row.blob); urls.push(u); out[label] = u; }
-      if (alive) setGallery(out); else urls.forEach(URL.revokeObjectURL);
-    })();
-    return () => { alive = false; urls.forEach(URL.revokeObjectURL); };
-  }, [campaign?.id, campaign?.logs?.length]);
-  return gallery;
-}
+// useGallery lives in gallery.jsx now (lean door, XX Law V) — the entry
+// needs the hook, and must not drag these folios in with it.
 
 // THE FACE ON THE SHEET — Directive VI, Phase 12. The ladder is the
 // resolver's law (src/lib/sheetFace.js): the blessed anchor (post-Sitting)
@@ -77,9 +58,7 @@ export function AnchorBust({ campaign }) {
     : <span className="hero-face parchment-bust" role="img" aria-label={`${h.name} — the parchment mark`}>{h.sigil}</span>;
 }
 
-export function Frame({ title, icon, onClose, children, wide = false }) {
-  return <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><section className={`modal ${wide ? 'wide' : ''}`}><header><span>{icon}<h2>{title}</h2></span><button onClick={onClose} aria-label="Close"><X/></button></header>{children}</section></div>;
-}
+// Frame lives in gallery.jsx now (lean door, XX Law V), beside the hook.
 
 export function CharacterSheet({ campaign, onClose, onExport }) {
   const h = campaign.hero;

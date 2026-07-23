@@ -1,17 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, ChevronRight, DoorOpen, Download, Dices, Feather, FileUp, Flag, Flame, HeartPulse, Menu, MessageCircleWarning, Pause, Play, Plus, ScrollText, Settings as SettingsIcon, Shield, Sparkles, Swords, X } from 'lucide-react';
-import { WorldForge, HeroForge, clearForgeDrafts } from './components/Forge.jsx';
 import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
-import Ceremony from './components/Ceremony.jsx';
 import ChroniclePage from './components/ChroniclePage.jsx';
 import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components/Sequence.jsx';
 import { packClock, interludeRow, bandNotes } from './lib/clockAtTable.js';
 import { anchoredWindow } from './lib/historyWindow.js';
 import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
-import { CharacterSheet, Settings, Storybook, useGallery } from './components/Overlays.jsx';
-import { Book } from './components/Book.jsx';
+import { useGallery } from './components/gallery.jsx';
+import { composeAppearance, composeSignature } from './lib/atelier.js';
 import { tableOf } from 'fatescript/table';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
 import { applyCast, applyMilestone, applyStateUpdates, companionRoll, createHero, foldDeathSave, heroRoll, milestoneLevel } from 'fatescript/rules';
@@ -24,7 +22,6 @@ import { ACT_NAMES, actInfo, applyPartyMilestone, applyStoryUpdates, chapterInfo
 let pendingDeclaration = null;
 // THE SPINE MINT (Directive XIX, Article I) — the mint door and the
 // floor's rumor pool, from the story smith's one seat.
-import { mockStorySmith, sealSpineMint } from 'fatescript/storySmith';
 import { makeEntropy, validateDmTurn } from 'fatescript/protocol';
 // THE ARMORY (XVIII): the derived-AC settle and the attack governance
 // ride from the engine's one seat; the calendar fold stamps the rest.
@@ -39,13 +36,9 @@ import { burnCampaign, campaignJournal, db, listCampaigns, saveCampaign, unburnS
 import { exportChronicle, forkChronicle, importChronicle, makeEnvelope } from './lib/seal.js';
 import { reconcileLegacyPurse } from './lib/reconcile.js';
 import { teachOnce } from './lib/teaching.js';
-import { sealLegacy, openNextVolume, volumeCarryover } from './lib/saga.js';
-import { foldSuccession } from 'fatescript/saga';
-import { spineSpin } from './lib/smithClient.js';
 import { beginGenesis } from './lib/genesis.js';
 import { riteOpen, riteWalk } from './lib/threshold.js';
 import { ThresholdRite } from './components/Threshold.jsx';
-import { composeAppearance, composeSignature } from './lib/atelier.js';
 import { chronicleActClose, memoryLadder } from './lib/memoir.js';
 import { greetReturning } from './lib/ravens.js';
 import { fetchSeasons, skyNoteFor } from './lib/sky.js';
@@ -56,7 +49,6 @@ import { pourPlan, pourInterval } from './lib/pour.js';
 import { tellCourt } from './lib/tells.js';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
-import { isProving, seedProvingCampaign } from './lib/proving.js';
 import { Foundry } from './lib/cinema/foundry.js';
 import { heroSoul, identityClause, plateMood, portraitPrompt, regionPrompt, scenePrompt, sceneRoster, bearingTextFor } from './lib/cinema/prompts.js';
 import { markRevealed, listReveals } from './lib/reveals.js';
@@ -67,16 +59,28 @@ import { stopAllSound } from './lib/cinema/audioDirector.js';
 import { playUiSfx } from './lib/cinema/uiSfx.js';
 import { playNarration, primeNarration, stopNarration, subscribeNarration, toggleNarration } from './lib/cinema/narrator.js';
 import { castHeroVoice } from 'fatescript/cinema/casting';
-import { downloadQuestAudio } from './lib/cinema/questaudio.js';
-import { buildStorybook } from './lib/storybook.js';
 import { slugify } from 'fatescript/canonical';
-import { PatronDoor } from './patron/door.jsx';
+import { PatronDoor } from './patron/doorFrame.jsx';
 import { burnFromVault, nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
 import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
 import { rememberRefusedPour, reportTollRefusal, setPourContext, tollRefusal } from './patron/tollNotice.js';
 import { admitPlate, cueCourt, easelOrder, emptyFrameLine, groundFixtures, movedItems, propLawCheck, renderableTurn, seatingPlan } from './lib/plateroad.js';
 import { heroSheetJob, sheetJobs } from './lib/sheets.js';
 import { sceneVerdict, TEMPO_SETTINGS } from './lib/tempo.js';
+
+// THE LEAN DOOR (XX, Law V) — the table loads first: these surfaces are
+// not the turn pipeline, so each arrives only when its door is opened. The
+// parallel import beside the forge doors names the sitting as its own
+// chunk in the build's manifest — same timber, hung on the same opening.
+// The atelier stays at the table: the prologue's identity clauses draw on
+// it every turn, so it is pipeline timber, not a folio.
+const WorldForge = lazy(() => Promise.all([import('./components/Forge.jsx'), import('./lib/sitting.js')]).then(([m]) => ({ default: m.WorldForge })));
+const HeroForge = lazy(() => Promise.all([import('./components/Forge.jsx'), import('./lib/sitting.js')]).then(([m]) => ({ default: m.HeroForge })));
+const Ceremony = lazy(() => import('./components/Ceremony.jsx'));
+const Book = lazy(() => import('./components/Book.jsx').then((m) => ({ default: m.Book })));
+const CharacterSheet = lazy(() => import('./components/Overlays.jsx').then((m) => ({ default: m.CharacterSheet })));
+const Settings = lazy(() => import('./components/Overlays.jsx').then((m) => ({ default: m.Settings })));
+const Storybook = lazy(() => import('./components/Overlays.jsx').then((m) => ({ default: m.Storybook })));
 
 const DEFAULT_SETTINGS = { reduceMotion: false, haptics: true, narrator: false, textScale: 1, mediaTier: 'illuminated' };
 // Task #50 — the recap greets a RETURN to the table, never the first seat,
@@ -1147,6 +1151,9 @@ export default function App() {
   const beginCampaign = async (heroInput) => {
     primeNarration(); // the Begin tap blesses the throat before Chapter I speaks
     const id = crypto.randomUUID();
+    // the story-smith's seal arrives with the mint itself (lean door) —
+    // the pour still rides first: nothing below dispatches before this line.
+    const { mockStorySmith, sealSpineMint } = await import('fatescript/storySmith');
     const hero = forgeHeroSheet(heroInput);
     // THE SPINE MINT (Directive XIX, Article I) — every new volume seats
     // ONE minted spine, attested, cached forever. A bespoke roll arrives
@@ -1181,7 +1188,7 @@ export default function App() {
       turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null, heroBustHash: null,
       mediaTier: settings.mediaTier, tempo: 'turning', spend: { images: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };
-    clearForgeDrafts(); // the chronicle has begun; the sitting's draft burns
+    (await import('./components/Forge.jsx')).clearForgeDrafts(); // the chronicle has begun; the sitting's draft burns
     await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
     // THE FIRST WORD (Task 54C §1): the pour is dispatched first; the
     // genesis easel kicks the moment the request is on the wire and takes
@@ -1326,15 +1333,22 @@ export default function App() {
   // through the REAL primitives (fold, seal, memory — see lib/proving.js)
   // and seats it at the table exactly the way a restore does.
   useEffect(() => {
-    if (!isProving()) return undefined;
-    window.__mdqSeed = async (fixture) => {
-      const campaign = await seedProvingCampaign(fixture);
-      await refreshShelf();
-      setCurrent(campaign);
-      setFlow('table');
-      return campaign.id;
-    };
-    return () => { delete window.__mdqSeed; };
+    // (lean door) the proving hook's law still lives WHOLE in lib/proving.js —
+    // the module is fetched off the entry road after mount, and isProving
+    // remains the one door that decides; nothing here re-judges the gate.
+    let alive = true;
+    (async () => {
+      const { isProving, seedProvingCampaign } = await import('./lib/proving.js');
+      if (!alive || !isProving()) return;
+      window.__mdqSeed = async (fixture) => {
+        const campaign = await seedProvingCampaign(fixture);
+        await refreshShelf();
+        setCurrent(campaign);
+        setFlow('table');
+        return campaign.id;
+      };
+    })();
+    return () => { alive = false; delete window.__mdqSeed; };
   }, [refreshShelf]);
 
   const openStorybook = async (size = 'Letter', campaign = current) => {
@@ -1354,6 +1368,8 @@ export default function App() {
       // actually SEEN at this table — only dealt art, seated with its own
       // chapters. (An elder tale with no ledger still binds, the old way.)
       const reveals = await listReveals(campaign.id);
+      // the binder and its fonts are cut on demand; the fonts ride their own named chunk (lean door)
+      const [{ buildStorybook }] = await Promise.all([import('./lib/storybook.js'), import('./lib/bookFonts.js')]);
       const html = buildStorybook({ campaign, journal, media, reveals, pageSize: size }); setBookHtml(html); setOverlay('storybook');
       if (unread > 0) setStatus(`The chronicle is bound, but ${unread} plate${unread === 1 ? '' : 's'} could not be read from the shelf.`);
     } catch (error) {
@@ -1381,6 +1397,8 @@ export default function App() {
     if (audioBusy || !current) return;
     setAudioBusy(true);
     try {
+      // the podcast forge is cut on demand, named whole in the manifest (lean door)
+      const [{ downloadQuestAudio }] = await Promise.all([import('./lib/cinema/questaudio.js'), import('./lib/podcast.js')]);
       const blob = await downloadQuestAudio(current, (message) => setStatus(message));
       downloadBlob(blob, `${slugify(current.title)}.podcast.mp3`);
       setStatus('✦ Your episode is forged — sealed, and true.');
@@ -1423,6 +1441,7 @@ export default function App() {
     // THE SAGA LAW: the wax writes the legacy packet first — the volume
     // closes onto the record — and the 'sealing' block stays the final
     // signature over the whole chronicle, packet included.
+    const { sealLegacy } = await import('./lib/saga.js'); // the legacy fold is cut at sealing time (lean door)
     await sealLegacy(current, { seal });
     await seal(current.id, 'sealing', {
       turns: journal.filter((r) => r.type === 'turn').length,
@@ -1456,11 +1475,12 @@ export default function App() {
     const reason = fallen?.dead ? 'fell' : 'retired';
     const heir = forgeHeroSheet(heroInput);
     const turn = current.turnNumber || 0;
+    const { foldSuccession } = await import('fatescript/saga'); // the succession law is cut when an heir stands (lean door)
     const codex = foldSuccession(current.codex, { fallen: { name: fallen.name, className: fallen.className, voiceId: fallen.voiceId ?? null }, heir: { name: heir.name }, turn, reason });
     await seal(current.id, 'succession', { fallen: { name: fallen.name, className: fallen.className, level: fallen.level ?? null }, heir: { name: heir.name, className: heir.className }, turn, reason });
     const next = { ...current, hero: heir, codex, updatedAt: Date.now() };
     await saveCampaign(next); setCurrent(next); setFlow('table');
-    clearForgeDrafts(); // the heir stood from the same forge; the sitting's draft burns
+    (await import('./components/Forge.jsx')).clearForgeDrafts(); // the heir stood from the same forge; the sitting's draft burns
     setStatus(`✦ ${heir.name} rises — the world holds, and the debts stand.`);
   };
 
@@ -1477,9 +1497,12 @@ export default function App() {
       let bespoke = null;
       if (smith) {
         try {
+          const { spineSpin } = await import('./lib/smithClient.js'); // the smith's messenger rides the forge's own timber (lean door)
+          const { volumeCarryover } = await import('./lib/saga.js');
           bespoke = await spineSpin({ covenant: current.covenant || '', tone: current.tone || '', carryover: await volumeCarryover(current), seed: nameSeed(`${current.title}:volume:${(current.saga?.taleIndex ?? 0) + 2}`), tier: current.mediaTier });
         } catch { bespoke = null; }
       }
+      const { openNextVolume } = await import('./lib/saga.js'); // same chunk as the carryover above — the second ask is free
       const { campaign: nextVolume, span } = await openNextVolume(current, { years, seal, bespoke });
       setOverlay(null);
       setCurrent(nextVolume); setFlow('table');
@@ -1579,9 +1602,9 @@ export default function App() {
     <button className="secondary-button" onClick={() => setPourOffer(null)}>Let it rest</button>
   </div> : null;
 
-  if (flow === 'world') return <WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} />;
-  if (flow === 'hero') return <HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} />;
-  if (flow === 'heir') return <HeroForge world={{ title: current?.title || 'The world', covenant: current?.covenant || '', tone: current?.tone || '' }} mediaTier={settings.mediaTier} onBack={() => setFlow('table')} onBegin={beginHeir} />;
+  if (flow === 'world') return <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} /></Suspense>;
+  if (flow === 'hero') return <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} /></Suspense>;
+  if (flow === 'heir') return <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><HeroForge world={{ title: current?.title || 'The world', covenant: current?.covenant || '', tone: current?.tone || '' }} mediaTier={settings.mediaTier} onBack={() => setFlow('table')} onBegin={beginHeir} /></Suspense>;
   if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={stillness} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={async (campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } campaign = await reconcileLegacyPurse(campaign); /* the era door's one write (§IV.5) — before the table seats, so no turn can race it */ setCurrent(campaign); setFlow('table'); greetTale(campaign); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} onDemoDraw={drawDemoTale} status={status} /></>;
   if (!current) return null;
 
@@ -1667,10 +1690,10 @@ export default function App() {
         re-consult of the seen ledger, and no fresh close timer. Type differs
         across any chained pair, so the key always turns. */}
     {cinematic && <Cinematic key={`${cinematic.cinematic?.type}:${cinematic.cinematic?.title}:${cinematic.beatIndex ?? 'b'}:${cinematic.replay ? 'replay' : 'live'}`} cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={stillness} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} replay={Boolean(cinematic.replay)} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
-    {overlay === 'sheet' && <CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} />}
-    {overlay === 'codex' && <Book campaign={current} nav={bookNav} onNav={(part) => setBookNav((held) => ({ ...held, ...part }))} recap={recap && recap.campaignId === current.id ? recap : null} reduceMotion={stillness} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Book replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} />}
-    {overlay === 'settings' && <Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onTempo={persistTempo} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
-    {overlay === 'storybook' && <Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} />}
+    {overlay === 'sheet' && <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} /></Suspense>}
+    {overlay === 'codex' && <Suspense fallback={<div className="lean-veil">The binder threads the folios…</div>}><Book campaign={current} nav={bookNav} onNav={(part) => setBookNav((held) => ({ ...held, ...part }))} recap={recap && recap.campaignId === current.id ? recap : null} reduceMotion={stillness} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Book replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} /></Suspense>}
+    {overlay === 'settings' && <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onTempo={persistTempo} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense>}
+    {overlay === 'storybook' && <Suspense fallback={<div className="lean-veil">The binder threads the folios…</div>}><Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} /></Suspense>}
     {overlay === 'level' && <LevelRitual hero={current.hero} onAccept={async (picks) => {
       // THE PICKING SEAL (XVIII, Article IV): the surface was the door;
       // the fold is a client-applied spell_learn — the hero's list grows,
@@ -1685,7 +1708,7 @@ export default function App() {
       setOverlay(null);
     }} />}
     {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement — farewells, consequences, the road home. Then the wax presses, and the tale is bound.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal the Tale</button></div></div>}
-    {overlay === 'sealing' && <Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} />}
+    {overlay === 'sealing' && <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense>}
     {current.hero.hp <= 0 && !current.hero.stableAtZero && <Epitaph campaign={current} onHeir={current.readOnly ? null : () => setFlow('heir')} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} onFaceTheDark={async()=>{const hero={...current.hero,doomChosen:true};const next={...current,hero};await seal(current.id,'resolution',{type:'doom_declined'});await saveCampaign(next);setCurrent(next);}} onDeathSave={async()=>{const saves=current.hero.deathSaves||{successes:0,failures:0};const rr={id:`doom-hero-${saves.successes+saves.failures+1}`,label:'Death save',kind:'death_save',die:'d20',ability:null,skill:null,proficient:false,dc:10,advantage:'normal',extra_mod:0,action_id:null,actor_id:'hero',target_id:null};const result=heroRoll(current.hero,rr);setDiceResult(result);playUiSfx(current,'die');const folded=foldDeathSave(saves,result.outcome);const hero={...current.hero,deathSaves:folded.verdict==='stable'?{successes:0,failures:0}:folded.deathSaves,...(folded.verdict==='dead'?{dead:true}:{}),...(folded.verdict==='stable'?{stableAtZero:true}:{})};await seal(current.id,'resolution',{...result,deathSaves:folded.deathSaves,verdict:folded.verdict});const next={...current,hero};await saveCampaign(next);setCurrent(next);}} />}
   </div>;
 }

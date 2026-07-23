@@ -10,7 +10,6 @@
 // the cast all read the felled roll.
 import { useEffect, useState } from 'react';
 import { fetchPublicTale, publicPageModel } from '../lib/publish.js';
-import { buildStorybook } from '../lib/storybook.js';
 
 const SHA256_HEX = /^[a-f0-9]{64}$/;
 const dataUrlOf = (blob) => new Promise((resolve, reject) => {
@@ -60,6 +59,7 @@ export default function PublicTale({ publishId }) {
           // The record door serves the byte-preserved proof to anyone who
           // asks; the rendered page must hold not one struck byte, and the
           // owner's keepsake keeps its save-proof device untouched.
+          const { buildStorybook } = await import('../lib/storybook.js'); // the binder is cut on demand (lean door)
           bookHtml = buildStorybook({ campaign: model.campaign, journal: answer.record.journal, media, reveals: null, pageSize: 'Letter', proof: false });
         } catch (error) {
           bookHtml = null;

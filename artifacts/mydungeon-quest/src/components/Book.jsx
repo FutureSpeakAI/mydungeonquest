@@ -16,7 +16,7 @@ import { threadsOf } from 'fatescript/threads';
 import { troveOf, purseOf, heldBy } from 'fatescript/trove';
 import { oneCoinFigure } from '../lib/ledger.js';
 import { calendarOf } from 'fatescript/calendar';
-import { Frame, useGallery } from './Overlays.jsx';
+import { Frame, useGallery } from './gallery.jsx';
 import { RecapCard } from './Sequence.jsx';
 import TravelersChart from './TravelersChart.jsx';
 

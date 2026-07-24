@@ -4466,6 +4466,19 @@ AND stands) and the seal seat (folds computed in hand, sealed to the
 chain). A forged-snapshot court now guards that door in the table's
 own gate.
 
+The architect sat again and the second sitting earned its keep too:
+the store door held, but the LIVING session still trusted a foreign
+object — importChronicle returned its pre-write draft, the App seated
+it whole, and the door-guard read mere presence as proof. The cure is
+the session court: a seat is proven by ROAD, not shape. Only the
+hydrate court and the seal seat brand a checkpoint (a module-scoped
+WeakSet — movable bytes can never wear it), foldsAt refuses unbranded
+seats before it even consults the record court, the hydrate door
+re-tries any unproven seat it finds, and importChronicle now hands
+back the row the table door actually stored, per forkChronicle's own
+precedent. Court 7c walks the import road with real pins and lying
+folds and proves the full walk stands, byte for byte.
+
 Re-proven whole: engine check exit 0 keyless at exactly sixty, game
 check exit 0 keyless at exactly 159 with word-FAIL zero (the lean door
 reading 609 kB under its 610 pin — the fail-closed doors the rot

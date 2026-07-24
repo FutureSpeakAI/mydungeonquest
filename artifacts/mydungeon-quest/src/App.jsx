@@ -5,7 +5,7 @@ import Cinematic from './components/Cinematic.jsx';
 import ChroniclePage from './components/ChroniclePage.jsx';
 import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components/Sequence.jsx';
 import { interludeRow, bandNotes } from './lib/clockAtTable.js';
-import { packClockAt, tellCourtAt, sealWaypostIfDue, hydrateWaypost } from './lib/waypost.js';
+import { packClockAt, tellCourtAt, sealWaypostIfDue, hydrateWaypost, isProvenSeat } from './lib/waypost.js';
 import { anchoredWindow } from './lib/historyWindow.js';
 import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
@@ -359,17 +359,20 @@ export default function App() {
   // seated beside it, once per seating. Machinery only: a refusal seats
   // null and the full walk stands, unspoken. Readers re-check standing on
   // every read, so a strike landing mid-session un-seats it just as
-  // silently.
+  // silently. A seat is trusted by ROAD, not shape: only the hydrate
+  // court and the seal seat brand a checkpoint, so a foreign object
+  // (an import, a restore) presenting its own waypost is re-tried here
+  // — and refused by every reader until proven.
   useEffect(() => {
     const tale = current;
-    if (!tale?.id || 'waypost' in tale) return;
+    if (!tale?.id || ('waypost' in tale && (tale.waypost === null || isProvenSeat(tale.waypost)))) return;
     let alive = true;
     (async () => {
       let seated = null;
       try {
         seated = await hydrateWaypost(await campaignJournal(tale.id), tale);
       } catch (error) { console.error('The waypost stayed dark at the door:', error); }
-      if (alive) setCurrent((prev) => (prev && prev.id === tale.id && !('waypost' in prev) ? { ...prev, waypost: seated } : prev));
+      if (alive) setCurrent((prev) => (prev && prev.id === tale.id && !(('waypost' in prev) && (prev.waypost === null || isProvenSeat(prev.waypost))) ? { ...prev, waypost: seated } : prev));
     })();
     return () => { alive = false; };
   }, [current]);

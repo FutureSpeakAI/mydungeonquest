@@ -111,7 +111,10 @@ export async function importChronicle(data) {
       await db.media.put({ ...meta, campaignId: id, blob: blob ? dataUrlToBlob(blob) : null });
     }
   });
-  return imported;
+  // The living session receives only what the table door actually stored
+  // (the snapshot door strips runtime seats like the waypost) — never the
+  // pre-write draft, whose bytes are the file's own claims.
+  return await db.campaigns.get(id);
 }
 
 export async function forkChronicle(campaign) {

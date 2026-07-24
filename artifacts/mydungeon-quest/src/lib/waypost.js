@@ -16,6 +16,16 @@ import { chartOf } from 'fatescript/chart';
 export const WAYPOST_KIND = 'waypost';
 export { WAYPOST_STRIDE };
 
+// THE SESSION COURT — a seat is proven by its ROAD, never its shape:
+// only a checkpoint that passed this session's hydrate court (proves +
+// stands) or was built whole at the seal seat may ever resume a reader.
+// The brand lives in a WeakSet: movable bytes (imports, restores, forks,
+// any parsed file) can never wear it, so the reader itself refuses a
+// foreign seat — even one wearing real pins — and the full walk stands
+// in, silently, per the law.
+const provenSeats = new WeakSet();
+export function isProvenSeat(seat) { return typeof seat === 'object' && seat !== null && provenSeats.has(seat); }
+
 // THE SEAL SEAT — both turn roads (the table and the proving walk) call
 // this right after a turn's cluster has sealed. Every twenty-fifth
 // sealed turn it folds the covered record whole and seals the checkpoint
@@ -29,6 +39,7 @@ export async function sealWaypostIfDue(campaign, seal) {
     const checkpoint = await foldCheckpoint({ hero: campaign.hero ?? null, entries: Array.isArray(campaign.logs) ? campaign.logs : [] });
     if (!checkpoint.rows) return null;
     await seal(campaign.id, WAYPOST_KIND, checkpoint);
+    provenSeats.add(checkpoint);
     return checkpoint;
   } catch (error) {
     console.error('The waypost was not raised — the full walk stands:', error);
@@ -52,6 +63,7 @@ export async function hydrateWaypost(journal, campaign) {
       if (!(await checkpointProves(row.payload))) continue;
     } catch { continue; }
     if (!checkpointStands(row.payload, { hero, entries: logs })) continue;
+    provenSeats.add(row.payload);
     return row.payload;
   }
   return null;
@@ -65,7 +77,7 @@ export function foldsAt(campaign) {
   const hero = campaign?.hero ?? null;
   const logs = Array.isArray(campaign?.logs) ? campaign.logs : [];
   const checkpoint = campaign?.waypost;
-  if (checkpoint && checkpointStands(checkpoint, { hero, entries: logs })) {
+  if (checkpoint && isProvenSeat(checkpoint) && checkpointStands(checkpoint, { hero, entries: logs })) {
     try {
       return resumeFolds(checkpoint, logs.slice(checkpoint.rows), { hero });
     } catch (error) {

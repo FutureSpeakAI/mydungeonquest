@@ -139,6 +139,16 @@ reloaded = await db.campaigns.get(id);
 assert.ok(reloaded && !('waypost' in reloaded), 'saveCampaign never persists the seat');
 assert.equal(await hydrateWaypost(await campaignJournal(id), reloaded), null, 'the reloaded snapshot re-proves from the chain — the forged folds never seat (no post stands over the struck record)');
 
+// --- 7c. The session court: the reader refuses foreign seats (the import road) ---
+// The table door guards the STORE; this guards the LIVING session. A
+// restore hands its own parsed object straight to live state — so a seat
+// wearing REAL pins (the elder's cover still stands over this struck
+// record) but carrying another cut's folds, never proven by this
+// session's hydrate court or seal seat, must be refused by the reader
+// itself: seats are proven by road, not by shape.
+const foreign = { ...struckOnce, waypost: { ...posts[0], folds: structuredClone(posts[1].folds) } };
+assert.equal(J(foldsAt(foreign)), J(walkFolds({ hero, entries: foreign.logs })), 'a foreign seat with real pins and lying folds is refused by the session court — the full walk stands, byte for byte');
+
 // --- 8. The curtain: wayposts are machinery, never story ---
 assert.ok(campaign.logs.every((row) => row.type !== WAYPOST_KIND && row?.dm?.kind !== WAYPOST_KIND), 'no waypost ever enters the played record the feed and book read');
 assert.ok(J(cardsAt(campaign)).includes('waypost') === false && J(chartAt(campaign)).includes('waypost') === false, 'no reader speaks the word — the shortcut leaves no mark on the story');

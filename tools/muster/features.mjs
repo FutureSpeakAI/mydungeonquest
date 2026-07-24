@@ -326,6 +326,13 @@ export const FEATURES = [
     contract: [{ file: `${GAME}/evals/waypost.test.mjs` }, { src: `${GAME}/package.json`, needle: 'waypost.test.mjs' }, { file: `${GAME}/src/lib/waypost.js` }],
     wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'sealWaypostIfDue' }, { src: `${GAME}/src/lib/proving.js`, needle: 'sealWaypostIfDue' }, { src: `${GAME}/src/components/Book.jsx`, needle: 'cardsAt' }]
   },
+  {
+    id: 'second-chair', category: 4, tier: 'wired',
+    name: 'The Second Chair — cheaper minds on the smaller seats',
+    detail: 'DM_MODEL_DIRECTOR, DM_MODEL_EDITOR, and DM_MODEL_REDRAFT seat the Director\u2019s sitting, the Editor\u2019s judged pass, and the redraft\u2019s DM attempts on their own models — ONE pure seat-plan (chairSeats) resolved at call time, each chair defaulting to exactly today\u2019s model so unset environments are byte-identical. Genesis never follows a chair down and the first telling keeps the primary seat; an absent key still seats the mock floor — a seat env never conjures a key. The room ledger attributes every call to its chair with the seated model named, so a keyed audition reads real counts; defaults move ONLY on a verdict recorded in docs/dm-model-audition.md. Directive XX, Law XI, Phase 6; gate `secondChair` (table-only — the room is server law; the engine keeps no provider seats).',
+    contract: [{ file: `${GAME}/evals/secondChair.test.mjs` }, { src: `${GAME}/package.json`, needle: 'secondChair.test.mjs' }, { src: `${GAME}/server/room.js`, needle: 'chairSeats' }],
+    wiring: [{ src: `${GAME}/server/room.js`, needle: 'DM_MODEL_DIRECTOR' }, { src: `${GAME}/server/dm.js`, needle: 'dmSeatModels' }, { src: `${GAME}/docs/dm-model-audition.md`, needle: 'The Second Chair' }]
+  },
 
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {

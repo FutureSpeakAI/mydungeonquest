@@ -4485,3 +4485,77 @@ reading 609 kB under its 610 pin — the fail-closed doors the rot
 courts demanded ride the closure), G13 pinned 158 → 159, the
 shared shelf 131 → 132 with the engine fifty-nine → sixty, the muster
 carrying the waypost row with regressions zero.
+
+### TASK 65, PHASE 6 — THE SECOND CHAIR (2026-07-24)
+
+THE RATIFICATIONS FIRST, as the owner's adjudicator returned them on
+this phase's opening. One: the seal desk's restore-road cure stands
+LAWFUL — importChronicle handing the living session the row the table
+door actually stored is the session court's own precedent
+(forkChronicle walked that road first), and the SEALING road itself
+never moved a byte. Two: the shelf ruling STANDS — 132 verdicts with
+G13 at 159 under one-verdict-per-gate; the adversarial courts 7b and
+7c sit INSIDE the waypost gate's own walls, never as counted seats of
+their own. Both rulings recorded here as commanded.
+
+AND A PROMOTION RECORDED, nothing built: the owner raises the Web of
+Souls (Phase 13) and the Dowry Door (Phase 14) into the directive
+itself as ARTICLE FIVE — to build in order, after the Business
+Threshold. The chapters keep their numbers; only their standing rose.
+
+THE LAW (Directive XX, Law XI). The room's smaller seats may sit
+cheaper minds — but this phase builds CHAIRS, not verdicts. Three
+envs — DM_MODEL_DIRECTOR, DM_MODEL_EDITOR, DM_MODEL_REDRAFT — seat
+the Director's sitting, the Editor's judged pass, and the redraft's
+DM attempts on their own models. ONE pure seat-plan (chairSeats, in
+the room beside the seats it serves) resolves every chair at call
+time, each defaulting to exactly today's model: unset is
+byte-identical, the elder envs (DIRECTOR_MODEL, EDITOR_MODEL, the
+DM_MODEL cascade) standing beneath, unmoved — and outranked only
+when the Second Chair env itself speaks. The chair envs steer the
+Anthropic lane alone: the understudy lanes keep their elder envs, an
+Anthropic id in an OpenAI request being a wire refusal, not a seat.
+The redraft chair builds on the door's own exported seats (dmSeats)
+— never a mirrored default, per the one-seat law.
+
+GENESIS IS IMMUNE, structurally: dmSeatModels rules the genesis
+branch BEFORE any seat is read, on both lanes, so no combination of
+chair envs — nor a seat forced into the door's own hands — moves
+Session Zero; DM_MODEL_GENESIS alone rules there. The first telling
+keeps the primary DM seat untouched: only the convene's redraft call
+carries a seat into getDmTurn. A seat env never conjures a key — the
+provider plan alone decides who may speak; keyless still floors to
+mock, and the floor answers BY NAME.
+
+THE LEDGER NAMES EVERY CHAIR. room_ledger.chair_calls — rows of
+chair, provider, and the seated model — written by the seats
+themselves as the calls are spent, never reconstructed: the
+Director's sitting and its floor, the first telling as the door
+reports it, the Editor's judged pass, the redraft with its own seat.
+A cache hit writes nothing. The director gate's exact-keys court
+grew by the lawful key and stands — the set grew by law, never
+loosened. The audition protocol is chartered in
+docs/dm-model-audition.md: which chairs trial which cheaper minds,
+how a keyed off-check audition reads chair_calls beside the standing
+courts, and the standing rule — a default moves ONLY on a verdict
+recorded there. No verdict is written; every chair defaults to the
+seat it held before the chairs existed.
+
+THE GATE (secondChair — keyless, network-free, one PASS line): unset
+chairs are today's room to the byte; each env seats its own chair
+and only its own; genesis walked explicitly under every env
+combination and a forced seat besides, the seated shape proven
+byte-identical apart from the model's name (promptCache witnessing
+the unseated shape untouched, the Pen's Clock unmoved); the keyless
+door floors to mock with a chair seated in its very hands; and
+fixture convenes prove the rows — fresh beat, carried intent,
+sampled ship, planted-sameness redraft — deterministic to the byte.
+
+Proven whole: game check exit 0 keyless at exactly 160 with the
+secondChair line newest and word-FAIL zero, the engine untouched at
+exactly sixty, G13 pinned 159 → 160, the shared shelf 132 → 133 in
+both Port sections (NINE table gates now twinless, secondChair named
+with its reason — the room is server law; the engine keeps no
+provider seats), the muster gaining the second-chair row.
+
+**THE ARCHITECT'S ROUND (2026-07-24).** The architect sat over the whole of the Second Chair diff and returned PASS with no severe findings: the cascades exact, genesis immunity structural, the first telling unseated, the floors honest, the ledger attributing as spent, the shaping bytes unmoved with the promptCache witness untouched, and the new gate judged sound — deterministic, network-free, no coincidence-greens among its five courts. One counsel was offered and taken, though none was owed: the Director's and Editor's request builders had each consulted the seat-plan a second time behind their caller's back — a two-reads door where the noted ledger row and the wire request could in principle diverge. The seat is now resolved ONCE per sitting and handed down: directorSits and editorJudges pass the seated model into the intent and verdict builders, which take it as an argument and consult no plan of their own (mirrors-one-seat manners — the noted row and the request are one resolution). Re-proven whole after the cure: game check keyless exit 0 at exactly 160 word-PASS and 0 word-FAIL, the second chair's verdict printing newest; the engine, untouched by the cure, stands at 60. The muster stands at 57 present, 0 regressed, the second-chair row PRESENT in the regenerated roll.

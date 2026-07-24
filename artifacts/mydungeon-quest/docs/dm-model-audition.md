@@ -71,3 +71,44 @@ node tests/e2e/tools/dm-model-audition.mjs            # subset, incremental rows
 Requires `ANTHROPIC_API_KEY` (hard stop without it). Never sends
 `temperature`. A call stalled past `AUDITION_DEADLINE_MS` (default 120 s)
 counts as a fallback turn, mirroring what a player would experience.
+
+## The Second Chair — the chairs stand; no verdict moves a default (Task 65, Phase 6 — Directive XX, Law XI)
+
+Stage one built the CHAIRS, not the verdicts. Three envs seat the room's
+smaller seats on their own models, resolved at call time by the one
+seat-plan (`chairSeats()` in `server/room.js`), each defaulting to exactly
+today's model — unset environments are byte-identical to the room as it
+stands. The chair envs steer the Anthropic lane only (an Anthropic id in
+an OpenAI request would be refused at the wire); the understudy lanes
+keep their elder envs.
+
+| chair | env | default today | worth auditioning |
+| --- | --- | --- | --- |
+| the Director's sitting | `DM_MODEL_DIRECTOR` | `claude-sonnet-4-6` (beneath it: `DIRECTOR_MODEL`, then the `DM_MODEL` cascade) | `claude-haiku-4-5` — the intent is a 400-token structured note behind its own validator and mock floor |
+| the Editor's judged pass | `DM_MODEL_EDITOR` | `claude-haiku-4-5` (beneath it: `EDITOR_MODEL`) | dated haiku snapshots, or anything cheaper that still holds the verdict schema |
+| the redraft's attempts | `DM_MODEL_REDRAFT` | the primary DM seat (`claude-sonnet-5`) | `claude-haiku-4-5` — the flags name the cure and the validator guards the result; the cheapest plausible win |
+
+Never auditioned, by law: the GENESIS attempts (no chair env — nor a seat
+forced into the door's own hands — moves Session Zero; `DM_MODEL_GENESIS`
+alone rules there) and the FIRST TELLING's attempts (the primary seat,
+`DM_MODEL`'s own law). A chair env never conjures a key: the provider
+plan alone decides who may speak, and an absent key seats the mock floor
+exactly as today.
+
+**How an audition records its verdict.** Keyed, off the check (the gates
+stay keyless): set ONE chair env, replay representative briefings through
+the real door — the harness above, or live play — and read
+`room_ledger.chair_calls`, where every call is attributed to its chair
+with the seated model named and mock floors counted honestly. Judge
+beside the standing courts: the intent validator's refusal rate for the
+Director, the verdict schema and the revise/ship split for the Editor,
+post-repair validity and fallback turns for the redraft. What
+disqualifies a cheaper mind is what disqualified them at the DM audition:
+failing AFTER the repair law, or dragging real play down to the
+deterministic floor.
+
+**The standing rule: a default moves ONLY on a verdict recorded in this
+document** — dated, with its counts beside it, as the recorded verdicts
+above are. No such verdict is recorded today; every chair defaults to the
+seat it held before the chairs existed, and the `secondChair` gate holds
+that byte-identity as law.

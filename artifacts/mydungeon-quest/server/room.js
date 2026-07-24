@@ -25,7 +25,7 @@ import {
   clicheCheck as lawClicheCheck, editorPrePass as lawEditorPrePass
 } from 'fatescript/room';
 import { plateDue } from './artDirector.js';
-import { getDmTurn, dmPlan } from './dm.js';
+import { getDmTurn, dmPlan, dmSeats } from './dm.js';
 import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
 // THE HOUSE VOICE (XVII, Article V) — the one pinned source: dash and
 // tells scans for the pre-pass, the mandatory-revise reason, and the
@@ -80,6 +80,42 @@ export function editorPrePass(turn, opts = {}) {
   return flags;
 }
 
+// ------------------------------------------------------------
+// THE SECOND CHAIR (Directive XX, Law XI) — the seat plan.
+// The room's smaller seats may sit cheaper minds. ONE pure seat
+// resolves each chair's model AT CALL TIME: DM_MODEL_DIRECTOR,
+// DM_MODEL_EDITOR, and DM_MODEL_REDRAFT seat their own chairs and
+// only their own, each defaulting to exactly today's model, so an
+// unset environment is byte-identical to the present room — the
+// elder DIRECTOR_MODEL/EDITOR_MODEL envs and the DM_MODEL cascade
+// stand beneath, unmoved, and the understudy lanes keep their own
+// elder envs (an Anthropic id must never be jammed into an OpenAI
+// request). The genesis seat is NOT here: no chair env may move
+// the genesis attempts' model — dm.js holds that immunity at the
+// door itself. A seat env never conjures a key: the provider plan
+// alone decides who may speak, and an absent key still seats the
+// mock floor exactly as today. Defaults move ONLY on a verdict
+// recorded in docs/dm-model-audition.md — the Second Chair builds
+// the chairs, not the verdicts.
+// ------------------------------------------------------------
+export function chairSeats() {
+  const dm = dmSeats();
+  return {
+    director: {
+      anthropic: process.env.DM_MODEL_DIRECTOR || process.env.DIRECTOR_MODEL || process.env.DM_MODEL || 'claude-sonnet-4-6',
+      openai: process.env.DIRECTOR_MODEL_OPENAI || process.env.DM_MODEL_OPENAI || 'gpt-4o',
+    },
+    editor: {
+      anthropic: process.env.DM_MODEL_EDITOR || process.env.EDITOR_MODEL || 'claude-haiku-4-5',
+      openai: process.env.EDITOR_MODEL_OPENAI || 'gpt-4o-mini',
+    },
+    redraft: {
+      anthropic: process.env.DM_MODEL_REDRAFT || dm.anthropic,
+      openai: dm.openai,
+    },
+  };
+}
+
 // The live Director: one strict-JSON sitting through the standing
 // provider plan. The Anthropic seat carries NO temperature dial — the
 // family retired it (probed July 18, 2026: claude-sonnet-5 answers 400
@@ -105,12 +141,12 @@ const intentToolSchema = {
 const directorBrief = (input, beatIndex) =>
   `[SPINE]\n${JSON.stringify(input.spine || null)}\n[BEAT_INDEX]\n${beatIndex}\n[STORY]\n${JSON.stringify(input.story || null)}\n[DIRECTION]\nSit as the Director of this campaign. Hand down beat_intent for the standing beat — one intent sentence, secrets to hold, open threads (exact ledger names only) overdue for motion, the open ambitions this beat serves (exact texts — at least one whenever any stand open), motifs to forbid, and the measure by its law: lean for quiet connective beats, standard for most, rich for arrivals, revelations, and act turns.`;
 
-async function anthropicIntent(input, beatIndex) {
+async function anthropicIntent(input, beatIndex, model) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: process.env.DIRECTOR_MODEL || process.env.DM_MODEL || 'claude-sonnet-4-6',
+      model, // seated by the caller — the noted row and this request are ONE resolution
       max_tokens: 400, // no temperature: the family retired the dial (Directive XII §VIII)
 
       system: [{ type: 'text', text: buildSystemPrompt(input) }],
@@ -124,12 +160,12 @@ async function anthropicIntent(input, beatIndex) {
   return json.content?.find((item) => item.type === 'tool_use' && item.name === 'beat_intent')?.input;
 }
 
-async function openaiIntent(input, beatIndex) {
+async function openaiIntent(input, beatIndex, model) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: process.env.DIRECTOR_MODEL_OPENAI || process.env.DM_MODEL_OPENAI || 'gpt-4o',
+      model, // seated by the caller — the noted row and this request are ONE resolution
       max_tokens: 400, temperature: 0,
       messages: [
         { role: 'system', content: buildSystemPrompt(input) },
@@ -146,17 +182,22 @@ async function openaiIntent(input, beatIndex) {
   return JSON.parse(call.function.arguments);
 }
 
-async function directorSits(input, beatIndex, { barred = {} } = {}) {
+async function directorSits(input, beatIndex, { barred = {}, note = () => {} } = {}) {
   const plan = dmPlan(barred);
-  if (plan[0] === 'mock') return mockDirector(input, beatIndex);
+  if (plan[0] === 'mock') { note({ chair: 'director', provider: 'mock', model: 'mock' }); return mockDirector(input, beatIndex); }
+  // THE SECOND CHAIR: the Director's seat, resolved once per sitting
+  // at call time from the one seat-plan.
+  const seat = chairSeats().director;
   const threads = threadNames(input?.story);
   const ambitions = ambitionNames(input?.story);
   for (const provider of plan) {
     if (provider === 'mock') break;
     try {
+      // LAW XI — the row is written as the call is spent, never after.
+      note({ chair: 'director', provider, model: seat[provider] });
       const budget = dmBudgetMs();
       const raw = await withClock(
-        provider === 'anthropic' ? anthropicIntent(input, beatIndex) : openaiIntent(input, beatIndex),
+        provider === 'anthropic' ? anthropicIntent(input, beatIndex, seat.anthropic) : openaiIntent(input, beatIndex, seat.openai),
         budget, `${provider} director sitting timed out after ${budget}ms`
       );
       const seated = { ...raw, beat_index: Number.isInteger(beatIndex) ? beatIndex : 0 };
@@ -165,6 +206,7 @@ async function directorSits(input, beatIndex, { barred = {} } = {}) {
       console.error('The Director lost its voice:', error?.message || error);
     }
   }
+  note({ chair: 'director', provider: 'mock', model: 'mock' }); // the floor seats, named honestly
   return mockDirector(input, beatIndex);
 }
 
@@ -179,12 +221,12 @@ const verdictToolSchema = {
 const editorBrief = (draft, context) =>
   `[DRAFT]\n${JSON.stringify({ narration_blocks: draft.narration_blocks, suggestions: draft.suggestions })}\n[BEAT_INTENT]\n${JSON.stringify(context.intent || null)}\n[FLAGS]\n${JSON.stringify(context.flags)}\n[RECENT_PAGES]\n${JSON.stringify((context.priorPages || []).slice(-5))}\n[PRIOR_ROADS]\n${JSON.stringify(context.priorSuggestions || [])}\n[DIRECTION]\nJudge the draft and return your verdict.`;
 
-async function anthropicVerdict(draft, context) {
+async function anthropicVerdict(draft, context, model) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: process.env.EDITOR_MODEL || 'claude-haiku-4-5',
+      model, // seated by the caller — the noted row and this request are ONE resolution
       max_tokens: 300, // no temperature: the family retired the dial (Directive XII §VIII)
       system: [{ type: 'text', text: EDITOR_RUBRIC }, { type: 'text', text: EDITOR_ADDENDUM }],
       messages: [{ role: 'user', content: [{ type: 'text', text: editorBrief(draft, context) }] }],
@@ -197,12 +239,12 @@ async function anthropicVerdict(draft, context) {
   return json.content?.find((item) => item.type === 'tool_use' && item.name === 'editor_verdict')?.input;
 }
 
-async function openaiVerdict(draft, context) {
+async function openaiVerdict(draft, context, model) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: process.env.EDITOR_MODEL_OPENAI || 'gpt-4o-mini',
+      model, // seated by the caller — the noted row and this request are ONE resolution
       max_tokens: 300, temperature: 0,
       messages: [
         { role: 'system', content: EDITOR_RUBRIC },
@@ -226,15 +268,19 @@ async function openaiVerdict(draft, context) {
 // the OpenAI seat still pins zero. A cheaper model is sanctioned; any
 // refusal or unlawful word falls to the deterministic floor. The table
 // is never stalled by its Editor.
-async function editorJudges(draft, context, { barred = {} } = {}) {
+async function editorJudges(draft, context, { barred = {}, note = () => {} } = {}) {
   const plan = dmPlan(barred);
-  if (plan[0] === 'mock') return mockEditor(context.flags);
+  if (plan[0] === 'mock') { note({ chair: 'editor', provider: 'mock', model: 'mock' }); return mockEditor(context.flags); }
+  // THE SECOND CHAIR: the Editor's seat, resolved once per judged pass.
+  const seat = chairSeats().editor;
   for (const provider of plan) {
     if (provider === 'mock') break;
     try {
+      // LAW XI — the row is written as the call is spent, never after.
+      note({ chair: 'editor', provider, model: seat[provider] });
       const budget = dmBudgetMs();
       const raw = await withClock(
-        provider === 'anthropic' ? anthropicVerdict(draft, context) : openaiVerdict(draft, context),
+        provider === 'anthropic' ? anthropicVerdict(draft, context, seat.anthropic) : openaiVerdict(draft, context, seat.openai),
         budget, `${provider} editor pass timed out after ${budget}ms`
       );
       if (raw && (raw.verdict === 'ship' || raw.verdict === 'revise') && Array.isArray(raw.reasons)) {
@@ -244,6 +290,7 @@ async function editorJudges(draft, context, { barred = {} } = {}) {
       console.error('The Editor lost its voice:', error?.message || error);
     }
   }
+  note({ chair: 'editor', provider: 'mock', model: 'mock' }); // the floor judges, named honestly
   return mockEditor(context.flags);
 }
 
@@ -253,19 +300,27 @@ export async function convene(input, { barred = {} } = {}) {
   const carried = input?.story?.beat_intent;
   const threads = threadNames(input?.story);
   const ambitions = ambitionNames(input?.story);
+  // THE SECOND CHAIR (XX, Law XI): the chair rows — every call the room
+  // spends, attributed to its chair with the seated model named, written
+  // by the seats themselves as the calls land. A cache hit writes nothing.
+  const chairCalls = [];
+  const note = (row) => { chairCalls.push(row); };
   let intent = null;
   let directorCalls = 0;
   if (carried && Number.isInteger(beatIndex) && carried.beat_index === beatIndex && validateBeatIntent(carried, { threads, ambitions }).ok) {
     intent = carried;
   } else {
     directorCalls = 1;
-    intent = await directorSits(input, beatIndex, { barred });
+    intent = await directorSits(input, beatIndex, { barred, note });
     if (!validateBeatIntent(intent, { threads, ambitions }).ok) intent = mockDirector(input, beatIndex);
   }
   // The Director's word rides the one briefing block the Voice already
   // reads — no second channel exists.
   const roomInput = { ...input, story: { ...(input.story || {}), beat_intent: intent } };
   const result = await getDmTurn(roomInput, { barred });
+  // The first telling keeps the primary DM seat UNTOUCHED — no chair seat
+  // rides this call; the row only attributes what the door reports.
+  chairCalls.push({ chair: 'dm', provider: result.provider, model: result.model });
 
   // LAWS VI–VIII — the Editor's seat, wholly behind the curtain. The
   // pre-pass is free and judges every draft; the judged pass sits only
@@ -288,7 +343,7 @@ export async function convene(input, { barred = {} } = {}) {
   const sampled = turnNo !== null && turnNo % 7 === 0;
   if (sealed?.turn && (flags.length || sampled)) {
     editorCalls += 1;
-    verdict = await editorJudges(sealed.turn, { ...court, flags }, { barred });
+    verdict = await editorJudges(sealed.turn, { ...court, flags }, { barred, note });
     // THE DASH LAW (XVII, Article V) — a 'dash' flag is MANDATORY REVISE:
     // whatever the judged seat answered, the verdict is revise, and the
     // dash law stands among its named reasons.
@@ -301,7 +356,11 @@ export async function convene(input, { barred = {} } = {}) {
       editorCalls += 1;
       revisions = 1;
       const revisionInput = { ...roomInput, story: { ...roomInput.story, editor_note: { reasons: verdict.reasons, flags } } };
-      const redraft = await getDmTurn(revisionInput, { barred });
+      // THE SECOND CHAIR: the redraft ALONE rides its own seat — resolved
+      // at call time and passed into the redraft's attempts only. The
+      // genesis immunity lives at the door itself (dmSeatModels).
+      const redraft = await getDmTurn(revisionInput, { barred, seat: chairSeats().redraft });
+      chairCalls.push({ chair: 'redraft', provider: redraft.provider, model: redraft.model });
       if (redraft?.turn) {
         sealed = redraft;
         flags = editorPrePass(redraft.turn, court);
@@ -333,7 +392,12 @@ export async function convene(input, { barred = {} } = {}) {
       art_director_calls: artDirectorCalls,
       revisions,
       flags,
-      editor_verdict: verdict ? verdict.verdict : null
+      editor_verdict: verdict ? verdict.verdict : null,
+      // THE SECOND CHAIR (XX, Law XI): every chair call attributed as it
+      // was spent — chair, provider, and the seated model NAMED — so a
+      // keyed audition reads real counts. The mock floor answers by its
+      // own name; no row is ever reconstructed after the fact.
+      chair_calls: chairCalls
     }
   };
 }

@@ -1,8 +1,8 @@
 # THE FEATURES — the muster roll
 
-*Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-23). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
+*Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-24). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 55 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 57 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 **THE TRIAGE (wire first):** Bearing, Signature & the paint roster.
 
@@ -187,6 +187,14 @@ A pure court in the engine judges the per-turn scene plate from sealed evidence 
 ### The Lean Door — the table arrives before the shelves — PRESENT
 
 The turn pipeline loads with the entry; every other surface arrives lazily on its own road — seventeen chunks where one 1020 kB entry stood. The pin binds the SYNCHRONOUS CLOSURE — entry plus every statically imported chunk, summed raw on disk — at 610 kB, movable only downward: the closure is the sum however the graph is arranged, so vendor-split laundering is structurally impossible. 520 was aspiration; 600 measured honest on ruling day. The Book carries the Chart; the atelier rides as pipeline timber; the veils speak house words. Directive XX, Phase 4; gate `leanDoor`.
+
+### The Waypost Law — replay is truth; the shortcut must prove itself — PRESENT
+
+Every twenty-fifth sealed turn, both turn roads (the live table and the proving walk, ONE helper) fold the covered record’s pure cursors — cards, presence, world clock and pack, tells, standings — and seal them as a waypost row in the journal chain, signed like any record. Readers resume from the NEWEST post that proves itself (digest, state hash) and stands against the living record (last-row pin, hero canon, struck-set equality), byte-identical to the full walk or silently refused — the full walk stands in; strikes fall back to the elder post, then to the full walk. Wayposts never render and never touch the played record; elder tales read untouched. Directive XX, Law VI, Phase 5; gate `waypost` (engine twin + table gate).
+
+### The Second Chair — cheaper minds on the smaller seats — PRESENT
+
+DM_MODEL_DIRECTOR, DM_MODEL_EDITOR, and DM_MODEL_REDRAFT seat the Director’s sitting, the Editor’s judged pass, and the redraft’s DM attempts on their own models — ONE pure seat-plan (chairSeats) resolved at call time, each chair defaulting to exactly today’s model so unset environments are byte-identical. Genesis never follows a chair down and the first telling keeps the primary seat; an absent key still seats the mock floor — a seat env never conjures a key. The room ledger attributes every call to its chair with the seated model named, so a keyed audition reads real counts; defaults move ONLY on a verdict recorded in docs/dm-model-audition.md. Directive XX, Law XI, Phase 6; gate `secondChair` (table-only — the room is server law; the engine keeps no provider seats).
 
 ## VI. The Saga groundwork (Directive V)
 

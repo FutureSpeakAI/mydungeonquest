@@ -29,7 +29,8 @@
 - [Vision-judge calibration](vision-judge-calibration.md) — replay = stability; quarantine whole pairings; probes bind; premise law: enforce only the app's promises; claims must be pose/gaze-free.
 - [Mirrors need one seat](mirrors-one-seat.md) — byte-for-byte law mirrored across files WILL drift; move it to one lib both sides import, or pin cross-pointers both sides.
 - [Signature-downgrade door](signature-downgrade-door.md) — verifiers must never trust caller-declared signature status; evidence in the envelope forces the court, or tamper+re-hash+claim-unsigned launders provenance.
-- [MyDungeon writer's room](mydungeon-writers-room.md) — seats behind one door; pour only grows; captions describe, never quote; freshness door self-heals; walks DRAIN chained roll asks.
+- [MyDungeon writer's room](mydungeon-writers-room.md) — seats behind one door; pour only grows; captions describe, never quote; freshness door self-heals; walks DRAIN chained roll asks; Second Chair seat envs.
+- [MyDungeon muster roll](mydungeon-muster.md) — docs/FEATURES.md is GENERATED from root tools/muster/features.mjs; exit 1 = pending posture by design, regressed>0 is the real alarm.
 - [MyDungeon genesis first-word](mydungeon-first-word.md) — pours dispatch before ANY paint; parallel foundries merge meters as deltas, never absolutes; wire-order courts drain pre-genesis lanes first.
 - [Pure replay witnesses are born fail-closed](mydungeon-witness-failclosed.md) — every list behind Array.isArray, names must be strings, malformed rows prove nothing; panels reading them render an explicit cannot-be-read line, never crash.
 - [Harness readers carry rows whole](harness-row-roundtrip.md) — spread stored rows verbatim in test readers; field-by-field rebuilds drop every new block (three strikes of this family).

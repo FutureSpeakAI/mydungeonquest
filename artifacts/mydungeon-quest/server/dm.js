@@ -424,6 +424,25 @@ const MODEL = () => process.env.DM_MODEL || 'claude-sonnet-5';
 // strong model — it does not follow a cheaper DM_MODEL override down.
 const GENESIS_MODEL = () => process.env.DM_MODEL_GENESIS || 'claude-sonnet-5';
 
+// THE SECOND CHAIR (Directive XX, Law XI) — the primary door's two lane
+// seats, spoken once at call time. The room's redraft chair builds on
+// THESE (never a mirrored default), and the audition doc reads them.
+export const dmSeats = () => ({ anthropic: MODEL(), openai: process.env.DM_MODEL_OPENAI || 'gpt-4o' });
+
+// The one law that applies a chair's seat to this door's attempts.
+// GENESIS IS IMMUNE: Session Zero never follows a director, editor, or
+// redraft env down — the genesis branch rules BEFORE any seat is read,
+// so no combination of chair envs (nor a seat forced into the door's
+// own hands) can move the genesis attempts' model on either lane. An
+// absent seat resolves to the primary DM seats exactly as today.
+export function dmSeatModels(input, seat = null) {
+  const seats = dmSeats();
+  return {
+    anthropic: input?.genesis ? GENESIS_MODEL() : ((seat && seat.anthropic) || seats.anthropic),
+    openai: input?.genesis ? seats.openai : ((seat && seat.openai) || seats.openai),
+  };
+}
+
 // THE CACHE'S CANDLE (Task 54 §3): players read and listen between
 // turns, often past Anthropic's 5-minute default, so the breakpoints
 // default to the 1-hour candle (DM_CACHE_TTL=5m restores the short
@@ -454,9 +473,12 @@ function shapeMessages(input) {
   return [...history, { role: 'user', content: [{ type: 'text', text: dynamicBlocks(input) }] }];
 }
 
-function shapeRequest(input) {
+function shapeRequest(input, seat = null) {
   return {
-    model: input.genesis ? GENESIS_MODEL() : MODEL(),
+    // THE SECOND CHAIR: only the model NAME may differ on a chair —
+    // the seat rides through dmSeatModels (genesis immune), and every
+    // other byte of the shape stands untouched, promptCache witnessing.
+    model: dmSeatModels(input, seat).anthropic,
     // THE MEASURE LAW (Directive XI, Law V): the ceiling rises so a rich
     // beat's 6-8 paragraphs are possible; the measure directs richness,
     // the Editor's courts keep it honest.
@@ -484,8 +506,8 @@ const anthropicHeaders = () => ({
 // stricter client validator, `repair` carries that turn plus the exact
 // violations so the model can correct itself instead of falling back to
 // generic narration. This tightens reliability without loosening the validator.
-async function anthropicTurn(input, repair = null) {
-  const request = shapeRequest(input);
+async function anthropicTurn(input, repair = null, seat = null) {
+  const request = shapeRequest(input, seat);
   if (repair) {
     request.messages = [
       ...request.messages,
@@ -502,7 +524,9 @@ async function anthropicTurn(input, repair = null) {
   // (repairs included) tallies its tokens and cache reads/writes in the
   // watchtower's day-ledger. Telemetry only; never a ceiling, never a throw.
   try { recordTokens('anthropic', request.model, json.usage); } catch { /* the tale never dies of its bookkeeping */ }
-  return json.content?.find((item) => item.type === 'tool_use' && item.name === 'dm_turn')?.input;
+  // The seated model rides out with the word — the room's ledger names
+  // it as the call was spent, never reconstructed after the fact.
+  return { turn: json.content?.find((item) => item.type === 'tool_use' && item.name === 'dm_turn')?.input, model: request.model };
 }
 
 // THE CURTAIN (Directive XI, Law I): the pre-seal stream is gone whole —
@@ -513,7 +537,8 @@ async function anthropicTurn(input, repair = null) {
 // client validator as Anthropic, so a fallback turn is held to the identical
 // contract. Used only when Anthropic errors/fails validation twice. Anthropic
 // message blocks are flattened to plain strings for the chat API.
-async function openaiTurn(input, repair = null) {
+async function openaiTurn(input, repair = null, seat = null) {
+  const model = dmSeatModels(input, seat).openai;
   const messages = [
     { role: 'system', content: buildSystemPrompt(input) },
     ...shapeMessages(input).map((m) => ({ role: m.role, content: m.content.map((c) => c.text).join('\n') }))
@@ -526,7 +551,7 @@ async function openaiTurn(input, repair = null) {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: process.env.DM_MODEL_OPENAI || 'gpt-4o',
+      model,
       // THE MEASURE LAW (Directive XI, Law V): risen with Anthropic's.
       max_tokens: 3400,
       messages,
@@ -538,7 +563,7 @@ async function openaiTurn(input, repair = null) {
   const json = await response.json();
   const call = json.choices?.[0]?.message?.tool_calls?.find((t) => t.function?.name === 'dm_turn');
   if (!call) throw new Error('OpenAI returned no dm_turn tool call');
-  return JSON.parse(call.function.arguments);
+  return { turn: JSON.parse(call.function.arguments), model };
 }
 
 /**
@@ -562,7 +587,10 @@ export function dmPlan(barred = {}) {
   return plan;
 }
 
-export async function getDmTurn(input, { barred = {} } = {}) {
+// THE SECOND CHAIR (XX, Law XI): `seat` is the redraft chair's word —
+// passed by the convene into the redraft's attempts ONLY. The first
+// telling never carries one, and genesis ignores it at dmSeatModels.
+export async function getDmTurn(input, { barred = {}, seat = null } = {}) {
   const plan = dmPlan(barred);
   const useMock = plan[0] === 'mock';
 
@@ -574,10 +602,10 @@ export async function getDmTurn(input, { barred = {} } = {}) {
       const turn = artDirectorSits(bornAtZero(mockDmTurn(input)));
       const validation = judgeTurn(turn, input);
       if (!validation.ok) throw new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
-      return { turn, provider: 'mock' };
+      return { turn, provider: 'mock', model: 'mock' };
     } catch (error) {
       console.error(error);
-      return { turn: bornAtZero(safeFallbackTurn(input.player, input.turn)), provider: 'fallback', error: error.message };
+      return { turn: bornAtZero(safeFallbackTurn(input.player, input.turn)), provider: 'fallback', model: 'fallback', error: error.message };
     }
   }
 
@@ -593,9 +621,10 @@ export async function getDmTurn(input, { barred = {} } = {}) {
       // THE PEN'S CLOCK: budget read at call time; the genesis turn alone
       // burns the longer candle. The race bounds the awaiting, nothing else.
       const budget = dmBudgetMs(Boolean(input.genesis));
-      const turn = artDirectorSits(await withClock(anthropicTurn(input, repair), budget, `anthropic dm attempt timed out after ${budget}ms`));
+      const sat = await withClock(anthropicTurn(input, repair, seat), budget, `anthropic dm attempt timed out after ${budget}ms`);
+      const turn = artDirectorSits(sat.turn);
       const validation = judgeTurn(turn, input);
-      if (validation.ok) return { turn, provider: 'anthropic', repaired: attempt > 0 };
+      if (validation.ok) return { turn, provider: 'anthropic', model: sat.model, repaired: attempt > 0 };
       lastError = new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
       repair = { turn, errors: validation.errors };
     } catch (error) {
@@ -611,9 +640,10 @@ export async function getDmTurn(input, { barred = {} } = {}) {
       try {
         // THE PEN'S CLOCK: the fallback seat is bounded by the same law.
         const budget = dmBudgetMs(Boolean(input.genesis));
-        const turn = artDirectorSits(await withClock(openaiTurn(input, repairO), budget, `openai dm attempt timed out after ${budget}ms`));
+        const sat = await withClock(openaiTurn(input, repairO, seat), budget, `openai dm attempt timed out after ${budget}ms`);
+        const turn = artDirectorSits(sat.turn);
         const validation = judgeTurn(turn, input);
-        if (validation.ok) return { turn, provider: 'openai', repaired: attempt > 0, fellBackFrom: 'anthropic' };
+        if (validation.ok) return { turn, provider: 'openai', model: sat.model, repaired: attempt > 0, fellBackFrom: 'anthropic' };
         lastError = new Error(`Invalid DM turn (openai): ${validation.errors.join('; ')}`);
         repairO = { turn, errors: validation.errors };
       } catch (error) {
@@ -624,5 +654,5 @@ export async function getDmTurn(input, { barred = {} } = {}) {
   }
 
   console.error(lastError);
-  return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', error: lastError.message };
+  return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', model: 'fallback', error: lastError.message };
 }

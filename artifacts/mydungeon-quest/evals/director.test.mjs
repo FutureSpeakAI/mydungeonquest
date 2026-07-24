@@ -81,7 +81,9 @@ assert.equal(first.room_ledger.beat_index, 0);
 assert.equal(first.beat_intent.measure, 'rich', 'the arrival beat runs rich');
 assert.ok(validateBeatIntent(first.beat_intent, { threads: ['The Salt Debt', 'A Lantern Unlit'] }).ok);
 assert.deepEqual(
-  ['beat_index', 'director_calls', 'editor_calls', 'art_director_calls', 'revisions', 'flags', 'editor_verdict'].sort(),
+  // chair_calls joined the lawful set with the Second Chair (XX, Law XI):
+  // the exact-keys court stands — the set grew by the law, never loosened.
+  ['beat_index', 'director_calls', 'editor_calls', 'art_director_calls', 'revisions', 'flags', 'editor_verdict', 'chair_calls'].sort(),
   Object.keys(first.room_ledger).sort(),
   'the room ledger carries exactly its lawful counters'
 );

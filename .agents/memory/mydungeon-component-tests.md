@@ -43,3 +43,5 @@ adding component/UI tests here will hit the same wall without them.
 - `import.meta.env.*` (Vite-injected) crashes plain node: jsxLoader.mjs now passes esbuild `define` for BASE_URL/'/', PROD/false, DEV/true. esbuild REJECTS non-literal defines like `({})` — no catch-all possible; add keys as components start reading them.
 - Seed campaigns with the app's own factories (`initCodex('classic-epic')`, `createHero({...})`) — hand-rolled codex objects miss `spine.beats[beatIndex]` and crash `chapterInfo`.
 - Keyless-silence proof pattern: stub global fetch to answer `/api/sfx` with `X-Media-Provider: 'mock'`, then assert `directorState().playing === null && queued === 0` AND `db.media.count() === 0` (mock never played, never cached).
+
+- **The harness transforms ONLY `.jsx` files** (esbuild jsx loader + `import.meta.env` define). A one-seat module that reads `import.meta.env` MUST keep the `.jsx` extension even if it holds no JSX — a `.js` twin crashes any court that imports it under node (heroAnchor taught this during the lean-door split).

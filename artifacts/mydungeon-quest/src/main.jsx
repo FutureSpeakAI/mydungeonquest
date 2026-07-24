@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import { PatronShell } from './patron/doorFrame.jsx';
+import { RoadBoundary } from './components/roadBoundary.jsx';
 import { watchErrata } from './lib/errata.js';
 import './styles.css';
 
@@ -26,5 +27,5 @@ const tale = path.match(/^\/t\/([A-Za-z0-9_-]{16,64})\/?$/);
 // src/patron/door.jsx, hung lazily through its frame in doorFrame.jsx); a
 // keyless build renders the game exactly as before.
 createRoot(document.getElementById('root')).render(<React.StrictMode>{
-  tale ? <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><PublicTale publishId={tale[1]} /></Suspense> : <PatronShell><App /></PatronShell>
+  tale ? <RoadBoundary road="the commons' page"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><PublicTale publishId={tale[1]} /></Suspense></RoadBoundary> : <RoadBoundary road="the house"><PatronShell><App /></PatronShell></RoadBoundary>
 }</React.StrictMode>);

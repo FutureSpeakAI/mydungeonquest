@@ -1,8 +1,10 @@
 # THE FEATURES — the muster roll
 
-*Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-16). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
+*Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-23). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 56 present · 0 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 55 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+
+**THE TRIAGE (wire first):** Bearing, Signature & the paint roster.
 
 ## I. The Table — the core loop
 
@@ -166,6 +168,26 @@ Named patrons sign in (Clerk); chronicles sync to the server vault with chain-la
 
 The whole suite — engine gates, game gates, the salon — runs keyless in CI on every push. PASS only grows; weakening a gate is the one forbidden move.
 
+### The Push Lane — the Proving Ground rides every push — PRESENT
+
+The keyless chain runs on every push and every pull_request: both suites whole (engine via `pnpm --filter fatescript run check`, table via `npm run check` in its own house), Node 22, corepack-enabled pnpm 10.26.1, frozen lockfile, not one AI key. Directive XX, Phase 0; gate `pushLane`.
+
+### The Pen's Clock — the easel's clock reaches the pen — PRESENT
+
+Every model call the writer's room makes — the Director's sitting, each DM attempt, the Editor's judged pass, the redraft's attempts — is wall-clock bounded through DM_TIMEOUT_MS (75s) and, for genesis DM attempts alone, DM_TIMEOUT_GENESIS_MS (120s), both read at call time. A timeout is that attempt's plain failure; the ladder advances to the deterministic floor — the room never crawls. The clock rides ONLY the transport; the shaped request is untouched (promptCache stands witness). Directive XX, Phase 1; gate `pensClock`.
+
+### The Honest Tally — a page tallies once — PRESENT
+
+The ledger of use knows the natural key of a pour — patron, kind, campaign, turn — under a PARTIAL unique guard added by a purely additive bootstrap walk (nullable columns; legacy and keyless rows never collide). A second landing of the same page — a closed wire's retry, a double click, a receipt replay — is a no-op that answers 'once' and never empties the taste; the doors pass only the keys their payloads truly hold, never inventing identity the wire does not carry. Directive XX, Phase 2; gate `tally`.
+
+### The Tempo Law — the brush paints where the story turns — PRESENT
+
+A pure court in the engine judges the per-turn scene plate from sealed evidence alone — this turn's validated dm_turn, the codex, the turn index, the player's setting — no clock, no randomness, no model, every reason cited to the very turn it judges. Three cadences: every (byte-faithful to today), turning (boundaries, cues, introductions, movement, first blood, cinematics, genesis), sparse (the marked three alone). The easel consults one bridge for the scene job and only that job; a held frame is display, not a minting — no plate row, no attestation. Existing campaigns read absence as every; fresh forges open at turning; the surface speaks house words. Directive XX, Phase 3; gate `tempo`.
+
+### The Lean Door — the table arrives before the shelves — PRESENT
+
+The turn pipeline loads with the entry; every other surface arrives lazily on its own road — seventeen chunks where one 1020 kB entry stood. The pin binds the SYNCHRONOUS CLOSURE — entry plus every statically imported chunk, summed raw on disk — at 610 kB, movable only downward: the closure is the sum however the graph is arranged, so vendor-split laundering is structurally impossible. 520 was aspiration; 600 measured honest on ruling day. The Book carries the Chart; the atelier rides as pipeline timber; the veils speak house words. Directive XX, Phase 4; gate `leanDoor`.
+
 ## VI. The Saga groundwork (Directive V)
 
 ### Sagas — the world outlives its tale — PRESENT
@@ -198,25 +220,35 @@ A chapter’s public face: secrets struck, quotes verbatim, plates through the s
 
 ## VII. The World groundwork (Directive VI)
 
-### The World Clock — the Calendar Law — PRESENT
+### The World Clock — the Calendar Law — PENDING (wiring 0/1)
 
 Time derived from the record, never stored: time_advance and sealed spans fold to day and hour; watches name the light; the age ladder walks souls forward (child 8y → young 14y → adult 25y → elder) and the dead are outside time.
 
-### The Ledger — coin & goods conserved — PRESENT
+*Awaiting: 'worldClock' under artifacts/mydungeon-quest/src.*
+
+### The Ledger — coin & goods conserved — PENDING (wiring 0/1)
 
 Double-entry trades, atomic and cause-bearing; wallets and inventories are projections, byte-identical on replay; the world gives nothing without a cause; refusals are receipts. Progression, loot, and shops all stand on this.
 
-### The Market — witnessed prices — PRESENT
+*Awaiting: 'buildLedger' under artifacts/mydungeon-quest/src.*
+
+### The Market — witnessed prices — PENDING (wiring 0/1)
 
 The first quote locks; an uncaused change is a price attack refused by name; caused change is cited history; drift is deterministic, one notch per tick, toward the pressure the region’s scars show.
 
-### The Living Atlas — geography with fog — PRESENT
+*Awaiting: 'buildMarket' under artifacts/mydungeon-quest/src.*
+
+### The Living Atlas — geography with fog — PENDING (wiring 0/1)
 
 Placement phrases (‘half a day north of Harrow Ford’) become deterministic coordinates in days of travel; positions lock like faces; the chart shows only the witnessed; a world event’s zone is a geometry query; and the world may move souls — missing, marked, displaced — while only the table may end them.
 
-### Bearing, Signature & the paint roster — PRESENT
+*Awaiting: 'buildAtlas' under artifacts/mydungeon-quest/src.*
+
+### Bearing, Signature & the paint roster — PENDING (wiring 0/1)
 
 The card is the prompt: locked visual verbatim, one trackable signature item per soul (the ledger moves it, the paint follows), wounds from the record, age from the clock, the dead never aging — and at most three painted subjects per plate: speaker, then villain, then bond.
+
+*Awaiting: 'bearingBlock' under artifacts/mydungeon-quest/src.*
 
 ### The Sitting — a face is accepted, not assigned — PRESENT
 
@@ -226,9 +258,11 @@ After the forge, three portrait candidates of one unvarying identity sit for the
 
 Agents’ Room under house law: four scribes (plot, character, setting, conflict), each briefed to one domain, planning in notes and directives, never prose; a keyless mock room as the Floor; a court that refuses any plan that tries to speak.
 
-### The Human Hand — the tell court — PRESENT
+### The Human Hand — the tell court — PENDING (wiring 0/1)
 
 StoryScope’s measurable fingerprints (the stated moral, the borrowed body, the tidy bow, the hushed register) counted per thousand words over sealed narration, with capped, ordered counter-directives pushed into the pack’s directives the moment a family runs hot. The court measures; it never rewrites.
+
+*Awaiting: 'tellReport' under artifacts/mydungeon-quest/src.*
 
 ### The Warden — machine vision keeps the face — PRESENT
 

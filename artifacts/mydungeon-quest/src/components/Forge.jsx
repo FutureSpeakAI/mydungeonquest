@@ -338,7 +338,7 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
   </main>;
 }
 
-export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
+export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beginBusy = false }) {
   const [form, setForm] = useState(() => {
     const fallback = { name: 'Aster Vale', sigil: '✦', ancestry: 'Human', className: 'Ranger', caster: 'half', hitDie: 10, abilities: { STR: 14, DEX: 15, CON: 13, INT: 10, WIS: 12, CHA: 8 }, skills: ['Perception','Survival','Stealth'], bearing: 'Weather-worn leathers, a road-warden\u2019s longbow, and eyes that never stop reading the treeline.', background: 'A former road-warden who can hear when a path is lying.', presentation: 'neutral', pronouns: '', mark: '', keepsake: 'a river-stone that is always warm', voiceId: null, hair: 'chestnut hair bound in a travel knot', eyes: 'storm-grey eyes', skin: 'olive skin weathered by road-sun', build: 'wiry and quick', attire: 'weather-worn ranger leathers', accessory: 'a river-stone pendant on a cord', __sovereign: [] };
     const saved = loadDraft(HERO_DRAFT_KEY);
@@ -599,7 +599,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment' }) {
           </button>)}</div>
       </div>}
       <AuditionRow presentation={form.presentation} name={form.name} voiceId={form.voiceId} onBless={bless}/>
-      <button className="primary-button" disabled={(() => {
+      <button className="primary-button" disabled={beginBusy || (() => {
         // the book must stand exact before the chronicle begins — the same
         // arithmetic the door enforces, spoken as a disabled button.
         const owed = knownCountsFor(form.caster, 1);

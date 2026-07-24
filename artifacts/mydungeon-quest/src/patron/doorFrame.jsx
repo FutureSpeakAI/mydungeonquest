@@ -8,6 +8,7 @@
 // The door's laws live untouched in door.jsx; elder courts walk there.
 import { Suspense, lazy } from 'react';
 import { doorBuilt } from './doorBuilt.jsx';
+import { RoadBoundary } from '../components/roadBoundary.jsx';
 
 const House = lazy(() => import('./door.jsx').then((m) => ({ default: m.PatronShell })));
 const Door = lazy(() => import('./door.jsx').then((m) => ({ default: m.PatronDoor })));
@@ -16,10 +17,10 @@ export { doorBuilt };
 
 export function PatronShell({ children }) {
   if (!doorBuilt) return children; // the doorless house, exactly as before
-  return <Suspense fallback={<div className="door-veil" aria-hidden="true" />}><House>{children}</House></Suspense>;
+  return <RoadBoundary road="the patron door"><Suspense fallback={<div className="door-veil" aria-hidden="true" />}><House>{children}</House></Suspense></RoadBoundary>;
 }
 
 export function PatronDoor(props) {
   if (!doorBuilt) return null; // no door was built; nothing hangs
-  return <Suspense fallback={null}><Door {...props} /></Suspense>;
+  return <RoadBoundary road="the patron door's seat"><Suspense fallback={null}><Door {...props} /></Suspense></RoadBoundary>;
 }

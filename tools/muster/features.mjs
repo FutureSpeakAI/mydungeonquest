@@ -311,6 +311,14 @@ export const FEATURES = [
     wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'tempoVerdict.paints' }, { src: `${GAME}/src/App.jsx`, needle: "tempo: 'turning'" }, { src: `${GAME}/src/components/Overlays.jsx`, needle: 'Where the story turns' }]
   },
 
+  {
+    id: 'lean-door', category: 4, tier: 'wired',
+    name: 'The Lean Door — the table arrives before the shelves',
+    detail: 'The turn pipeline loads with the entry; every other surface arrives lazily on its own road — seventeen chunks where one 1020 kB entry stood. The pin binds the SYNCHRONOUS CLOSURE — entry plus every statically imported chunk, summed raw on disk — at 610 kB, movable only downward: the closure is the sum however the graph is arranged, so vendor-split laundering is structurally impossible. 520 was aspiration; 600 measured honest on ruling day. The Book carries the Chart; the atelier rides as pipeline timber; the veils speak house words. Directive XX, Phase 4; gate `leanDoor`.',
+    contract: [{ file: `${GAME}/evals/leanDoor.test.mjs` }, { src: `${GAME}/package.json`, needle: 'leanDoor.test.mjs' }, { src: `${GAME}/vite.config.js`, needle: 'manifest: true' }],
+    wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'The page is being cut' }, { src: `${GAME}/src/patron/doorFrame.jsx`, needle: "./door.jsx" }]
+  },
+
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {
     id: 'saga', category: 5, tier: 'groundwork',

@@ -4320,3 +4320,74 @@ tempo-law row. Proven whole: engine check exit 0 (59 PASS) with the
 tempo twin printing, game check exit 0 keyless at exactly 157 with tempo
 newest and mediaGate, firstWord, plateroad, easel, foundry, tally,
 pensClock, and pushLane all green.
+
+### TASK 65, PHASE 4 — THE LEAN DOOR (2026-07-23)
+
+Experience Directive XX, Law V — the table arrives before the shelves.
+The turn pipeline loads with the entry; every other surface arrives
+lazily on its own road: the Book (the Chart riding within it), the forge
+doors with the sitting preloaded beside them, the Overlays surfaces, the
+binder and the book fonts, the podcast forge and questaudio, Ceremony,
+PublicTale, saga, the proving hook, smithClient, and the patron door
+with its Clerk timber — seventeen lazy chunks where one 1020 kB entry
+stood. Import timing alone moved, never logic: one road holds (the
+proving hook rides a single unconditional post-mount import, gated
+after), the evals import lib modules under node exactly as before, the
+mobile WebView needs nothing, and the Suspense veils speak house words.
+Two deviations stand lawful and pinned, not merely tolerated: the
+atelier rides sync as pipeline timber — the prologue's own import road —
+and the Chart keeps no row of its own, riding inside the Book's chunk,
+with the gate asserting neither is reachable in the entry's synchronous
+closure.
+
+THE PIN AMENDED, by the owner's ruling: the directive's 520 kB was
+aspiration, the measured honest floor today is 600 kB (react-dom ~223k
+min, the engine's turn law ~189k, the table's own surface ~64k, dexie
+~41k, pipeline libs ~50k), and the pin seats at 610 kB binding the
+SYNCHRONOUS CLOSURE — the entry plus every chunk statically imported
+from it, summed raw on disk — movable only downward. The reason is the
+ruling's own: a vendor split moves the measured number and not one byte
+the player downloads before the table breathes — measurement laundering,
+the OR-shaped promise family this house convicts — and the knife-edge
+600 is a flaky court that reds on the next dependency sliver. The
+closure is the honest quantity: however the sync graph is arranged, the
+sum is the sum, so laundering is structurally impossible rather than
+banned by words. The Directive XX document lives owner-side as a
+companion file; the amendment is recorded here and in the gate's own
+header, the only in-tree seats the pin keeps.
+
+The leanDoor gate stands newest in the chain — the closure under the
+pin, the named surfaces standing in the manifest's dynamic rolls, no
+split surface statically reachable from the entry road, the PASS line
+reading the measured weight and lazy-chunk count aloud on every run.
+The pins move by exactly the +1 the gate adds: G13's literal 157 → 158;
+the Port-parity pin 130 → 131 green verdicts in both repos'
+BUILD_STATUS, and the twinless list grows seven → eight — leanDoor
+weighs the table's shipped closure at the build manifest; the engine
+ships no bundle. The engine stays fifty-nine untouched. The muster
+gains the lean-door row with its contract and wiring probes. Proven
+whole: engine check exit 0 (59 PASS), game check exit 0 keyless at
+exactly 158 with the leanDoor line newest — the closure reading 600 kB
+under the 610 pin with seventeen surfaces lazy — and curtain, firstWord,
+boundary, tempo, tally, pensClock, and pushLane all green.
+
+THE ARCHITECT'S ROUND (same phase, before sealing). The review convicted
+the split roads on the silent-door family: the begin, heir, press, and
+volume-door handlers carried uncaught handler-site imports, the Begin
+tap had no latch, and no boundary stood behind the lazy seats. The
+guards landed in the same breath: every handler-site import under
+catch-and-speak (house words at the status line — "The chronicle could
+not begin", "The heir could not stand", "The seal would not press",
+"The road broke at the volume door"), one forge latch shared by begin
+and heir (the ref bars the second tap in the tick, the state stills the
+forge button), the draft burns best-effort by design, the proving road
+speaks to the console alone, and the road-fallen boundary — one seat,
+every lazy road, main and the door's frame included, the keyless
+doorless fork untouched — feeds the errata ring by hand (a
+boundary-caught fall never reaches window's listeners) and offers the
+road again rather than a white page. openStorybook and the podcast
+forge already caught whole under elder laws and stand untouched.
+Re-proven whole: game check exit 0 keyless at exactly 158, word-FAIL
+zero, the closure reading 602 kB under the same 610 pin (the guards
+weigh two kilobytes), seventeen surfaces lazy, the engine untouched at
+fifty-nine.

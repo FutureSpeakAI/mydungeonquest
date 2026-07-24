@@ -1,0 +1,11 @@
+---
+name: MyDungeon lean door (bundle-weight law)
+description: How the game's bundle-size gate is lawed — closure pin, floor-before-pin, G13 PASS counting, and code-split boundaries vs node courts.
+---
+
+# The Lean Door — bundle-weight law
+
+- **Pin the SYNCHRONOUS CLOSURE, never the entry file.** The gate sums the entry chunk PLUS every chunk statically imported from it (transitively, `imports` in `dist/.vite/manifest.json`), raw bytes on disk. **Why:** an entry-file pin invites vendor-split laundering — moving react-dom to a second sync chunk changes the measured number and not one byte the player downloads. The closure is the sum however the graph is arranged, so laundering is structurally impossible rather than banned by words (owner's ruling, July 2026). **How to apply:** any future size gate (here or elsewhere) measures the closure; the pin moves only DOWNWARD.
+- **Measure the honest floor before seating a pin.** The directive aspired to 520 kB; the measured floor was 600 (react-dom ~223k min + engine turn law ~189k + App table ~64k + dexie ~41k + pipeline libs ~50k). Pin seated at 610. **Why:** a pin below the floor forces laundering or law-breaking; a knife-edge pin at the exact floor is a flaky court that reds on the next dependency sliver. **How to apply:** compose the entry from the sourcemap (source-kB × ~0.436 min ratio) and present the floor before proposing any number.
+- **The check's PASS tally is `\bPASS\b` anywhere in stdout, NOT `^PASS` lines.** G13 (and the house count) uses word-boundary matches: 152 `^PASS` lines = 158 word-PASS on the same log (multi-line PASS blocks and mid-line PASS tokens both count). **How to apply:** tally with `grep -o -w PASS log | wc -l`; never diagnose a "lost court" from `^PASS` arithmetic alone — diff the PASS ledger line-by-line instead.
+- **Never sub-split inside an already-lazy chunk that node courts render synchronously.** Making TravelersChart lazy inside the lazy Book broke the boundary court (node renders Book sync with react-test-renderer — a nested `lazy` suspends with no DOM event loop to resolve it). **How to apply:** a split surface is one whole chunk; components it renders ride within it unless every court that renders them is async-aware.

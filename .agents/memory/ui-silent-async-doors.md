@@ -7,3 +7,5 @@ The rule: every player-facing async handler that gates a view mount (open-the-bo
 **Why:** a storybook open awaited journal + media rows + N FileReaders with no catch anywhere; one transient rejection meant the seal was pressed and nothing happened, forever — caught only as a 120s court timeout, at the price of a proving iteration. Silent fallbacks and silent falls are both banned: the door speaks or the door opens.
 
 **How to apply:** grep async onClick/open handlers for uncaught awaits that precede the view-mount state set; wrap in catch → status line naming the fall; tolerate single bad rows only where the downstream renderer lawfully handles absence.
+
+- **React error boundaries swallow window-level listeners.** A fall caught by `componentDidCatch` never reaches `window`'s `error`/`unhandledrejection` hooks — if a device errata/telemetry ring rides those listeners, the boundary must feed the ring by hand or boundary-caught falls vanish from the ledger.

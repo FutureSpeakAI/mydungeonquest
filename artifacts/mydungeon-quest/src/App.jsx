@@ -9,6 +9,7 @@ import { anchoredWindow } from './lib/historyWindow.js';
 import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
 import { useGallery } from './components/gallery.jsx';
+import { RoadBoundary } from './components/roadBoundary.jsx';
 import { composeAppearance, composeSignature } from './lib/atelier.js';
 import { tableOf } from 'fatescript/table';
 import { buildChronicleRequest, claimChapterClose, validateChroniclePassage } from 'fatescript/chronicler';
@@ -1148,7 +1149,15 @@ export default function App() {
     return campaign;
   };
 
+  // THE FORGE LATCH (the architect's round) — one Begin, one road. The ref
+  // refuses the second tap in the same tick (state is too slow to bar it),
+  // and the state stills the forge button while the road is being walked.
+  const forgingRef = useRef(false);
+  const [forging, setForging] = useState(false);
   const beginCampaign = async (heroInput) => {
+    if (forgingRef.current) return;
+    forgingRef.current = true; setForging(true);
+    try { // the whole begin road sits under one catch (the silent-door law)
     primeNarration(); // the Begin tap blesses the throat before Chapter I speaks
     const id = crypto.randomUUID();
     // the story-smith's seal arrives with the mint itself (lean door) —
@@ -1188,7 +1197,7 @@ export default function App() {
       turnNumber: 0, turnCount: 0, headHash: null, signatureStatus: 'pending', completed: false, readOnly: false, keyArtHash: null, heroBustHash: null,
       mediaTier: settings.mediaTier, tempo: 'turning', spend: { images: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };
-    (await import('./components/Forge.jsx')).clearForgeDrafts(); // the chronicle has begun; the sitting's draft burns
+    import('./components/Forge.jsx').then((m) => m.clearForgeDrafts()).catch(() => {}); // the chronicle has begun; the sitting's draft burns — best-effort by design: a fallen chunk leaves a stale draft at worst, never a broken begin
     await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
     // THE FIRST WORD (Task 54C §1): the pour is dispatched first; the
     // genesis easel kicks the moment the request is on the wire and takes
@@ -1214,6 +1223,14 @@ export default function App() {
     } finally {
       setRite((r) => riteWalk(r, 'open'));
       setTimeout(() => setRite((r) => (r && r.stage === 'open' ? null : r)), 1600); // the rite bows out after its word — a stale timer never blows out a successor rite mid-walk
+    }
+    } catch (error) {
+      // THE SILENT-DOOR LAW — a road that falls at the forge (a chunk that
+      // never arrived, a vault that refused) speaks at the table instead of
+      // wedging the Begin tap forever.
+      setStatus(`✦ The chronicle could not begin: ${error?.message || 'the road fell'}`);
+    } finally {
+      forgingRef.current = false; setForging(false);
     }
   };
 
@@ -1338,15 +1355,19 @@ export default function App() {
     // remains the one door that decides; nothing here re-judges the gate.
     let alive = true;
     (async () => {
-      const { isProving, seedProvingCampaign } = await import('./lib/proving.js');
-      if (!alive || !isProving()) return;
-      window.__mdqSeed = async (fixture) => {
-        const campaign = await seedProvingCampaign(fixture);
-        await refreshShelf();
-        setCurrent(campaign);
-        setFlow('table');
-        return campaign.id;
-      };
+      try {
+        const { isProving, seedProvingCampaign } = await import('./lib/proving.js');
+        if (!alive || !isProving()) return;
+        window.__mdqSeed = async (fixture) => {
+          const campaign = await seedProvingCampaign(fixture);
+          await refreshShelf();
+          setCurrent(campaign);
+          setFlow('table');
+          return campaign.id;
+        };
+      } catch (error) {
+        console.error('the proving road fell before the hook could hang', error); // the dev-only door speaks to the console, never the table
+      }
     })();
     return () => { alive = false; delete window.__mdqSeed; };
   }, [refreshShelf]);
@@ -1437,20 +1458,25 @@ export default function App() {
   const pressSeal = async () => {
     if (!current || current.sealedAt || current.readOnly) return;
     playUiSfx(current, 'seal');
-    const journal = await campaignJournal(current.id);
-    // THE SAGA LAW: the wax writes the legacy packet first — the volume
-    // closes onto the record — and the 'sealing' block stays the final
-    // signature over the whole chronicle, packet included.
-    const { sealLegacy } = await import('./lib/saga.js'); // the legacy fold is cut at sealing time (lean door)
-    await sealLegacy(current, { seal });
-    await seal(current.id, 'sealing', {
-      turns: journal.filter((r) => r.type === 'turn').length,
-      rolls: journal.filter((r) => r.type === 'resolution' && r.payload && r.payload.total != null).length,
-      completed_at: Date.now()
-    });
-    const sealedRow = await db.campaigns.get(current.id);
-    const next = { ...current, sealedAt: Date.now(), headHash: sealedRow.headHash, turnCount: sealedRow.turnCount, signatureStatus: sealedRow.signatureStatus };
-    await saveCampaign(next); setCurrent(next); await refreshShelf();
+    try {
+      const journal = await campaignJournal(current.id);
+      // THE SAGA LAW: the wax writes the legacy packet first — the volume
+      // closes onto the record — and the 'sealing' block stays the final
+      // signature over the whole chronicle, packet included.
+      const { sealLegacy } = await import('./lib/saga.js'); // the legacy fold is cut at sealing time (lean door)
+      await sealLegacy(current, { seal });
+      await seal(current.id, 'sealing', {
+        turns: journal.filter((r) => r.type === 'turn').length,
+        rolls: journal.filter((r) => r.type === 'resolution' && r.payload && r.payload.total != null).length,
+        completed_at: Date.now()
+      });
+      const sealedRow = await db.campaigns.get(current.id);
+      const next = { ...current, sealedAt: Date.now(), headHash: sealedRow.headHash, turnCount: sealedRow.turnCount, signatureStatus: sealedRow.signatureStatus };
+      await saveCampaign(next); setCurrent(next); await refreshShelf();
+    } catch (error) {
+      // the silent-door law: a fall at the press speaks and leaves the wax liftable
+      setStatus(`✦ The seal would not press: ${error?.message || 'the road fell'}`);
+    }
   };
 
   // THE ROAD ON (Saga Law) — a sealed tale hands its packet to the next
@@ -1470,18 +1496,26 @@ export default function App() {
   // the Tenor and anchor laws apply to the heir untouched.
   const beginHeir = async (heroInput) => {
     if (!current || current.readOnly) return;
-    primeNarration(); // the heir's Begin tap blesses the throat like any genesis
-    const fallen = current.hero;
-    const reason = fallen?.dead ? 'fell' : 'retired';
-    const heir = forgeHeroSheet(heroInput);
-    const turn = current.turnNumber || 0;
-    const { foldSuccession } = await import('fatescript/saga'); // the succession law is cut when an heir stands (lean door)
-    const codex = foldSuccession(current.codex, { fallen: { name: fallen.name, className: fallen.className, voiceId: fallen.voiceId ?? null }, heir: { name: heir.name }, turn, reason });
-    await seal(current.id, 'succession', { fallen: { name: fallen.name, className: fallen.className, level: fallen.level ?? null }, heir: { name: heir.name, className: heir.className }, turn, reason });
-    const next = { ...current, hero: heir, codex, updatedAt: Date.now() };
-    await saveCampaign(next); setCurrent(next); setFlow('table');
-    (await import('./components/Forge.jsx')).clearForgeDrafts(); // the heir stood from the same forge; the sitting's draft burns
-    setStatus(`✦ ${heir.name} rises — the world holds, and the debts stand.`);
+    if (forgingRef.current) return; // the forge latch bars the heir's double tap too
+    forgingRef.current = true; setForging(true);
+    try {
+      primeNarration(); // the heir's Begin tap blesses the throat like any genesis
+      const fallen = current.hero;
+      const reason = fallen?.dead ? 'fell' : 'retired';
+      const heir = forgeHeroSheet(heroInput);
+      const turn = current.turnNumber || 0;
+      const { foldSuccession } = await import('fatescript/saga'); // the succession law is cut when an heir stands (lean door)
+      const codex = foldSuccession(current.codex, { fallen: { name: fallen.name, className: fallen.className, voiceId: fallen.voiceId ?? null }, heir: { name: heir.name }, turn, reason });
+      await seal(current.id, 'succession', { fallen: { name: fallen.name, className: fallen.className, level: fallen.level ?? null }, heir: { name: heir.name, className: heir.className }, turn, reason });
+      const next = { ...current, hero: heir, codex, updatedAt: Date.now() };
+      await saveCampaign(next); setCurrent(next); setFlow('table');
+      import('./components/Forge.jsx').then((m) => m.clearForgeDrafts()).catch(() => {}); // the heir stood from the same forge; the sitting's draft burns — best-effort by design
+      setStatus(`✦ ${heir.name} rises — the world holds, and the debts stand.`);
+    } catch (error) {
+      setStatus(`✦ The heir could not stand: ${error?.message || 'the road fell'}`);
+    } finally {
+      forgingRef.current = false; setForging(false);
+    }
   };
 
   const openNext = async (years, { smith = false } = {}) => {
@@ -1526,6 +1560,9 @@ export default function App() {
         setRite((r) => riteWalk(r, 'open'));
         setTimeout(() => setRite((r) => (r && r.stage === 'open' ? null : r)), 1600); // the rite bows out after its word — a stale timer never blows out a successor rite mid-walk
       }
+    } catch (error) {
+      // the silent-door law: a fall anywhere on the volume road speaks
+      setStatus(`✦ The road broke at the volume door: ${error?.message || 'the road fell'}`);
     } finally {
       openingVolumeRef.current = false;
     }
@@ -1602,9 +1639,9 @@ export default function App() {
     <button className="secondary-button" onClick={() => setPourOffer(null)}>Let it rest</button>
   </div> : null;
 
-  if (flow === 'world') return <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} /></Suspense>;
-  if (flow === 'hero') return <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><HeroForge world={worldDraft} mediaTier={settings.mediaTier} onBack={() => setFlow('world')} onBegin={beginCampaign} /></Suspense>;
-  if (flow === 'heir') return <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><HeroForge world={{ title: current?.title || 'The world', covenant: current?.covenant || '', tone: current?.tone || '' }} mediaTier={settings.mediaTier} onBack={() => setFlow('table')} onBegin={beginHeir} /></Suspense>;
+  if (flow === 'world') return <RoadBoundary road="the world forge"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><WorldForge mediaTier={settings.mediaTier} onBack={() => setFlow('title')} onContinue={(world) => { setWorldDraft(world); setFlow('hero'); }} /></Suspense></RoadBoundary>;
+  if (flow === 'hero') return <RoadBoundary road="the hero forge"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><HeroForge world={worldDraft} mediaTier={settings.mediaTier} beginBusy={forging} onBack={() => setFlow('world')} onBegin={beginCampaign} /></Suspense></RoadBoundary>;
+  if (flow === 'heir') return <RoadBoundary road="the heir's forge"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><HeroForge world={{ title: current?.title || 'The world', covenant: current?.covenant || '', tone: current?.tone || '' }} mediaTier={settings.mediaTier} beginBusy={forging} onBack={() => setFlow('table')} onBegin={beginHeir} /></Suspense></RoadBoundary>;
   if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={stillness} mediaTier={settings.mediaTier} onNew={() => setFlow('world')} onOpen={async (campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } campaign = await reconcileLegacyPurse(campaign); /* the era door's one write (§IV.5) — before the table seats, so no turn can race it */ setCurrent(campaign); setFlow('table'); greetTale(campaign); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} onDemoDraw={drawDemoTale} status={status} /></>;
   if (!current) return null;
 
@@ -1690,10 +1727,10 @@ export default function App() {
         re-consult of the seen ledger, and no fresh close timer. Type differs
         across any chained pair, so the key always turns. */}
     {cinematic && <Cinematic key={`${cinematic.cinematic?.type}:${cinematic.cinematic?.title}:${cinematic.beatIndex ?? 'b'}:${cinematic.replay ? 'replay' : 'live'}`} cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={stillness} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} replay={Boolean(cinematic.replay)} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
-    {overlay === 'sheet' && <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} /></Suspense>}
-    {overlay === 'codex' && <Suspense fallback={<div className="lean-veil">The binder threads the folios…</div>}><Book campaign={current} nav={bookNav} onNav={(part) => setBookNav((held) => ({ ...held, ...part }))} recap={recap && recap.campaignId === current.id ? recap : null} reduceMotion={stillness} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Book replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} /></Suspense>}
-    {overlay === 'settings' && <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onTempo={persistTempo} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense>}
-    {overlay === 'storybook' && <Suspense fallback={<div className="lean-veil">The binder threads the folios…</div>}><Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} /></Suspense>}
+    {overlay === 'sheet' && <RoadBoundary road="the hero's sheet"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} /></Suspense></RoadBoundary>}
+    {overlay === 'codex' && <RoadBoundary road="the book"><Suspense fallback={<div className="lean-veil">The binder threads the folios…</div>}><Book campaign={current} nav={bookNav} onNav={(part) => setBookNav((held) => ({ ...held, ...part }))} recap={recap && recap.campaignId === current.id ? recap : null} reduceMotion={stillness} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Book replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} /></Suspense></RoadBoundary>}
+    {overlay === 'settings' && <RoadBoundary road="the care door"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onTempo={persistTempo} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense></RoadBoundary>}
+    {overlay === 'storybook' && <RoadBoundary road="the bound chronicle"><Suspense fallback={<div className="lean-veil">The binder threads the folios…</div>}><Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} /></Suspense></RoadBoundary>}
     {overlay === 'level' && <LevelRitual hero={current.hero} onAccept={async (picks) => {
       // THE PICKING SEAL (XVIII, Article IV): the surface was the door;
       // the fold is a client-applied spell_learn — the hero's list grows,
@@ -1708,7 +1745,7 @@ export default function App() {
       setOverlay(null);
     }} />}
     {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement — farewells, consequences, the road home. Then the wax presses, and the tale is bound.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal the Tale</button></div></div>}
-    {overlay === 'sealing' && <Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense>}
+    {overlay === 'sealing' && <RoadBoundary road="the sealing ceremony"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense></RoadBoundary>}
     {current.hero.hp <= 0 && !current.hero.stableAtZero && <Epitaph campaign={current} onHeir={current.readOnly ? null : () => setFlow('heir')} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} onFaceTheDark={async()=>{const hero={...current.hero,doomChosen:true};const next={...current,hero};await seal(current.id,'resolution',{type:'doom_declined'});await saveCampaign(next);setCurrent(next);}} onDeathSave={async()=>{const saves=current.hero.deathSaves||{successes:0,failures:0};const rr={id:`doom-hero-${saves.successes+saves.failures+1}`,label:'Death save',kind:'death_save',die:'d20',ability:null,skill:null,proficient:false,dc:10,advantage:'normal',extra_mod:0,action_id:null,actor_id:'hero',target_id:null};const result=heroRoll(current.hero,rr);setDiceResult(result);playUiSfx(current,'die');const folded=foldDeathSave(saves,result.outcome);const hero={...current.hero,deathSaves:folded.verdict==='stable'?{successes:0,failures:0}:folded.deathSaves,...(folded.verdict==='dead'?{dead:true}:{}),...(folded.verdict==='stable'?{stableAtZero:true}:{})};await seal(current.id,'resolution',{...result,deathSaves:folded.deathSaves,verdict:folded.verdict});const next={...current,hero};await saveCampaign(next);setCurrent(next);}} />}
   </div>;
 }

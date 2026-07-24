@@ -46,3 +46,4 @@
 - [MyDungeon court door manners](mydungeon-court-doors.md) — continued elders open straight to keepsakes; unstarted tales hang no seal door (stage completed); forge is two-step; pick rows by createdAt.
 - [Settings-spread piggyback](settings-spread-piggyback.md) — per-record fields never ride a shared settings spread through a generic mirror; give them their own door and gate the absence.
 - [MyDungeon lean door](mydungeon-lean-door.md) — pin the SYNC CLOSURE sum, never the entry file (anti-laundering); measure the floor before seating a pin; tally is \bPASS\b anywhere, not ^PASS lines.
+- [Waypost checkpoint law](mydungeon-waypost-law.md) — a shared fold walk inherits every caller's rot; guard the ONE seat direct+fold share; field-rot ≠ row-rot; curtain fixtures can't wear the word.

@@ -95,25 +95,47 @@ export function measureTells(text = '') {
   return { words, counts, per1k, samples };
 }
 
+// THE COURT'S OWN SEATS (Directive XX, Law VI — the Waypost Law): the
+// court is split into a state, a per-entry step, and a finish, so a
+// checkpoint may carry the state (the corpus itself — a regex may match
+// across an entry seam, so nothing shorter is honest) and resume it —
+// ONE body of law. No behavior moved.
+export function tellsState() {
+  return { corpus: '', offenders: [] };
+}
+
+export function foldTellEntry(state, entry, index) {
+  // Witnesses are born fail-closed: a row is a row only if it is a plain
+  // object — null, strings, numbers, and stray arrays prove nothing and
+  // fold nothing, here at the ONE seat the composed court and the waypost
+  // walk both stand on.
+  if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return;
+  if (entry?.redacted) return;
+  const turn = Number.isInteger(entry.turn) ? entry.turn : index;
+  // Every list lives behind Array.isArray — a truthy non-list here is rot
+  // wearing a list's clothes, and it proves nothing.
+  const blocks = Array.isArray(entry?.dm?.narration_blocks) ? entry.dm.narration_blocks : [];
+  const text = blocks.map((block) => clean(block?.text)).join(' ');
+  if (!text) return;
+  state.corpus += ` ${text}`;
+  const local = measureTells(text);
+  for (const [key, count] of Object.entries(local.counts)) {
+    if (count > 0) state.offenders.push({ turn, family: key, sample: local.samples[key][0] || '' });
+  }
+}
+
+export function finishTells(state) {
+  const measure = measureTells(state.corpus);
+  const flagged = Object.keys(TELL_FAMILIES).filter((key) => measure.counts[key] >= MIN_HITS && measure.per1k[key] >= TELL_THRESHOLDS[key]);
+  return { ...measure, flagged, offenders: state.offenders };
+}
+
 // The court in session: fold the sealed narration (struck rows stay
 // struck), convict the families that run hot, cite the turns.
 export function tellReport(entries = []) {
-  let corpus = '';
-  const offenders = [];
-  entries.forEach((entry, index) => {
-    if (entry?.redacted) return;
-    const turn = Number.isInteger(entry.turn) ? entry.turn : index;
-    const text = (entry?.dm?.narration_blocks || []).map((block) => clean(block?.text)).join(' ');
-    if (!text) return;
-    corpus += ` ${text}`;
-    const local = measureTells(text);
-    for (const [key, count] of Object.entries(local.counts)) {
-      if (count > 0) offenders.push({ turn, family: key, sample: local.samples[key][0] || '' });
-    }
-  });
-  const measure = measureTells(corpus);
-  const flagged = Object.keys(TELL_FAMILIES).filter((key) => measure.counts[key] >= MIN_HITS && measure.per1k[key] >= TELL_THRESHOLDS[key]);
-  return { ...measure, flagged, offenders };
+  const state = tellsState();
+  entries.forEach((entry, index) => foldTellEntry(state, entry, index));
+  return finishTells(state);
 }
 
 // The counter-directives — one line per hot family, ordered by how far

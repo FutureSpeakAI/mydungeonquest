@@ -66,7 +66,7 @@ const CAMPAIGN = {
 //    finding, and the engine's court is the only court.
 {
   const app = read('src/App.jsx');
-  assert.ok(app.includes('tellCourt(base)'), 'the sealed record is measured at the table');
+  assert.ok(app.includes('tellCourtAt(base)'), 'the sealed record is measured at the table — through the waypost door, one road for app and harness');
   assert.ok(app.includes('...hand.directives'), 'the counter-directives ride the pack, additively');
   const book = read('src/components/Book.jsx'); // Task 58C: the tell court's face moved whole into the Book.
   assert.ok(book.includes('The human hand — the tell court'), 'the finding is visible to the patron');

@@ -1,4 +1,4 @@
-import { rowsOf } from './rows.js';
+import { listOf, rowsOf } from './rows.js';
 // ------------------------------------------------------------
 // THE CHARACTER CARD — one living card per soul, the hero included.
 //
@@ -46,37 +46,43 @@ function addTie(card, to, type, why, turn) {
   card.ties.push({ to, type, why, turn });
 }
 
-// The reducer. `hero` seeds the player's own card; `entries` is the turn log
-// in order — each { turn?, player?, dm? } where dm is a VALIDATED dm_turn.
-export function buildCards({ hero = null, entries = [] } = {}) {
-  const cards = {};
-  const order = [];
-  const ensure = (name, turn) => {
-    const key = canon(name);
-    // Names must be strings (the witness law): a nameless or rotten name
-    // births a GHOST card — writable, never registered, never shown — so
-    // junk proves nothing and no caller ever crashes on a refused birth.
-    if (!key || typeof name !== 'string') return blankCard('', turn);
-    if (!cards[key]) { cards[key] = blankCard(String(name).trim(), turn); order.push(key); }
-    return cards[key];
-  };
+// THE FOLD'S OWN SEATS (Directive XX, Law VI — the Waypost Law): the
+// reducer is split into a state, a per-entry step, and a finish, so a
+// checkpoint may carry the state and resume it — ONE body of law, walked
+// whole by buildCards and in stretches by the waypost. No behavior moved.
+function ensureCard(state, name, turn) {
+  const key = canon(name);
+  // Names must be strings (the witness law): a nameless or rotten name
+  // births a GHOST card — writable, never registered, never shown — so
+  // junk proves nothing and no caller ever crashes on a refused birth.
+  if (!key || typeof name !== 'string') return blankCard('', turn);
+  if (!state.cards[key]) { state.cards[key] = blankCard(String(name).trim(), turn); state.order.push(key); }
+  return state.cards[key];
+}
 
+export function cardsState(hero = null) {
+  const state = { cards: {}, order: [], turnCursor: -1 };
   if (hero?.name) {
-    const heroCard = ensure(hero.name, 0);
+    const heroCard = ensureCard(state, hero.name, 0);
     heroCard.identity.role = `${hero.ancestry || ''} ${hero.className || hero.class || ''}`.trim() || 'the hero';
     heroCard.identity.canon = { visual: gloss(`${hero.bearing || ''} ${hero.mark ? `Mark: ${hero.mark}.` : ''}`, 360), voice: gloss(hero.pronouns || '', 60) };
     heroCard.identity.gender = hero.presentation || null;
     heroCard.identity.hero = true;
   }
+  return state;
+}
 
-  let turnCursor = -1;
-  for (const entry of entries) {
-    const turn = Number.isInteger(entry.turn) ? entry.turn : turnCursor + 1;
-    turnCursor = turn;
+export function foldCardEntry(state, entry, hero = null) {
+  const cards = state.cards;
+  const order = state.order;
+  const ensure = (name, turn) => ensureCard(state, name, turn);
+  {
+    const turn = Number.isInteger(entry.turn) ? entry.turn : state.turnCursor + 1;
+    state.turnCursor = turn;
     const dm = entry.dm || {};
     const story = dm.story || {};
 
-    for (const soul of story.cast_add || []) {
+    for (const soul of listOf(story.cast_add)) {
       const key = canon(soul.name);
       if (cards[key]) continue; // identity is immutable — a second add changes nothing
       const card = ensure(soul.name, turn);
@@ -103,7 +109,7 @@ export function buildCards({ hero = null, entries = [] } = {}) {
       }
     }
 
-    for (const patch of story.cast_update || []) {
+    for (const patch of listOf(story.cast_update)) {
       const key = canon(patch.name);
       const card = cards[key];
       if (!card) continue;
@@ -126,7 +132,7 @@ export function buildCards({ hero = null, entries = [] } = {}) {
     }
 
     const seenThisTurn = new Set();
-    for (const block of dm.narration_blocks || []) {
+    for (const block of listOf(dm.narration_blocks)) {
       if (!block?.speaker) continue;
       const key = matchSpeaker(block.speaker, cards);
       if (!key || !cards[key]) continue;
@@ -151,8 +157,21 @@ export function buildCards({ hero = null, entries = [] } = {}) {
       addTie(two, one.name, 'met', `crossed paths ${count} time${count > 1 ? 's' : ''}`, turn);
     }
   }
+}
 
-  return { cards, order: order.map((key) => cards[key].name) };
+// The reducer. `hero` seeds the player's own card; `entries` is the turn log
+// in order — each { turn?, player?, dm? } where dm is a VALIDATED dm_turn.
+export function buildCards({ hero = null, entries = [] } = {}) {
+  const state = cardsState(hero);
+  for (const entry of entries) foldCardEntry(state, entry, hero);
+  return finishCards(state);
+}
+
+// The finish — the fold's public face, byte-identical however the state
+// was walked: whole from the first row, or resumed from a waypost's
+// carried stretch.
+export function finishCards(state) {
+  return { cards: state.cards, order: state.order.map((key) => state.cards[key].name) };
 }
 
 // Convenience for the client: a campaign's own log is its entry list.

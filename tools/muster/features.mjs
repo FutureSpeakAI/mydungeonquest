@@ -319,6 +319,14 @@ export const FEATURES = [
     wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'The page is being cut' }, { src: `${GAME}/src/patron/doorFrame.jsx`, needle: "./door.jsx" }]
   },
 
+  {
+    id: 'waypost', category: 4, tier: 'wired',
+    name: 'The Waypost Law — replay is truth; the shortcut must prove itself',
+    detail: 'Every twenty-fifth sealed turn, both turn roads (the live table and the proving walk, ONE helper) fold the covered record\u2019s pure cursors — cards, presence, world clock and pack, tells, standings — and seal them as a waypost row in the journal chain, signed like any record. Readers resume from the NEWEST post that proves itself (digest, state hash) and stands against the living record (last-row pin, hero canon, struck-set equality), byte-identical to the full walk or silently refused — the full walk stands in; strikes fall back to the elder post, then to the full walk. Wayposts never render and never touch the played record; elder tales read untouched. Directive XX, Law VI, Phase 5; gate `waypost` (engine twin + table gate).',
+    contract: [{ file: `${GAME}/evals/waypost.test.mjs` }, { src: `${GAME}/package.json`, needle: 'waypost.test.mjs' }, { file: `${GAME}/src/lib/waypost.js` }],
+    wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'sealWaypostIfDue' }, { src: `${GAME}/src/lib/proving.js`, needle: 'sealWaypostIfDue' }, { src: `${GAME}/src/components/Book.jsx`, needle: 'cardsAt' }]
+  },
+
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {
     id: 'saga', category: 5, tier: 'groundwork',

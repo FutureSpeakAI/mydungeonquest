@@ -45,6 +45,43 @@ export const unburnSpine = (id) => { burnedSpines.delete(id); };
 // lane finish ahead of the vault's own burning. Refusal unstrikes it.
 export const markPyre = (id) => { burnedSpines.add(id); };
 
+// THE SNAPSHOT DOOR (Directive XX, Law VI) — the waypost seat is runtime
+// truth, proven at the hydrate court or built at the seal seat, NEVER
+// persisted: the table's own mutate road strips it on every write (save,
+// import, fork, restore, update alike), so a movable snapshot can never
+// smuggle an unproven checkpoint past the courts while wearing real pins.
+// (A DBCore door, not hooks: hook-returned `undefined` survives structured
+// clone as an own property — the key must never reach the store at all.)
+db.use({
+  stack: 'dbcore',
+  name: 'waypostSnapshotDoor',
+  create(down) {
+    return {
+      ...down,
+      table(name) {
+        const table = down.table(name);
+        if (name !== 'campaigns') return table;
+        return {
+          ...table,
+          mutate(req) {
+            if ((req.type === 'add' || req.type === 'put') && Array.isArray(req.values)) {
+              const values = req.values.map((value) => {
+                if (value && typeof value === 'object' && 'waypost' in value) {
+                  const { waypost, ...rest } = value;
+                  return rest;
+                }
+                return value;
+              });
+              return table.mutate({ ...req, values });
+            }
+            return table.mutate(req);
+          }
+        };
+      }
+    };
+  }
+});
+
 export async function saveCampaign(campaign) {
   // A forked spine redirects late writers: a stale in-memory campaign can
   // never quietly recreate a spine the vault's fork law deleted.

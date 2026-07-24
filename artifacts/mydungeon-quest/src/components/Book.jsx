@@ -3,9 +3,9 @@ import { Film, ScrollText } from 'lucide-react';
 import { db } from '../lib/db.js';
 import { ACT_NAMES, romanNumeral, standingsOf } from 'fatescript/story';
 import { rowsOf } from 'fatescript/rows';
-import { cardsForCampaign } from 'fatescript/cards';
+import { cardsAt, tellCourtAt } from '../lib/waypost.js';
 import { roomForTurn, SCRIBES } from '../lib/scriptorium.js';
-import { tellCourt, TELL_FAMILIES } from '../lib/tells.js';
+import { TELL_FAMILIES } from '../lib/tells.js';
 import { voiceLineOf, wordsLine, tieLine } from 'fatescript/wikiText';
 import { clockWords } from '../lib/clockAtTable.js';
 import { chapterCard, downloadCard } from '../lib/shareCard.js';
@@ -107,7 +107,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
   const gallery = useGallery(campaign);
   // THE LIVING WIKI: cards are derived lawfully from the log; each soul is a
   // page, each tie a backlink, each chronicle line a citation into the tale.
-  const wiki = useMemo(() => { try { return cardsForCampaign(campaign).cards; } catch { return {}; } }, [campaign]);
+  const wiki = useMemo(() => { try { return cardsAt(campaign).cards; } catch { return {}; } }, [campaign]);
   // THE UNMET LAW (XVII, Article VI) — the shelf reads the record's
   // introduction ledger: presence in canon is not presence in the tale
   // until the record says so. The unmet render as ABSENCE — no card, no
@@ -127,7 +127,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
   const roomPlan = useMemo(() => roomForTurn(campaign), [campaign]);
   // THE HUMAN HAND made visible: only when a family runs hot does the
   // court speak on this page — the finding, never a rewrite.
-  const tells = useMemo(() => { try { return tellCourt(campaign); } catch { return null; } }, [campaign]);
+  const tells = useMemo(() => { try { return tellCourtAt(campaign); } catch { return null; } }, [campaign]);
   // THE COMMONS — a walked chapter's public face: the act's key art walks
   // the strict door as a data plate (or the card goes plateless, lawfully),
   // the engine composes and escapes, and the patron receives a file named

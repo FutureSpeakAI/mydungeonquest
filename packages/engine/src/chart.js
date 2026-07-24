@@ -47,9 +47,12 @@ export function dayLabel(days) {
  * crossings in sealed order with the calendar fold's day cost, and a
  * label speaking each sealed cost in crossing order, identical costs
  * spoken once. Roads exist only where travel does. */
-export function travelsOf(campaign) {
+export function travelsOf(campaign, { travel } = {}) {
   const logs = Array.isArray(campaign?.logs) ? campaign.logs : [];
-  const { ground, stands } = travelRecord(campaign);
+  // THE WAYPOST SEAT (Directive XX, Law VI): a caller holding a proven
+  // resumed travel record may hand it in whole; absent that, the replay
+  // walks as it always has. Same shape, same bytes, one seat either way.
+  const { ground, stands } = travel && typeof travel === 'object' && Array.isArray(travel.stands) ? travel : travelRecord(campaign);
   const route = [];
   const roads = new Map();
   for (const stand of stands) {
@@ -77,9 +80,9 @@ export function travelsOf(campaign) {
  * discovery citation, deterministic position, current mark), roads with
  * their day labels and resolved ends, and the played route in order.
  * Nothing stands beyond the known regions. */
-export function chartOf(campaign) {
+export function chartOf(campaign, { travel } = {}) {
   const atlas = buildAtlas({ regions: chartRegions(campaign) });
-  const travels = travelsOf(campaign);
+  const travels = travelsOf(campaign, { travel });
   const medallions = placesOf(campaign).map((place) => {
     const position = positionOf(atlas, place.name);
     return {

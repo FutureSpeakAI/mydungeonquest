@@ -37,7 +37,7 @@ const ACT_TINTS = { 1: '#9f7438', 2: '#7d3b2e', 3: '#5b4a72' };
 const dateWord = (ms) => (Number.isFinite(ms) && ms > 0 ? new Date(ms).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : null);
 
 // The cards: first/last sealed words per soul, derived lawfully from the log.
-import { cardsForCampaign } from 'fatescript/cards';
+import { cardsAt } from './waypost.js';
 import { wordsLine } from 'fatescript/wikiText';
 import { introducedCast } from './unmet.js';
 
@@ -239,7 +239,7 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
   const heroFace = bustFor(heroName);
   const heroPlate = `<article class="plate hero-lead">${heroFace ? `<img src="${esc(heroFace)}" alt="${esc(heroName)}">` : `<div class="procedural-portrait large">${esc(campaign.hero?.sigil || initials(heroName))}</div>`}<h3>${esc(heroName)}</h3><p class="role">the hero</p><p class="fate">The soul whose legend this chronicle records.</p></article>`;
   let soulCards = {};
-  try { soulCards = cardsForCampaign(campaign).cards; } catch { soulCards = {}; }
+  try { soulCards = cardsAt(campaign).cards; } catch { soulCards = {}; }
   const words = (name) => { const line = wordsLine(soulCards[String(name || '').trim().toLowerCase()]); return line ? `<p class="words">${esc(line)}</p>` : ''; };
   // THE UNMET LAW — the dramatis personae folds through the introduction
   // ledger like every other Book surface: canon without record is absence.

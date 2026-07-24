@@ -185,6 +185,23 @@ export function requestSeal(codex, turn) {
 // replays and old call sites simply record null. NOTE: this reducer must run
 // even when the DM sends story:null — the sealing countdown ticks on every
 // turn, not only on turns that carry updates.
+// The standing-shift arm — ONE seat (Directive XX, Law VI: the waypost's
+// standings lane folds shift rows through this same door, so the codex
+// ledger and a resumed ledger speak identical rows). Unlawful shifts are
+// refused BY NAME, exactly as the codex court refuses them.
+export function standingShiftRows(updates = {}, meta = {}) {
+  const STANDING_STEPS = [-2, -1, 1, 2];
+  const rows = [];
+  const notes = [];
+  for (const shift of (Array.isArray(updates.standing_shift) ? updates.standing_shift : []).slice(0, 2)) {
+    const faction = clean(shift?.faction, 80);
+    const reason = clean(shift?.reason, 160);
+    if (!faction || !reason || !STANDING_STEPS.includes(shift?.delta)) { notes.push(`Unlawful standing shift blocked: ${faction || 'unnamed'}.`); continue; }
+    rows.push({ faction, delta: shift.delta, reason, turn: Number.isInteger(meta.turn) ? meta.turn : null });
+  }
+  return { rows, notes };
+}
+
 export function applyStoryUpdates(codex, updates, meta = {}) {
   const next = structuredClone(codex);
   updates = updates || {};
@@ -377,12 +394,10 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     clock.resolved_turn = Number.isInteger(meta.turn) ? meta.turn : null;
   }
   next.standings = next.standings ?? [];
-  const STANDING_STEPS = [-2, -1, 1, 2];
-  for (const shift of (updates.standing_shift || []).slice(0, 2)) {
-    const faction = clean(shift?.faction, 80);
-    const reason = clean(shift?.reason, 160);
-    if (!faction || !reason || !STANDING_STEPS.includes(shift?.delta)) { next.notes.push(`Unlawful standing shift blocked: ${faction || 'unnamed'}.`); continue; }
-    next.standings.push({ faction, delta: shift.delta, reason, turn: Number.isInteger(meta.turn) ? meta.turn : null });
+  {
+    const shifted = standingShiftRows(updates, meta);
+    next.standings.push(...shifted.rows);
+    next.notes.push(...shifted.notes);
   }
   next.spineAmendments = next.spineAmendments ?? [];
   const amend = updates.spine_amend;

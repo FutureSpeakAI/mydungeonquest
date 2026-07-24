@@ -44,6 +44,19 @@ export function spanEntry(span, { turn = 0, cause = '' } = {}) {
   };
 }
 
+// The clock's shape from an hour count — ONE seat (Directive XX, Law VI:
+// the waypost resumes a carried hour sum through this same door, so the
+// whole walk and the resumed walk speak identical bytes).
+export function clockShape(hours, startHour = 8) {
+  const absolute = startHour + hours;
+  return {
+    totalHours: hours,
+    day: Math.floor(absolute / HOURS_PER_DAY) + 1,
+    hour: absolute % HOURS_PER_DAY,
+    years: hours / (DAYS_PER_YEAR * HOURS_PER_DAY)
+  };
+}
+
 // The fold. Reads dm.time_advance (the model's lawful clock moves) and
 // entry.clock_advance (the client's sealed spans). Same record, same
 // hour — every time.
@@ -53,13 +66,7 @@ export function worldClock(entries = [], { startHour = 8 } = {}) {
     hours += spanHours(entry?.dm?.time_advance || {});
     hours += spanHours(entry?.clock_advance || {});
   }
-  const absolute = startHour + hours;
-  return {
-    totalHours: hours,
-    day: Math.floor(absolute / HOURS_PER_DAY) + 1,
-    hour: absolute % HOURS_PER_DAY,
-    years: hours / (DAYS_PER_YEAR * HOURS_PER_DAY)
-  };
+  return clockShape(hours, startHour);
 }
 
 // The day's watches, for schedules, plates, and prose.
@@ -125,9 +132,12 @@ export function clockWords(logs = []) {
 // The clock as the pack carries it: small, spoken, and derived. The
 // prompt renders [STORY] verbatim, so the DM reads the same hour the
 // codex shows — one clock, two witnesses.
-export function packClock(logs = []) {
-  const clock = worldClock(logs);
+export function packOf(clock) {
   return { day: clock.day, watch: watchOf(clock.hour), line: clockLine(clock) };
+}
+
+export function packClock(logs = []) {
+  return packOf(worldClock(logs));
 }
 
 // Years the world has walked since a given turn was played — the

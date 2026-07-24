@@ -4391,3 +4391,84 @@ Re-proven whole: game check exit 0 keyless at exactly 158, word-FAIL
 zero, the closure reading 602 kB under the same 610 pin (the guards
 weigh two kilobytes), seventeen surfaces lazy, the engine untouched at
 fifty-nine.
+
+### TASK 65, PHASE 5 — THE WAYPOST LAW (2026-07-24)
+
+Experience Directive XX, Law VI — replay is truth; the waypost is a
+proven shortcut, never a second truth. A long tale re-walks its whole
+record on every open and every read; the waypost seals the walk's
+cursor state every twenty-five turns so the readers may resume — but
+only through proof, never through trust.
+
+The engine grew resumable seats without moving a byte of law: cards,
+presence, tells, and the clock each split into state / fold / finish
+(their composed walks byte-frozen — the whole suite stood at fifty-nine
+exactly as before the cut), the standings arm lifted whole from
+applyStoryUpdates as standingShiftRows, and the chart learned to accept
+an injected travel fold. On those seats stands src/waypost.js: ONE
+fold-step both walker and resumer share, foldCheckpoint sealing the
+five covered cursors with a digest over identity and a state hash over
+folds, checkpointStands holding the record court (rows within reach,
+the cover's LAST row pinned by id and recordHash, the hero's canon, and
+struck-set equality — the sealed cursor answers for covered bytes; the
+desk's chain answers for custody), checkpointProves holding the post's
+own hashes, and resumeFolds reviving fresh copies and folding only the
+tail at absolute indexes. Struck rows fold IN, exactly as the living
+codex never unwinds a shift.
+
+The table wears it as one small helper (src/lib/waypost.js): both turn
+roads — the live table after the tick's own seal, the proving walk in
+the same seat of its loop — raise posts through sealWaypostIfDue at
+stride twenty-five; hydrateWaypost seats the NEWEST post that proves
+AND stands at every door that opens a tale (one effect, every road);
+and the readers walk one road — foldsAt resumes or falls back whole,
+cardsAt, packClockAt, tellCourtAt, chartAt shadowing the directs they
+replaced byte for byte. The moved surfaces dragged their instruments:
+the App's pack clock and tell court, the Book's cards and tells, the
+Chart, and the storybook's souls all walk the waypost door now, and the
+gates re-aimed with them. Every disagreement is a silent refusal — a
+bent post, a foreign canon, a strike behind the cover — the post
+un-seats and the full walk stands in, no banner, no error; a strike
+behind the newest post falls back to the elder, a strike behind both
+restores the full walk. Wayposts never render: not the feed, not the
+book, not the podcast — they ride the journal and its exports because
+they belong to the chain, and the storybook fed the whole journal
+never speaks the word. Elder tales born before the law read untouched.
+The seal desk, the protocol, the writers' room, and the curtain: not
+one byte moved.
+
+Twin gates, both newest in their chains: the engine's waypost twin
+(stride and folds, cuts at rows 30/37/61 of 66 resumed byte-identical
+with struck rows carried, deterministic checkpoint bytes, tamper and
+canon refusals by their own hashes, rot proving nothing) and the
+table's waypost gate (both roads raising posts through the one helper,
+custody green with checkpoints aboard in journal and chronicle, every
+reader byte-identical with and without the post and against its
+direct, the resumed road GENUINELY engaged — a bent covered line
+splits the roads, proof the cursor answered — redaction falling to the
+elder and then to the full walk, a stale post refused by the record
+court, the curtain whole, the elder tale untouched).
+
+The architect's round convicted one true breach before it shipped: the
+seat itself persisted. saveCampaign carried campaign.waypost into the
+table, imports and forks put snapshots whole — and a snapshot is
+movable bytes: a forged checkpoint wearing real pins (rows, cover,
+canon, struck set) passes the sync record court by design, feeding the
+pack clock and the tell court unproven state while custody reads green
+— the signature-downgrade family in new clothes. The cure is ONE door:
+the campaigns table strips the seat on its own mutate road (a DBCore
+door — saveCampaign, imports, forks, restores, updates, all of it;
+hooks were tried first and refused: a hook-returned undefined survives
+structured clone as an own property, so the key must never reach the
+store at all),
+so the only roads onto a living campaign are the hydrate court (proves
+AND stands) and the seal seat (folds computed in hand, sealed to the
+chain). A forged-snapshot court now guards that door in the table's
+own gate.
+
+Re-proven whole: engine check exit 0 keyless at exactly sixty, game
+check exit 0 keyless at exactly 159 with word-FAIL zero (the lean door
+reading 609 kB under its 610 pin — the fail-closed doors the rot
+courts demanded ride the closure), G13 pinned 158 → 159, the
+shared shelf 131 → 132 with the engine fifty-nine → sixty, the muster
+carrying the waypost row with regressions zero.

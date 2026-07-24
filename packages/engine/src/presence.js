@@ -48,35 +48,47 @@ function resolveName(known, rawName) {
   return matches.length === 1 ? matches[0] : String(rawName).trim();
 }
 
-function replay(campaign) {
+// THE FOLD'S OWN SEATS (Directive XX, Law VI — the Waypost Law): the
+// replay is split into a state, a per-row step, and the walk, so a
+// checkpoint may carry the state and resume it — ONE body of law, walked
+// whole here and in stretches by the waypost. No behavior moved.
+export function presenceState(campaign) {
   const known = new Map(); // canon name -> sealed display name
   const heroName = typeof campaign?.hero?.name === 'string' ? campaign.hero.name.trim() : '';
   if (heroName) known.set(canon(heroName), heroName);
-  const regions = new Set(); // canon region names the record holds
-  const souls = new Map(); // sealed name -> { name, last, stood }
-  const party = new Map(); // canon name -> { name, index } cited to the joining row
-  let ground = null; // the standing scene's region, or null before any stands
-  const stands = []; // every lawful CHANGE of ground, in sealed order (Directive XIV)
-
-  // A sighting at an explicit ground — the leave pin's door. `turn` is the
-  // row's own turn number when the row carries one, else null; it is a
-  // SECOND clock and is never mixed with the row index.
-  const sightAt = (rawName, index, turn, at) => {
-    if (typeof rawName !== 'string') return; // a name that is not a string proves nothing
-    const resolved = resolveName(known, rawName);
-    if (!resolved) return;
-    let soul = souls.get(resolved);
-    if (!soul) { soul = { name: resolved, last: null, stood: new Map() }; souls.set(resolved, soul); }
-    soul.last = { ground: at, index, turn };
-    if (at !== null) soul.stood.set(canon(at), { ground: at, index });
+  return {
+    known,
+    heroName,
+    regions: new Set(), // canon region names the record holds
+    souls: new Map(), // sealed name -> { name, last, stood }
+    party: new Map(), // canon name -> { name, index } cited to the joining row
+    ground: null, // the standing scene's region, or null before any stands
+    stands: [] // every lawful CHANGE of ground, in sealed order (Directive XIV)
   };
+}
 
-  const logs = Array.isArray(campaign?.logs) ? campaign.logs : [];
-  logs.forEach((log, index) => {
+// A sighting at an explicit ground — the leave pin's door. `turn` is the
+// row's own turn number when the row carries one, else null; it is a
+// SECOND clock and is never mixed with the row index.
+function sightAtState(state, rawName, index, turn, at) {
+  if (typeof rawName !== 'string') return; // a name that is not a string proves nothing
+  const resolved = resolveName(state.known, rawName);
+  if (!resolved) return;
+  let soul = state.souls.get(resolved);
+  if (!soul) { soul = { name: resolved, last: null, stood: new Map() }; state.souls.set(resolved, soul); }
+  soul.last = { ground: at, index, turn };
+  if (at !== null) soul.stood.set(canon(at), { ground: at, index });
+}
+
+export function foldPresenceRow(state, log, index) {
+  const { known, regions, party, stands } = state;
+  const heroName = state.heroName;
+  const sightAt = (rawName, i, turn, at) => sightAtState(state, rawName, i, turn, at);
+  {
     if (log?.redacted) return;        // the redaction law outranks all of this
     if (log?.kind === 'tick') return; // offscreen rows are never sightings
     const turnStamp = Number.isInteger(log?.turn) ? log.turn : null;
-    const sight = (rawName) => sightAt(rawName, index, turnStamp, ground);
+    const sight = (rawName) => sightAt(rawName, index, turnStamp, state.ground);
     const story = (log?.dm?.story && typeof log.dm.story === 'object' && !Array.isArray(log.dm.story)) ? log.dm.story : {};
     // The world folds first, as the reducer folds it — a region added this
     // turn stands before the scene is set upon it.
@@ -89,15 +101,15 @@ function replay(campaign) {
     if (set && typeof set === 'object' && !Array.isArray(set)
       && typeof set.region === 'string' && regions.has(canon(set.region))) {
       const nextGround = set.region.trim();
-      const moved = canon(nextGround) !== canon(ground ?? '');
+      const moved = canon(nextGround) !== canon(state.ground ?? '');
       // THE TRAVEL RECORD (Directive XIV, the Chart Law) — a lawful CHANGE
       // of standing ground is the only travel the record knows; the chart
       // fold reads these stands and re-derives nothing. A restatement of
       // the standing ground records nothing here, exactly as it moves
       // nobody below. `from` is null at the first stand: an arrival from
       // nowhere is a beginning, never a road.
-      if (moved) stands.push({ from: ground, to: nextGround, index, turn: turnStamp });
-      ground = nextGround;
+      if (moved) stands.push({ from: state.ground, to: nextGround, index, turn: turnStamp });
+      state.ground = nextGround;
       // The party travels as one (VIII.4): a lawful CHANGE of ground
       // sights every standing member on the new ground, cited to the
       // travel row. A restatement moves nobody.
@@ -145,12 +157,18 @@ function replay(campaign) {
         party.delete(canon(resolved));
         const pinned = typeof leave.remains_at === 'string' && regions.has(canon(leave.remains_at))
           ? leave.remains_at.trim()
-          : ground;
+          : state.ground;
         sightAt(resolved, index, turnStamp, pinned);
       }
     }
-  });
-  return { souls, party, ground, stands };
+  }
+}
+
+function replay(campaign) {
+  const state = presenceState(campaign);
+  const logs = Array.isArray(campaign?.logs) ? campaign.logs : [];
+  logs.forEach((log, index) => foldPresenceRow(state, log, index));
+  return state;
 }
 
 /** THE TRAVEL RECORD (Directive XIV, the Chart Law) — the standing ground

@@ -4,7 +4,8 @@ import DiceOverlay from './components/DiceOverlay.jsx';
 import Cinematic from './components/Cinematic.jsx';
 import ChroniclePage from './components/ChroniclePage.jsx';
 import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components/Sequence.jsx';
-import { packClock, interludeRow, bandNotes } from './lib/clockAtTable.js';
+import { interludeRow, bandNotes } from './lib/clockAtTable.js';
+import { packClockAt, tellCourtAt, sealWaypostIfDue, hydrateWaypost } from './lib/waypost.js';
 import { anchoredWindow } from './lib/historyWindow.js';
 import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
@@ -47,7 +48,6 @@ import { RavenNotice } from './components/RavenNotice.jsx';
 import { buildBriefing } from 'fatescript/graph';
 import { roomForTurn } from './lib/scriptorium.js';
 import { pourPlan, pourInterval } from './lib/pour.js';
-import { tellCourt } from './lib/tells.js';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { recallScenes, rememberScene } from './lib/memory.js';
 import { Foundry } from './lib/cinema/foundry.js';
@@ -353,6 +353,26 @@ export default function App() {
       }
     } catch (error) { console.error('The ravens stayed on the wire:', error); }
   }, [refreshShelf]);
+  // THE WAYPOST AT THE DOOR (Directive XX, Law VI) — whatever road seated
+  // this tale (shelf, import, vault restore, a new volume), the newest
+  // journal waypost that proves itself and stands against the record is
+  // seated beside it, once per seating. Machinery only: a refusal seats
+  // null and the full walk stands, unspoken. Readers re-check standing on
+  // every read, so a strike landing mid-session un-seats it just as
+  // silently.
+  useEffect(() => {
+    const tale = current;
+    if (!tale?.id || 'waypost' in tale) return;
+    let alive = true;
+    (async () => {
+      let seated = null;
+      try {
+        seated = await hydrateWaypost(await campaignJournal(tale.id), tale);
+      } catch (error) { console.error('The waypost stayed dark at the door:', error); }
+      if (alive) setCurrent((prev) => (prev && prev.id === tale.id && !('waypost' in prev) ? { ...prev, waypost: seated } : prev));
+    })();
+    return () => { alive = false; };
+  }, [current]);
   // DM turn replays the very words the innkeeper refused.
   const retryRefusedPour = async (intent) => {
     try {
@@ -680,7 +700,7 @@ export default function App() {
       // THE CLOCK AT THE TABLE — Directive VI, Phase 1: the derived world
       // clock rides the [STORY] pack, so the DM reads the same hour the
       // codex head shows. One clock, two witnesses; derived, never stored.
-      story = { ...story, clock: packClock(base.logs) };
+      story = { ...story, clock: packClockAt(base) };
       // THE SHARED SKY — the omen rides the pack additively, like the
       // clock: a hook, never a command; a closed sky adds nothing.
       const sky = skyNoteFor(base, seasonsRef.current);
@@ -701,7 +721,7 @@ export default function App() {
       // at three, hottest first. The court measures; it never rewrites.
       // The pressure lands on this coming turn, where pressure belongs.
       let hand = { directives: [] };
-      try { hand = tellCourt(base); } catch { hand = { directives: [] }; }
+      try { hand = tellCourtAt(base); } catch { hand = { directives: [] }; }
       if (hand.directives.length) story = { ...story, directives: [...(story.directives || []), ...hand.directives] };
       // THE WRITERS' ROOM (Directive XI) — the standing beat's index rides
       // the pack (additive, like the clock and the sky) so the server room
@@ -999,6 +1019,16 @@ export default function App() {
           if (chronicled.annal) next = chronicled.campaign;
         }
       } catch (error) { console.error('The Chronicler kept silence:', error); }
+      // THE WAYPOST (Directive XX, Law VI) — every twenty-fifth sealed
+      // turn, the covered folds' cursor state seals as a journal row
+      // through the house's one helper. Machinery: a refusal is spoken to
+      // the console and the turn stands untouched — replay remains truth,
+      // the waypost is only ever a proven shortcut.
+      const waypost = await sealWaypostIfDue(next, seal);
+      if (waypost) {
+        const afterPost = await db.campaigns.get(base.id);
+        next = { ...next, headHash: afterPost.headHash, turnCount: afterPost.turnCount, signatureStatus: afterPost.signatureStatus, waypost };
+      }
       await saveCampaign(next); setCurrent(next); await refreshShelf();
       setStatus('✦ The turn is sealed.');
       // THE ACT TURNS — when this turn crossed an act boundary, a full-bleed

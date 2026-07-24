@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { chartOf } from 'fatescript/chart';
+import { chartAt } from '../lib/waypost.js';
 
 // ------------------------------------------------------------
 // THE TRAVELER'S CHART (Directive XIV, the Chart Law) — the drawn seat
@@ -14,7 +14,7 @@ import { chartOf } from 'fatescript/chart';
 // chart. Tapping a medallion opens that place's own page.
 // ------------------------------------------------------------
 export default function TravelersChart({ campaign, gallery, onOpenPlace }) {
-  const chart = useMemo(() => chartOf(campaign), [campaign]);
+  const chart = useMemo(() => chartAt(campaign), [campaign]);
   const layout = useMemo(() => {
     const xs = chart.medallions.map((m) => m.x);
     const ys = chart.medallions.map((m) => m.y);

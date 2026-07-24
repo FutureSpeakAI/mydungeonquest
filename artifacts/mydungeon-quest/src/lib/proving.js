@@ -4,6 +4,7 @@ import { createHero } from 'fatescript/rules';
 import { castHeroVoice } from 'fatescript/cinema/casting';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
 import { appendEvent } from './seal.js';
+import { sealWaypostIfDue } from './waypost.js';
 import { db, saveCampaign } from './db.js';
 import { rememberScene } from './memory.js';
 import { sealLegacy } from './saga.js';
@@ -128,6 +129,11 @@ export async function seedProvingCampaign(fixture) {
         tickLog.recordHash = tickRecord.recordHash;
       }
     }
+    // THE WAYPOST (Directive XX, Law VI) — the proving walk raises the
+    // same wayposts the live table raises, through the same helper: the
+    // harness and the app walk ONE road, so the courts examine the very
+    // code the house runs at the table.
+    await sealWaypostIfDue({ id, hero, logs, turnNumber }, (campaignId, type, payload) => appendEvent(campaignId, type, payload));
   }
 
   let sealed = await db.campaigns.get(id);

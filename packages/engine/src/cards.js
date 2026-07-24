@@ -153,9 +153,11 @@ export function foldCardEntry(state, entry, hero = null) {
       // re-seal returns the same ledger and writes nothing, so replays
       // stay byte-stable.
       if (typeof patch.known_as_add === 'string' && patch.known_as_add.trim()) {
-        const before = card.known_as;
-        card.known_as = sealAlias(card.known_as, patch.known_as_add, card.name);
-        if (card.known_as !== before) card.chronicle.push({ turn, gloss: `Came to be called \u201C${gloss(patch.known_as_add, 60)}\u201D` });
+        const sealed = sealAlias(card.known_as, patch.known_as_add, card.name);
+        if (sealed !== card.known_as) { // a no-op hands the input back — no ledger born, no line written
+          card.known_as = sealed;
+          card.chronicle.push({ turn, gloss: `Came to be called \u201C${gloss(patch.known_as_add, 60)}\u201D` });
+        }
       }
     }
 

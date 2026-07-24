@@ -317,7 +317,8 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
     // has already refused any claim another soul holds; the ledger is
     // born on first seal, so a pre-alias record replays byte-identical.
     if (typeof patch.known_as_add === 'string' && patch.known_as_add.trim()) {
-      soul.known_as = sealAlias(soul.known_as, patch.known_as_add, soul.name);
+      const sealed = sealAlias(soul.known_as, patch.known_as_add, soul.name);
+      if (sealed !== soul.known_as) soul.known_as = sealed; // a no-op hands the input back — no key is born
     }
   }
 

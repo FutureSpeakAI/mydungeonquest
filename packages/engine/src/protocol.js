@@ -841,7 +841,25 @@ function validateAliasLedger(story, context, errors) {
       if (born && !claims.has(nameKey(born))) claims.set(nameKey(born), born);
     }
   }
-  const castNames = seated ? context.cast.map((soul) => (typeof soul?.name === 'string' ? soul.name.trim() : '')).filter(Boolean) : [];
+  // The addressee's world mirrors the fold's: the standing cast PLUS the
+  // souls this same turn's cast_add brings — the fold seats newborns
+  // before any patch folds, so a bare first name must reach the newborn
+  // at this court exactly as it will at the fold (the architect's round:
+  // a court blind to the newborn lets one claim seat two souls).
+  const castNames = [];
+  if (seated) {
+    const seenSeats = new Set();
+    for (const name of [
+      ...context.cast.map((soul) => (typeof soul?.name === 'string' ? soul.name.trim() : '')),
+      ...(Array.isArray(story.cast_add) ? story.cast_add : []).map((soul) => (typeof soul?.name === 'string' ? soul.name.trim() : ''))
+    ]) {
+      if (!name) continue;
+      const seatKey = nameKey(name);
+      if (seenSeats.has(seatKey)) continue;
+      seenSeats.add(seatKey);
+      castNames.push(name);
+    }
+  }
   // The addressee, by the fold's own law: exact name, then a unique bare
   // first name, then any sealed claim on the road. Nobody is guessed;
   // an addressee the court cannot prove keeps no claim it cannot own.

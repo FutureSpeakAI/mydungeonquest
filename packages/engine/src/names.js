@@ -13,9 +13,17 @@
 // nothing). No imports — safe for the headless bench and the browser.
 // ------------------------------------------------------------
 
-// The road's one canon: case-blind, trimmed, inner whitespace folded.
+// The road's one canon: case-blind, trimmed, inner whitespace folded,
+// Unicode-normalized (NFKC) with zero-width riders stripped — composed
+// and decomposed forms are the SAME name, and an invisible splice can
+// never mint a second claim (the architect's round).
 export function canonName(value) {
-  return String(value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+  return String(value ?? '')
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 }
 
 // A soul's ledger, read with the witness law: an absent, rotten, or
@@ -90,15 +98,18 @@ export function resolveByClaims(rawName, index) {
 // THE SEAL — the one append law every reducer folds with: append-
 // ordered, case-blind deduped, capped at the door's own 60 characters;
 // the soul's own name is never re-sealed (a quiet no-op, never an
-// error). Returns the SAME array when nothing changes — so replays are
-// byte-stable and a chronicle line can trust the reference. Never
-// mutates its input (the deep-freeze law: copies only).
+// error). A no-op returns the INPUT ITSELF — the same array, or the
+// very undefined it was handed — so replays are byte-stable, a
+// chronicle line can trust the reference, and no ledger is ever born
+// of a no-op (the architect's round: lazy-birth means a key exists
+// only where a true seal landed). Never mutates its input (the
+// deep-freeze law: copies only).
 export function sealAlias(ledger, alias, ownName = '') {
   const list = Array.isArray(ledger) ? ledger : [];
   const value = typeof alias === 'string' ? alias.replace(/\s+/g, ' ').trim().slice(0, 60) : '';
-  if (!value) return list;
+  if (!value) return ledger;
   const key = canonName(value);
-  if (key === canonName(ownName)) return list;
-  if (list.some((held) => canonName(held) === key)) return list;
+  if (key === canonName(ownName)) return ledger;
+  if (list.some((held) => canonName(held) === key)) return ledger;
   return [...list, value];
 }

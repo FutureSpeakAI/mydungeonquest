@@ -27,7 +27,13 @@
 // throws on a legacy or imported record; it answers with what the
 // record lawfully proves.
 // ------------------------------------------------------------
-const canon = (value) => String(value ?? '').trim().toLowerCase();
+import { canonName } from './names.js';
+
+// THE ROAD'S OWN CANON (the architect's round): the replay folds names
+// and grounds with the ONE canon every alias surface shares — case,
+// whitespace, Unicode form, and invisible riders can never twin a soul
+// or a ground into a second row.
+const canon = canonName;
 
 // A list that is not an array proves nothing.
 const rows = (list) => (Array.isArray(list) ? list : []);

@@ -46,7 +46,8 @@
 - [ShellExec session traps](shell-session-traps.md) — nohup background dies with the session (frozen logs); `cd && A & B` strands B in the old cwd; pkill -f self-matches.
 - [MyDungeon court door manners](mydungeon-court-doors.md) — continued elders open straight to keepsakes; unstarted tales hang no seal door (stage completed); forge is two-step; pick rows by createdAt.
 - [Settings-spread piggyback](settings-spread-piggyback.md) — per-record fields never ride a shared settings spread through a generic mirror; give them their own door and gate the absence.
-- [MyDungeon lean door](mydungeon-lean-door.md) — pin the SYNC CLOSURE sum, never the entry file (anti-laundering); measure the floor before seating a pin; tally is \bPASS\b anywhere, not ^PASS lines.
+- [MyDungeon lean door](mydungeon-lean-door.md) — pin the SYNC CLOSURE sum; floor before pin; tally \bPASS\b anywhere; UP moves need an owner ruling (movement ledger); entry chunk may wear isDynamicEntry.
 - [Waypost checkpoint law](mydungeon-waypost-law.md) — a shared fold walk inherits every caller's rot; guard the ONE seat direct+fold share; field-rot ≠ row-rot; curtain fixtures can't wear the word.
 - [Machinery rows: seal leads](journal-machinery-rows.md) — journal seal FIRST, log row (with recordHash) after, ONE save; save-first poisons memory and bars retries when the seal door jams.
 - [Gates must red under the old law](eval-binding-proofs.md) — swap the pre-change code under a new eval and demand failure; seat fixtures adversarially so position can't impersonate the law.
+- [Compacted-session summaries drift](session-summary-drift.md) — "landed" lists and "remaining" steps are claims; verify by grep + git status/log before building on them.

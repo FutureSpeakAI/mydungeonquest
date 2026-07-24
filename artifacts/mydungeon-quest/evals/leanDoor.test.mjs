@@ -5,18 +5,30 @@
 // reads dist/.vite/manifest.json (the check builds before it evals) and
 // proves the door's weight aloud on every run. Keyless, network-free.
 //
-// THE PIN, as ruled by the owner (2026-07-23): the directive's 520 kB was
-// aspiration; the measured honest floor on ruling day was 600 kB — react-dom
-// ~223k min, the engine's turn law ~189k, the table's own surface ~64k,
-// dexie ~41k, pipeline libs ~50k. The pin seats at 610 kB and binds the
+// THE PIN, as ruled by the owner (2026-07-23; movement ledger below): the
+// directive's 520 kB was aspiration; the measured honest floor on ruling day
+// was 602 kB — react-dom ~223k min, the engine's turn law ~189k, the table's
+// own surface ~64k, dexie ~41k, pipeline libs ~50k. The pin binds the
 // SYNCHRONOUS CLOSURE — the entry chunk plus every chunk statically imported
 // from it, transitively, summed raw bytes on disk — never the entry file
 // alone. The closure is the honest quantity: however the sync graph is
 // arranged, the sum is the sum, so vendor-split laundering (a second
 // synchronous chunk that changes the measured number and not one byte the
 // player downloads before the table breathes) is structurally impossible
-// rather than banned by words. The ratchet is unchanged: 610 moves only
-// DOWNWARD, and it bites on the next real growth.
+// rather than banned by words.
+//
+// THE MOVEMENT LEDGER — every seat the pin has taken, one line each:
+//   2026-07-23 — measured 602 kB; ruled 610 kB. First seat: ten of headroom
+//     so the court reds on growth, not on a dependency sliver.
+//   2026-07-24 — measured 614 kB; ruled 624 kB. The alias ledger's turn-law:
+//     the name road and collision court ride the client entry because turns
+//     validate on the device — law growing, not a surface creeping back.
+//     Headroom mirrors ruling day at ten.
+//
+// THE STANDING RULE: the pin moves upward only on the owner's word with a
+// named turn-law justification — any unjustified growth is a red, not a
+// negotiation. Between rulings the ratchet stays downward-only, and the pin
+// tightens the day the engine's turn law slims.
 //
 // Two deviations stand lawful and PINNED here, not merely tolerated: the
 // atelier rides sync as pipeline timber (the prologue's own import road),
@@ -32,7 +44,7 @@ import path from 'node:path';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
-const PIN_KB = 610; // moves only downward — see the ruling in this header
+const PIN_KB = 624; // ruled 2026-07-24 — see the movement ledger in this header
 
 const manifest = JSON.parse(
   readFileSync(path.join(DIST, '.vite', 'manifest.json'), 'utf8'),
@@ -94,6 +106,19 @@ for (const key of LAZY_SURFACES) {
   assert.ok(
     !closure.has(key),
     `${key} rides the entry's synchronous closure — a shelf crept onto the table's road`,
+  );
+}
+// The census is load-bearing for the WHOLE dynamic roll, not only the named
+// surfaces: no dynamic entry may also ride the entry's synchronous closure,
+// so the only road onto the table is the lawful one — argued to the owner.
+// One identity exemption: the entry chunk itself may wear the dynamic mark
+// (a lazy road importing a module the table already carries resolves to the
+// entry chunk, and Rollup marks the target) — the table cannot be a shelf.
+for (const key of Object.keys(manifest)) {
+  if (!manifest[key].isDynamicEntry || manifest[key].isEntry) continue;
+  assert.ok(
+    !closure.has(key),
+    `${key} stands in the dynamic rolls yet rides the entry's synchronous closure — a shelf bolted to the table's road`,
   );
 }
 // The pinned deviation: the Chart keeps no row of its own (it rides inside

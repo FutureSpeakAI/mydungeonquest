@@ -13,11 +13,17 @@
 // under her epithet. ADVERSARIAL SEATING by the standing law: the
 // road's rider is bond-zero, tie-less, and oldest-introduced, so no
 // kinship immunity and no positional luck can green these courts — only
-// the name road can. The table strip (judgeTurn, the tool schema, the
+// the name road can. THE ARCHITECT'S ROUND added four teeth, each
+// proven red against the pre-round law: the court sees a newborn by her
+// bare first name (one claim can never seat two souls), the canon is
+// Unicode-normalized with zero-width riders stripped, the quiet no-op
+// births neither key nor chronicle line, and the presence replay never
+// twins a spacing variant. The table strip (judgeTurn, the tool schema, the
 // prompt rule, the wiki line) is judged by the game's own alias gate.
 import assert from 'node:assert/strict';
 import { canonName, ledgerOf, soulClaims, claimsIndex, aliasIndex, resolveByClaims, sealAlias } from '../src/names.js';
 import { safeFallbackTurn, validateDmTurn } from '../src/protocol.js';
+import { buildCards } from '../src/cards.js';
 import { applyStoryUpdates, initCodex } from '../src/story.js';
 import { assertCensus } from '../src/census.js';
 import { presenceOf } from '../src/presence.js';
@@ -38,8 +44,15 @@ const grown = sealAlias(frozenLedger, 'Ash-Handed', 'Maren Duskholm');
 assert.deepEqual(grown, ['The Gray Warden', 'Ash-Handed'], 'the seal appends in bestowal order and never mutates its input');
 assert.equal(sealAlias(grown, 'the gray warden', 'Maren Duskholm'), grown, 'a held claim re-seals as the SAME ledger — byte-stable replays can trust the reference');
 assert.equal(sealAlias(grown, 'MAREN DUSKHOLM', 'Maren Duskholm'), grown, 'the soul\u2019s own name is never re-sealed');
-assert.deepEqual(sealAlias(undefined, '   ', 'x'), [], 'junk seals nothing');
+assert.equal(sealAlias(undefined, '   ', 'x'), undefined, 'junk seals nothing and births nothing — the very input rides back');
 assert.equal(sealAlias(grown, 'A'.repeat(80), 'Maren Duskholm')[2].length, 60, 'the seal holds the door\u2019s own 60-character cap');
+// The architect's round — the canon is hardened at the ONE seat, and the
+// quiet no-op is quiet in the record too.
+assert.equal(canonName('Jose\u0301 Vane'), canonName('Jos\u00e9 Vane'), 'composed and decomposed are the SAME name — a combining mark cannot split the court');
+assert.equal(canonName('Tob\u200Bias\u2060 Crane\uFEFF'), 'tobias crane', 'zero-width riders are stripped — an invisible splice never mints a second claim');
+const accents = deepFreeze(['Jos\u00e9']);
+assert.equal(sealAlias(accents, 'Jose\u0301', 'Wren Half-Step'), accents, 'the seal dedupes across Unicode forms — one name, one row');
+assert.equal(sealAlias(undefined, 'Wren Half-Step', 'Wren Half-Step'), undefined, 'a ledgerless soul re-claiming its own name births NOTHING');
 assert.deepEqual(soulClaims(deepFreeze({ name: 'Maren', known_as: ['x1', 7, '   ', 'MAREN'] })), ['Maren', 'x1'], 'claims read with the witness law: rotten rows prove nothing, dedupe is case-blind');
 assert.deepEqual(ledgerOf(null), [], 'a missing soul claims nothing and crashes nobody');
 const castA = deepFreeze([
@@ -71,6 +84,18 @@ assert.equal(marenFold.last_seen, 'the hall door', 'the alias-addressed update m
 assert.equal('known_as' in codex.cast.find((s) => s.name === 'Tobias Crane'), false, 'no ledger is born where no seal ever landed');
 codex = applyStoryUpdates(codex, { cast_update: [{ name: 'Maren Duskholm', known_as_add: 'the gray warden' }] }, { turn: 4 });
 assert.deepEqual(codex.cast.find((s) => s.name === 'Maren Duskholm').known_as, ['The Gray Warden', 'Ash-Handed'], 'a re-seal is the quiet no-op');
+codex = applyStoryUpdates(codex, { cast_update: [{ name: 'Tobias Crane', known_as_add: 'tobias   crane' }] }, { turn: 5 });
+assert.equal('known_as' in codex.cast.find((s) => s.name === 'Tobias Crane'), false, 'the quiet no-op is quiet in the RECORD — no key is born of a soul re-claiming its own name');
+// The card fold keeps the same silence: no ledger and no "Came to be
+// called" line when the claim was the soul's own name all along.
+const noopCards = buildCards({ hero: { name: 'Bram Hollis' }, entries: [
+  { turn: 1, dm: { story: { cast_add: [{ name: 'Tobias Crane', role: 'clerk', visual: 'ink-stained hands', voice: 'quick', goal: 'balance the books' }] } } },
+  { turn: 2, dm: { story: { cast_update: [{ name: 'Tobias Crane', known_as_add: 'TOBIAS CRANE' }] } } }
+] });
+const noopCard = noopCards.cards['tobias crane'];
+assert.ok(noopCard, 'the clerk holds his card');
+assert.equal('known_as' in noopCard, false, 'the card grows no ledger on the quiet no-op');
+assert.ok(!noopCard.chronicle.some((row) => /Came to be called/.test(String(row?.gloss ?? ''))), 'the chronicle never announces a name the soul was born with');
 
 // ---- 3. The collision court: one soul, one claim ----
 const turn = (story) => ({ ...safeFallbackTurn('', 3), story });
@@ -102,6 +127,17 @@ const born = validateDmTurn(turn({
   cast_update: [{ name: 'Tobias Crane', known_as_add: 'petra vane' }]
 }), [], ctx);
 assert.ok(born.errors.some((e) => /belongs to Petra Vane/.test(e)), 'a soul born this same turn holds its claim from its first breath');
+const bornFirst = validateDmTurn(turn({
+  cast_add: [{ name: 'Petra Vane', role: 'scout', visual: 'a wind-burned scout', voice: 'clipped', goal: 'see the pass' }],
+  cast_update: [
+    { name: 'Petra', known_as_add: 'The Pass Hawk' },
+    { name: 'Tobias Crane', known_as_add: 'the pass hawk' }
+  ]
+}), [], ctx);
+assert.ok(bornFirst.errors.some((e) => /belongs to Petra Vane/.test(e)), 'the court sees the newborn by her bare first name — the fold would seat her, so one claim can never seat two souls (the architect\u2019s round)');
+const accentCtx = deepFreeze({ cast: [{ name: 'Jos\u00e9 Varga', status: 'active' }, { name: 'Tobias Crane', status: 'active' }], hero: 'Bram Hollis' });
+const nfdHit = validateDmTurn(seal('Tobias Crane', 'Jose\u0301 Varga'), [], accentCtx);
+assert.ok(!nfdHit.ok && nfdHit.errors.some((e) => e.includes('belongs to Jos\u00e9 Varga')), 'a decomposed epithet is the same claim as its composed holder — the court is normalization-blind');
 const contestedCtx = deepFreeze({ cast: [...courtCast, { name: 'Wren', known_as: ['Shadow'] }, { name: 'Vale', known_as: ['shadow'] }], hero: 'Bram Hollis' });
 const cont = validateDmTurn(seal('Tobias Crane', 'Shadow'), [], contestedCtx);
 assert.ok(!cont.ok && cont.errors.some((e) => /more than one soul/.test(e)), 'a contested claim seals for nobody');
@@ -141,6 +177,15 @@ const marenPres = presRows.find((row) => row.name === 'Maren Duskholm');
 assert.ok(marenPres, 'the replay knows the soul under her sealed name');
 assert.equal(marenPres.ground, 'The Hall', 'the sighting under the epithet moved the ONE soul\u2019s trail');
 assert.equal(JSON.stringify(presenceOf(presCampaign)), JSON.stringify(presRows), 'the replay is byte-stable on the repeat');
+// The architect's round: the replay walks the road's OWN canon — a
+// spacing variant of a declared soul is the SAME soul, never a twin row.
+const forkCampaign = deepFreeze({ hero: { name: 'Bram Hollis' }, logs: [
+  plog(1, { world: { region_add: { name: 'The Mill' } }, scene_set: { region: 'The Mill' }, cast_add: [{ name: 'Iron Wolf', role: 'sellsword' }] }),
+  plog(2, {}, [{ speaker: 'Iron  Wolf', text: 'Twin spaces never made a second wolf.' }])
+] });
+const forkRows = presenceOf(forkCampaign);
+assert.equal(forkRows.filter((row) => row.name.replace(/\s+/g, ' ').toLowerCase() === 'iron wolf').length, 1, 'a spacing variant births no twin — one wolf, one row');
+assert.ok(forkRows.some((row) => row.name === 'Iron Wolf'), 'the declared form keeps the seat');
 
 // ---- 7. The pack: she spoke only under her epithet, and the scene floor holds HER seat ----
 // Adversarial seating: bond zero, no ties, introduced FIRST (oldest famine
@@ -169,4 +214,4 @@ assert.ok(squeezed.cast.length < graphCodex.cast.length, 'the squeeze truly bit 
 assert.ok(squeezed.cast.some((s) => s.name === 'Maren Duskholm'), 'she spoke only as The Gray Warden, and the scene floor held HER seat — the pack walks the road');
 assert.equal(JSON.stringify(squeezed), JSON.stringify(packAt(budget)), 'the squeezed pack is byte-stable on the repeat');
 
-console.log('PASS — the alias gate (engine): the road holds one canon, claims and both indexes read under the witness law, the seal appends without mutation and re-seals as the same ledger; the fold seats an epithet on the soul\u2019s own ledger and answers alias-addressed ops on the one road while elder souls grow no key; the court refuses collisions NAMING the holder — sealed name, ledger name, the hero\u2019s own, a soul born this turn, claims binding sequentially, contested claims sealing for nobody — while own claims re-seal quiet and null keeps its lawful seat; the dead cannot slip back onstage under an epithet, the elsewhere court answers with the soul\u2019s own ground, the frame never calls a sealed name a stranger; the census counts every claim including the turn\u2019s own seal; the presence replay lands the alias-addressed sighting on the one soul, byte-stable; and the squeezed pack\u2019s scene floor keeps the seat of a soul who spoke only under her epithet.');
+console.log('PASS — the alias gate (engine): the road holds one canon, claims and both indexes read under the witness law, the seal appends without mutation and re-seals as the same ledger; the fold seats an epithet on the soul\u2019s own ledger and answers alias-addressed ops on the one road while elder souls grow no key; the court refuses collisions NAMING the holder — sealed name, ledger name, the hero\u2019s own, a soul born this turn, claims binding sequentially, contested claims sealing for nobody — while own claims re-seal quiet and null keeps its lawful seat; the dead cannot slip back onstage under an epithet, the elsewhere court answers with the soul\u2019s own ground, the frame never calls a sealed name a stranger; the census counts every claim including the turn\u2019s own seal; the presence replay lands the alias-addressed sighting on the one soul, byte-stable; and the squeezed pack\u2019s scene floor keeps the seat of a soul who spoke only under her epithet; the architect\u2019s round is courted — the court sees a first-named newborn so one claim never seats two souls, the canon is normalization- and zero-width-blind at the one seat, the quiet no-op births neither key nor chronicle line, and the replay never twins a spacing variant.');

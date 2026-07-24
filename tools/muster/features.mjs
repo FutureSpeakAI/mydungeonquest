@@ -357,6 +357,13 @@ export const FEATURES = [
     contract: [{ file: 'packages/engine/evals/alias.test.mjs' }, { file: `${GAME}/evals/alias.test.mjs` }, { src: `${GAME}/package.json`, needle: 'alias.test.mjs' }, { src: 'packages/engine/src/names.js', needle: 'THE NAME ROAD' }],
     wiring: [{ src: 'packages/engine/package.json', needle: 'alias.test.mjs' }, { src: `${GAME}/src/components/Book.jsx`, needle: 'knownAsLine' }]
   },
+  {
+    id: 'cellar-sweep', category: 4, tier: 'wired',
+    name: 'The Cellar Sweep — the shelf keeps only its treasures',
+    detail: 'Pixels are cache; the record is law. At every act close (after the annal and the epoch) and by hand from Settings & Care, a pure deterministic plan walks the media shelf against the sealed journal and the standing act; one Dexie transaction on the shelf alone then executes it exactly. Kept, each row naming its immunity: anchors, composite sheets, book-attested plates, standing region states, the tempo law\u2019s held frame, everything within the two-act horizon, house furniture, unattributable and unreadable rows (fail-closed), and every audio row — plates only this season, spoken plainly. Evicted, naming horizons: elder scenes and superseded region states. The journal, chain, and attestations are never touched; where an evicted plate hung, the replay speaks the honest cleared frame over its own procedural art — never a wrong image, never a silent re-bill. Directive XXII, Phase 10; gate `cellar`.',
+    contract: [{ file: `${GAME}/evals/cellar.test.mjs` }, { src: `${GAME}/package.json`, needle: 'cellar.test.mjs' }, { src: `${GAME}/src/lib/cellar.js`, needle: 'sweepPlan' }],
+    wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'sweepCellar' }, { src: `${GAME}/src/components/Overlays.jsx`, needle: 'Sweep the cellar' }, { src: `${GAME}/src/components/Cinematic.jsx`, needle: 'CELLAR_FRAME_LINE' }]
+  },
 
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {

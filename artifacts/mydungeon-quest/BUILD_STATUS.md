@@ -4,13 +4,13 @@
 - One truth, two shelves (this section is pinned verbatim in both repos'
   BUILD_STATUS): the engine's keyless check stands at sixty-three gates
   (`pnpm --filter fatescript run check`, exit 0, no network, no keys); the
-  table's keyless check stands at 136 green verdicts (`npm run check` in
+  table's keyless check stands at 137 green verdicts (`npm run check` in
   the game with every AI key unset, exit 0). Gate-for-gate parity: every
   table gate whose law lives in the engine has an engine twin judging the
   same pure fraction with the same fixtures and thresholds, and every
   strip (React renders, Dexie migrations, sharp crops, server prompt-law)
   is named in the twin's header comment.
-- Nine table gates keep no engine twin, and honestly: book and boundary
+- Ten table gates keep no engine twin, and honestly: book and boundary
   (React Book/Chart renders over the client db), refusalTerminal (the
   Foundry and the media shelf are game-lib law), caption and artDirector
   (the Art Director and the convene sit behind the table's server door
@@ -23,7 +23,9 @@
   manifest; the engine ships no bundle), and secondChair (the Second
   Chair seats the room's chairs on the table's own provider envs behind
   the server door — the room is server law; the engine keeps no
-  provider seats). The room law those
+  provider seats), and cellar (the cellar sweep plans and executes
+  over the table's own Dexie media shelf — client-store law proven
+  under fake-indexeddb; the engine keeps no shelf). The room law those
   doors import is proven by the engine's own gates (director, curtain,
   editorEcho, editorCliche, firstWord).
 - The engine suite stands alone: the proving campaign fixture lives at

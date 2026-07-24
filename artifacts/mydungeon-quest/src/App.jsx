@@ -460,6 +460,18 @@ export default function App() {
     return () => { stopNarration(); stopAllSound(); };
   }, [flow, current?.id]);
 
+  // THE CELLAR'S HAND DOOR (Directive XXII) — the Settings seat asks, the
+  // table sweeps: the plan drawn pure from the sealed record, one
+  // transaction on the media shelf alone, honest counts spoken back in
+  // house words. A lazy door — the entry's closure never grows for it.
+  const sweepByHand = useCallback(async () => {
+    if (!current) return 'No tale is open — the cellar rests.';
+    const { sweepCellar, sweepStory } = await import('./lib/cellar.js');
+    const act = current.codex?.spine?.beats?.[current.codex?.beatIndex]?.act || 1;
+    const plan = await sweepCellar(current.id, act);
+    return sweepStory(plan.counts);
+  }, [current]);
+
   const persistSettings = async (next) => {
     setSettings(next); await db.settings.put({ key: 'care', value: next });
     if (current && next.mediaTier !== current.mediaTier) {
@@ -1042,6 +1054,16 @@ export default function App() {
             });
             if (epoched.epoch) next = epoched.campaign;
           } catch (error) { console.error('The elder memory kept silence this close:', error); }
+          // THE CELLAR SWEEP (Directive XXII): the same close sweeps the
+          // media shelf — a plan drawn pure from the sealed record, executed
+          // in one transaction on the shelf alone, AFTER the annal and the
+          // epoch have both had their say. Its own catch: a jammed cellar
+          // door never costs a word already sealed.
+          try {
+            const { sweepCellar } = await import('./lib/cellar.js');
+            const swept = await sweepCellar(base.id, actAfterTurn);
+            if (swept.counts.cleared) console.log(`[cellar] act ${closedAct} closed: ${swept.counts.held} held, ${swept.counts.cleared} cleared.`);
+          } catch (error) { console.error('The cellar kept everything this close:', error); }
         }
       } catch (error) { console.error('The Chronicler kept silence:', error); }
       // THE WAYPOST (Directive XX, Law VI) — every twenty-fifth sealed
@@ -1781,10 +1803,10 @@ export default function App() {
         so without it React would reuse the mounted card — same backdrop, no
         re-consult of the seen ledger, and no fresh close timer. Type differs
         across any chained pair, so the key always turns. */}
-    {cinematic && <Cinematic key={`${cinematic.cinematic?.type}:${cinematic.cinematic?.title}:${cinematic.beatIndex ?? 'b'}:${cinematic.replay ? 'replay' : 'live'}`} cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={stillness} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex} replay={Boolean(cinematic.replay)} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
+    {cinematic && <Cinematic key={`${cinematic.cinematic?.type}:${cinematic.cinematic?.title}:${cinematic.beatIndex ?? 'b'}:${cinematic.replay ? 'replay' : 'live'}`} cinematic={cinematic.cinematic} dialogue={cinematic.dialogue_cue} campaign={cinematic.campaign} reduceMotion={stillness} turnRecordHash={cinematic.turnRecordHash} beatIndex={cinematic.replay ? cinematic.beatIndex : (cinematic.beatIndex ?? cinematic.campaign.codex.beatIndex)} replay={Boolean(cinematic.replay)} onClose={() => { if (cinematic.__closed) return; cinematic.__closed = true; /* one-shot latch: the 9s auto-close racing a tap (or any double fire) must not consume the chain twice — every card object is a fresh local spread, never sealed canon */ setCinematic(null); const actNext = pendingActRef.current; if (actNext) { pendingActRef.current = null; setCinematic(actNext); return; } const pending = pendingNarrationRef.current; pendingNarrationRef.current = null; if (pending) playNarration(pending.campaign, pending.log); }} />}
     {overlay === 'sheet' && <RoadBoundary road="the hero's sheet"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><CharacterSheet campaign={current} onClose={() => setOverlay(null)} onExport={exportCurrent} /></Suspense></RoadBoundary>}
-    {overlay === 'codex' && <RoadBoundary road="the book"><Suspense fallback={<div className="lean-veil">The binder threads the folios…</div>}><Book campaign={current} nav={bookNav} onNav={(part) => setBookNav((held) => ({ ...held, ...part }))} recap={recap && recap.campaignId === current.id ? recap : null} reduceMotion={stillness} onClose={() => setOverlay(null)} onReplay={(dm) => { setOverlay(null); /* a Book replay is a RE-VIEW: the reveal law neither filters nor marks it */ setCinematic({ ...dm, campaign: current, replay: true }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} /></Suspense></RoadBoundary>}
-    {overlay === 'settings' && <RoadBoundary road="the care door"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onTempo={persistTempo} onDownloadAudio={downloadAudio} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense></RoadBoundary>}
+    {overlay === 'codex' && <RoadBoundary road="the book"><Suspense fallback={<div className="lean-veil">The binder threads the folios…</div>}><Book campaign={current} nav={bookNav} onNav={(part) => setBookNav((held) => ({ ...held, ...part }))} recap={recap && recap.campaignId === current.id ? recap : null} reduceMotion={stillness} onClose={() => setOverlay(null)} onReplay={(dm, log) => { setOverlay(null); /* a Book replay is a RE-VIEW: the reveal law neither filters nor marks it — and the door hands the TURN itself (Directive XXII), so the overlay resolves that turn's own art or speaks the honest cleared frame, never today's borrowed cover */ setCinematic({ ...dm, campaign: current, replay: true, turnRecordHash: log?.recordHash ?? null, beatIndex: log?.beatIndex }); }} onSealTale={current.readOnly || current.completed || current.codex.sealing ? null : () => setOverlay('seal-ask')} /></Suspense></RoadBoundary>}
+    {overlay === 'settings' && <RoadBoundary road="the care door"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Settings campaign={current} settings={{...settings,mediaTier:current.mediaTier}} onChange={persistSettings} onTempo={persistTempo} onDownloadAudio={downloadAudio} onSweep={sweepByHand} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense></RoadBoundary>}
     {overlay === 'storybook' && <RoadBoundary road="the bound chronicle"><Suspense fallback={<div className="lean-veil">The binder threads the folios…</div>}><Storybook html={bookHtml} onClose={() => setOverlay(null)} onPdf={bindPdf} onHtml={() => downloadBlob(new Blob([bookHtml], {type:'text/html'}), `${current.title}.storybook.html`)} onSize={openStorybook} /></Suspense></RoadBoundary>}
     {overlay === 'level' && <LevelRitual hero={current.hero} onAccept={async (picks) => {
       // THE PICKING SEAL (XVIII, Article IV): the surface was the door;

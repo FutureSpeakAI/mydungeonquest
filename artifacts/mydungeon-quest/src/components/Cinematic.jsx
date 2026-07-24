@@ -5,6 +5,7 @@ import { beatKeys } from '../lib/cinema/lookahead.js';
 import { playMusic, stopMusic } from '../lib/cinema/audioDirector.js';
 import { proceduralArtDataUrl } from '../lib/cinema/procedural.js';
 import { markRevealed, revealSet } from '../lib/reveals.js';
+import { CELLAR_FRAME_LINE } from '../lib/cellar.js';
 
 // ------------------------------------------------------------
 // THE CINEMATIC — a two-tier ladder, best available wins:
@@ -28,25 +29,46 @@ import { markRevealed, revealSet } from '../lib/reveals.js';
 // Exported for the bench: the eval proves the ladder without a browser.
 export async function resolveAssets(campaign, turnRecordHash, beatIndex, { replay = false } = {}) {
   const rows = await db.media.where('campaignId').equals(campaign.id).toArray();
-  const keys = beatKeys(campaign.id, beatIndex ?? campaign.codex?.beatIndex ?? 0);
+  // THE REPLAY IDENTITY LAW (XXII) — a re-view resolves only what that
+  // moment owned. The live road may crown a card with TODAY's pre-briefed
+  // cover (the codex fallback below); a replay may not: its beat keys bind
+  // only to a TURN-BOUND beatIndex handed with the card — else they are
+  // dead keys, and the turn's own art alone may answer.
+  const boundBeat = Number.isInteger(beatIndex) ? beatIndex : null;
+  const keys = beatKeys(campaign.id, replay ? (boundBeat ?? -1) : (boundBeat ?? campaign.codex?.beatIndex ?? 0));
   const seen = replay ? new Set() : await revealSet(campaign.id, 'card');
   const fresh = (row) => (row && row.blob && !seen.has(row.assetHash) ? row : null);
   const byKey = (key) => rows.find((row) => row.cacheKey === key && row.blob);
   const byTurn = (kind) => rows.filter((row) => row.kind === kind && row.blob && turnRecordHash && row.originTurnHash === turnRecordHash)
     .sort((a, b) => b.createdAt - a.createdAt)[0];
+  // THE CELLAR'S HONEST FRAME (Directive XXII) — when this turn's own log
+  // proves a plate once hung here (its imageAssetHash) and the shelf no
+  // longer holds those pixels, the seat stands CLEARED: the card says so in
+  // house words over its own procedural art — never a borrowed image, and
+  // never a fresh ask of the foundry (no silent re-bill).
+  const logRow = Array.isArray(campaign.logs)
+    ? campaign.logs.find((row) => row && row.recordHash && turnRecordHash && row.recordHash === turnRecordHash) : null;
+  const cleared = !!(logRow?.imageAssetHash && !rows.some((row) => row.assetHash === logRow.imageAssetHash && row.blob));
   return {
     // THE FRESH PLATE LAW (XVII, Article III) — the card shows its OWN art:
     // the beat's pre-briefed cover, or this very turn's painting. The old
     // borrow rungs (the campaign's most recent unseen plate, any plate at
     // all) are struck: an ambient painting from another moment is a stale
     // plate, and the honest procedural gradient beats a recycled painting.
-    still: fresh(byKey(keys.still)) || fresh(byTurn('paint')) || null,
-    music: byKey(keys.score) || byTurn('music') || null
+    // On a re-view: a CLEARED seat outranks every substitute — the honest
+    // empty frame speaks and nothing is borrowed over it. Else the turn's
+    // own painting answers first, then the bound beat's own cover — the
+    // very art the card wore when it first played. The living road keeps
+    // the Fresh Plate ladder whole: the beat's pre-briefed cover first,
+    // this turn's fresh paint second, seen art skipped rung by rung.
+    still: replay ? (cleared ? null : (byTurn('paint') || byKey(keys.still) || null)) : (fresh(byKey(keys.still)) || fresh(byTurn('paint')) || null),
+    music: replay ? (byTurn('music') || byKey(keys.score) || null) : (byKey(keys.score) || byTurn('music') || null),
+    cleared
   };
 }
 
 export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion, turnRecordHash, beatIndex, replay = false, onClose }) {
-  const [assets, setAssets] = useState({ stillUrl: null, resolved: false });
+  const [assets, setAssets] = useState({ stillUrl: null, cleared: false, resolved: false });
   const musicRow = useRef(null);
   const stillRow = useRef(null);
   const closeTimer = useRef(null);
@@ -62,7 +84,7 @@ export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion,
       const url = (row) => { if (!row?.blob) return null; const u = URL.createObjectURL(row.blob); urls.push(u); return u; };
       musicRow.current = found.music || null;
       stillRow.current = found.still || null;
-      setAssets({ stillUrl: url(found.still), resolved: true });
+      setAssets({ stillUrl: url(found.still), cleared: !!found.cleared && !found.still, resolved: true });
     })();
     return () => { alive = false; urls.forEach((u) => URL.revokeObjectURL(u)); };
   }, [campaign.id, turnRecordHash, beatIndex, reduceMotion]); // eslint-disable-line
@@ -92,6 +114,7 @@ export default function Cinematic({ cinematic, dialogue, campaign, reduceMotion,
         double fire would skip a chained card cold. */}
     <button className="cinematic-close" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Skip cinematic"><X /></button>
     <div className="cinematic-title"><div className="gold-rule" /><p>{cinematic.type.replace('_', ' ')}</p><h2>{cinematic.title}</h2><h3>{cinematic.subtitle}</h3></div>
+    {assets.cleared && !assets.stillUrl && <div className="cinematic-cleared"><span>{CELLAR_FRAME_LINE}</span></div>}
     {dialogue?.line && <div className="cinematic-subtitle"><Volume2 size={16}/><span><strong>{dialogue.speaker}</strong> — {dialogue.line}</span></div>}
   </div>;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Download, Heart, ScrollText, Shield, Sparkles, X } from 'lucide-react';
+import { Download, Heart, ScrollText, Shield, Sparkles, Wind, X } from 'lucide-react';
 import { CONDITIONS } from 'fatescript/rules';
 import { db } from '../lib/db.js';
 import { doorBuilt } from '../patron/doorBuilt.jsx';
@@ -152,8 +152,10 @@ function OwnersBell() {
   </>;
 }
 
-export function Settings({ campaign, settings, onChange, onTempo, onDownloadAudio, audioBusy, onClose }) {
+export function Settings({ campaign, settings, onChange, onTempo, onDownloadAudio, onSweep, audioBusy, onClose }) {
   const toll = useToll();
+  // THE CELLAR SEAT (Directive XXII) — the sweep by hand, honest counts back.
+  const [cellar, setCellar] = useState({ busy: false, word: null });
   // Honest hints, spoken only when the gateway truly stands: a guest at a lit
   // house is told plainly the paints wait behind the door; a hearth or
   // illuminated seat is told plainly which throat the voiced seat opens.
@@ -175,6 +177,14 @@ export function Settings({ campaign, settings, onChange, onTempo, onDownloadAudi
       ['sparse','The great turnings','Only genesis, a new chapter, and a scene the Dungeon Master calls for — the rarest, boldest book.']
     ].map(([id,label,desc])=><button className={(campaign.tempo||'every')===id?'selected':''} key={id} onClick={()=>onTempo(id)}><b>{label}</b><span>{desc}</span></button>)}</div>
     <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Music {campaign.spend?.music||0}/8</span></div>
+    <h3>The cellar</h3>
+    <p className="muted">Beneath the house the old canvases pile up. The sweep keeps every treasure — the anchors, the reference sheets, each region's standing plate, the held frame, every painting of the last two acts, every plate bound into a book, and any canvas the record cannot name — and clears only elder scenes and superseded region states. The sealed record is never touched; music and voices rest untouched this season.</p>
+    {onSweep && <button className="secondary-button" disabled={cellar.busy} onClick={async () => {
+      setCellar({ busy: true, word: null });
+      try { setCellar({ busy: false, word: await onSweep() }); }
+      catch { setCellar({ busy: false, word: 'The cellar door held fast — nothing was moved.' }); }
+    }}><Wind/> {cellar.busy ? 'Sweeping the cellar…' : 'Sweep the cellar'}</button>}
+    {cellar.word && <p className="muted">{cellar.word}</p>}
     <TollSection toll={toll} />
     {onDownloadAudio && <>
       <h3>The chronicle, read aloud</h3>

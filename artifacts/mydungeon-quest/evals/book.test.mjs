@@ -226,6 +226,27 @@ const press = async (node) => { await act(async () => { node.props.onClick(); })
   assert.notEqual(still, 'true', 'motion allowed, stillness unworn');
 }
 
+// ---- 9½. The replay door hands the turn itself (Directive XXII) ----
+// The cellar's cleared frame can only prove its seat if the door hands the
+// sealed turn along with the card — a dm-only door drops identity, and the
+// overlay would borrow today's art over an elder seat.
+{
+  const replayCalls = [];
+  const elderLog = { id: 'log-cellar-elder', turn: 2, ts: 1700000000000, player: null, redacted: false, recordHash: 'elder-turn-hash', imageAssetHash: 'plate-cleared-by-cellar', dm: { cinematic: { type: 'chapter_title', title: 'The Cleared Frame', subtitle: 'An elder card.', palette: ['#101018', '#404058', '#c0a060'] } } };
+  const doctored = { ...campaign, logs: [...(campaign.logs || []), elderLog] };
+  await show({ chapter: 'tale' }, { campaign: doctored, onReplay: (dm, log) => replayCalls.push({ dm, log }) });
+  const archive = collectByClass(root.toJSON(), 'replay-list')[0];
+  assert.ok(archive, 'the cinematic archive stands on the tale page');
+  const door = collectWhere(archive, (node) => node.type === 'button').find((button) => textOf(button).includes('The Cleared Frame'));
+  assert.ok(door, 'the elder cinematic hangs its replay door');
+  await press(door);
+  assert.equal(replayCalls.length, 1, 'the door opens once');
+  assert.equal(replayCalls[0].dm?.cinematic?.title, 'The Cleared Frame', 'the door hands the card');
+  assert.equal(replayCalls[0].log?.recordHash, 'elder-turn-hash', 'the door hands the TURN itself — the sealed recordHash rides along so the cleared frame can prove its seat');
+  await show({ chapter: 'tale' }, {});
+  console.log('ok — the replay door hands both the card and its sealed turn');
+}
+
 // ---- 10. The reading room never reached for the wire ----
 assert.equal(fetchLog.length, 0, `the book commissions nothing — zero fetches (saw: ${fetchLog.join(', ')})`);
 

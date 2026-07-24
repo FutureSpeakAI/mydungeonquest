@@ -170,7 +170,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
     <ul className="scriptorium-plan">{SCRIBES.map((scribe) => <li key={scribe}><b>{scribe}</b> — <span className="muted">{roomPlan.scratchpad[scribe]}</span></li>)}</ul></>}
     {tells && tells.report.flagged.length > 0 && <><h3>The human hand — the tell court</h3>
     <ul className="scriptorium-plan">{tells.report.flagged.map((key) => <li key={key}><b>{TELL_FAMILIES[key].name}</b> — <span className="muted">{TELL_FAMILIES[key].finding}</span></li>)}</ul></>}
-    <h3>Cinematic archive</h3><div className="replay-list">{logs.filter((l)=>l.dm?.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm)}><Film/> {log.dm.cinematic.title}</button>)}</div>
+    <h3>Cinematic archive</h3><div className="replay-list">{logs.filter((l)=>l.dm?.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm, log)}><Film/> {log.dm.cinematic.title}</button>)}</div>
     <h3>Memoir</h3>{c.memoir.length ? c.memoir.map((m,i)=><p key={i}>{m}</p>) : <p className="muted">The Chronicler has not yet needed to compress the road behind you.</p>}
     </div>}
 
@@ -209,7 +209,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
       <h4 className="eyebrow">Appearances</h4>
       <ol className="soul-timeline">{openCard.chronicle.map((line, i) => {
         const scene = logs.find((log) => log.turn === line.turn && log.dm?.cinematic && !log.redacted);
-        return <li key={i}><b>Turn {line.turn}</b> — {line.gloss}{scene && <button className="text-button" onClick={() => onReplay(scene.dm)}>replay</button>}</li>;
+        return <li key={i}><b>Turn {line.turn}</b> — {line.gloss}{scene && <button className="text-button" onClick={() => onReplay(scene.dm, scene)}>replay</button>}</li>;
       })}</ol>
     </article>}
     {!openCard && <div className="codex-grid gallery">{shownCast.map((soul)=>{

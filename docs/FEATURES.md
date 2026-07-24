@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-24). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 60 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 61 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 **THE TRIAGE (wire first):** Bearing, Signature & the paint roster.
 
@@ -207,6 +207,10 @@ The [STORY] pack’s recency famine may never drop a bound soul: any ACTIVE soul
 ### The Alias Ledger — one soul, many names, one card — PRESENT
 
 A soul may earn epithets — "The Gray Warden," a title, a nom de guerre — sealed one per op by cast_update.known_as_add onto the card’s append-ordered, case-blind-deduped known_as ledger. Every sealed name answers as the ONE soul on the one name road (names.js): cards attribution, the scene graph, presence replay, the census, the dead-speak and ground courts, the wiki’s "Also called" line. The validator refuses, by name, any claim another soul already holds — sealed name or ledger, the hero included, same-turn cast_add counted, claims binding sequentially — while re-sealing an own claim is a quiet no-op. Ledgers are born on first seal, so every pre-alias record replays byte-identical. Directive XXI, Phase 9; gate `alias` (engine twin + table gate).
+
+### The Cellar Sweep — the shelf keeps only its treasures — PRESENT
+
+Pixels are cache; the record is law. At every act close (after the annal and the epoch) and by hand from Settings & Care, a pure deterministic plan walks the media shelf against the sealed journal and the standing act; one Dexie transaction on the shelf alone then executes it exactly. Kept, each row naming its immunity: anchors, composite sheets, book-attested plates, standing region states, the tempo law’s held frame, everything within the two-act horizon, house furniture, unattributable and unreadable rows (fail-closed), and every audio row — plates only this season, spoken plainly. Evicted, naming horizons: elder scenes and superseded region states. The journal, chain, and attestations are never touched; where an evicted plate hung, the replay speaks the honest cleared frame over its own procedural art — never a wrong image, never a silent re-bill. Directive XXII, Phase 10; gate `cellar`.
 
 ## VI. The Saga groundwork (Directive V)
 

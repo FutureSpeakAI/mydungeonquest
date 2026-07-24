@@ -49,3 +49,4 @@
 - [MyDungeon lean door](mydungeon-lean-door.md) — pin the SYNC CLOSURE sum, never the entry file (anti-laundering); measure the floor before seating a pin; tally is \bPASS\b anywhere, not ^PASS lines.
 - [Waypost checkpoint law](mydungeon-waypost-law.md) — a shared fold walk inherits every caller's rot; guard the ONE seat direct+fold share; field-rot ≠ row-rot; curtain fixtures can't wear the word.
 - [Machinery rows: seal leads](journal-machinery-rows.md) — journal seal FIRST, log row (with recordHash) after, ONE save; save-first poisons memory and bars retries when the seal door jams.
+- [Gates must red under the old law](eval-binding-proofs.md) — swap the pre-change code under a new eval and demand failure; seat fixtures adversarially so position can't impersonate the law.

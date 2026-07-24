@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-24). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 58 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 59 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 **THE TRIAGE (wire first):** Bearing, Signature & the paint roster.
 
@@ -199,6 +199,10 @@ DM_MODEL_DIRECTOR, DM_MODEL_EDITOR, and DM_MODEL_REDRAFT seat the Director’s s
 ### The Elder Memory — epochs before elders — PRESENT
 
 When an act closes, the same close that writes the annal distills the act into a sealed EPOCH row — the illuminated Chronicler when a real voice answers and the engine’s citation and quote courts seat it (one guided repair; a second refusal declines honestly), the deterministic keyless floor otherwise — always labeled for which voice wrote it. Every claim ends with the turn citations that prove it, judged against the cited turns’ OWN corpus; quotes verbatim or contraband; at most 900 characters an act. The memory ladder reads epochs before elders — the freshest act raw, every earlier act by its sealed summary (its annal standing in where no epoch does) — under ONE fixed total budget, so year three remembers year one at the same price. Epoch rows are machinery: never the book, the podcast, the ravens, or the feed; the mixed journal stays chain-lawful; a pre-epoch save walks today’s road byte-identical, the standing ladder module byte-untouched. Directive XX, Law VII, Phase 7; gate `elderMemory` (engine twin + table gate).
+
+### The Kinship Immunity — the horizon never starves the bound — PRESENT
+
+The [STORY] pack’s recency famine may never drop a bound soul: any ACTIVE soul at bond three or higher, or carrying a kin or enemy tie to the hero, rides every pack at least slim regardless of last_seen — the hero’s mother, silent sixty turns, is never reintroduced as a stranger. The dead and the departed earn no immunity. The famine eats the unbound exactly as before (byte-identical whenever no bound soul stands in the rest); when the bound alone overflow the budget they seat by the tick-target precedent — bond descending, kin and enemy ties before the merely bound, introduced ascending — byte-stable on every repeat. Scene floor untrimmed, contract keys exact, the 7,000-character default unchanged, the rider inside the dynamic tail so the cache posture never moves. Directive XX, Law VIII, Phase 8; gate `kinship` (engine twin + table gate).
 
 ## VI. The Saga groundwork (Directive V)
 

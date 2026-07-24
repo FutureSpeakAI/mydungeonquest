@@ -342,6 +342,14 @@ export const FEATURES = [
     wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'sealActEpoch' }, { src: `${GAME}/src/App.jsx`, needle: 'memoryEpochLadder' }, { src: `${GAME}/server/index.js`, needle: '/api/epoch' }]
   },
 
+  {
+    id: 'kinship-immunity', category: 4, tier: 'wired',
+    name: 'The Kinship Immunity — the horizon never starves the bound',
+    detail: 'The [STORY] pack\u2019s recency famine may never drop a bound soul: any ACTIVE soul at bond three or higher, or carrying a kin or enemy tie to the hero, rides every pack at least slim regardless of last_seen — the hero\u2019s mother, silent sixty turns, is never reintroduced as a stranger. The dead and the departed earn no immunity. The famine eats the unbound exactly as before (byte-identical whenever no bound soul stands in the rest); when the bound alone overflow the budget they seat by the tick-target precedent — bond descending, kin and enemy ties before the merely bound, introduced ascending — byte-stable on every repeat. Scene floor untrimmed, contract keys exact, the 7,000-character default unchanged, the rider inside the dynamic tail so the cache posture never moves. Directive XX, Law VIII, Phase 8; gate `kinship` (engine twin + table gate).',
+    contract: [{ file: 'packages/engine/evals/kinship.test.mjs' }, { file: `${GAME}/evals/kinship.test.mjs` }, { src: `${GAME}/package.json`, needle: 'kinship.test.mjs' }, { src: 'packages/engine/src/graph.js', needle: 'THE KINSHIP IMMUNITY' }],
+    wiring: [{ src: 'packages/engine/package.json', needle: 'kinship.test.mjs' }, { src: `${GAME}/src/App.jsx`, needle: 'buildBriefing(' }]
+  },
+
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {
     id: 'saga', category: 5, tier: 'groundwork',

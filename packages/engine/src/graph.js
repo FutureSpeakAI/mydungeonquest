@@ -63,6 +63,19 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
     else if (tied.has(key)) fullSet.add(key);
     else rest.push(soul);
   }
+  // THE KINSHIP IMMUNITY (Directive XX, Law VIII): the recency horizon never
+  // starves the bound. Any ACTIVE soul at bond three or higher, or carrying
+  // a kin or enemy tie to the hero, rides every pack at least slim
+  // regardless of last_seen — the hero's mother, silent sixty turns, is
+  // never reintroduced as a stranger. The dead and the departed do not
+  // qualify: the immunity is for the living record. The famine below may
+  // slim and drop the unbound exactly as it always has; the bound it may
+  // not touch until the bound alone overflow the budget — and then they
+  // fall by the tick-target ordering's own precedent, lowest seat first.
+  const heroKey = canon(campaign.hero?.name);
+  const kinTied = (soul) => (cards[canon(soul.name)]?.ties || []).some((tie) => (tie.type === 'kin' || tie.type === 'enemy') && canon(tie.to) === heroKey);
+  const boundSoul = (soul) => soul.status === 'active' && ((soul.bond ?? 0) >= 3 || kinTied(soul));
+  const immune = new Set(rest.filter(boundSoul).map((soul) => canon(soul.name)));
   let castOut = [
     ...codex.cast.filter((soul) => fullSet.has(canon(soul.name))),
     ...rest.map(SLIM)
@@ -96,10 +109,17 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
 
   // 5. The budget, enforced: drop slim rest first, then slim the tied ring,
   //    then slim regions. The scene floor stands even if it alone overflows.
+  //    The kinship immunity (XX.8) holds one seat apart: a bound rider is
+  //    never this famine's to drop — the walk takes the LAST unbound rider
+  //    instead, byte-identical to the old walk whenever no bound soul
+  //    stands in the rest.
   let out = pack();
   const size = () => JSON.stringify(out).length;
-  while (size() > budget && castOut.some((soul) => !soul.visual && !fullSet.has(canon(soul.name)))) {
-    castOut = castOut.slice(0, castOut.length - 1); out = pack();
+  const droppable = (soul) => !soul.visual && !fullSet.has(canon(soul.name)) && !immune.has(canon(soul.name));
+  while (size() > budget && castOut.some(droppable)) {
+    let last = -1;
+    for (let i = 0; i < castOut.length; i += 1) if (droppable(castOut[i])) last = i;
+    castOut = castOut.filter((_, index) => index !== last); out = pack();
   }
   if (size() > budget) {
     castOut = castOut.map((soul) => (inScene(soul) || soul.role === 'villain' ? soul : (soul.visual ? SLIM(soul) : soul))); out = pack();
@@ -107,6 +127,22 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
   // The standing scene's region joins the index-0 immunity: the budget's
   // slim-trim may never slim the ground the tale stands on (VII.10b).
   if (size() > budget) { regionsOut = regionsOut.map((region, i) => (i === 0 || (sceneRegion && canon(region.name) === sceneRegion) ? region : { name: region.name, state: region.state })); out = pack(); }
+  // THE KINSHIP OVERFLOW (XX.8): when the bound alone still burst the
+  // budget, they seat in deterministic priority — bond descending, kin and
+  // enemy ties to the hero before the merely bound, the earliest-introduced
+  // before the later, the name as the last word — and the lowest seat falls
+  // first. The scene floor above them never moves.
+  if (size() > budget && immune.size) {
+    const seats = rest.filter((soul) => immune.has(canon(soul.name))).sort((a, b) =>
+      ((b.bond ?? 0) - (a.bond ?? 0)) ||
+      ((kinTied(a) ? 0 : 1) - (kinTied(b) ? 0 : 1)) ||
+      ((a.introduced_turn ?? 99) - (b.introduced_turn ?? 99)) ||
+      a.name.localeCompare(b.name));
+    while (size() > budget && seats.length) {
+      const fallen = canon(seats.pop().name);
+      castOut = castOut.filter((soul) => canon(soul.name) !== fallen); out = pack();
+    }
+  }
   return out;
 }
 

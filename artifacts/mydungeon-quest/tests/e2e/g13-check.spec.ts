@@ -60,7 +60,9 @@ import { GAME_ROOT } from './lib/vision';
 // same commit that builds the immunity.
 // (65 Phase 9) 162 → 163: the alias gate joins the keyless check in the
 // same commit that opens the name road.
-const PINNED_PASS_COUNT = 164; // Task 65 Phase 10 (Directive XXII): +1 — the cellar gate joins the keyless check in the same commit that teaches the house to sweep its own shelf; 163 → 164
+// (65 Phase 10) 163 → 164: the cellar gate joins the keyless check in the
+// same commit that teaches the house to sweep its own shelf.
+const PINNED_PASS_COUNT = 165; // Task 65 Phase 11 (Directive XX, Law XII): +1 — the pyre-and-parcel gate joins the keyless check in the same commit that raises the owner's two rights; 164 → 165
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

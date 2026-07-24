@@ -14,6 +14,7 @@ import { initMint, mintConfigured } from './mint.js';
 import { innkeeper, debit, dmDebitKey, retellDebitKey, epochDebitKey, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
 import { publishRoutes } from './publish.js';
+import { rightsRoutes } from './rights.js';
 import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport, testHerald, ownersBell } from './watchtower.js';
 import { assetlinksFor } from './dowry.js';
 import sharp from 'sharp';
@@ -152,11 +153,20 @@ app.use('/api', requestLog());
 // 401 before the innkeeper ever reads a ledger. The standing page
 // (/api/toll), whoami, health, the courier, and the static halls stay open
 // to the nameless; a keyless fork has no door and this line is a
-// pass-through (the eval's table is untouched).
+// pass-through (the eval's table is untouched). The owner's two rights
+// (Phase 11) stand in the same array: the parcel and the pyre are named
+// doors before they are anything else.
 app.use(
-  ['/api/dm', '/api/retell', '/api/epoch', '/api/paint', '/api/speak', '/api/music', '/api/sfx', '/api/quest-audio', '/api/bind-pdf', '/api/warden'],
+  ['/api/dm', '/api/retell', '/api/epoch', '/api/paint', '/api/speak', '/api/music', '/api/sfx', '/api/quest-audio', '/api/bind-pdf', '/api/vault/parcel', '/api/account/pyre', '/api/warden'],
   namedOnly(),
 );
+
+// THE PYRE AND THE PARCEL (Directive XX, Law XII): the owner-complete
+// archive and the account-wide burn. Mounted AFTER the named gate above —
+// the array must actually stand in these doors' path. Neither door reads
+// any owner parameter; the signed blob fetch under /api/account/parcel/blob
+// is nameless by design (the signature is the name).
+app.use('/api', rightsRoutes());
 
 // THE WARDEN'S EYES (Directive VI, Phase 13): the key that paints can also
 // see. Two lawful images and the locked brief go in; the verdict's words

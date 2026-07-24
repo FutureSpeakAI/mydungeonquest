@@ -7,3 +7,6 @@ A surface that moves keeps its classes but not its page: every read()-pinned eva
 **Why:** A codex→book component migration (July 2026) left four eval needles pointing at the old seat (caught by the keyless tail, one by one) and four e2e courts pressing moved elements from the wrong page (caught as a five-court loop red). One family, two instruments, five iterations of the ceiling spent finding strays.
 
 **How to apply:** After any component migration, audit in one sweep: every eval that read()s the old file, every court selector that assumed the old layout. Retarget navigation only — never weaken an assertion. Expect the first loop sitting to name survivors; budget the ceiling for it.
+
+## Growth strikes the same family as migration (2026-07-24)
+Appending entries to a source-pinned list breaks needles that pin the list's TAIL shape (e.g. an eval regex demanding a specific entry stay last: `\['\/api\/dm'[^\]]*'\/api\/warden'\]`). Grep every eval needle on a list/array BEFORE growing it, and prefer keeping the established pin whole (insert before the pinned tail) over loosening the old court. New courts on shared lists should judge membership, not position.

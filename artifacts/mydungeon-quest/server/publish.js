@@ -37,7 +37,8 @@ const SHA256_HEX = /^[a-f0-9]{64}$/;
 const mintPublishId = () => crypto.randomBytes(16).toString('base64url');
 
 // ------------------------------------------------------------ the ledger
-const PUBLISH_DDL = `
+// Exported for the rights roll (rights.js).
+export const PUBLISH_DDL = `
   CREATE TABLE IF NOT EXISTS publish_pages (
     publish_id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,

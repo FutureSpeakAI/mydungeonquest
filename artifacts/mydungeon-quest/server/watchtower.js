@@ -166,7 +166,7 @@ export function requestLog() {
 }
 
 // --------------------------------------------------- the watchtower ledger
-const WATCH_DDL = [
+export const WATCH_DDL = [ // exported for the rights roll (rights.js)
   `CREATE TABLE IF NOT EXISTS rate_windows (
     key TEXT PRIMARY KEY,
     window_start TIMESTAMPTZ NOT NULL,

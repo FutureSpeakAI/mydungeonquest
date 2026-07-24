@@ -364,6 +364,13 @@ export const FEATURES = [
     contract: [{ file: `${GAME}/evals/cellar.test.mjs` }, { src: `${GAME}/package.json`, needle: 'cellar.test.mjs' }, { src: `${GAME}/src/lib/cellar.js`, needle: 'sweepPlan' }],
     wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'sweepCellar' }, { src: `${GAME}/src/components/Overlays.jsx`, needle: 'Sweep the cellar' }, { src: `${GAME}/src/components/Cinematic.jsx`, needle: 'CELLAR_FRAME_LINE' }]
   },
+  {
+    id: 'pyre-and-parcel', category: 4, tier: 'wired',
+    name: 'The Pyre and the Parcel \u2014 the owner\u2019s two standing rights',
+    detail: 'Server law behind the named door, and neither door reads any owner parameter \u2014 a cross-owner ask is unexpressible, not merely refused. GET /api/vault/parcel bales the owner-complete archive in deterministic order: all nine shelves, journal envelopes WHOLE (a rider field no schema ever named arrives intact), media by hash with a short-lived signed fetch, key halves public only. POST /api/account/pyre burns the account whole: the phrase spoken back or refused by name; blobs first under the owner\u2019s holdings alone (every hash the living still cite is kept; one gutter aborts before any row burns, honestly retryable); then every table in ONE transaction, counts honest, the name last, the Clerk step named in the answer. THE STRONG TOOTH: the table roll derives from the schema\u2019s own exported DDL \u2014 a shelf born tomorrow without its rights clauses reds the gate and both doors at birth. Directive XX Law XII, Phase 11; gate `pyreParcel`.',
+    contract: [{ file: `${GAME}/evals/pyreParcel.test.mjs` }, { src: `${GAME}/package.json`, needle: 'pyreParcel.test.mjs' }, { src: `${GAME}/server/rights.js`, needle: 'assertRollCovered' }],
+    wiring: [{ src: `${GAME}/server/index.js`, needle: "'/api/account/pyre'" }, { src: `${GAME}/src/components/Overlays.jsx`, needle: 'Light the account pyre' }, { src: `${GAME}/src/lib/rights.js`, needle: 'PYRE_PHRASE' }]
+  },
 
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {

@@ -55,9 +55,14 @@ function ledger() {
   return pool;
 }
 export const runQuery = (text, params) => ledger().query(text, params);
+// The rights doors (rights.js) hold one true transaction across every
+// shelf — they need the pool itself, not a per-call seat from it.
+export const ledgerPool = () => ledger();
 
-// The ledger's whole schema — names, never tales.
-const LEDGER_DDL = `CREATE TABLE IF NOT EXISTS users (
+// The ledger's whole schema — names, never tales. Exported: the rights
+// roll (rights.js) derives the house's table roll from the DDL itself,
+// so a new shelf cannot be born outside the owner's two rights.
+export const LEDGER_DDL = `CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   clerk_user_id TEXT UNIQUE NOT NULL,
   display_name TEXT,

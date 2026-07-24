@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-24). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 61 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 62 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 **THE TRIAGE (wire first):** Bearing, Signature & the paint roster.
 
@@ -211,6 +211,10 @@ A soul may earn epithets — "The Gray Warden," a title, a nom de guerre — sea
 ### The Cellar Sweep — the shelf keeps only its treasures — PRESENT
 
 Pixels are cache; the record is law. At every act close (after the annal and the epoch) and by hand from Settings & Care, a pure deterministic plan walks the media shelf against the sealed journal and the standing act; one Dexie transaction on the shelf alone then executes it exactly. Kept, each row naming its immunity: anchors, composite sheets, book-attested plates, standing region states, the tempo law’s held frame, everything within the two-act horizon, house furniture, unattributable and unreadable rows (fail-closed), and every audio row — plates only this season, spoken plainly. Evicted, naming horizons: elder scenes and superseded region states. The journal, chain, and attestations are never touched; where an evicted plate hung, the replay speaks the honest cleared frame over its own procedural art — never a wrong image, never a silent re-bill. Directive XXII, Phase 10; gate `cellar`.
+
+### The Pyre and the Parcel — the owner’s two standing rights — PRESENT
+
+Server law behind the named door, and neither door reads any owner parameter — a cross-owner ask is unexpressible, not merely refused. GET /api/vault/parcel bales the owner-complete archive in deterministic order: all nine shelves, journal envelopes WHOLE (a rider field no schema ever named arrives intact), media by hash with a short-lived signed fetch, key halves public only. POST /api/account/pyre burns the account whole: the phrase spoken back or refused by name; blobs first under the owner’s holdings alone (every hash the living still cite is kept; one gutter aborts before any row burns, honestly retryable); then every table in ONE transaction, counts honest, the name last, the Clerk step named in the answer. THE STRONG TOOTH: the table roll derives from the schema’s own exported DDL — a shelf born tomorrow without its rights clauses reds the gate and both doors at birth. Directive XX Law XII, Phase 11; gate `pyreParcel`.
 
 ## VI. The Saga groundwork (Directive V)
 

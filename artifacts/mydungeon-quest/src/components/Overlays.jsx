@@ -10,6 +10,7 @@ import { regionSlate } from '../lib/market.js';
 import { chartRibbon } from '../lib/atlas.js';
 import { composeReport } from '../lib/errata.js';
 import { HOUSE_VERSION } from '../lib/houseConfig.js';
+import { PYRE_PHRASE } from '../lib/rights.js';
 import { Frame, useGallery } from './gallery.jsx';
 
 // Load the latest painted plate per label (souls, regions, key art) so the
@@ -193,6 +194,7 @@ export function Settings({ campaign, settings, onChange, onTempo, onDownloadAudi
       <p className="muted">One produced episode from the sealed record — the Chronicler retells, the cast re-speak their own lines, stings sound only between sections. The forge binds real voices only; a keyless table keeps the book.{forgeElsewhere ? ' The forge lights for the voiced seat — the toll-house below tells the way.' : ''}</p>
     </>}
     <BetaDoor campaign={campaign} settings={settings} toll={toll} />
+    {doorBuilt && toll?.plan && toll.plan !== 'guest' && <OwnersRights />}
     <OwnersBell/>
     <div className="law-note"><Heart/><span>{doorBuilt
       ? 'Your chronicles stay on this device. A name at the door is only a key — the tale itself never leaves without you.'
@@ -222,6 +224,69 @@ function BetaDoor({ campaign, settings, toll }) {
     </div>
     {word && <p className="muted" role="status">{word}</p>}
     <p className="muted">Until the Commons lands, this vault lives on this device alone. Export a sealed chronicle now and then — the sheet's export door keeps the tale in your own hands.</p>
+  </>;
+}
+
+// THE OWNER'S TWO RIGHTS (Directive XX, Law XII) — the parcel and the
+// pyre, seated where the owner already reads the house's small print.
+// Both rights are server law behind the named door; this seat only
+// knocks. The pyre here burns the HOUSE's holdings — the tales on this
+// device stay in the owner's own hands (the title screen's local pyre
+// is an older, different right and is untouched). The phrase is the one
+// shared seat in src/lib/rights.js — never retyped here.
+function OwnersRights() {
+  const [parcel, setParcel] = useState({ busy: false, word: null });
+  const [rite, setRite] = useState(false);
+  const [spoken, setSpoken] = useState('');
+  const [pyre, setPyre] = useState({ busy: false, word: null, verdict: null });
+  const bale = async () => {
+    setParcel({ busy: true, word: null });
+    try {
+      const answer = await fetch('/api/vault/parcel');
+      if (!answer.ok) {
+        const said = await answer.json().catch(() => ({}));
+        throw new Error(said.error || `the door answered ${answer.status}`);
+      }
+      const url = URL.createObjectURL(await answer.blob());
+      const anchor = document.createElement('a');
+      anchor.href = url; anchor.download = 'mydungeon-account-parcel.json';
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setParcel({ busy: false, word: 'Baled and in your hands: every row under your name, journal envelopes whole, media by signed fetch — each link good for fifteen minutes.' });
+    } catch (error) {
+      setParcel({ busy: false, word: `The parcel was not baled: ${error?.message || error}` });
+    }
+  };
+  const strike = async () => {
+    setPyre({ busy: true, word: null, verdict: null });
+    try {
+      const answer = await fetch('/api/account/pyre', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phrase: spoken }) });
+      const verdict = await answer.json().catch(() => ({}));
+      if (!answer.ok) throw new Error(verdict.error || `the door answered ${answer.status}`);
+      setRite(false); setSpoken('');
+      setPyre({ busy: false, word: verdict.clerk, verdict });
+    } catch (error) {
+      setPyre({ busy: false, word: String(error?.message || error), verdict: null });
+    }
+  };
+  const tally = pyre.verdict ? Object.entries(pyre.verdict.rows || {}).map(([shelf, n]) => `${shelf} ${n}`).join(' · ') : null;
+  return <>
+    <h3>The owner's rights</h3>
+    <p className="muted">Two rights stand over everything the house keeps under your name — the cloud vault, published pages, the ledger of use, your seat itself. Take the whole record, or burn it.</p>
+    <button className="secondary-button" disabled={parcel.busy} onClick={bale}><Download/> {parcel.busy ? 'Baling the parcel…' : 'Take the parcel'}</button>
+    {parcel.word && <p className="muted" role="status">{parcel.word}</p>}
+    {!rite && <button className="secondary-button" onClick={() => setRite(true)}>Light the account pyre…</button>}
+    {rite && <>
+      <p className="muted">The pyre burns the house's every holding under your name and cannot be unlit. Blobs another tale still cites are kept for the living; your sign-in identity at the Clerk door remains yours to remove after. Speak the phrase back whole:</p>
+      <pre className="beta-report" aria-label="The pyre's phrase">{PYRE_PHRASE}</pre>
+      <input value={spoken} onChange={(event) => setSpoken(event.target.value)} placeholder="Write the phrase here, letter for letter" aria-label="The phrase, spoken back" />
+      <div className="button-row">
+        <button className="secondary-button" disabled={spoken !== PYRE_PHRASE || pyre.busy} onClick={strike}>{pyre.busy ? 'The pyre burns…' : 'Strike the match'}</button>
+        <button className="secondary-button" disabled={pyre.busy} onClick={() => { setRite(false); setSpoken(''); }}>Leave it unlit</button>
+      </div>
+    </>}
+    {pyre.word && <p className="muted" role="status">{pyre.word}</p>}
+    {tally && <p className="muted">The counts, honestly: {tally}{pyre.verdict?.blobs ? ` · blobs burned ${pyre.verdict.blobs.burned}, kept for the living ${pyre.verdict.blobs.kept}` : ''}.</p>}
   </>;
 }
 

@@ -39,7 +39,7 @@ const MAX_PUSH_RECORDS = 500;
 
 // ------------------------------------------------------------- the shelves
 // The vault's whole schema — self-bootstrapping, like every server table.
-const VAULT_DDL = [
+export const VAULT_DDL = [ // exported for the rights roll (rights.js)
   `CREATE TABLE IF NOT EXISTS vault_campaigns (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     campaign_id TEXT NOT NULL,
@@ -138,6 +138,8 @@ const gcsBlobs = {
     const [meta] = await file.getMetadata();
     return { bytes, mime: meta.contentType || 'application/octet-stream' };
   },
+  // The account pyre's ash door (rights.js). Absence is already ash.
+  async delete(hash) { try { await (await bucketFile(hash)).delete(); } catch (error) { if (Number(error?.code) !== 404) throw error; } },
 };
 // One shelf, one seat: the commons (publish) doors serve the same
 // content-addressed blobs the vault shelves — never a second store.

@@ -83,7 +83,7 @@ const realWork = (provider) => Boolean(provider) && provider !== 'mock' && provi
 const ENTITLED = new Set(['active', 'trialing', 'past_due']);
 
 // ------------------------------------------------------- the ledger of use
-const TOLL_DDL = [
+export const TOLL_DDL = [ // exported for the rights roll (rights.js)
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'free'`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`,
   `CREATE TABLE IF NOT EXISTS usage_events (

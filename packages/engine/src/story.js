@@ -11,6 +11,9 @@ import { ENCHANT_TABLE, armorRowFor, derivedAc, equippedRows } from './armory.js
 // arithmetic. The reducer folds; it never re-declares a table.
 import { companionSpellsFor, spellRowFor } from './grimoire.js';
 import { ROLE_TABLE, slotsForArchetype } from './rules.js';
+// THE NAME ROAD (Directive XXI): alias resolution and the ledger's one
+// seal ride from names.js — the fold grows no second resolver.
+import { aliasIndex, resolveByClaims, sealAlias } from './names.js';
 
 export const REGION_STATES = ['thriving', 'troubled', 'corrupted', 'ruined', 'healed'];
 // The status law: a soul is exactly one of these. Anything else the DM sends
@@ -63,15 +66,20 @@ export function actInfo(codex) {
 
 // Resolve a DM-sent name to a cast card: exact canonical match first, then a
 // unique bare-first-name alias ("Mara" reaches "Mara Vey" when she is the only
-// Mara at the table). An ambiguous alias resolves to nobody — canon is never
-// guessed. The validator's dead-speak check follows the same law.
+// Mara at the table), then — THE ALIAS LEDGER (Directive XXI) — a sealed
+// epithet through the one name road. An ambiguous name resolves to nobody —
+// canon is never guessed. The validator's dead-speak check follows the same law.
 function findSoul(cast, rawName) {
   const name = canonName(rawName);
   if (!name) return null;
   const exact = cast.find((entry) => canonName(entry.name) === name);
   if (exact) return exact;
   const aliased = cast.filter((entry) => canonName(entry.name).split(/\s+/)[0] === name);
-  return aliased.length === 1 ? aliased[0] : null;
+  if (aliased.length === 1) return aliased[0];
+  if (aliased.length > 1) return null;
+  const owner = resolveByClaims(rawName, aliasIndex(cast));
+  if (!owner) return null;
+  return cast.find((entry) => canonName(entry.name) === canonName(owner)) || null;
 }
 
 function pushFact(list, fact) {
@@ -303,6 +311,14 @@ export function applyStoryUpdates(codex, updates, meta = {}) {
       if (!soul.timbre && late.timbre) soul.timbre = clean(String(late.timbre), 24);
     }
     if (patch.last_seen) soul.last_seen = clean(patch.last_seen, 160);
+    // THE ALIAS LEDGER (Directive XXI): one epithet per op rides the
+    // soul's known_as ledger through the one seal — append-ordered,
+    // case-blind deduped, the soul's own name a quiet no-op. The door
+    // has already refused any claim another soul holds; the ledger is
+    // born on first seal, so a pre-alias record replays byte-identical.
+    if (typeof patch.known_as_add === 'string' && patch.known_as_add.trim()) {
+      soul.known_as = sealAlias(soul.known_as, patch.known_as_add, soul.name);
+    }
   }
 
   // THE THREAD LEDGER (Directive V) — promises, debts, mysteries, and sworn

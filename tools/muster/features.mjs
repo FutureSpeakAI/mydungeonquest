@@ -350,6 +350,14 @@ export const FEATURES = [
     wiring: [{ src: 'packages/engine/package.json', needle: 'kinship.test.mjs' }, { src: `${GAME}/src/App.jsx`, needle: 'buildBriefing(' }]
   },
 
+  {
+    id: 'alias-ledger', category: 4, tier: 'wired',
+    name: 'The Alias Ledger — one soul, many names, one card',
+    detail: 'A soul may earn epithets — "The Gray Warden," a title, a nom de guerre — sealed one per op by cast_update.known_as_add onto the card\u2019s append-ordered, case-blind-deduped known_as ledger. Every sealed name answers as the ONE soul on the one name road (names.js): cards attribution, the scene graph, presence replay, the census, the dead-speak and ground courts, the wiki\u2019s "Also called" line. The validator refuses, by name, any claim another soul already holds — sealed name or ledger, the hero included, same-turn cast_add counted, claims binding sequentially — while re-sealing an own claim is a quiet no-op. Ledgers are born on first seal, so every pre-alias record replays byte-identical. Directive XXI, Phase 9; gate `alias` (engine twin + table gate).',
+    contract: [{ file: 'packages/engine/evals/alias.test.mjs' }, { file: `${GAME}/evals/alias.test.mjs` }, { src: `${GAME}/package.json`, needle: 'alias.test.mjs' }, { src: 'packages/engine/src/names.js', needle: 'THE NAME ROAD' }],
+    wiring: [{ src: 'packages/engine/package.json', needle: 'alias.test.mjs' }, { src: `${GAME}/src/components/Book.jsx`, needle: 'knownAsLine' }]
+  },
+
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {
     id: 'saga', category: 5, tier: 'groundwork',

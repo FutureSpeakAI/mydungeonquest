@@ -34,3 +34,13 @@ export function tieLine(tie) {
   if (tie.type === 'ally') return `sworn to ${tie.to}`;
   return `${tie.why} with ${tie.to}`;
 }
+
+// THE ALIAS LEDGER (Directive XXI), spoken as story: every sealed name
+// a soul answers to, in the order the tale bestowed them. Empty when a
+// soul has only ever carried its own name — a wordless card claims
+// nothing.
+export function knownAsLine(card) {
+  const held = Array.isArray(card?.known_as) ? card.known_as.filter((name) => typeof name === 'string' && name.trim()) : [];
+  if (!held.length) return '';
+  return `Also called ${held.map((name) => name.trim()).join(', ')}`;
+}

@@ -122,7 +122,21 @@ export function foldPresenceRow(state, log, index) {
       if (!known.has(canon(name))) known.set(canon(name), name);
       sight(name);
     }
-    for (const update of rows(story.cast_update)) if (update?.name) sight(update.name);
+    for (const update of rows(story.cast_update)) {
+      if (!update?.name) continue;
+      sight(update.name);
+      // THE ALIAS LEDGER (Directive XXI): a sealed epithet joins the
+      // known map at its soul's own seat, so every later sighting under
+      // the alias lands on the ONE soul. The map is presence STATE, not
+      // a second resolver — the matching law lives on the name road.
+      // First claim stands; a name the record never declared seats
+      // nothing (junk proves nothing).
+      const alias = typeof update.known_as_add === 'string' ? update.known_as_add.replace(/\s+/g, ' ').trim() : '';
+      if (alias) {
+        const owner = resolveName(known, update.name);
+        if (owner && !known.has(canon(alias))) known.set(canon(alias), owner);
+      }
+    }
     for (const block of rows(log?.dm?.narration_blocks)) if (block?.speaker) sight(block.speaker);
     if (log?.dm?.dialogue_cue?.speaker) sight(log.dm.dialogue_cue.speaker);
     for (const add of rows(story.item_add)) if (add?.holder) sight(add.holder);

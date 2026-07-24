@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-24). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 59 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 60 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 **THE TRIAGE (wire first):** Bearing, Signature & the paint roster.
 
@@ -203,6 +203,10 @@ When an act closes, the same close that writes the annal distills the act into a
 ### The Kinship Immunity — the horizon never starves the bound — PRESENT
 
 The [STORY] pack’s recency famine may never drop a bound soul: any ACTIVE soul at bond three or higher, or carrying a kin or enemy tie to the hero, rides every pack at least slim regardless of last_seen — the hero’s mother, silent sixty turns, is never reintroduced as a stranger. The dead and the departed earn no immunity. The famine eats the unbound exactly as before (byte-identical whenever no bound soul stands in the rest); when the bound alone overflow the budget they seat by the tick-target precedent — bond descending, kin and enemy ties before the merely bound, introduced ascending — byte-stable on every repeat. Scene floor untrimmed, contract keys exact, the 7,000-character default unchanged, the rider inside the dynamic tail so the cache posture never moves. Directive XX, Law VIII, Phase 8; gate `kinship` (engine twin + table gate).
+
+### The Alias Ledger — one soul, many names, one card — PRESENT
+
+A soul may earn epithets — "The Gray Warden," a title, a nom de guerre — sealed one per op by cast_update.known_as_add onto the card’s append-ordered, case-blind-deduped known_as ledger. Every sealed name answers as the ONE soul on the one name road (names.js): cards attribution, the scene graph, presence replay, the census, the dead-speak and ground courts, the wiki’s "Also called" line. The validator refuses, by name, any claim another soul already holds — sealed name or ledger, the hero included, same-turn cast_add counted, claims binding sequentially — while re-sealing an own claim is a quiet no-op. Ledgers are born on first seal, so every pre-alias record replays byte-identical. Directive XXI, Phase 9; gate `alias` (engine twin + table gate).
 
 ## VI. The Saga groundwork (Directive V)
 

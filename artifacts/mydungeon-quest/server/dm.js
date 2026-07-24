@@ -296,6 +296,17 @@ const storySchema = {
           goal: { anyOf: [{ type: 'null' }, { type: 'string', maxLength: 300 }], description: 'The reshaped goal, when the bend redirects it.' },
           reason: { type: 'string', minLength: 12, maxLength: 200, description: 'Why the played tale demands this bend.' }
         } } ], description: 'The one lawful bend: reshape a FUTURE beat\'s title or goal when the player\'s choices have outrun the spine. One a turn, one per act, never the beat you stand on nor any behind you.' },
+        // THE ALIAS LEDGER (Directive XXI + the toolschema-validation
+        // lesson): the validator's collision court reads
+        // story.cast_update.known_as_add, so the schema holds the seat
+        // with the court's OWN bounds — a hidden seat is a trap. Only
+        // the taught keys are declared, additive by law; the op's elder
+        // fields (status, bond_delta, bond_reason, fact_add, last_seen,
+        // voice_card) keep their standing prompt-taught freedom.
+        cast_update: { type: 'array', items: { type: 'object', properties: {
+          name: { type: 'string', minLength: 2, maxLength: 80, description: 'A soul the record holds — its sealed name or any name on its known_as ledger. One soul, however many names.' },
+          known_as_add: { anyOf: [ { type: 'null' }, { type: 'string', minLength: 2, maxLength: 60 } ], description: 'Seal ONE new name onto this soul\'s known_as ledger — an epithet, a title, a nom de guerre ("The Gray Warden") — and the soul answers to it forever as ITSELF. Refused, case-blind, when it already names ANOTHER soul (name or ledger). Re-sealing the soul\'s own name or a held alias is a quiet no-op, never an error.' }
+        } } },
         // THE NEW GROUND (VIII + the toolschema-validation lesson): the
         // validator's same-breath teach and the fold both read story.world,
         // yet the schema never held the seat — three descriptions pointed

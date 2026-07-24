@@ -14,6 +14,10 @@ import { buildCards } from './cards.js';
 import { calendarLine, calendarOf } from './calendar.js';
 import { allegiancesOf } from './atlas.js';
 import { presenceOf, elsewhereOf } from './presence.js';
+// THE NAME ROAD (Directive XXI): the scene walk answers sealed epithets
+// through the one road — no private resolver; a ledgerless cast takes
+// no hop, so every pre-alias pack stays byte-identical.
+import { aliasIndex, resolveByClaims } from './names.js';
 
 const canon = (name) => String(name || '').trim().toLowerCase();
 const SLIM = (soul) => ({ name: soul.name, role: soul.role, status: soul.status, bond: soul.bond, last_seen: soul.last_seen });
@@ -30,8 +34,17 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
   lastTurn = Math.max(0, lastTurn);
   const horizon = lastTurn - recentTurns;
   const scene = new Set();
+  // A soul who spoke under a sealed epithet is IN the scene as itself:
+  // the road resolves the alias to its one soul, whose full canon name
+  // joins the set beside the standing first-word key (XXI).
+  const sceneAliases = aliasIndex(codex.cast);
   for (const entry of logs.slice(-recentTurns)) {
-    for (const b of entry.dm?.narration_blocks || []) if (b?.speaker) scene.add(canon(b.speaker).split(/\s+/)[0]);
+    for (const b of entry.dm?.narration_blocks || []) {
+      if (!b?.speaker) continue;
+      scene.add(canon(b.speaker).split(/\s+/)[0]);
+      const owner = resolveByClaims(b.speaker, sceneAliases);
+      if (owner) scene.add(canon(owner));
+    }
   }
   const inScene = (soul) => {
     const key = canon(soul.name);

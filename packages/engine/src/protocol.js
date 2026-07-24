@@ -13,6 +13,11 @@ import { spellRowFor } from './grimoire.js';
 // import cycle stays inert.
 import { REGION_STATES } from './story.js';
 
+// THE NAME ROAD (Directive XXI — THE ALIAS LEDGER): claims, the alias
+// hop, the collision index, and the road's own canon ride from the one
+// seat; no court grows a private resolver.
+import { aliasIndex, claimsIndex, resolveByClaims, canonName as nameKey } from './names.js';
+
 const ALLOWED_KEYS = new Set(['narration_blocks','suggestions','roll_request','state_updates','combat','cinematic','story','image_cue','dialogue_cue','time_advance','entropy_use']);
 const CINEMATIC_TYPES = new Set(['chapter','boss_reveal','discovery','ominous','level_up','death','victory']);
 const ROLL_KINDS = new Set(['check','save','attack','damage','death_save']);
@@ -810,6 +815,73 @@ export function expandSpawn(spawn, bestiary = []) {
   });
 }
 
+// THE ALIAS LEDGER COURT (Directive XXI) — one soul, one claim. Shape
+// law seats always: known_as_add, when present, is ONE string of 2-60
+// characters (null is a lawful empty seat — the schema's own idle arm).
+// The collision court seats iff context.cast is an array, like the
+// living court beside it: a claim that already belongs, case-blind, to
+// ANOTHER soul — a sealed name, a ledger name, the hero's own name, or
+// a name this same turn's cast_add brings — is refused NAMING the
+// holder; a name more than one soul already answers to is refused as
+// contested. Re-sealing a soul's own claim is the fold's quiet no-op,
+// never an error. Claims bind sequentially, exactly as the fold will
+// walk them: an epithet sealed by an earlier patch stands against every
+// later one in the same turn.
+function validateAliasLedger(story, context, errors) {
+  if (!story || typeof story !== 'object') return;
+  const patches = Array.isArray(story.cast_update) ? story.cast_update : [];
+  if (!patches.length) return;
+  const seated = Array.isArray(context.cast);
+  const claims = seated ? claimsIndex(context.cast) : new Map();
+  const hero = typeof context.hero === 'string' && context.hero.trim() ? context.hero.trim() : null;
+  if (seated && hero && !claims.has(nameKey(hero))) claims.set(nameKey(hero), hero);
+  if (seated) {
+    for (const soul of Array.isArray(story.cast_add) ? story.cast_add : []) {
+      const born = typeof soul?.name === 'string' ? soul.name.trim() : '';
+      if (born && !claims.has(nameKey(born))) claims.set(nameKey(born), born);
+    }
+  }
+  const castNames = seated ? context.cast.map((soul) => (typeof soul?.name === 'string' ? soul.name.trim() : '')).filter(Boolean) : [];
+  // The addressee, by the fold's own law: exact name, then a unique bare
+  // first name, then any sealed claim on the road. Nobody is guessed;
+  // an addressee the court cannot prove keeps no claim it cannot own.
+  const addresseeOf = (rawName) => {
+    if (typeof rawName !== 'string' || !rawName.trim()) return null;
+    const key = nameKey(rawName);
+    const exact = castNames.find((name) => nameKey(name) === key);
+    if (exact) return exact;
+    const byFirst = castNames.filter((name) => nameKey(name).split(/\s+/)[0] === key);
+    if (byFirst.length === 1) return byFirst[0];
+    if (byFirst.length > 1) return null;
+    const owner = claims.get(key);
+    return typeof owner === 'string' && owner ? owner : null;
+  };
+  for (const patch of patches) {
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) continue;
+    const raw = patch.known_as_add;
+    if (raw === undefined || raw === null) continue;
+    if (typeof raw !== 'string' || raw.trim().length < 2 || raw.trim().length > 60) {
+      assert(false, 'story.cast_update.known_as_add must be ONE name of 2-60 characters when present — one epithet per op, or null.', errors);
+      continue;
+    }
+    if (!seated) continue;
+    const alias = raw.replace(/\s+/g, ' ').trim();
+    const key = nameKey(alias);
+    const addressed = addresseeOf(patch.name);
+    const standing = claims.get(key);
+    if (claims.has(key) && standing === null) {
+      assert(false, `story.cast_update cannot seal "${alias}" — more than one soul already answers to that name. One soul, one claim; choose another epithet.`, errors);
+      continue;
+    }
+    const holder = typeof standing === 'string' ? standing : null;
+    if (holder && (!addressed || nameKey(holder) !== nameKey(addressed))) {
+      assert(false, `story.cast_update cannot seal "${alias}" onto ${addressed || (typeof patch.name === 'string' && patch.name.trim() ? patch.name.trim() : 'an unnamed soul')} — that name already belongs to ${holder}. One soul, one claim; choose another epithet.`, errors);
+      continue;
+    }
+    if (addressed && !holder) claims.set(key, addressed);
+  }
+}
+
 // THE NOBODY-TELEPORTS LAW (Directive VIII.3) — when the court is seated,
 // a narration speaker or dialogue_cue voice whose derived last lawful
 // ground is KNOWN and is neither the current scene nor within the party
@@ -828,12 +900,18 @@ function validateSpeakerGround(payload, context, errors) {
   const partyNames = context.party.filter((name) => typeof name === 'string');
   const presenceNames = context.presence.map((entry) => (entry && typeof entry.name === 'string' ? entry.name : '')).filter(Boolean);
   const introduced = (Array.isArray(story.cast_add) ? story.cast_add : []).map((add) => (typeof add?.name === 'string' ? add.name : '')).filter(Boolean);
+  // THE NAME ROAD (XXI): an epithet answers as its one soul at every arm
+  // of this court — the hero's exemption, the party's, and the presence
+  // testimony alike; a ledgerless cast takes no hop and the walk stays
+  // exactly the elder law.
+  const groundAliases = aliasIndex(Array.isArray(context.cast) ? context.cast : []);
   const judge = (speaker, label) => {
     if (typeof speaker !== 'string' || !speaker.trim()) return;
-    if (namesTheHero(context, speaker)) return;
-    if (resolveAmong(partyNames, speaker)) return;
+    const owner = resolveByClaims(speaker, groundAliases);
+    if (namesTheHero(context, speaker) || (owner && namesTheHero(context, owner))) return;
+    if (resolveAmong(partyNames, speaker) || (owner && resolveAmong(partyNames, owner))) return;
     if (introduced.some((name) => canonKey(name) === canonKey(speaker) || canonKey(name).split(/\s+/)[0] === canonKey(speaker))) return;
-    const resolved = resolveAmong(presenceNames, speaker);
+    const resolved = resolveAmong(presenceNames, speaker) ?? (owner ? resolveAmong(presenceNames, owner) : null);
     if (resolved === null) return; // unknown soul — the census court's business
     const entry = context.presence.find((row) => row && row.name === resolved);
     const ground = entry && typeof entry.ground === 'string' ? entry.ground.trim() : '';
@@ -924,12 +1002,20 @@ function validateImageCue(payload, context, errors) {
   const partyNames = Array.isArray(context.party) ? context.party.filter((name) => typeof name === 'string') : null;
   const sceneRegion = context.scene && typeof context.scene === 'object' ? String(context.scene.region || '').trim() : '';
   const groundSeated = Array.isArray(context.presence) && partyNames && sceneRegion;
+  // THE NAME ROAD (XXI): a sealed epithet is a recorded soul — the road
+  // answers before any arm judges, so "The Gray Warden" paints as its
+  // one soul: dead when it is dead, elsewhere when it stands elsewhere,
+  // never "unrecorded". A ledgerless cast takes no hop and every elder
+  // walk stays byte-identical.
+  const cueAliases = aliasIndex(Array.isArray(context.cast) ? context.cast : []);
   for (const raw of cue.subjects) {
     const name = raw.trim();
-    if (namesTheHero(context, name)) continue;
+    const owner = resolveByClaims(name, cueAliases);
+    if (namesTheHero(context, name) || (owner && namesTheHero(context, owner))) continue;
     if (isSameTurn(name)) continue;
     if (Array.isArray(context.cast)) {
-      const matches = castSouls.filter((soul) => soul.key === canonKey(name) || soul.first === canonKey(name));
+      const judged = owner ? canonKey(owner) : canonKey(name);
+      const matches = castSouls.filter((soul) => soul.key === judged || soul.first === judged);
       if (matches.length && matches.every((soul) => soul.dead)) {
         errors.push(`image_cue paints the dead: ${name} is dead and is not painted`);
         continue;
@@ -940,9 +1026,9 @@ function validateImageCue(payload, context, errors) {
       }
     }
     if (groundSeated) {
-      if (resolveAmong(partyNames, name)) continue;
+      if (resolveAmong(partyNames, name) || (owner && resolveAmong(partyNames, owner))) continue;
       const presenceNames = context.presence.map((entry) => (entry && typeof entry.name === 'string' ? entry.name : '')).filter(Boolean);
-      const resolved = resolveAmong(presenceNames, name);
+      const resolved = resolveAmong(presenceNames, name) ?? (owner ? resolveAmong(presenceNames, owner) : null);
       if (resolved === null) continue; // whereabouts unknown — nothing to testify
       const entry = context.presence.find((row) => row && row.name === resolved);
       const ground = entry && typeof entry.ground === 'string' ? entry.ground.trim() : '';
@@ -978,6 +1064,7 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     validateEnchant(payload.story, context, errors);
     validateRest(payload, context, errors);
     validateCastSpell(payload.story, context, errors);
+    validateAliasLedger(payload.story, context, errors);
     validateSpeakerGround(payload, context, errors);
     validateImageCue(payload, context, errors);
   }
@@ -998,10 +1085,17 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
   const souls = (context.cast || [])
     .map((soul) => ({ name: canon(soul?.name), first: firstName(soul?.name), dead: canon(soul?.status) === 'dead' }))
     .filter((soul) => soul.name);
+  const graveAliases = aliasIndex(context.cast || []);
   const speaksFromTheGrave = (speaker) => {
     if (typeof speaker !== 'string') return false;
-    const name = canon(speaker);
+    let name = canon(speaker);
     if (!name) return false;
+    // The alias hop: a sealed epithet reaches its ONE soul before the
+    // first-name guess — the dead cannot slip back onstage under a name
+    // the record sealed to them. A ledgerless cast seats no hop, so every
+    // pre-alias walk through this door is byte-identical.
+    const owner = resolveByClaims(speaker, graveAliases);
+    if (owner) name = canon(owner);
     const matches = souls.filter((soul) => soul.name === name || soul.first === name);
     return matches.length > 0 && matches.every((soul) => soul.dead);
   };

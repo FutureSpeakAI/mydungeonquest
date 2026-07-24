@@ -1,4 +1,7 @@
 import { listOf, rowsOf } from './rows.js';
+// THE NAME ROAD (Directive XXI): alias resolution and the ledger's one
+// seal ride from names.js — this reducer grows no resolver of its own.
+import { aliasIndex, resolveByClaims, sealAlias } from './names.js';
 // ------------------------------------------------------------
 // THE CHARACTER CARD — one living card per soul, the hero included.
 //
@@ -8,6 +11,11 @@ import { listOf, rowsOf } from './rows.js';
 // chronicle accrue lawfully; rebuilding from the same log is byte-identical
 // (that determinism is gated). No imports beyond the standard library —
 // safe for the headless bench and the browser alike.
+//
+// THE ALIAS LEDGER (Directive XXI): one soul, many names, one card.
+// known_as rides the card as an append-ordered, case-blind-deduped
+// ledger, folded purely from cast_update.known_as_add ops; the ledger
+// is born on first seal, so a pre-alias log replays byte-identical.
 // ------------------------------------------------------------
 
 const canon = (name) => String(name || '').trim().toLowerCase();
@@ -37,7 +45,13 @@ function matchSpeaker(speaker, cards) {
   // The hero is a card like everyone else; a bare first name reaches its
   // soul only when exactly one card can claim it — ambiguity touches nobody.
   const byFirst = names.filter((n) => firstName(n) === key);
-  return byFirst.length === 1 ? byFirst[0] : null;
+  if (byFirst.length === 1) return byFirst[0];
+  // THE NAME ROAD (XXI): a sealed epithet reaches its one soul — the
+  // road answers, this surface never grows its own resolver. A
+  // deliberate seal outranks a bare-first ambiguity; a contested or
+  // unsealed name still touches nobody.
+  const owner = resolveByClaims(speaker, aliasIndex(Object.values(cards)));
+  return owner && cards[canon(owner)] ? canon(owner) : null;
 }
 
 function addTie(card, to, type, why, turn) {
@@ -111,7 +125,11 @@ export function foldCardEntry(state, entry, hero = null) {
 
     for (const patch of listOf(story.cast_update)) {
       const key = canon(patch.name);
-      const card = cards[key];
+      // THE NAME ROAD (XXI): an op may address the soul by any sealed
+      // name — exact keys answer first (their standing law), then the
+      // road's epithet hop; a name nobody sealed still moves nobody.
+      const owner = cards[key] ? null : resolveByClaims(patch.name, aliasIndex(Object.values(cards)));
+      const card = cards[key] || (owner ? cards[canon(owner)] : undefined);
       if (!card) continue;
       card.state.lastActive = turn; // an op that moves a soul marks them active
       if (patch.status && card.state.status !== 'dead') {
@@ -129,6 +147,16 @@ export function foldCardEntry(state, entry, hero = null) {
       }
       if (patch.fact_add) card.chronicle.push({ turn, gloss: gloss(patch.fact_add, 90) });
       if (patch.last_seen) card.state.last_seen = gloss(patch.last_seen, 100);
+      // THE ALIAS LEDGER (XXI): one epithet per op rides the card through
+      // the one seal — append-ordered, case-blind deduped, the soul's own
+      // name a quiet no-op. A true seal writes one chronicle line; a
+      // re-seal returns the same ledger and writes nothing, so replays
+      // stay byte-stable.
+      if (typeof patch.known_as_add === 'string' && patch.known_as_add.trim()) {
+        const before = card.known_as;
+        card.known_as = sealAlias(card.known_as, patch.known_as_add, card.name);
+        if (card.known_as !== before) card.chronicle.push({ turn, gloss: `Came to be called \u201C${gloss(patch.known_as_add, 60)}\u201D` });
+      }
     }
 
     const seenThisTurn = new Set();
@@ -141,7 +169,7 @@ export function foldCardEntry(state, entry, hero = null) {
       card.state.lastActive = turn; // speaking marks a soul active in the scene
       if (!seenThisTurn.has(key)) {
         seenThisTurn.add(key);
-        card.chronicle.push({ turn, gloss: `Spoke — “${gloss(block.text, 48)}”` });
+        card.chronicle.push({ turn, gloss: `Spoke — \u201C${gloss(block.text, 48)}\u201D` });
       }
       const words = { turn, text: gloss(block.text, 120) };
       if (!card.firstWords) card.firstWords = words;

@@ -16,17 +16,30 @@
 // missing. The softer signal — prose-named souls who never speak — is
 // the Character Scribe's charge and a standing prompt rule; the
 // census is the tripwire that cannot decay.
+//
+// THE ALIAS LEDGER (Directive XXI): a soul answers to every name on
+// its known_as ledger — "The Gray Warden" speaking IS Maren speaking,
+// and the count knows it. Claims ride the one name road (names.js),
+// never a private list; an epithet sealed by THIS turn's own
+// cast_update counts the same breath it lands, exactly as a soul
+// added this turn may speak this turn.
 // ------------------------------------------------------------
+import { soulClaims } from './names.js';
 
 const canon = (name) => String(name ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
 
-// Names the record knows this turn: the standing cast, the hero, the
-// narrator's empty chair, and every soul the turn itself adds.
+// Names the record knows this turn: the standing cast under EVERY
+// sealed claim (name and ledger alike), the hero, the narrator's empty
+// chair, every soul the turn itself adds — and every epithet the turn
+// itself seals.
 function knownNames(dm, cast = [], { hero = null } = {}) {
   const known = new Set(['', 'narrator']);
-  for (const soul of cast) known.add(canon(soul.name));
+  for (const soul of cast) for (const claim of soulClaims(soul)) known.add(canon(claim));
   if (hero?.name) known.add(canon(hero.name));
   for (const soul of dm?.story?.cast_add || []) known.add(canon(soul.name));
+  for (const patch of dm?.story?.cast_update || []) {
+    if (typeof patch?.known_as_add === 'string' && patch.known_as_add.trim()) known.add(canon(patch.known_as_add));
+  }
   return known;
 }
 

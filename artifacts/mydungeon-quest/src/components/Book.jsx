@@ -6,7 +6,7 @@ import { rowsOf } from 'fatescript/rows';
 import { cardsAt, tellCourtAt } from '../lib/waypost.js';
 import { roomForTurn, SCRIBES } from '../lib/scriptorium.js';
 import { TELL_FAMILIES } from '../lib/tells.js';
-import { voiceLineOf, wordsLine, tieLine } from 'fatescript/wikiText';
+import { voiceLineOf, wordsLine, tieLine, knownAsLine } from 'fatescript/wikiText';
 import { clockWords } from '../lib/clockAtTable.js';
 import { chapterCard, downloadCard } from '../lib/shareCard.js';
 import { placesOf, soulsSwornTo } from '../lib/atlas.js';
@@ -183,6 +183,8 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         <div><h4>{openCard.name}</h4><span className="role-tag">{openCard.identity.role}</span>
           <span className={`status-badge ${openCard.state.status}`}>{STATUS_WORD[openCard.state.status] || openCard.state.status}</span>
           {voiceLineOf(openCard.identity) && <p className="muted">{voiceLineOf(openCard.identity)}.</p>}
+          {/* THE ALIAS LEDGER (XXI): every sealed name, spoken as story. */}
+          {knownAsLine(openCard) && <p className="muted">{knownAsLine(openCard)}.</p>}
         </div>
       </div>
       <p>{openCard.identity.canon.visual}</p>

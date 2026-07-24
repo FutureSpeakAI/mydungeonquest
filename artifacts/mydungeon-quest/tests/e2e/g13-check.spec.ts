@@ -56,7 +56,7 @@ import { GAME_ROOT } from './lib/vision';
 // same commit that teaches the table to arrive before the shelves.
 // (65 Phase 5) 158 → 159: the waypost gate joins the keyless check in the
 // same commit that raises the standing shortcut.
-const PINNED_PASS_COUNT = 160; // Task 65 Phase 6 (Directive XX, Law XI): +1 — the second-chair gate joins the keyless check in the same commit that builds the chairs; 159 → 160
+const PINNED_PASS_COUNT = 161; // Task 65 Phase 6 (Directive XX, Law XI): +1 — the second-chair gate joins the keyless check in the same commit that builds the chairs; 159 → 160
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

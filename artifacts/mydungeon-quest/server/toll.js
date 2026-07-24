@@ -346,6 +346,15 @@ export const retellDebitKey = (body) => ({
   campaignId: typeof body?.campaign?.id === 'string' && body.campaign.id ? body.campaign.id : null,
   turn: Number.isInteger(body?.chapter?.index) ? body.chapter.index : null,
 });
+// The epoch pours on the Chronicler's kind but NEVER in its once-key
+// room: retell turns are chapter indexes (0, 1, 2, …); the epoch lane
+// takes the negative line (act 0 → −1, act 1 → −2), so a retell of
+// chapter three and the epoch of act three can never collide into one
+// ON CONFLICT and leave a real pour untolled (review cure, Phase 7).
+export const epochDebitKey = (body) => ({
+  campaignId: typeof body?.campaignId === 'string' && body.campaignId ? body.campaignId : null,
+  turn: Number.isInteger(body?.actIndex) ? -(body.actIndex + 1) : null,
+});
 
 // ------------------------------------------------- entitlements ⇄ Stripe
 /**

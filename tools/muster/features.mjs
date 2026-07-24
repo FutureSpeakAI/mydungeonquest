@@ -334,6 +334,14 @@ export const FEATURES = [
     wiring: [{ src: `${GAME}/server/room.js`, needle: 'DM_MODEL_DIRECTOR' }, { src: `${GAME}/server/dm.js`, needle: 'dmSeatModels' }, { src: `${GAME}/docs/dm-model-audition.md`, needle: 'The Second Chair' }]
   },
 
+  {
+    id: 'elder-memory', category: 4, tier: 'wired',
+    name: 'The Elder Memory — epochs before elders',
+    detail: 'When an act closes, the same close that writes the annal distills the act into a sealed EPOCH row — the illuminated Chronicler when a real voice answers and the engine\u2019s citation and quote courts seat it (one guided repair; a second refusal declines honestly), the deterministic keyless floor otherwise — always labeled for which voice wrote it. Every claim ends with the turn citations that prove it, judged against the cited turns\u2019 OWN corpus; quotes verbatim or contraband; at most 900 characters an act. The memory ladder reads epochs before elders — the freshest act raw, every earlier act by its sealed summary (its annal standing in where no epoch does) — under ONE fixed total budget, so year three remembers year one at the same price. Epoch rows are machinery: never the book, the podcast, the ravens, or the feed; the mixed journal stays chain-lawful; a pre-epoch save walks today\u2019s road byte-identical, the standing ladder module byte-untouched. Directive XX, Law VII, Phase 7; gate `elderMemory` (engine twin + table gate).',
+    contract: [{ file: 'packages/engine/src/epoch.js' }, { file: 'packages/engine/evals/elderMemory.test.mjs' }, { file: `${GAME}/evals/elderMemory.test.mjs` }, { src: `${GAME}/package.json`, needle: 'elderMemory.test.mjs' }, { src: `${GAME}/src/lib/epoch.js`, needle: 'sealActEpoch' }],
+    wiring: [{ src: `${GAME}/src/App.jsx`, needle: 'sealActEpoch' }, { src: `${GAME}/src/App.jsx`, needle: 'memoryEpochLadder' }, { src: `${GAME}/server/index.js`, needle: '/api/epoch' }]
+  },
+
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {
     id: 'saga', category: 5, tier: 'groundwork',

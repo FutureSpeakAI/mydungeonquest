@@ -141,7 +141,7 @@ export function tradeRowsFrom(campaign) {
   const rows = [];
   rowsOf(campaign?.logs).forEach((log, index) => {
     if (!log || log.redacted) return;
-    if (log.kind === 'tick' || log.kind === 'annal' || log.kind === 'span') return;
+    if (log.kind === 'tick' || log.kind === 'annal' || log.kind === 'span' || log.kind === 'epoch') return;
     const updates = laneOf(laneOf(log.dm)?.state_updates);
     if (!updates) return;
     const cause = String(updates.chronicle_add || listOf(laneOf(log.dm)?.narration_blocks).find((b) => b?.text)?.text || '').slice(0, 160);

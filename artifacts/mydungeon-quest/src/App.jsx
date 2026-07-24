@@ -695,7 +695,14 @@ export default function App() {
       // THE LONG MEMORY — [MEMORY] drinks the ladder first: annals
       // newest-first (the freshest in full, elders as headlines), then the
       // recalled scenes. Year two remembers year one from the record alone.
-      const memory = [...memoryLadder(base), ...(await recallScenes(base.id, player, base.turnNumber || 0))];
+      // THE ELDER MEMORY (Directive XX, Law VII): once epoch seals stand,
+      // the epoch-aware ladder reads them before elders — freshest act raw,
+      // every earlier act by its sealed summary, one fixed budget. It rides
+      // a lazy door so the sync closure stays lean; a tale with no epochs
+      // walks today's road byte-identical.
+      const hasEpochSeals = (base.logs || []).some((log) => log.kind === 'epoch' && !log.redacted && String(log.epoch || '').trim());
+      const ladderRungs = hasEpochSeals ? (await import('./lib/epoch.js')).memoryEpochLadder(base) : memoryLadder(base);
+      const memory = [...ladderRungs, ...(await recallScenes(base.id, player, base.turnNumber || 0))];
       // THE CHRONICLEGRAPH: [STORY] is a budgeted, scene-first pack — souls
       // present, their ties, the villain, the standing world — not a flat dump.
       let story;
@@ -1020,6 +1027,21 @@ export default function App() {
         if (closedAct) {
           const chronicled = await chronicleActClose(next, closedAct, { seal, save: saveCampaign, reload: (id) => db.campaigns.get(id) });
           if (chronicled.annal) next = chronicled.campaign;
+          // THE ELDER MEMORY (Directive XX, Law VII): the same close seals
+          // the act's EPOCH — the illuminated Chronicler when a real voice
+          // answers and the engine's courts seat it, the labeled floor when
+          // it declines or lies. A lazy door keeps act-close machinery off
+          // the sync closure; a dark road to the seat still seals the floor;
+          // and the epoch's own catch means a jammed seal door never costs
+          // the annal already written — the close walks on, spoken.
+          try {
+            const { sealActEpoch, askIlluminatedEpoch } = await import('./lib/epoch.js');
+            const epoched = await sealActEpoch(next, closedAct, {
+              seal, save: saveCampaign, reload: (id) => db.campaigns.get(id),
+              illuminate: () => askIlluminatedEpoch(next, closedAct)
+            });
+            if (epoched.epoch) next = epoched.campaign;
+          } catch (error) { console.error('The elder memory kept silence this close:', error); }
         }
       } catch (error) { console.error('The Chronicler kept silence:', error); }
       // THE WAYPOST (Directive XX, Law VI) — every twenty-fifth sealed

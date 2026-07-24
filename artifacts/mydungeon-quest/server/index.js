@@ -11,7 +11,7 @@ import { adapters, providerChains } from './adapters/index.js';
 import { CLERK_PROXY_PATH, clerkProxyMiddleware } from './clerkProxy.js';
 import { doorkeeper, doorOpen, namedOnly, whoami } from './patrons.js';
 import { initMint, mintConfigured } from './mint.js';
-import { innkeeper, debit, dmDebitKey, retellDebitKey, tollRoutes, tollWebhook } from './toll.js';
+import { innkeeper, debit, dmDebitKey, retellDebitKey, epochDebitKey, tollRoutes, tollWebhook } from './toll.js';
 import { vaultRoutes } from './vault.js';
 import { publishRoutes } from './publish.js';
 import { rateLimit, abuseCaps, requestLog, installAlarms, logLine, spendAllowed, recordSpend, ledgerHealthy, watchReport, testHerald, ownersBell } from './watchtower.js';
@@ -154,7 +154,7 @@ app.use('/api', requestLog());
 // to the nameless; a keyless fork has no door and this line is a
 // pass-through (the eval's table is untouched).
 app.use(
-  ['/api/dm', '/api/retell', '/api/paint', '/api/speak', '/api/music', '/api/sfx', '/api/quest-audio', '/api/bind-pdf', '/api/warden'],
+  ['/api/dm', '/api/retell', '/api/epoch', '/api/paint', '/api/speak', '/api/music', '/api/sfx', '/api/quest-audio', '/api/bind-pdf', '/api/warden'],
   namedOnly(),
 );
 
@@ -328,6 +328,24 @@ app.post('/api/retell', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), 
   // A decline is not a retelling — only a passage spoken by a real voice
   // is debited (`provider: 'exhausted'` declines carry no passage).
   if (!result.declined) { debit(req, 'retell', result.provider, { key: retellDebitKey(req.body) }); recordSpend(result.provider === 'anthropic' ? result.provider : null); }
+  res.json(result);
+});
+
+// THE ELDER MEMORY (Directive XX, Law VII) — the Chronicler's epoch seat:
+// the same harness, the same lane, the same taste as the retell (epochs
+// are Chronicler work — no new pour kind, no rules-table change). One
+// forced tool call, the engine's citation and quote courts, one guided
+// repair per provider, the Pen's Clock on every call, and an honest
+// keyless decline — the client seals its own floor, labeled as the floor.
+app.post('/api/epoch', rateLimit(Number(process.env.RATE_LIMIT_DM_MAX || 20)), abuseCaps('retell'), innkeeper('retell'), async (req, res) => {
+  const { getEpochSummary } = await import('./epoch.js');
+  const result = await getEpochSummary(req.body || {});
+  // A decline is not a distillation — only a summary spoken by a real
+  // voice is debited, on the Chronicler's own line.
+  if (!result.declined) {
+    debit(req, 'retell', result.provider, { key: epochDebitKey(req.body) });
+    recordSpend(result.provider === 'anthropic' || result.provider === 'openai' ? result.provider : null);
+  }
   res.json(result);
 });
 

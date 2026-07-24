@@ -37,3 +37,9 @@ A 402 refusal is remembered as an intent in sessionStorage (module state dies at
 - Agent lane truth: the production DB is READ-ONLY to the agent — owner seats reach prod only via env+code riding a publish, or the user's own pane edit.
 
 - **The honest tally (Directive XX, Law III):** debits are idempotent by natural key (user_id, kind, campaign_id, turn) under a PARTIAL unique guard (`usage_events_once`, both halves NOT NULL); a duplicate landing answers `'once'`, first landing `'tolled'`. Keys are CARRIED, never invented — half a key is no key (lands the legacy 3-param insert byte-identical to before, rowCount never read). The dm wire carries campaign.id + turn on every pour; the retell wire (engine buildChronicleRequest) carries NO campaign id — its debit lands legacy by design until the wire itself grows identity.
+
+## New pour room checklist (Elder Memory architect round, 2026-07-24)
+Opening a route that spends provider money on an EXISTING kind demands three seats, not one:
+1. **Join the namedOnly locked-door array** in server/index.js — identity 401s before the innkeeper; with no patron on the request, debit() silently no-ops, so an unlisted pour room is unnamed AND untolled. The wardenEyes gate pins the array's TAIL (`'/api/warden'` must close it) — insert new doors before it.
+2. **Never reuse another route's once-key room.** usage_events dedupes on (user_id, kind, campaign_id, turn); two DIFFERENT events sharing a kind must take disjoint turn lanes (epoch rides the negative line: act 0 → −1; retell chapters stay ≥ 0). Key builders live in server/toll.js beside dmDebitKey/retellDebitKey — one house, never hand-rolled twins at routes.
+3. **Court both in the route's gate:** regex the app.use([...], namedOnly()) block and read the array itself; prove key lanes disjoint on the exact integers that would collide (chapter N vs act N).

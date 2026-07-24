@@ -4559,3 +4559,69 @@ with its reason — the room is server law; the engine keeps no
 provider seats), the muster gaining the second-chair row.
 
 **THE ARCHITECT'S ROUND (2026-07-24).** The architect sat over the whole of the Second Chair diff and returned PASS with no severe findings: the cascades exact, genesis immunity structural, the first telling unseated, the floors honest, the ledger attributing as spent, the shaping bytes unmoved with the promptCache witness untouched, and the new gate judged sound — deterministic, network-free, no coincidence-greens among its five courts. One counsel was offered and taken, though none was owed: the Director's and Editor's request builders had each consulted the seat-plan a second time behind their caller's back — a two-reads door where the noted ledger row and the wire request could in principle diverge. The seat is now resolved ONCE per sitting and handed down: directorSits and editorJudges pass the seated model into the intent and verdict builders, which take it as an argument and consult no plan of their own (mirrors-one-seat manners — the noted row and the request are one resolution). Re-proven whole after the cure: game check keyless exit 0 at exactly 160 word-PASS and 0 word-FAIL, the second chair's verdict printing newest; the engine, untouched by the cure, stands at 60. The muster stands at 57 present, 0 regressed, the second-chair row PRESENT in the regenerated roll.
+
+### TASK 65, PHASE 7 — THE ELDER MEMORY (2026-07-24)
+
+RATIFICATION FIRST. The owner read the sixth phase's architect round
+and ratified its one cure as lawful counsel taken: the Director's and
+Editor's request builders no longer consult the seat-plan behind their
+caller's back — the seat resolves ONCE per sitting and is handed down,
+the noted ledger row and the wire request one resolution
+(mirrors-one-seat manners). The cure stands ratified; the window
+walks on.
+
+THE LAW (Directive XX, Law VII): a tale that runs for years must
+remember year one at year one's price. When an act closes, the same
+close that writes the annal now distills the act into a sealed EPOCH —
+a new journal row kind, machinery like the tick and the waypost,
+walked through the ONE seal door and chain-lawful in the mixed
+journal. The book, the podcast, the ravens, and the feed never read
+it; the curtain court proves all four surfaces blind.
+
+TWO VOICES, ONE LABEL. The floor is the engine's own: a deterministic
+cited summary in the record's words — head exactly `Act N.`, every
+claim ending in the turn citations that prove it, at most 900
+characters an act. The illumination is the Chronicler's: the table
+asks `/api/epoch` on the Chronicler's own lane — the retell caps, the
+innkeeper's same door, the same debit kind — and the engine's courts
+judge the candidate: citations resolving inside the act alone, names
+standing in the cited turns' OWN corpus, quotes verbatim or
+contraband. One guided repair carries the court's exact grievances
+back; a second refusal declines honestly to the floor. The client
+re-courts the candidate against its own record before sealing — the
+seal law lives at the seal, never on the wire's word. Every epoch
+wears its label: whose voice wrote it, floor or illuminated.
+
+THE LADDER READS EPOCHS BEFORE ELDERS. [MEMORY] now folds the
+freshest act raw — played order, each line clipped to 160 — and every
+earlier act by its sealed summary, an act with only an annal riding
+the annal, all under ONE fixed budget: eldest acts fold to headlines
+first, then drop, then the raw shifts its oldest; the newest raw line
+is the floor that never drops. A tale with no epochs walks today's
+ladder byte-identical — proven against a deep-frozen pre-epoch save.
+
+THE LEAN DOOR HELD. The standing ladder module is byte-untouched; the
+epoch machinery enters the app through lazy doors at act-close and at
+the [MEMORY] fold, so the sync closure never grew. A dark road to the
+illuminated seat still seals the floor — the close never hangs on the
+wire.
+
+THE GATE (elderMemory — engine twin + table gate, keyless,
+network-free): the engine's five courts (the act slice, the floor,
+the citation and quote law, the ladder's folds, the entry's shape)
+and the table's nine (one labeled seal through the one door, the
+refusal road to the floor, chain law in the mixed journal, the
+curtain on every surface, the ladder's order, the deep-frozen
+back-compat walk, and the wiring scans).
+
+Proven whole: engine check exit 0 keyless at exactly sixty-one, game
+check exit 0 keyless at exactly 161 word-PASS and word-FAIL zero with
+the elder memory's verdict printing newest, G13 pinned 160 → 161, the
+shared shelf 133 → 134 in both Port sections, the muster gaining the
+elder-memory row.
+
+**THE ARCHITECT'S ROUND (2026-07-24).** The architect sat over the whole of the Elder Memory diff and returned three severe findings — every one true, every one cured, every cure courted:
+1) The epoch door stood OUTSIDE the locked-door list. A nameless knock could reach a pouring room, and with no patron on the request the debit no-ops — a real provider call unnamed AND untolled. Cured: `'/api/epoch'` stands in the namedOnly array beside its lane sibling, and the gate's wiring court now reads the array itself, not the neighborhood.
+2) The epoch's once-key rode the retell's room. Kind 'retell' with turn = actIndex collides with a retell's chapter index — chapter three and act three, one ON CONFLICT, the second pour untolled. Cured: `epochDebitKey` in the toll house takes the negative line (act 0 → −1), disjoint from every chapter index by construction; the gate proves the lanes never cross on the very integers that used to collide, and a malformed half still reads null.
+3) The seat saved the log row BEFORE the seal. A jammed seal door left an unsealed epoch feeding [MEMORY], and the idempotence check barred the lawful reseal forever. Cured: THE SEAL LEADS, THE ROW FOLLOWS — the journal seal lands first, the row is written with its recordHash in ONE save; a crash between the two leaves only an orphan journal row a re-close reseals, the newest seal winning its rung by ladder law. The gate walks the jammed door: it speaks, the record stays clean, the healed door reseals exactly once, row and head one truth. The epoch also took its own catch at the act close — a jammed seal never costs the annal already written.
+One standing needle moved and was retargeted in the same stroke: the warden gate pins the locked-door array's TAIL, so the epoch door seats before it — moved surfaces drag their instruments. Re-proven whole after the cures: game check keyless exit 0 at exactly 161 word-PASS and word-FAIL zero, the elder memory's verdict printing newest; the engine — its shelf-curtain widening (public shelf and turning point blind to epoch rows) sealed and witnessed before the round — stands untouched at sixty-one.

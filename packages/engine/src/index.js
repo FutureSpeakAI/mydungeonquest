@@ -43,3 +43,4 @@ export * from './onboarding.js';
 export * from './genesis.js';
 export * from './pour.js';
 export * from './desk.js';
+export * from './epoch.js';

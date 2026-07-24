@@ -48,3 +48,4 @@
 - [Settings-spread piggyback](settings-spread-piggyback.md) — per-record fields never ride a shared settings spread through a generic mirror; give them their own door and gate the absence.
 - [MyDungeon lean door](mydungeon-lean-door.md) — pin the SYNC CLOSURE sum, never the entry file (anti-laundering); measure the floor before seating a pin; tally is \bPASS\b anywhere, not ^PASS lines.
 - [Waypost checkpoint law](mydungeon-waypost-law.md) — a shared fold walk inherits every caller's rot; guard the ONE seat direct+fold share; field-rot ≠ row-rot; curtain fixtures can't wear the word.
+- [Machinery rows: seal leads](journal-machinery-rows.md) — journal seal FIRST, log row (with recordHash) after, ONE save; save-first poisons memory and bars retries when the seal door jams.

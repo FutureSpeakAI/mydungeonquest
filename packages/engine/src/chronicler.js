@@ -253,7 +253,7 @@ export function buildChronicleRequest(campaign, closedBeatIndex) {
   // a span) or an annal. The dividers follow the page; the page follows
   // the prose: turn → page → the road moving on.
   let anchor = to;
-  while (anchor > from && (logs[anchor]?.kind === 'tick' || logs[anchor]?.kind === 'span' || logs[anchor]?.kind === 'annal')) anchor -= 1;
+  while (anchor > from && (logs[anchor]?.kind === 'tick' || logs[anchor]?.kind === 'span' || logs[anchor]?.kind === 'annal' || logs[anchor]?.kind === 'epoch')) anchor -= 1;
   return {
     afterLogId: logs[anchor].id,
     context,

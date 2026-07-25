@@ -34,3 +34,4 @@ description: How to integrate full-tree zip deliveries from the outside forge (F
   review on donor code: verify the companion layer holds, then REPORT as
   anomaly instead of fixing.
 - Container has no python3 — write throwaway patchers/probes in node.
+- Drops resurrect scrubbed refusal-class files: a full-tree drop re-tracked .github/workflows/check.yml and its lift STRUCK the gitignore guard line keeping it out (2026-07-25). After any drop, diff .gitignore and audit .github/ in the delta before the next push.

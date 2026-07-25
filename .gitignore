@@ -50,3 +50,5 @@ Thumbs.db
 tools/salon/corpus/
 attached_assets/*.zip
 tools/salon/keys/
+# kept out of git: Replit push lanes lack the workflow OAuth scope; re-add via GitHub web UI
+.github/workflows/

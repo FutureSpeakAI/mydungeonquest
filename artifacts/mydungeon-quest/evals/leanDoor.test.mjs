@@ -38,39 +38,31 @@
 // closure.
 
 import assert from 'node:assert/strict';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { entryClosureOf, closureBytesOf } from './manifestClosure.mjs';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
 const PIN_KB = 624; // ruled 2026-07-24 — see the movement ledger in this header
+// CROSS-POINTER: the web-of-souls seating court (soulsWeb.test.mjs) pins the
+// closure's EXACT bytes; a ruled move of the closure re-seats BOTH pins in
+// the same ruling. Both courts read the ONE walk in manifestClosure.mjs.
 
 const manifest = JSON.parse(
   readFileSync(path.join(DIST, '.vite', 'manifest.json'), 'utf8'),
 );
 
 // ── Court 1 — one entry, and its synchronous closure weighs under the pin ──
-const entryKeys = Object.keys(manifest).filter((k) => manifest[k].isEntry);
+const { entryKeys, closure } = entryClosureOf(manifest);
 assert.equal(
   entryKeys.length,
   1,
   `the table keeps exactly one entry — the manifest names ${entryKeys.length}: ${entryKeys.join(', ')}`,
 );
 
-const closure = new Set();
-const stack = [...entryKeys];
-while (stack.length) {
-  const key = stack.pop();
-  if (closure.has(key)) continue;
-  closure.add(key);
-  for (const imported of manifest[key].imports ?? []) stack.push(imported);
-}
-
-let closureBytes = 0;
-for (const key of closure) {
-  closureBytes += statSync(path.join(DIST, manifest[key].file)).size;
-}
+const closureBytes = closureBytesOf(manifest, closure, DIST);
 const closureKb = Math.ceil(closureBytes / 1024);
 assert.ok(
   closureBytes <= PIN_KB * 1024,

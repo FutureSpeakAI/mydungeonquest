@@ -2,9 +2,9 @@
 
 ## The Port — parity pinned (2026-07-19, Task 60 §1)
 - One truth, two shelves (this section is pinned verbatim in both repos'
-  BUILD_STATUS): the engine's keyless check stands at sixty-three gates
+  BUILD_STATUS): the engine's keyless check stands at sixty-four gates
   (`pnpm --filter fatescript run check`, exit 0, no network, no keys); the
-  table's keyless check stands at 139 green verdicts (`npm run check` in
+  table's keyless check stands at 140 green verdicts (`npm run check` in
   the game with every AI key unset, exit 0). Gate-for-gate parity: every
   table gate whose law lives in the engine has an engine twin judging the
   same pure fraction with the same fixtures and thresholds, and every

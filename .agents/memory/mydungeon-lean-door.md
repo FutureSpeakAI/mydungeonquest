@@ -14,3 +14,7 @@ description: How the game's bundle-size gate is lawed — closure pin, floor-bef
 
 ## The lazy-door pattern (Elder Memory, July 2026)
 When the sync-closure pin has almost no headroom, keep new machinery OUT of the closure entirely: `hasX ? (await import('./lib/x.js')).xLadder(c) : standingLadder(c)` at the call site. The standing module stays byte-untouched (its gate needles survive), the closure never grows, and the lazy module internally falls back to the standing one when the feature is absent — one seat, so the two roads can never disagree.
+
+## Exact-byte closure pins move on export glue (2026-07-25)
+Seating a new surface wholly inside the LAZY Book chunk still moved the sync closure +9 bytes: the lazy chunk newly imported engine folds that already ride sync, so rollup grew the entry's export tail to LEND them (`,Xx as ay`) rather than duplicating the modules into the lazy shelf. Lawful — nine bytes of glue beats a duplicated law by thousands.
+**Rule:** when an exact-bytes pin reds after purely-lazy work, examine before re-pinning: closure key count unchanged, entry file grep-clean of every new-surface string (titles, css class prefixes, house words), growth localized to the export tail. Then re-pin at the measured number with the story in the header — and seat that grep as a standing DENYLIST court in the same gate, so an equal-byte substitution can never hide behind the pin later.

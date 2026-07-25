@@ -678,3 +678,27 @@ a.secondary-button{display:inline-grid;place-items:center;text-decoration:none}
    never arrives falls to a spoken card with a way back, never a white page. */
 .road-fallen { display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; min-height: 40vh; text-align: center; padding: 24px; }
 .road-fallen button { font: inherit; padding: 8px 18px; cursor: pointer; }
+
+/* THE WEB OF SOULS (Directive XX, Article Five, Law XIV) — the chronicle drawn */
+.souls-web{margin:0 0 1.4rem;border:1px solid rgba(212,162,78,.25);border-radius:16px;background:radial-gradient(circle at 70% 25%,rgba(233,223,200,.05),rgba(0,0,0,.22));padding:.6rem}
+.souls-web svg{width:100%;height:auto;display:block}
+.web-strand{stroke-width:1.6;opacity:.8}
+.web-strand-kin{stroke:#b8563f}
+.web-strand-enemy{stroke:#8d2f2f;stroke-dasharray:4 4}
+.web-strand-ally{stroke:var(--gold-soft)}
+.web-strand-met{stroke:var(--vellum-dim);stroke-width:1;opacity:.5}
+.web-soul{cursor:pointer}
+.web-soul:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.web-soul-ring{fill:rgba(20,18,26,.9);stroke:var(--gold-soft);stroke-width:1.6}
+.web-soul.the-hero .web-soul-ring{stroke:var(--gold);stroke-width:2.4}
+.web-soul.at-rest .web-soul-ring{stroke:var(--vellum-dim)}
+.web-rest-ring{stroke:var(--vellum-dim);stroke-dasharray:3 3;opacity:.7}
+.web-soul.at-rest .web-soul-name{fill:var(--vellum-dim)}
+.web-soul-name{fill:var(--vellum,#e9dfc8);font-size:12px;font-family:Cinzel,Georgia,serif;letter-spacing:.03em;text-anchor:middle}
+.web-rest-mark{fill:var(--vellum-dim);font-size:10px;text-anchor:middle}
+.web-legend{display:flex;flex-wrap:wrap;gap:.35rem .9rem;margin:.5rem .2rem 0;color:var(--vellum-dim);font-size:.82rem}
+.web-legend i{display:inline-block;width:18px;height:0;border-top:2px solid var(--gold-soft);vertical-align:middle;margin-right:.35rem}
+.web-legend .key-kin{border-color:#b8563f}
+.web-legend .key-enemy{border-color:#8d2f2f;border-top-style:dashed}
+.web-legend .key-ally{border-color:var(--gold-soft)}
+.web-legend .key-met{border-color:var(--vellum-dim)}

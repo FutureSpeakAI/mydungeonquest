@@ -49,6 +49,6 @@
 - [MyDungeon lean door](mydungeon-lean-door.md) — pin the SYNC CLOSURE sum; floor before pin; tally \bPASS\b anywhere; UP moves need an owner ruling (movement ledger); entry chunk may wear isDynamicEntry.
 - [Waypost checkpoint law](mydungeon-waypost-law.md) — a shared fold walk inherits every caller's rot; guard the ONE seat direct+fold share; field-rot ≠ row-rot; curtain fixtures can't wear the word.
 - [Machinery rows: seal leads](journal-machinery-rows.md) — journal seal FIRST, log row (with recordHash) after, ONE save; save-first poisons memory and bars retries when the seal door jams.
-- [Gates must red under the old law](eval-binding-proofs.md) — swap the pre-change code under a new eval and demand failure; seat fixtures adversarially so position can't impersonate the law.
+- [Gates must red under the old law](eval-binding-proofs.md) — demand failure under the old law; a bend that GREENS = dead guard in the fixture, seat a row only that guard refuses; adversarial seating.
 - [Compacted-session summaries drift](session-summary-drift.md) — "landed" lists and "remaining" steps are claims; verify by grep + git status/log before building on them.
 - [MyDungeon replay identity law](mydungeon-replay-identity.md) — re-views resolve only what the moment owned (cleared seat > own plate > BOUND-beat cover; unbound hangs nothing); reconcile colliding laws by conditioning the rung on provenance, never striking it; run freshPlates+mediaFallback+cellar+book together.

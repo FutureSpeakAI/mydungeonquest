@@ -64,7 +64,10 @@ import { GAME_ROOT } from './lib/vision';
 // same commit that teaches the house to sweep its own shelf.
 // (65 Phase 11) 164 → 165: the pyre-and-parcel gate joins the keyless check
 // in the same commit that raises the owner's two rights.
-const PINNED_PASS_COUNT = 166; // Task 65 Phase 12 (Directive XX, Law XIII): +1 — the one-ledger gate joins the keyless check in the same commit that folds every standing decision through the single predicate; 165 → 166
+// (65 Phase 12) 165 → 166: the one-ledger gate joins the keyless check in
+// the same commit that folds every standing decision through the single
+// predicate.
+const PINNED_PASS_COUNT = 167; // Task 65 Phase 13 (Directive XX, Article Five, Law XIV): +1 — the web-of-souls seating court joins the keyless check in the same commit that draws the chronicle; 166 → 167
 
 const BASELINE = path.join(GAME_ROOT, 'test-results', 'check-baseline.json');
 

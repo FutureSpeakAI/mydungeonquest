@@ -19,6 +19,7 @@ import { calendarOf } from 'fatescript/calendar';
 import { Frame, useGallery } from './gallery.jsx';
 import { RecapCard } from './Sequence.jsx';
 import TravelersChart from './TravelersChart.jsx';
+import SoulsWeb from './SoulsWeb.jsx';
 
 // ------------------------------------------------------------
 // THE OPEN BOOK (Directive XIV, the Book Law) — the codex, given the
@@ -39,7 +40,7 @@ export const CHAPTERS = [
   { id: 'party', word: 'The Party' }
 ];
 
-const STATUS_WORD = { active: 'Walks the tale', dead: 'Fallen', missing: 'Lost to the road' };
+export const STATUS_WORD = { active: 'Walks the tale', dead: 'Fallen', missing: 'Lost to the road' };
 
 // THE PACK LAW (Directive XIV) — a pack is a filtered view of the sealed
 // trove, and says so. Holdings from the hands-chain law, coin from the
@@ -227,6 +228,12 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         <small className="trail">{soul.last_seen ? `Last seen — ${soul.last_seen}` : 'The trail is quiet.'}{Number.isInteger(soul.introduced_turn) ? (soul.introduced_turn === 0 ? ' · Present from the first page' : ` · Entered the tale at turn ${soul.introduced_turn}`) : ''}</small>
       </article>;
     })}</div>}
+    {/* THE WEB OF SOULS (Directive XX, Article Five, Law XIV) — the
+        ChronicleGraph drawn: the surface asks the wiki's OWN reveals
+        seat and the engine builder filters at the source, so the unmet
+        are absence here exactly as they are on the tie chips. */}
+    {!openCard && <><h3>The web of souls</h3>
+    <SoulsWeb campaign={campaign} onNav={onNav} statusWord={STATUS_WORD} /></>}
     </div>}
 
     {chapter === 'places' && <div className="book-page" data-page="places">

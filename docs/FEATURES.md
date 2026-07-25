@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-25). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 63 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 64 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 **THE TRIAGE (wire first):** Bearing, Signature & the paint roster.
 
@@ -73,6 +73,10 @@ A pure reducer over the log yields each soul’s card: locked identity, cited ch
 ### ChronicleGraph & the context pack — PRESENT
 
 A knowledge graph rebuildable from the record alone; [STORY] is a budgeted, scene-first pack (scene full, one-hop ties full, villain always, the rest slims) with contract keys preserved.
+
+### The Web of Souls — the chronicle drawn — PRESENT
+
+Directive XX Article Five Law XIV: the ChronicleGraph drawn as a web — every KNOWN soul a node weighted by bond (the dead marked at rest, the hero centred), every sealed tie a strand (kin, enemy, ally, met) citing the sealed turn that establishes it; zero model calls. The engine builder (fatescript/soulsWeb) walks the unstruck rows through the card fold and takes the known world AS AN ARGUMENT — the wiki’s own reveals seat hands it down, so the unmet are filtered at the source and their strands are absence, aliased souls stand as one node on the one name road, junk fails closed to the empty web. The surface rides the Book’s lazy chunk on the People page (no manifest row, the Chart’s precedent); the entry’s closure pinned EXACT — nine examined bytes of lending glue, cross-pointed with the lean door’s kB pin, both courts reading the one closure walk. Twin gates red-first; four reds convicted at birth (α order court, β leaked strand, γ private reading, δ sync seating).
 
 ### The wiki codex — surfaces speak story — PRESENT
 

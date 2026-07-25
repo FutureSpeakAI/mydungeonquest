@@ -140,6 +140,13 @@ export const FEATURES = [
     probes: [{ mod: 'packages/engine/src/graph.js', check: (m) => typeof m.buildContextPack === 'function' }, { mod: 'packages/engine/src/graph.js', check: (m) => typeof m.buildBriefing === 'function' }, { src: `${GAME}/src/App.jsx`, needle: 'buildBriefing' }]
   },
   {
+    id: 'web-of-souls', category: 1, tier: 'wired',
+    name: 'The Web of Souls \u2014 the chronicle drawn',
+    detail: 'Directive XX Article Five Law XIV: the ChronicleGraph drawn as a web \u2014 every KNOWN soul a node weighted by bond (the dead marked at rest, the hero centred), every sealed tie a strand (kin, enemy, ally, met) citing the sealed turn that establishes it; zero model calls. The engine builder (fatescript/soulsWeb) walks the unstruck rows through the card fold and takes the known world AS AN ARGUMENT \u2014 the wiki\u2019s own reveals seat hands it down, so the unmet are filtered at the source and their strands are absence, aliased souls stand as one node on the one name road, junk fails closed to the empty web. The surface rides the Book\u2019s lazy chunk on the People page (no manifest row, the Chart\u2019s precedent); the entry\u2019s closure pinned EXACT \u2014 nine examined bytes of lending glue, cross-pointed with the lean door\u2019s kB pin, both courts reading the one closure walk. Twin gates red-first; four reds convicted at birth (\u03b1 order court, \u03b2 leaked strand, \u03b3 private reading, \u03b4 sync seating).',
+    contract: [{ mod: 'packages/engine/src/soulsWeb.js', check: (m) => typeof m.buildSoulsWeb === 'function' }, { file: `${GAME}/evals/soulsWeb.test.mjs` }, { src: `${GAME}/package.json`, needle: 'soulsWeb.test.mjs' }],
+    wiring: [{ src: `${GAME}/src/components/SoulsWeb.jsx`, needle: 'introducedNames' }, { src: `${GAME}/src/components/Book.jsx`, needle: 'SoulsWeb' }, { src: `${GAME}/evals/leanDoor.test.mjs`, needle: 'manifestClosure' }]
+  },
+  {
     id: 'wiki-codex', category: 1, tier: 'wired',
     name: 'The wiki codex — surfaces speak story',
     detail: 'The in-game world record is a living wiki whose every player-facing line is story ("A warm elder woman\u2019s voice"), never machinery.',

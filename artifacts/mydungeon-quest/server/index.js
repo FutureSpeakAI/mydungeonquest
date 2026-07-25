@@ -157,7 +157,7 @@ app.use('/api', requestLog());
 // (Phase 11) stand in the same array: the parcel and the pyre are named
 // doors before they are anything else.
 app.use(
-  ['/api/dm', '/api/retell', '/api/epoch', '/api/paint', '/api/speak', '/api/music', '/api/sfx', '/api/quest-audio', '/api/bind-pdf', '/api/vault/parcel', '/api/account/pyre', '/api/warden'],
+  ['/api/dm', '/api/retell', '/api/epoch', '/api/paint', '/api/speak', '/api/music', '/api/sfx', '/api/quest-audio', '/api/bind-pdf', '/api/vault/parcel', '/api/account/pyre', '/api/dowry', '/api/warden'],
   namedOnly(),
 );
 
@@ -373,6 +373,26 @@ app.post('/api/smith', rateLimit(Number(process.env.RATE_LIMIT_SMITH_MAX || 30))
   // judged { spine, rumors } — the world-forge door's bespoke roll.
   if (scope === 'spine') return res.json(await smithStorySpine({ covenant, tone, carryover, seed: Number(seed) || 0 }));
   res.json(await smithCandidates({ scope, field, locked: locked || {}, seed: Number(seed) || 0 }));
+});
+
+// THE DOWRY DOOR (Directive XX, Article Five, Law XV) — the illuminated
+// reader over dowry pages at the forge. A NAMED door (the array above)
+// but no innkeeper seat: the dowry precedes the first pour, the smith's
+// own precedent, and the watchtower's spend ceiling degrades this lane
+// to an honest decline — the client's keyless floor is the engine's own
+// deterministic reader, labeled as the floor. Every proposal returned
+// here already survived the ENGINE's dowry court, server-side.
+app.post('/api/dowry', rateLimit(Number(process.env.RATE_LIMIT_SMITH_MAX || 30)), abuseCaps('dowry'), async (req, res) => {
+  try {
+    if (!(await spendAllowed('anthropic'))) return res.json({ declined: true, provider: 'none', proposals: [] });
+    const { getDowryProposals } = await import('./dowryReader.js');
+    const result = await getDowryProposals(req.body || {});
+    if (!result.declined) recordSpend('anthropic');
+    res.json(result);
+  } catch (error) {
+    console.error('[dowry] the door stumbled:', error);
+    res.json({ declined: true, provider: 'none', proposals: [] });
+  }
 });
 
 async function sendAsset(res, result) {

@@ -1261,12 +1261,29 @@ export default function App() {
     const spineMint = minted.ok ? minted.mint : null;
     // The lawful init path seeds the trove from the forge keepsake,
     // cited to turn zero (Directive VI).
-    const codex = initCodex(spineMint ? spineMint.spine : worldDraft.spineId, {
+    let codex = initCodex(spineMint ? spineMint.spine : worldDraft.spineId, {
       ...(hero.keepsake ? { keepsake: { name: hero.keepsake, holder: hero.name } } : {}),
       // THE HORIZON (XIX, Article VII): the pool seeds from the mint's own
       // swept rumors — the shelf mint carries the floor pool's six.
       ...(Array.isArray(spineMint?.rumors) && spineMint.rumors.length ? { rumors: spineMint.rumors } : {})
     });
+    // THE DOWRY DOOR (Directive XX, Article Five, Law XV): blessed
+    // proposals fold HERE — through the ordinary reducers, at turn zero,
+    // judged one last time as the FINAL shape with the forged hero
+    // seated (an amendment court the ceremony could not sit). Dynamic
+    // imports only: the ceremony rides the Forge chunk, and the entry
+    // closure never grows for a door most tales never open.
+    let dowryFold = null;
+    const dowryGift = worldDraft.dowry;
+    if (dowryGift && Array.isArray(dowryGift.proposals) && dowryGift.proposals.some((row) => row && row.blessed === true)) {
+      const { applyDowry } = await import('fatescript/dowryDoor');
+      dowryFold = applyDowry(codex, dowryGift.proposals, { hero: hero.name, pages: dowryGift.pages || [] });
+      codex = dowryFold.codex;
+      if (dowryFold.refused.length) {
+        const held = dowryFold.refused.map((row) => row.op?.name).filter(Boolean).join(', ');
+        setStatus(`✦ The canon held at the threshold — ${held || 'a dowry gift'} stayed at the door: ${dowryFold.refused[0].errors[0]}`);
+      }
+    }
     const campaign = {
       id, title: worldDraft.title, covenant: worldDraft.covenant, tone: worldDraft.tone,
       lines: worldDraft.lines, veils: worldDraft.veils, styleBible: worldDraft.styleBible, homeRegion: worldDraft.homeRegion,
@@ -1275,7 +1292,23 @@ export default function App() {
       mediaTier: settings.mediaTier, tempo: 'turning', spend: { images: 0, music: 0 }, createdAt: Date.now(), updatedAt: Date.now()
     };
     import('./components/Forge.jsx').then((m) => m.clearForgeDrafts()).catch(() => {}); // the chronicle has begun; the sitting's draft burns — best-effort by design: a fallen chunk leaves a stale draft at worst, never a broken begin
-    await saveCampaign(campaign); setCurrent(campaign); setFlow('table');
+    await saveCampaign(campaign);
+    if (dowryFold && dowryFold.applied.length) {
+      // ONE dowry row through the SAME seal door every turn walks — the
+      // blessed ops, their verbatim citations, and the pages' own sha256
+      // fingerprints. Sealed before the first word, so the chain reads:
+      // dowry, then genesis. The fresh head rides the local row too —
+      // a stale headHash here would fork the very next seal.
+      const { sha256 } = await import('fatescript/canonical');
+      const pageHashes = [];
+      for (const page of dowryGift.pages || []) pageHashes.push({ name: page.name, sha256: await sha256(page.text) });
+      // The sealed record carries the player's own amended mark where it
+      // stands — provenance rides the row; absence stays absent.
+      await seal(id, 'dowry', { ops: dowryFold.applied.map(({ kind, op, citation, amended }) => ({ kind, op, citation, ...(amended === true ? { amended: true } : {}) })), pageHashes });
+      const sealedRow = await db.campaigns.get(id);
+      if (sealedRow) Object.assign(campaign, { headHash: sealedRow.headHash, turnCount: sealedRow.turnCount, signatureStatus: sealedRow.signatureStatus });
+    }
+    setCurrent(campaign); setFlow('table');
     // THE FIRST WORD (Task 54C §1): the pour is dispatched first; the
     // genesis easel kicks the moment the request is on the wire and takes
     // as long as it takes. Narration streams while the world is still being

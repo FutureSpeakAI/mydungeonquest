@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Dices, ShieldCheck } from 'lucide-react';
 import { SparkRow } from './Sparks.jsx';
+import { Dowry } from './Dowry.jsx';
 import { sparks } from '../lib/onboarding.js';
 import { isProving } from '../lib/proving.js';
 import { SPINES } from 'fatescript/spines';
@@ -189,6 +190,10 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
   // it was dealt elsewhere — never block the door over a flag.
   const [xcardDealt] = useState(() => { try { return localStorage.getItem(XCARD_SEEN_KEY) === '1'; } catch { return true; } });
   const [keyArt, setKeyArt] = useState(null);
+  // THE DOWRY (XX, Art. Five, Law XV) rides state, never the draft — a
+  // dowry's pages can outweigh a sessionStorage seat, and a reload that
+  // costs a reading costs no ink: nothing here is final until blessed.
+  const [dowry, setDowry] = useState(null);
   const urlRef = useRef(null);
   const spinBusy = useRef(false);
 
@@ -244,7 +249,7 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
     try { localStorage.setItem(XCARD_SEEN_KEY, '1'); } catch { /* dealt elsewhere */ }
     const out = {};
     for (const [key, value] of Object.entries(form)) if (!key.startsWith('__')) out[key] = value;
-    onContinue({ ...out, title: effTitle, spineId: effSpine, lines: form.linesText.split(',').map((x) => x.trim()).filter(Boolean), veils: form.veilsText.split(',').map((x) => x.trim()).filter(Boolean) });
+    onContinue({ ...out, title: effTitle, spineId: effSpine, lines: form.linesText.split(',').map((x) => x.trim()).filter(Boolean), veils: form.veilsText.split(',').map((x) => x.trim()).filter(Boolean), dowry });
   };
 
   // As the covenant, tone and style settle, the world paints itself faintly
@@ -279,7 +284,8 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
       <DoorRow door={door} onDoor={setDoor} doors={[
         ['spin', 'Spin the World', 'One tap. The dice write it; keep spinning until it sings.'],
         ['oracle', 'The Oracle', 'Answer three questions; the world takes shape around them.'],
-        ['deep', 'Deep Forge', 'Every field yours — with a die beside each.']
+        ['deep', 'Deep Forge', 'Every field yours — with a die beside each.'],
+        ['dowry', 'The Dowry', 'Pages from an elder table — carried in, judged, and blessed by hand.']
       ]}/>
 
       {door === 'spin' && <>
@@ -332,6 +338,11 @@ export function WorldForge({ onBack, onContinue, mediaTier = 'parchment' }) {
         </div>
         <label><span className="label-line">{ask('world', 'styleBible')} <DiceButton label="Roll a look" onRoll={fieldDie('styleBible')}/></span><textarea value={form.styleBible} onChange={pen('styleBible')} rows="3" maxLength={300}/></label>
         <div className="law-note"><ShieldCheck/><span>Every scene and painting stays PG-13. Your lines and veils never leave this device.</span></div>
+        <button className="primary-button" onClick={forgeOn}>Forge the hero <ArrowRight/></button>
+      </>}
+
+      {door === 'dowry' && <>
+        <Dowry dowry={dowry} onDowry={setDowry}/>
         <button className="primary-button" onClick={forgeOn}>Forge the hero <ArrowRight/></button>
       </>}
     </section>

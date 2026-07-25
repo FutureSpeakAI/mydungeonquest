@@ -74,10 +74,36 @@ const DIST = path.join(GAME_ROOT, 'dist');
 // entry file was proven clean of every web string — the surface, its
 // words, and the builder live in the Book's chunk alone. Nine bytes of
 // lending glue beats a duplicated law by thousands, so the pin seats
-// at the measured 635173 and binds EXACTLY: any future move — even one
+// at the measured bytes and binds EXACTLY: any future move — even one
 // byte — is argued to the owner at the lean door's movement ledger and
 // re-seats this pin in the SAME ruling.
-const CLOSURE_BYTES_PIN = 635173;
+//
+// RE-SEATED 2026-07-25 (Phase 14, THE DOWRY DOOR, Directive XX Art. Five
+// Law XV — the standing directive is the ruling): 635173 → 636414, a
+// move of 1241 bytes, examined byte by byte before it was ruled lawful.
+// The growth is the threshold GLUE in the entry's own App.jsx — the
+// blessed-gift guard, two dynamic-import call sites (whose destructured
+// property names applyDowry/sha256 and the rewritten chunk URL lawfully
+// print in entry bytes), the seal payload builder, the refusal status
+// line, and the fresh-head re-read. The ceremony, the engine module,
+// and every court word were PROVEN absent: the entry chunk is denylist-
+// clean of the ceremony's words (the dowry gate's own tooth walks that
+// list every run) and the dowry module rides the dynamic rolls. The
+// lean door stands uncrossed at 621.5 kB against its 624 kB pin.
+//
+// RE-SEATED 2026-07-25, same day, second sitting (Phase 14, THE
+// GROUNDING COURT — the architect's δ conviction; the standing
+// directive is the ruling): 636414 → 636450, a move of 36 bytes,
+// examined before it was ruled lawful. The growth is the provenance
+// rider in the seal payload builder — the threshold glue already ruled
+// lawful above now carries the player's own amended mark into the
+// sealed dowry row (`amended` in the destructure, the conditional
+// spread that keeps absence absent). It is the SAME seat as the 1241-
+// byte ruling, grown by one honest field; no ceremony word, no court
+// word, no engine module entered the entry — the dowry gate's denylist
+// tooth walked its list green on the very build that measured 636450.
+// The lean door stands uncrossed, 621.6 kB against its 624 kB pin.
+const CLOSURE_BYTES_PIN = 636450;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

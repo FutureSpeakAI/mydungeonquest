@@ -265,6 +265,8 @@ const CAPS = {
   speak: { text: Number(process.env.MAX_SPEAK_CHARS || 10000) },
   music: { text: Number(process.env.MAX_MUSIC_PROMPT_CHARS || 2000) },
   sfx: { text: Number(process.env.MAX_SFX_PROMPT_CHARS || 2000) },
+  // Eight pages of 200k characters is the dowry's lawful worst case.
+  dowry: { body: Number(process.env.MAX_DOWRY_BYTES || 1800000) },
 };
 const tooBig = (res, word) => res.status(413).json({ error: `The ask is larger than the house serves — ${word}.` });
 

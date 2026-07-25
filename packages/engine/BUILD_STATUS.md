@@ -2,14 +2,21 @@
 
 ## The Port — parity pinned (2026-07-19, Task 60 §1)
 - One truth, two shelves (this section is pinned verbatim in both repos'
-  BUILD_STATUS): the engine's keyless check stands at sixty-four gates
+  BUILD_STATUS): the engine's keyless check stands at sixty-five gates
   (`pnpm --filter fatescript run check`, exit 0, no network, no keys); the
-  table's keyless check stands at 140 green verdicts (`npm run check` in
+  table's keyless check stands at 141 green verdicts (`npm run check` in
   the game with every AI key unset, exit 0). Gate-for-gate parity: every
   table gate whose law lives in the engine has an engine twin judging the
   same pure fraction with the same fixtures and thresholds, and every
   strip (React renders, Dexie migrations, sharp crops, server prompt-law)
   is named in the twin's header comment.
+- The dowry gates of Phase 14 (Directive XX, Article Five, Law XV) moved
+  both counts by one apiece: sixty-five and 141. The dowry door's twin
+  pair — engine dowryDoor judging the floor, the courts, and the pure
+  fold; table dowryDoor judging the ceremony, the threshold, the named
+  lane, the shelf, and the sealed chain end to end — is ONE shelf
+  verdict on each side. The twinless twelve stand unchanged: the dowry
+  has a twin.
 - Twelve table gates keep no engine twin, and honestly: book and boundary
   (React Book/Chart renders over the client db), refusalTerminal (the
   Foundry and the media shelf are game-lib law), caption and artDirector

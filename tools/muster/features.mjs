@@ -147,6 +147,23 @@ export const FEATURES = [
     wiring: [{ src: `${GAME}/src/components/SoulsWeb.jsx`, needle: 'introducedNames' }, { src: `${GAME}/src/components/Book.jsx`, needle: 'SoulsWeb' }, { src: `${GAME}/evals/leanDoor.test.mjs`, needle: 'manifestClosure' }]
   },
   {
+    id: 'dowry-door', category: 1, tier: 'wired',
+    name: 'The Dowry Door — outside lore, judged and blessed',
+    detail: 'Directive XX Article Five Law XV: pages from an elder table (plain text/markdown ONLY — a PDF has no seat) enter as PROPOSALS through the World Forge’s fourth door, never as ink. Each proposal cites its source line VERBATIM (the no-invention law); the engine’s own court judges every one exactly as a turn — locked-canon and epithet collisions refused BY NAME, the batch’s first claim holds, the forged hero outranks every page, stranger keys meet the validator because ops ride WHOLE. Blessing bows to the court; amendments are re-judged as the FINAL shape with the hero seated. Blessed gifts fold through the ordinary reducers at turn zero and seal as ONE dowry journal row (ops + verbatim citations + page sha256 fingerprints) through the app’s own seal door; refused and unblessed leave NO trace. The server lane /api/dowry stands NAMED, clocked, schema-mirrored, spend-guarded; keyless the ceremony falls to the engine’s deterministic floor reader, LABELED as the floor. Mid-campaign import deferred by name. THE GROUNDING COURT (conviction γ, the architect’s round): a quote grounds ONLY what it names WHOLE (whole-phrase, boundary to boundary — an embedded substring passes for nothing) — an invented name riding an unrelated verbatim line is refused by name; the bypass knob is two-handed — playersHand (ceremony and threshold, never a reading door) AND the row’s amended mark, minted only by the ceremony’s rename hand — so unamended rows keep the belt at every seat and may amend beyond the page only by that hand; wire rows re-seat at the boundary with blessed forced false; a blessed row that turns refused keeps its walk-back hands.',
+    probes: [
+      { mod: 'packages/engine/src/dowryDoor.js', check: (m) => typeof m.readPagesFloor === 'function' && typeof m.judgeProposals === 'function' && typeof m.applyDowry === 'function' },
+      { file: `${GAME}/src/components/Dowry.jsx` },
+      { src: `${GAME}/src/components/Forge.jsx`, needle: "['dowry', 'The Dowry'" },
+      { src: `${GAME}/server/index.js`, needle: "'/api/dowry'" },
+      { src: `${GAME}/src/App.jsx`, needle: "seal(id, 'dowry'" },
+      { file: 'packages/engine/evals/dowryDoor.test.mjs' },
+      { src: `${GAME}/package.json`, needle: 'dowryDoor.test.mjs' },
+      { src: `${GAME}/src/components/Dowry.jsx`, needle: 'playersHand: true' },
+      { src: `${GAME}/src/components/Dowry.jsx`, needle: 'amended: true' },
+      { src: `${GAME}/server/dowryReader.js`, needle: 'a quote grounds only what it names' }
+    ]
+  },
+  {
     id: 'wiki-codex', category: 1, tier: 'wired',
     name: 'The wiki codex — surfaces speak story',
     detail: 'The in-game world record is a living wiki whose every player-facing line is story ("A warm elder woman\u2019s voice"), never machinery.',

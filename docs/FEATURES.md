@@ -2,7 +2,7 @@
 
 *Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-25). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 64 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 65 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 **THE TRIAGE (wire first):** Bearing, Signature & the paint roster.
 
@@ -77,6 +77,10 @@ A knowledge graph rebuildable from the record alone; [STORY] is a budgeted, scen
 ### The Web of Souls — the chronicle drawn — PRESENT
 
 Directive XX Article Five Law XIV: the ChronicleGraph drawn as a web — every KNOWN soul a node weighted by bond (the dead marked at rest, the hero centred), every sealed tie a strand (kin, enemy, ally, met) citing the sealed turn that establishes it; zero model calls. The engine builder (fatescript/soulsWeb) walks the unstruck rows through the card fold and takes the known world AS AN ARGUMENT — the wiki’s own reveals seat hands it down, so the unmet are filtered at the source and their strands are absence, aliased souls stand as one node on the one name road, junk fails closed to the empty web. The surface rides the Book’s lazy chunk on the People page (no manifest row, the Chart’s precedent); the entry’s closure pinned EXACT — nine examined bytes of lending glue, cross-pointed with the lean door’s kB pin, both courts reading the one closure walk. Twin gates red-first; four reds convicted at birth (α order court, β leaked strand, γ private reading, δ sync seating).
+
+### The Dowry Door — outside lore, judged and blessed — PRESENT
+
+Directive XX Article Five Law XV: pages from an elder table (plain text/markdown ONLY — a PDF has no seat) enter as PROPOSALS through the World Forge’s fourth door, never as ink. Each proposal cites its source line VERBATIM (the no-invention law); the engine’s own court judges every one exactly as a turn — locked-canon and epithet collisions refused BY NAME, the batch’s first claim holds, the forged hero outranks every page, stranger keys meet the validator because ops ride WHOLE. Blessing bows to the court; amendments are re-judged as the FINAL shape with the hero seated. Blessed gifts fold through the ordinary reducers at turn zero and seal as ONE dowry journal row (ops + verbatim citations + page sha256 fingerprints) through the app’s own seal door; refused and unblessed leave NO trace. The server lane /api/dowry stands NAMED, clocked, schema-mirrored, spend-guarded; keyless the ceremony falls to the engine’s deterministic floor reader, LABELED as the floor. Mid-campaign import deferred by name. THE GROUNDING COURT (conviction γ, the architect’s round): a quote grounds ONLY what it names WHOLE (whole-phrase, boundary to boundary — an embedded substring passes for nothing) — an invented name riding an unrelated verbatim line is refused by name; the bypass knob is two-handed — playersHand (ceremony and threshold, never a reading door) AND the row’s amended mark, minted only by the ceremony’s rename hand — so unamended rows keep the belt at every seat and may amend beyond the page only by that hand; wire rows re-seat at the boundary with blessed forced false; a blessed row that turns refused keeps its walk-back hands.
 
 ### The wiki codex — surfaces speak story — PRESENT
 

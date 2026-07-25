@@ -484,8 +484,10 @@ receipt.dismissTollNotice();
   // customer for a friend of the house.
   const row = { id: 'u-g', plan: 'free', stripe_customer_id: null };
   const q = bench({
-    'SELECT plan, stripe_customer_id FROM users WHERE id': () => ({
-      rows: [{ plan: row.plan, stripe_customer_id: row.stripe_customer_id }],
+    // Retargeted with the one-ledger seam (Law XIII): the standing read
+    // carries the rows' source now — the needle follows the moved verse.
+    'SELECT plan, plan_source, stripe_customer_id FROM users WHERE id': () => ({
+      rows: [{ plan: row.plan, plan_source: 'stripe', stripe_customer_id: row.stripe_customer_id }],
     }),
   });
   let minted = 0;

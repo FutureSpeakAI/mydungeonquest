@@ -1,8 +1,8 @@
 # THE FEATURES — the muster roll
 
-*Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-24). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
+*Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-25). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
-**Standing: 62 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
+**Standing: 63 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 
 **THE TRIAGE (wire first):** Bearing, Signature & the paint roster.
 
@@ -215,6 +215,10 @@ Pixels are cache; the record is law. At every act close (after the annal and the
 ### The Pyre and the Parcel — the owner’s two standing rights — PRESENT
 
 Server law behind the named door, and neither door reads any owner parameter — a cross-owner ask is unexpressible, not merely refused. GET /api/vault/parcel bales the owner-complete archive in deterministic order: all nine shelves, journal envelopes WHOLE (a rider field no schema ever named arrives intact), media by hash with a short-lived signed fetch, key halves public only. POST /api/account/pyre burns the account whole: the phrase spoken back or refused by name; blobs first under the owner’s holdings alone (every hash the living still cite is kept; one gutter aborts before any row burns, honestly retryable); then every table in ONE transaction, counts honest, the name last, the Clerk step named in the answer. THE STRONG TOOTH: the table roll derives from the schema’s own exported DDL — a shelf born tomorrow without its rights clauses reds the gate and both doors at birth. Directive XX Law XII, Phase 11; gate `pyreParcel`.
+
+### The One Ledger Seam — standing folded through a single predicate — PRESENT
+
+Directive XX Law XIII: the standing rows carry their source (plan_source, additive DDL with DEFAULT ’stripe’ — no UPDATE, nothing rewritten; existing rows read stripe by decree), and one pure predicate — entitledStanding, the single seat — folds a patron’s rows into the seat they hold: highest lawful seat wins, malformed rows seat nothing beyond the taste, and the source is NEVER consulted (storefront-blind by construction, courted at the gate against the predicate’s own text). Every pour, taste, and seat door asks it and no other — innkeeper, standing page, checkout comp court, reconciler — proven by a consultation counter; the Stripe writer’s verse grew by exactly its one stamped column, pinned whole against the pre-seam golden. Store receipts (appstore, play) will write rows and touch nothing else — Directive XXI hangs that door. Gate `oneLedger`, whole-verse benched from birth; four reds convicted at birth (α bypass, β dropped default, γ dropped stamp, δ source-bent predicate).
 
 ## VI. The Saga groundwork (Directive V)
 

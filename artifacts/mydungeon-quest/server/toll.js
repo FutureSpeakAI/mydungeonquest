@@ -22,6 +22,12 @@
  *   page to turn; its tallies never reset).
  * - Owner's directive (July 2026): the house sells two seats — $5 by the
  *   week, auto-renewed, or $129.99 by the year in a single charge.
+ * - THE ONE LEDGER SEAM (Directive XX, Law XIII): the innkeeper reads
+ *   STANDING, never storefront. Standing rows carry their source (stripe
+ *   today; appstore and play tomorrow), and one pure predicate — the
+ *   single seat, entitledStanding — folds them; every door that decides a
+ *   pour, a taste, or a seat asks it and nothing else. Store receipts
+ *   will write rows and touch nothing else; no store door hangs today.
  */
 import express from 'express';
 import { doorOpen, ensureLedger, runQuery } from './patrons.js';
@@ -104,6 +110,14 @@ export const TOLL_DDL = [ // exported for the rights roll (rights.js)
   `ALTER TABLE usage_events ADD COLUMN IF NOT EXISTS campaign_id TEXT`,
   `ALTER TABLE usage_events ADD COLUMN IF NOT EXISTS turn INTEGER`,
   `CREATE UNIQUE INDEX IF NOT EXISTS usage_events_once ON usage_events (user_id, kind, campaign_id, turn) WHERE campaign_id IS NOT NULL AND turn IS NOT NULL`,
+  // THE ONE LEDGER SEAM (Directive XX, Law XIII) — additive only, in the
+  // Honest Tally's own pattern: the standing rows gain their source column
+  // and the DEFAULT does all the work — every row already written reads
+  // 'stripe' the moment the column lands, without one row rewritten by any
+  // UPDATE. Column add and default only; no drop, no delete, no rewrite.
+  // Store receipts (appstore, play) will write rows and touch nothing
+  // else — Directive XXI hangs that door; this verse is the doorframe.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_source TEXT NOT NULL DEFAULT 'stripe'`,
 ];
 
 // The ledger of use binds itself, after (and only after) the visitors' book.
@@ -133,30 +147,50 @@ const nextMonthUtc = () => {
 const fmtDay = (date) =>
   new Intl.DateTimeFormat('en', { month: 'long', day: 'numeric', timeZone: 'UTC' }).format(date);
 
-// Plan rows ride a short candle so a webhook flip lands within ~30s on every
-// instance without a read per request being anything but cheap.
-const grants = new Map(); // patron id → { at, row }
+// Standing rows ride a short candle so a webhook flip lands within ~30s on
+// every instance without a read per request being anything but cheap.
+const grants = new Map(); // patron id → { at, rows }
 export const bustGrant = (patronId) => grants.delete(patronId);
-async function planRow(patronId, deps = {}) {
+async function standingRows(patronId, deps = {}) {
   const query = deps.query || runQuery;
   const ttl = Number(process.env.TOLL_GRANT_TTL_MS || 30000);
   const hit = grants.get(patronId);
-  if (hit && Date.now() - hit.at < ttl) return hit.row;
+  if (hit && Date.now() - hit.at < ttl) return hit.rows;
   await ensureToll(query);
-  const { rows } = await query('SELECT plan, stripe_customer_id FROM users WHERE id = $1', [patronId]);
-  const row = rows[0] || { plan: 'free', stripe_customer_id: null };
+  const { rows } = await query('SELECT plan, plan_source, stripe_customer_id FROM users WHERE id = $1', [patronId]);
   if (grants.size > 2000) grants.clear(); // a modest book, rebound when full
-  grants.set(patronId, { at: Date.now(), row });
-  return row;
+  grants.set(patronId, { at: Date.now(), rows });
+  return rows;
+}
+
+// ------------------------------------------- THE ONE LEDGER SEAM (Law XIII)
+// The single seat. One pure predicate folds a patron's standing rows into
+// the seat they hold: the highest lawful seat among the rows wins; no rows,
+// a malformed row, or an unknown plan seat nothing beyond the taste; and a
+// row's source is NEVER consulted — a standing row seats its patron
+// whatever its source says, so the seam is storefront-blind by
+// construction. Every door that decides a pour, a taste, or a seat asks
+// THIS predicate and no other; no door reads storefront fields to decide
+// standing, ever again.
+let standingConsults = 0; // eval-only telemetry — the court proves the road
+export const __standingConsultsForEval = () => standingConsults;
+export function entitledStanding(rows) {
+  standingConsults += 1;
+  let seat = null;
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const plan = typeof row?.plan === 'string' && PLANS[row.plan] ? row.plan : 'free';
+    if (seat === null || (PLAN_RANK[plan] || 0) > (PLAN_RANK[seat] || 0)) seat = plan;
+  }
+  return seat === null ? 'free' : seat;
 }
 
 /** The patron's standing. Dormant gateway → an unmetered pass-through. */
 export async function grantFor(req, deps = {}) {
   if (!gateway(deps)) return { metered: false, plan: 'unmetered', quotas: {} };
   if (!req.patron) return { metered: true, plan: 'guest', hasCustomer: false, ...PLANS.guest };
-  const row = await planRow(req.patron.id, deps); // may throw → callers fail closed
-  const plan = PLANS[row.plan] ? row.plan : 'free';
-  return { metered: true, plan, hasCustomer: Boolean(row.stripe_customer_id), ...PLANS[plan] };
+  const rows = await standingRows(req.patron.id, deps); // may throw → callers fail closed
+  const plan = entitledStanding(rows); // the ONE seat — never a storefront read
+  return { metered: true, plan, hasCustomer: rows.some((r) => Boolean(r?.stripe_customer_id)), ...PLANS[plan] };
 }
 
 // The month's page for monthly quotas; the whole book for the lifetime taste.
@@ -376,8 +410,9 @@ export async function reconcileEntitlement({ userId, customerId }, deps = {}) {
   if (!row) return null; // a customer we never seated — nothing to flip
   // An owner-gift is outside the mint's reach: Stripe neither granted the
   // chair nor may take it back. The line stands as written; the mint is not
-  // even consulted.
-  if (PLANS[row.plan]?.comp) {
+  // even consulted. The seat question is asked of the ONE predicate, like
+  // every seat question in the house (Law XIII).
+  if (PLANS[entitledStanding([row])]?.comp) {
     bustGrant(row.id);
     return row.plan;
   }
@@ -395,7 +430,10 @@ export async function reconcileEntitlement({ userId, customerId }, deps = {}) {
     }
   }
   if (plan !== row.plan) {
-    await query('UPDATE users SET plan = $1, updated_at = now() WHERE id = $2', [plan, row.id]);
+    // The Stripe writer stamps its own name on the seat it writes — grown by
+    // exactly this one column and nothing else (Law XIII); the gate pins
+    // this shape whole, so any future drift reds by name.
+    await query(`UPDATE users SET plan = $1, plan_source = 'stripe', updated_at = now() WHERE id = $2`, [plan, row.id]);
     console.log(`[toll] a seat changed hands: patron ${row.id} now sits ${PLANS[plan].label}.`);
   }
   bustGrant(row.id);
@@ -528,14 +566,18 @@ export function tollRoutes(deps = {}) {
       // flipped moments ago (an owner-gift written by hand, a webhook still
       // on the road) must be seen before any customer is minted or sold to.
       bustGrant(req.patron.id);
-      const current = await planRow(req.patron.id, deps);
+      const freshRows = await standingRows(req.patron.id, deps);
+      const seat = entitledStanding(freshRows); // the ONE seat (Law XIII)
       // A friend of the house already holds the owner's gift — the house
       // sells nothing to a seated friend, and mints no customer for one.
-      if (PLANS[current.plan]?.comp) {
+      if (PLANS[seat]?.comp) {
         return res.json({ note: 'The house already pours without measure at your table — there is nothing to buy.' });
       }
       const stripe = deps.stripe ? await deps.stripe() : await getUncachableStripeClient();
-      let customerId = current.stripe_customer_id;
+      // The customer id is the mint's own bookkeeping — storefront business
+      // at a storefront door, never a standing decision.
+      const held = freshRows.find((r) => r?.stripe_customer_id)?.stripe_customer_id || null;
+      let customerId = held;
       if (!customerId) {
         const customer = await stripe.customers.create({
           name: req.patron.display_name || undefined,
@@ -554,8 +596,8 @@ export function tollRoutes(deps = {}) {
       // guard reads LIVE truth: a seat bought seconds ago (its webhook still
       // on the road) must not be sold again, so an existing customer's line
       // is reconciled against Stripe itself before any sale.
-      let standing = current.plan;
-      if (current.stripe_customer_id) {
+      let standing = seat;
+      if (held) {
         try {
           standing = (await reconcileEntitlement({ userId: req.patron.id }, deps)) || standing;
         } catch (error) {
@@ -597,13 +639,15 @@ export function tollRoutes(deps = {}) {
     try {
       if (!gateway(deps)) return res.status(409).json({ error: 'The toll-house was never built here.' });
       if (!req.patron) return res.status(401).json({ error: 'The ledger needs a name — give yours at the door first.' });
-      const current = await planRow(req.patron.id, deps);
-      if (!current.stripe_customer_id) {
+      const rows = await standingRows(req.patron.id, deps);
+      // Storefront business at the mint's own door — not a seat decision.
+      const customerId = rows.find((r) => r?.stripe_customer_id)?.stripe_customer_id || null;
+      if (!customerId) {
         return res.status(400).json({ error: 'No coin has changed hands at this table yet.' });
       }
       const stripe = deps.stripe ? await deps.stripe() : await getUncachableStripeClient();
       const session = await stripe.billingPortal.sessions.create({
-        customer: current.stripe_customer_id,
+        customer: customerId,
         return_url: `${requestOrigin(req)}/?toll=seen`,
       });
       res.json({ url: session.url });
@@ -663,4 +707,5 @@ export function __resetTollForEval() {
   tollBound = null;
   grants.clear();
   board = { at: 0, prices: [] };
+  standingConsults = 0;
 }

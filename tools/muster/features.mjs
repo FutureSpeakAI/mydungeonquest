@@ -371,6 +371,13 @@ export const FEATURES = [
     contract: [{ file: `${GAME}/evals/pyreParcel.test.mjs` }, { src: `${GAME}/package.json`, needle: 'pyreParcel.test.mjs' }, { src: `${GAME}/server/rights.js`, needle: 'assertRollCovered' }],
     wiring: [{ src: `${GAME}/server/index.js`, needle: "'/api/account/pyre'" }, { src: `${GAME}/src/components/Overlays.jsx`, needle: 'Light the account pyre' }, { src: `${GAME}/src/lib/rights.js`, needle: 'PYRE_PHRASE' }]
   },
+  {
+    id: 'one-ledger', category: 4, tier: 'wired',
+    name: 'The One Ledger Seam \u2014 standing folded through a single predicate',
+    detail: 'Directive XX Law XIII: the standing rows carry their source (plan_source, additive DDL with DEFAULT \u2019stripe\u2019 \u2014 no UPDATE, nothing rewritten; existing rows read stripe by decree), and one pure predicate \u2014 entitledStanding, the single seat \u2014 folds a patron\u2019s rows into the seat they hold: highest lawful seat wins, malformed rows seat nothing beyond the taste, and the source is NEVER consulted (storefront-blind by construction, courted at the gate against the predicate\u2019s own text). Every pour, taste, and seat door asks it and no other \u2014 innkeeper, standing page, checkout comp court, reconciler \u2014 proven by a consultation counter; the Stripe writer\u2019s verse grew by exactly its one stamped column, pinned whole against the pre-seam golden. Store receipts (appstore, play) will write rows and touch nothing else \u2014 Directive XXI hangs that door. Gate `oneLedger`, whole-verse benched from birth; four reds convicted at birth (\u03b1 bypass, \u03b2 dropped default, \u03b3 dropped stamp, \u03b4 source-bent predicate).',
+    contract: [{ file: `${GAME}/evals/oneLedger.test.mjs` }, { src: `${GAME}/package.json`, needle: 'oneLedger.test.mjs' }, { src: `${GAME}/server/toll.js`, needle: 'entitledStanding' }],
+    wiring: [{ src: `${GAME}/server/toll.js`, needle: "plan_source = 'stripe'" }, { src: `${GAME}/server/rights.js`, needle: 'plan_source' }, { src: `${GAME}/evals/tollhouse.test.mjs`, needle: 'plan_source' }]
+  },
 
   // ————— VI. SAGA GROUNDWORK (Directive V) —————
   {

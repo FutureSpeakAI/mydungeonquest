@@ -113,7 +113,9 @@ const token = (owner, hash, exp) => createHmac('sha256', BENCH_SECRET).update(`$
 // own gate binds them.
 const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
 const VERSE = Object.fromEntries(Object.entries({
-  usersParcel: 'SELECT id, clerk_user_id, display_name, plan, stripe_customer_id, created_at, updated_at FROM users WHERE id = $1',
+  // Re-seated with the one-ledger seam (Law XIII): the parcel carries the
+  // seat's source too — an owner-complete archive names who granted it.
+  usersParcel: 'SELECT id, clerk_user_id, display_name, plan, plan_source, stripe_customer_id, created_at, updated_at FROM users WHERE id = $1',
   usageParcel: 'SELECT kind, provider, campaign_id, turn, created_at FROM usage_events WHERE user_id = $1 ORDER BY created_at, kind, campaign_id, turn',
   campaignsParcel: 'SELECT campaign_id, head_hash, turn_count, signature_status, public_key_jwk, meta, updated_at FROM vault_campaigns WHERE user_id = $1 ORDER BY campaign_id',
   journalParcel: 'SELECT campaign_id, i, record_hash, prev_hash, record FROM vault_journal WHERE user_id = $1 ORDER BY campaign_id, i',
@@ -378,8 +380,8 @@ const putBlob = async (owner, bytes, mime) => {
 };
 
 // ------------------------------------------------------------ the seeding
-ledger.users.set('user-ash', { id: 'user-ash', clerk_user_id: 'clerk_ash', display_name: 'Ash', plan: 'weekly', stripe_customer_id: 'cus_ash', created_at: '2026-07-01T00:00:00.000Z', updated_at: '2026-07-02T00:00:00.000Z' });
-ledger.users.set('user-elm', { id: 'user-elm', clerk_user_id: 'clerk_elm', display_name: 'Elm', plan: 'yearly', stripe_customer_id: 'cus_elm', created_at: '2026-07-03T00:00:00.000Z', updated_at: '2026-07-04T00:00:00.000Z' });
+ledger.users.set('user-ash', { id: 'user-ash', clerk_user_id: 'clerk_ash', display_name: 'Ash', plan: 'weekly', plan_source: 'stripe', stripe_customer_id: 'cus_ash', created_at: '2026-07-01T00:00:00.000Z', updated_at: '2026-07-02T00:00:00.000Z' });
+ledger.users.set('user-elm', { id: 'user-elm', clerk_user_id: 'clerk_elm', display_name: 'Elm', plan: 'yearly', plan_source: 'stripe', stripe_customer_id: 'cus_elm', created_at: '2026-07-03T00:00:00.000Z', updated_at: '2026-07-04T00:00:00.000Z' });
 ledger.usage.push(
   { user_id: 'user-ash', kind: 'dm', provider: 'anthropic', campaign_id: 'camp-A1', turn: 3, created_at: '2026-07-10T10:00:00.000Z' },
   { user_id: 'user-ash', kind: 'paint', provider: 'gemini', campaign_id: 'camp-A1', turn: 4, created_at: '2026-07-10T11:00:00.000Z' },

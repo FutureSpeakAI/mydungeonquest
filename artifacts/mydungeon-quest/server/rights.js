@@ -69,7 +69,7 @@ export function tableRoll(ddl = HOUSE_DDL) {
 // (rate_windows keys by `${id}:` prefix — the watchtower's own format).
 export const RIGHTS_ROLL = Object.freeze({
   users: {
-    parcel: { verse: 'SELECT id, clerk_user_id, display_name, plan, stripe_customer_id, created_at, updated_at FROM users WHERE id = $1', shape: 'row' },
+    parcel: { verse: 'SELECT id, clerk_user_id, display_name, plan, plan_source, stripe_customer_id, created_at, updated_at FROM users WHERE id = $1', shape: 'row' },
     pyre: { verse: 'DELETE FROM users WHERE id = $1' },
   },
   usage_events: {

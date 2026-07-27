@@ -3,6 +3,73 @@ const palettes = [
 ];
 
 // ------------------------------------------------------------
+// DISTINCT OPENINGS PER WORLD (B1)
+//
+// Four opening shapes, selected deterministically from the world
+// seed (title + covenant hash mod 4). Every genesis narration
+// weaves the home region, the hero's class, and the hero's
+// keepsake into its prose — same seed, same world → byte-
+// identical text; different worlds → different shapes or
+// different variables ensure no shared sentence over eight words.
+// The live AI receives the selected shape in SESSION ZERO via
+// buildSystemPrompt; the mock embeds it here as prose.
+// ------------------------------------------------------------
+export const OPENING_SHAPES = [
+  { id: 'arriving',    label: 'arriving somewhere',           description: 'the hero arrives back in the home region; something has changed and a figure is waiting' },
+  { id: 'interrupted', label: 'being interrupted mid-task',   description: 'the hero is doing ordinary work in the home region when something stops them' },
+  { id: 'asked',       label: 'being asked for something',    description: 'a figure in the home region singles the hero out and presents a question or request' },
+  { id: 'witnessing',  label: 'witnessing something first',   description: 'the hero notices the first wrongness in the home region before anyone else does' },
+];
+
+// Same djb2-variant hash used by nameSeed in prologue.js — one law,
+// kept inline here so the engine layer carries no browser import.
+function worldSeedOf(campaign) {
+  const s = `${campaign.title || ''}:${campaign.covenant || ''}`;
+  let h = 0;
+  for (const c of s) h = ((h << 5) - h + c.charCodeAt(0)) | 0;
+  return h >>> 0;
+}
+
+export function openingShapeOf(campaign) {
+  return OPENING_SHAPES[worldSeedOf(campaign) % OPENING_SHAPES.length];
+}
+
+// Prose for the genesis turn, woven from world-specific variables.
+// EVERY sentence longer than eight words contains at least one of
+// {region, cls, keepsake} so two worlds with distinct home regions
+// cannot share a verbatim sentence of nine or more words.
+function genesisNarration(campaign, hero) {
+  const region = campaign.homeRegion || 'your home';
+  const cls = hero.className || 'Wayfarer';
+  const keepsake = hero.keepsake || null;
+  const shape = openingShapeOf(campaign).id;
+
+  if (shape === 'arriving') {
+    const keepLine = keepsake
+      ? `You still carry ${keepsake}, which someone in ${region} will notice.`
+      : `You carry what you always carry into ${region}, which is enough.`;
+    return `The ${cls}'s road into ${region} ends where it should. ${region} has changed in the time you were away — the doors remember, the windows do not. ${keepLine} A figure near the ${region} wayhouse has been waiting since morning with your name already decided. The question belongs to a ${cls}. It belongs to you. The first answer is yours to give.`;
+  }
+  if (shape === 'interrupted') {
+    const keepLine = keepsake
+      ? `${keepsake} is where it belongs — at hand, ready — when ${region} interrupts you.`
+      : `${region} interrupts you in the middle of a ${cls}'s ordinary work.`;
+    return `In ${region}, a ${cls}'s day has a rhythm. ${keepLine} Not violently — a ${region} door left open, a silence where sound was, a face in a window that does not look away. ${region} has given you an interruption with a reason behind it, and the reason has legs. The question is whether you, as a ${cls}, are going to follow those legs to their end.`;
+  }
+  if (shape === 'asked') {
+    const keepLine = keepsake
+      ? `They have already noticed ${keepsake} at your side, which tells you they know what a ${cls} carries.`
+      : `They have been looking for a ${cls} specifically, and here in ${region} you are the one.`;
+    return `${region} keeps its own counsel until it cannot. The figure outside the ${region} wayhouse rises when they see you, not the others. ${keepLine} What they are carrying is a ${cls}'s question, with your name on it. A ${cls} gets asked these things. You can walk past this one. You will not.`;
+  }
+  // witnessing
+  const keepLine = keepsake
+    ? `You have ${keepsake} in hand, which is to say you are the right ${cls} in the right ${region} moment.`
+    : `A ${cls} in ${region} learns to track the wrong thing early.`;
+  return `The first wrongness in ${region} today is yours to find. ${keepLine} The people around you in ${region} are looking at the shape of it without following it to its meaning. You have followed it. The world does not wait for a second witness in ${region}, and you are already deciding what to do about what you know.`;
+}
+
+// ------------------------------------------------------------
 // THE ECHO SALT (Directive XI, Law VI) — the walk's recurring prose is
 // wheel-salted by turn: three word-wheels with periods 23 / 21 / 22,
 // every one beyond the Editor's 20-page echo window, seat a changing
@@ -116,7 +183,7 @@ function rawMockDmTurn({ campaign, hero, story, player, entropy, resolution, tur
   return {
     narration_blocks: [{
       text: first
-        ? `At dusk, the road outside ${campaign.homeRegion || 'your home'} writes a new sentence across the earth. Cobblestones turn one by one toward the northern dark, though no road has ever gone that way. Mara Vey waits beside the impossible bend, luminous chalk bright on her fingers. “It knows your name,” she says, as the distant hills answer with a bell no hand is ringing. The first step is yours.`
+        ? genesisNarration(campaign, hero)
         // THE BATTLE CUT (Directive X) — the mock battle at fixed turns:
         // 9 seals the species, 12 opens combat, 13 rides the strike, 14
         // (the resolution branch above) ends it. Deterministic, keyless.
@@ -153,7 +220,7 @@ function rawMockDmTurn({ campaign, hero, story, player, entropy, resolution, tur
       : turn === 31
         ? { id: `roll-${turn}`, label: 'Brannoc\u2019s hook against the stray', kind: 'attack', die: 'd20', ability: 'STR', skill: null, proficient: true, dc: 11, advantage: 'normal', extra_mod: 0, action_id: 'hook-strike', actor_id: 'Brannoc', target_id: 'marsh-howler-a' }
         : needsRoll ? { id: `roll-${turn}`, label: 'Cross the prepared threshold', kind: 'check', die: 'd20', ability: 'DEX', skill: 'Investigation', proficient: hero.skills.includes('Investigation'), dc: 13, advantage: 'normal', extra_mod: 0, action_id: null, actor_id: 'hero', target_id: null } : null,
-    state_updates: needsRoll ? null : { xp_gain: first ? 50 : 10, chronicle_add: first ? 'The impossible road turned north.' : turn === 9 ? 'A howl bent the mist over the ridge road.' : turn === 12 ? 'The Marsh Howler pack closed the ridge road.' : 'The ridge revealed a waiting light.' },
+    state_updates: needsRoll ? null : { xp_gain: first ? 50 : 10, chronicle_add: first ? `The opening chapter of the tale in ${campaign.homeRegion || 'the home region'}.` : turn === 9 ? 'A howl bent the mist over the ridge road.' : turn === 12 ? 'The Marsh Howler pack closed the ridge road.' : 'The ridge revealed a waiting light.' },
     // THE BATTLE CUT (Directive X): turn 12 opens combat lawfully — spawn
     // from the turn-9 seal, the order sealed as an operation with the pack's
     // one accounted d20 draw, one action from the same-breath instance.

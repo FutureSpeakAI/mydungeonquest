@@ -3,6 +3,7 @@
 // and are interpolated below, never mirrored here.
 import { HOUSE_VOICE_RULE } from './voice.js';
 import { NARRATION_FLOOR } from 'fatescript/protocol';
+import { openingShapeOf } from 'fatescript/mockDm';
 
 // ------------------------------------------------------------
 // THE DUNGEON MASTER'S CHARGE — static per campaign.
@@ -104,7 +105,7 @@ SESSION ZERO — when the first user message opens the campaign (turn 0), you mu
 - Register the VILLAIN via cast_add (full paintable appearance canon; felt or glimpsed, never yet confronted) and one FAMILY or home figure who ties the hero to the ordinary world. Both carry voice_card — a mother is { gender: "feminine", age: "adult" or "elder", timbre: hers alone }.
 - Register the home region via world.region_add with paintable canon.
 - Grant fitting starting gear and the epic hook via state_updates (add a chronicle_add line), and fire a 'chapter' cinematic titled like 'Chapter I — …'.
-- Then narrate beat 1: the ordinary world, with one small wrongness in it.
+- Then narrate the opening beat in the WORLD'S OPENING SHAPE — ${openingShapeOf(campaign).label}: ${openingShapeOf(campaign).description}. The narration must name ${campaign.homeRegion ? `"${campaign.homeRegion}"` : 'the home region'} explicitly, reference the hero's class (${hero.className || 'their calling'}), and weave in${hero.keepsake ? ` their carried item ("${hero.keepsake}") and` : ''} the world's tone ("${campaign.tone || 'mythic'}"). Do not borrow this opening shape from any other tale; it belongs to this world alone.
 
 COVENANT: ${covenant}
 LINES (never include): ${lines}

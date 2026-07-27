@@ -132,7 +132,14 @@ const DIST = path.join(GAME_ROOT, 'dist');
 // The beats helper defaults opening to title so no new string literals
 // ride the sync road; the closure shrank because spines.js now carries
 // only one beat field instead of a spread-all.
-const CLOSURE_BYTES_PIN = 639583;
+// Task B2 (opening flow — the first sixty seconds): openingFlow.js added
+// to the entry's sync closure (four named genesis labels, step map,
+// PAINT_BUDGET_MS, OVER_BUDGET_MESSAGE); App.jsx gained genesisStep and
+// overBudget state, onTurnSealed hook wiring in both genesis paths, and
+// the streaming-div label swap. All are behavioral law for the opening
+// sixty seconds — no new surface, no ceremony word, law growing.
+// 639583 → 640325, a move of 742 bytes. Owner ruling: B2 opening flow.
+const CLOSURE_BYTES_PIN = 640325;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

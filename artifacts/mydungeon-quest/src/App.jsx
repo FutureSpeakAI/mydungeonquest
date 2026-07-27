@@ -5,6 +5,7 @@ import Cinematic from './components/Cinematic.jsx';
 import ChroniclePage from './components/ChroniclePage.jsx';
 import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components/Sequence.jsx';
 import { interludeRow, bandNotes } from './lib/clockAtTable.js';
+import { GENESIS_STEP_LABELS, PAINT_BUDGET_MS, OVER_BUDGET_MESSAGE } from './lib/openingFlow.js';
 import { packClockAt, tellCourtAt, sealWaypostIfDue, hydrateWaypost, isProvenSeat } from './lib/waypost.js';
 import { anchoredWindow } from './lib/historyWindow.js';
 import { orderFeed, recapFor } from 'fatescript/sequencing';
@@ -240,6 +241,11 @@ export default function App() {
   const bumpPourTick = useCallback(() => setPourTick((tick) => tick + 1), []);
   const endPour = useCallback(() => setPouringId(null), []);
   const [paintingImages, setPaintingImages] = useState({});
+  // OPENING FLOW (B2) — named progress label during genesis ('world' |
+  // 'scene' | 'voices' | 'chapter' | null) and the log-id that tripped
+  // the slow-paint notice (null while within budget or after art lands).
+  const [genesisStep, setGenesisStep] = useState(null);
+  const [overBudget, setOverBudget] = useState(null);
   const [audioBusy, setAudioBusy] = useState(false);
   const [status, setStatus] = useState('✦ The table is set.');
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -1113,7 +1119,14 @@ export default function App() {
       // called synchronously so React 18 batches them into one render. The
       // LogEntry mounts with pour=true from its very first appearance — no
       // render where the entry exists but pour is false, no re-mount.
-      await saveCampaign(next); setCurrent(next); setPouringId(log.id); await refreshShelf();
+      await saveCampaign(next); setCurrent(next); setPouringId(log.id);
+      // OPENING FLOW hook (B2): fires synchronously in the same React 18 batch
+      // as setCurrent/setPouringId — before the await that follows — so
+      // setPaintingImages(logId=true) lands in the very first render of the
+      // new log entry, and the budget timer starts at actual seal time, not
+      // after shelf latency.
+      hooks?.onTurnSealed?.(log.id);
+      await refreshShelf();
       setStatus('✦ The turn is sealed.');
       // THE ACT TURNS — when this turn crossed an act boundary, a full-bleed
       // interstitial presents it: "Act II — the world unravelling." It waits
@@ -1358,18 +1371,30 @@ export default function App() {
     // the easel walks when the paint truly starts, the anchors when it
     // lands, and Chapter One when genesis stands — even a torn paint still
     // seats the table, so the finally owns the last step.
+    // OPENING FLOW (B2): step 1 fires as the rite opens — the first
+    // label is visible before any network round-trip begins.
+    setGenesisStep('world'); setOverBudget(null);
     setRite(riteOpen());
     try {
       await beginGenesis({
         pour: (hooks) => playTurn(campaign, 'Begin the chronicle.', null, null, {
           ...hooks,
-          onPourDispatched: () => { hooks?.onPourDispatched?.(); setRite((r) => riteWalk(r, 'word')); }
+          onPourDispatched: () => { hooks?.onPourDispatched?.(); setRite((r) => riteWalk(r, 'word')); setGenesisStep('scene'); },
+          // onTurnSealed: reserves the image slot immediately (no media-gate
+          // wait) so the illustration panel shimmers from the first render,
+          // and arms the slow-paint notice if art doesn't land in time.
+          onTurnSealed: (logId) => {
+            setGenesisStep('voices');
+            setPaintingImages((prev) => ({ ...prev, [logId]: true }));
+            setTimeout(() => setOverBudget(logId), PAINT_BUDGET_MS);
+          }
         }),
         paint: () => { setRite((r) => riteWalk(r, 'easel')); return Promise.resolve(prologueRender(campaign)).finally(() => setRite((r) => riteWalk(r, 'anchors'))); }
       });
     } finally {
+      setGenesisStep('chapter');
       setRite((r) => riteWalk(r, 'open'));
-      setTimeout(() => setRite((r) => (r && r.stage === 'open' ? null : r)), 1600); // the rite bows out after its word — a stale timer never blows out a successor rite mid-walk
+      setTimeout(() => { setRite((r) => (r && r.stage === 'open' ? null : r)); setGenesisStep(null); }, 1600); // the rite bows out after its word — a stale timer never blows out a successor rite mid-walk
     }
     } catch (error) {
       // THE SILENT-DOOR LAW — a road that falls at the forge (a chunk that
@@ -1694,18 +1719,26 @@ export default function App() {
       // wire signal, and late anchors merge softly. And a genesis wears the
       // house's face (XVII, Article VII): the same threshold rite walks the
       // same pipeline events here as at the first chronicle's door.
+      // OPENING FLOW (B2): same four labels as the first chronicle.
+      setGenesisStep('world'); setOverBudget(null);
       setRite(riteOpen());
       try {
         await beginGenesis({
           pour: (hooks) => playTurn(nextVolume, 'Begin the chronicle.', null, null, {
             ...hooks,
-            onPourDispatched: () => { hooks?.onPourDispatched?.(); setRite((r) => riteWalk(r, 'word')); }
+            onPourDispatched: () => { hooks?.onPourDispatched?.(); setRite((r) => riteWalk(r, 'word')); setGenesisStep('scene'); },
+            onTurnSealed: (logId) => {
+              setGenesisStep('voices');
+              setPaintingImages((prev) => ({ ...prev, [logId]: true }));
+              setTimeout(() => setOverBudget(logId), PAINT_BUDGET_MS);
+            }
           }),
           paint: () => { setRite((r) => riteWalk(r, 'easel')); return Promise.resolve(prologueRender(nextVolume)).finally(() => setRite((r) => riteWalk(r, 'anchors'))); }
         });
       } finally {
+        setGenesisStep('chapter');
         setRite((r) => riteWalk(r, 'open'));
-        setTimeout(() => setRite((r) => (r && r.stage === 'open' ? null : r)), 1600); // the rite bows out after its word — a stale timer never blows out a successor rite mid-walk
+        setTimeout(() => { setRite((r) => (r && r.stage === 'open' ? null : r)); setGenesisStep(null); }, 1600); // the rite bows out after its word — a stale timer never blows out a successor rite mid-walk
       }
     } catch (error) {
       // the silent-door law: a fall anywhere on the volume road speaks
@@ -1855,7 +1888,8 @@ export default function App() {
           return <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} plateNumeral={plateNumeral} pour={log.id === pouringId} reduceMotion={stillness} onPourTick={bumpPourTick} onPourDone={endPour} />;
         });
       })()}
-      {busy && <div className="streaming"><span/>The Dungeon Master considers…</div>}
+      {busy && <div className="streaming" role="status"><span/>{genesisStep ? GENESIS_STEP_LABELS[genesisStep] : 'The Dungeon Master considers\u2026'}</div>}
+      {overBudget && paintingImages[overBudget] && <div className="over-budget-notice" role="status">{OVER_BUDGET_MESSAGE}</div>}
       <div ref={logEndRef}/>
     </main>
     {!current.readOnly && current.codex.sealing && !current.completed && <div className="near-end denouement"><span>✦ The denouement — the road turns home.</span></div>}

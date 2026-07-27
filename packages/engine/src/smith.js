@@ -44,7 +44,7 @@ export const FIELD_MAP = {
   ],
   hero: [
     { key: 'name', ask: 'Their name', hint: '', door: 'fast', hands: 'die+pen', surface: 'the portrait speaks it below the face; the mast and the tale carry it' },
-    { key: 'ancestry', ask: 'Where they come from', hint: '', door: 'fast', hands: 'die+pen', surface: 'the hero card\u2019s own line' },
+    { key: 'ancestry', ask: 'Ancestry', hint: '', door: 'fast', hands: 'die+pen', surface: 'the hero card\u2019s own line' },
     { key: 'className', ask: 'Their calling', hint: '', door: 'fast', hands: 'die+choice', surface: 'the sheet seats itself — bearing, background, abilities, skills — and the table\u2019s dice obey it' },
     { key: 'presentation', ask: 'How they present', hint: '', door: 'fast', hands: 'die+choice', surface: 'the audition re-deals to match on the spot' },
     { key: 'pronouns', ask: 'What words fit them', hint: '', door: 'fast', hands: 'die+pen', surface: 'the tale speaks of them in those words' },

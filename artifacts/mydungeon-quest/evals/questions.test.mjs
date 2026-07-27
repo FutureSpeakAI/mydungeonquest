@@ -43,7 +43,7 @@ const PINNED = {
   },
   hero: {
     name: 'Their name',
-    ancestry: 'Where they come from',
+    ancestry: 'Ancestry',
     className: 'Their calling',
     presentation: 'How they present',
     pronouns: 'What words fit them',

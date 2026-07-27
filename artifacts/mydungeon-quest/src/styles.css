@@ -430,6 +430,14 @@
 .dice-button{border:1px solid rgba(212,162,78,.4);border-radius:8px;background:transparent;color:var(--gold);width:26px;height:26px;display:inline-grid;place-items:center;cursor:pointer;padding:0}
 .dice-button svg{width:15px;height:15px}
 .dice-button:hover{border-color:var(--gold);background:rgba(212,162,78,.12)}
+/* C4 — Identity Control */
+.identity-control{margin:.9rem 0;display:grid;gap:.55rem}
+.identity-presets{display:flex;flex-wrap:wrap;gap:.45rem}
+.identity-chip{border:1px solid rgba(212,162,78,.35);border-radius:10px;background:rgba(0,0,0,.2);color:var(--vellum);padding:.5rem .75rem;text-align:left;cursor:pointer;font-size:.86rem;display:flex;align-items:center;gap:.2rem}
+.identity-chip.selected{border-color:var(--gold);background:linear-gradient(150deg,rgba(212,162,78,.18),rgba(0,0,0,.26))}
+.identity-chip--custom{font-style:italic}
+.identity-chip-note{opacity:.7;font-size:.78rem}
+.identity-custom{display:grid;gap:.55rem;padding:.6rem .8rem;border-left:2px solid rgba(212,162,78,.3);margin-left:.1rem}
 .audition-row{margin:.9rem 0 .4rem;display:grid;gap:.45rem}
 .audition-choices{display:grid;gap:.4rem}
 .audition-chip{border:1px solid rgba(212,162,78,.35);border-radius:10px;background:rgba(0,0,0,.2);color:var(--vellum);padding:.5rem .7rem;text-align:left;cursor:pointer;font-size:.86rem}

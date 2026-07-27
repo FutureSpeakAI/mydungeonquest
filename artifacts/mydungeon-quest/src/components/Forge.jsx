@@ -213,6 +213,72 @@ function WorldDeckCard({ world, active, onActivate }) {
     </button>
   );
 }
+// C4 — IDENTITY CONTROL — the single identity question replacing the old
+// presentation dropdown, free-text pronouns input, and die. Options cover
+// the common identity presets in one tap. "Describe it yourself" opens a
+// free-text description (kept local, NEVER parsed for gender) + an explicit
+// pronouns field + an explicit voice-register selector. No prose inference
+// on any path.
+const IDENTITY_PRESETS = [
+  { id: 'feminine',  label: 'Feminine',  note: 'she\u2019her', presentation: 'feminine',  pronouns: 'she/her'    },
+  { id: 'masculine', label: 'Masculine', note: 'he\u2019him',  presentation: 'masculine', pronouns: 'he/him'     },
+  { id: 'neutral',   label: 'Neutral',   note: 'they\u2019them', presentation: 'neutral', pronouns: 'they/them'  },
+  { id: 'unsaid',    label: 'Prefer not to say', note: '',       presentation: 'neutral', pronouns: ''           },
+];
+function detectIdentityMode(presentation, pronouns) {
+  for (const p of IDENTITY_PRESETS) {
+    if (p.presentation === presentation && p.pronouns === pronouns) return p.id;
+  }
+  return 'custom';
+}
+function IdentityControl({ presentation, pronouns, onSet }) {
+  const [mode, setMode] = useState(() => detectIdentityMode(presentation, pronouns));
+  const [customDesc, setCustomDesc] = useState('');
+  const pickPreset = (preset) => { setMode(preset.id); onSet({ presentation: preset.presentation, pronouns: preset.pronouns }); };
+  const goCustom = () => setMode('custom');
+  return (
+    <div className="identity-control">
+      <span className="label-line">{ask('hero', 'presentation')}</span>
+      <div className="identity-presets" role="radiogroup" aria-label={ask('hero', 'presentation')}>
+        {IDENTITY_PRESETS.map((p) => (
+          <button key={p.id} type="button" role="radio" aria-checked={mode === p.id}
+            className={`identity-chip${mode === p.id ? ' selected' : ''}`}
+            onClick={() => pickPreset(p)}>
+            <span className="identity-chip-label">{p.label}</span>
+            {p.note && <small className="identity-chip-note"> \u00b7 {p.note}</small>}
+          </button>
+        ))}
+        <button type="button" role="radio" aria-checked={mode === 'custom'}
+          className={`identity-chip identity-chip--custom${mode === 'custom' ? ' selected' : ''}`}
+          onClick={goCustom}>
+          <span className="identity-chip-label">Describe it yourself</span>
+        </button>
+      </div>
+      {mode === 'custom' && (
+        <div className="identity-custom">
+          <label className="ask-row">
+            <span className="label-line">How would you describe their identity?</span>
+            <input value={customDesc} onChange={(e) => setCustomDesc(e.target.value)} maxLength={80} placeholder="non-binary, agender, gender-fluid\u2026"/>
+            <small className="fine-print">This is for you \u2014 the story never infers a voice from these words.</small>
+          </label>
+          <label className="ask-row">
+            <span className="label-line">Pronouns</span>
+            <input value={pronouns} onChange={(e) => onSet({ presentation, pronouns: e.target.value })} maxLength={30} placeholder="she/her, he/him, they/them\u2026"/>
+          </label>
+          <label>
+            <span className="label-line">Voice register</span>
+            <select value={presentation} onChange={(e) => onSet({ presentation: e.target.value, pronouns })}>
+              <option value="feminine">Feminine range</option>
+              <option value="masculine">Masculine range</option>
+              <option value="neutral">Either range</option>
+            </select>
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // C3 — CLASS DECK CARD — one card in the 2-column class selection grid.
 // Bundled /reel/ image at 4:5, class name, one-line role, one-line gear.
 function ClassDeckCard({ card, active, onChoose }) {
@@ -352,7 +418,11 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
   }, [heroForm.caster]);
 
   const heroPen = (key) => (event) => setHeroForm((v) => ({ ...v, [key]: event.target.value, __sovereign: markSovereign(v, key) }));
-  const setPresentation = (event) => setHeroForm((v) => ({ ...v, presentation: event.target.value, voiceId: null, __sovereign: markSovereign(v, 'presentation') }));
+  const setIdentity = ({ presentation, pronouns }) => setHeroForm((v) => ({
+    ...v, presentation, pronouns,
+    voiceId: presentation !== v.presentation ? null : v.voiceId,
+    __sovereign: markSovereign(markSovereign(v, 'presentation'), 'pronouns'),
+  }));
   const setCalling = (event) => setHeroForm((v) => {
     const cls = CLASSES.find((c) => c.className === event.target.value) || CLASSES[0];
     const riders = { caster: cls.caster, hitDie: cls.hitDie, skills: cls.skills, abilities: rollAbilities(cls.className, randomSeed()), bearing: BEARINGS[cls.className], background: BACKGROUNDS[cls.className], spells: dealGrimoire(cls.caster) };
@@ -472,17 +542,6 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
     const leveled = held.filter((key) => (SPELL_TABLE[key]?.level ?? 0) >= 1).length;
     return cantrips !== owed.cantrips || leveled !== owed.spells || !validateSpellPicks({ archetype: heroForm.caster, level: 1, known: [], picks: held }).ok;
   })();
-
-  // ── presentation field (reused across steps) ─────────────────────────────
-  const presentationField = (
-    <label><span className="label-line">{ask('hero', 'presentation')} <DiceButton label="Shuffle the presentation" onRoll={heroFieldDie('presentation')}/></span>
-      <select value={heroForm.presentation} onChange={setPresentation}>
-        <option value="feminine">Feminine</option>
-        <option value="masculine">Masculine</option>
-        <option value="neutral">Neutral / unsaid</option>
-      </select>
-    </label>
-  );
 
   // ── grimoire panel (shown in Name step for casters) ──────────────────────
   const grimoirePanel = (() => {
@@ -704,10 +763,14 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
     {step === 3 && <section className="forge-card creation-step-panel">
       <header className="forge-header">
         <span className="eyebrow">Voice — step 4 of 5</span>
-        <h1>Choose how they speak.</h1>
-        <p>Tap to hear, tap to choose. The choice is theirs, for good.</p>
+        <h1>How do they present?</h1>
+        <p>One question, one answer. Audition voices in the next step.</p>
       </header>
-      {presentationField}
+      <IdentityControl
+        presentation={heroForm.presentation}
+        pronouns={heroForm.pronouns}
+        onSet={setIdentity}
+      />
       <AuditionRow presentation={heroForm.presentation} name={heroForm.name} voiceId={heroForm.voiceId} onBless={bless}/>
       <button className="primary-button" onClick={advance}>Choose the name <ArrowRight/></button>
     </section>}
@@ -724,8 +787,6 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
       </label>
       <div className="hero-sigil name-step-sigil"><span>{heroForm.sigil}</span><input aria-label="Sigil" value={heroForm.sigil} onChange={heroPen('sigil')} maxLength={2}/><DiceButton label="Shuffle a sigil" onRoll={heroFieldDie('sigil')}/></div>
       <div className="form-grid">
-        <label><span className="label-line">{ask('hero', 'pronouns')} <DiceButton label="Shuffle the words" onRoll={heroFieldDie('pronouns')}/></span>
-          <input value={heroForm.pronouns} onChange={heroPen('pronouns')} maxLength={30} placeholder="she/her, he/him, they/them…"/></label>
         <label className="ask-row"><span className="label-line">{ask('hero', 'mark')} <DiceButton label="Shuffle a mark" onRoll={heroFieldDie('mark')}/></span>
           <input value={heroForm.mark} onChange={heroPen('mark')} maxLength={80} placeholder="A scar, a brand, a streak of white…"/></label>
         <label className="ask-row"><span className="label-line">{ask('hero', 'keepsake')} <DiceButton label="Shuffle a keepsake" onRoll={heroFieldDie('keepsake')}/></span>
@@ -764,7 +825,11 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
     });
   }, [form.caster]);
   const pen = (key) => (event) => setForm((v) => ({ ...v, [key]: event.target.value, __sovereign: markSovereign(v, key) }));
-  const setPresentation = (event) => setForm((v) => ({ ...v, presentation: event.target.value, voiceId: null, __sovereign: markSovereign(v, 'presentation') }));
+  const setIdentity = ({ presentation, pronouns }) => setForm((v) => ({
+    ...v, presentation, pronouns,
+    voiceId: presentation !== v.presentation ? null : v.voiceId,
+    __sovereign: markSovereign(markSovereign(v, 'presentation'), 'pronouns'),
+  }));
   const setCalling = (event) => setForm((v) => {
     const cls = CLASSES.find((c) => c.className === event.target.value) || CLASSES[0];
     const riders = { caster: cls.caster, hitDie: cls.hitDie, skills: cls.skills, abilities: rollAbilities(cls.className, randomSeed()), bearing: BEARINGS[cls.className], background: BACKGROUNDS[cls.className], spells: dealGrimoire(cls.caster) };
@@ -818,12 +883,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
   useEffect(() => () => { paintCtl.current?.abort(); if (urlRef.current) URL.revokeObjectURL(urlRef.current); }, []);
 
   const hasFace = portrait && portrait !== 'pending';
-  const heardAs = { feminine: 'Heard feminine', masculine: 'Heard masculine', neutral: 'Heard as they choose' }[form.presentation];
-  const presentationField = (
-    <label><span className="label-line">{ask('hero', 'presentation')} <DiceButton label="Shuffle the presentation" onRoll={fieldDie('presentation')}/></span>
-      <select value={form.presentation} onChange={setPresentation}><option value="feminine">Feminine</option><option value="masculine">Masculine</option><option value="neutral">Neutral / unsaid</option></select>
-    </label>
-  );
+  const heardAs = { feminine: 'Heard feminine', masculine: 'Heard masculine', neutral: 'Heard as they choose' }[form.presentation] || 'Heard as they choose';
   return <main className="forge-page page-enter">
     <button className="text-button" onClick={onBack}>← {world.title}</button>
     <header className="forge-header"><span className="eyebrow">Heir Forge</span><h1>Give the world someone new to remember.</h1><p>{world.title} waits for a new voice.</p></header>
@@ -869,10 +929,11 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
             {CLASSES.map((c) => <option key={c.className} value={c.className}>{c.className}</option>)}
           </select></label>
       </div>
-      <div className="form-grid">
-        {presentationField}
-        <label><span className="label-line">{ask('hero', 'pronouns')} <DiceButton label="Shuffle the words" onRoll={fieldDie('pronouns')}/></span><input value={form.pronouns} onChange={pen('pronouns')} maxLength={30} placeholder="she/her, he/him, they/them…"/></label>
-      </div>
+      <IdentityControl
+        presentation={form.presentation}
+        pronouns={form.pronouns}
+        onSet={setIdentity}
+      />
       <label className="ask-row"><span className="label-line">{ask('hero', 'mark')} <DiceButton label="Shuffle a mark" onRoll={fieldDie('mark')}/></span><input value={form.mark} onChange={pen('mark')} maxLength={80} placeholder="A scar, a brand, a streak of white…"/></label>
       <label className="ask-row"><span className="label-line">{ask('hero', 'keepsake')} <DiceButton label="Shuffle a keepsake" onRoll={fieldDie('keepsake')}/></span><input value={form.keepsake} onChange={pen('keepsake')} maxLength={60} placeholder="It goes into their pack — and into the story."/></label>
       {(() => {

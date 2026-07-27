@@ -2192,6 +2192,9 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = 
   const closeRef = useRef(null);
   useEffect(() => {
     if (!expandedSrc) return undefined;
+    // D4 — Body scroll lock while the lightbox is open.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     // Minimal focus management for a one-control dialog: focus moves to the
     // close button on open, Tab stays on it (nothing beneath is reachable by
     // keyboard while the lightbox claims aria-modal), Escape closes, and focus
@@ -2204,6 +2207,7 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = 
     window.addEventListener('keydown', onKey);
     closeRef.current?.focus();
     return () => {
+      document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKey);
       if (opener && document.contains(opener)) opener.focus?.();
     };

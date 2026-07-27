@@ -85,8 +85,8 @@ function Packs({ campaign, gallery, openPack, onOpenPack }) {
       const open = openPack === name;
       return <article key={name} className="pack" data-pack={name}>
         <button className="pack-head" onClick={() => onOpenPack(open ? null : name)} aria-expanded={open}>
-          {gallery[name] ? <img className="soul-face" src={gallery[name]} alt={name}/> : <div className="procedural-portrait">{name.split(' ').map((x) => x[0]).join('')}</div>}
-          <div><b>{name}</b><small>{purse.coin} coin · {held.length} {held.length === 1 ? 'thing' : 'things'} held</small></div>
+          {gallery[name] ? <img className="pack-portrait" src={gallery[name]} alt={name}/> : <div className="pack-portrait pack-portrait-placeholder">{name.split(' ').map((x) => x[0]).join('')}</div>}
+          <div className="pack-identity"><b>{name}</b><small>{purse.coin} coin · {held.length} {held.length === 1 ? 'thing' : 'things'} held</small></div>
         </button>
         {open && <div className="pack-body">
           <p className="muted pack-law">This pack is the sealed trove, filtered to one bearer.</p>

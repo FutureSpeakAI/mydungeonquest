@@ -148,7 +148,11 @@ const DIST = path.join(GAME_ROOT, 'dist');
 // 640089 → 640080, a move of -9 bytes. Owner ruling: C2 — keyArtUrlRef ref
 //   and its revokeObjectURL cleanup removed (key-art preview paint retired;
 //   deck uses bundled assets). Ratchet tightens downward.
-const CLOSURE_BYTES_PIN = 640080;
+// 640080 → 640186, a move of +106 bytes. Owner ruling: D4 — pack-head
+//   restructured to vertical framed card at 4:5 (pack-portrait class,
+//   pack-identity wrapper, pack-portrait-placeholder; soul-face retired from
+//   pack context).
+const CLOSURE_BYTES_PIN = 640186;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

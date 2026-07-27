@@ -129,7 +129,10 @@ function XCard() {
 // draws three more from the same register. An expanded view shows all
 // voices in the register with a register label. Provider names never
 // reach the player — every description comes from the sound lexicon.
-function AuditionRow({ presentation, name, voiceId, onBless }) {
+// C8 — KEYLESS FLOOR: at parchment tier audio is unavailable; tapping
+// a chip still blesses the voice (tap-count parity), but the preview
+// call is skipped and an honest note replaces the play prompt.
+function AuditionRow({ presentation, name, voiceId, onBless, mediaTier = 'illuminated' }) {
   const [busy, setBusy] = useState(null);
   const [shuffleSeed, setShuffleSeed] = useState(0);
   const [expanded, setExpanded] = useState(false);
@@ -150,6 +153,7 @@ function AuditionRow({ presentation, name, voiceId, onBless }) {
   ] ?? 'All voices';
 
   const play = async (candidate) => {
+    if (mediaTier === 'parchment') return; // no audio at this table — honest floor
     setBusy(candidate.id);
     try {
       const line = `I am ${name || 'the hero'}. The road is long, and I mean to walk it.`;
@@ -175,7 +179,11 @@ function AuditionRow({ presentation, name, voiceId, onBless }) {
     <button type="button" className="audition-expand" onClick={() => setExpanded((e) => !e)}>
       {expanded ? 'Fewer voices' : 'All voices in this register'}
     </button>
-    <small className="fine-print">{voiceId ? 'Chosen — this voice is theirs, for good.' : 'Tap to hear and choose one.'}</small>
+    <small className="fine-print">
+      {mediaTier === 'parchment'
+        ? 'Audio is unavailable at this table — tap to choose a voice.'
+        : voiceId ? 'Chosen — this voice is theirs, for good.' : 'Tap to hear and choose one.'}
+    </small>
   </div>;
 }
 
@@ -508,7 +516,11 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
   // ── sitting (face step) ──────────────────────────────────────────────────
   const [sitting, setSitting] = useState(null);
   useEffect(() => {
-    if (!sittingRequired(mediaTier) || !heroForm.name.trim()) { setSitting(null); return; }
+    // C8 — KEYLESS FLOOR: open the sitting at ALL tiers so the player sees
+    // three procedural candidates even when no paint service is available.
+    // Image fetches bail at parchment (the effect below checks mediaTier),
+    // so only sigil placeholders are shown — honest and tap-count-identical.
+    if (!heroForm.name.trim()) { setSitting(null); return; }
     setSitting(openSitting(heroForm));
   }, [heroForm.name, heroForm.bearing, heroForm.mark, heroForm.background, heroForm.hair, heroForm.eyes, heroForm.skin, heroForm.build, heroForm.attire, heroForm.accessory, mediaTier]);
   const blessChair = (candidateId) => setSitting((current) => {
@@ -859,7 +871,9 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
       </div>
       {sitting && <div className="sitting-panel">
         <h3>The Sitting — a face is accepted, not assigned</h3>
-        <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>
+        {mediaTier === 'parchment'
+          ? <p className="fine-print forge-floor-note">No portrait service at this table — three sigils stand for the face. Tap one to keep it; the sigil is permanent from that moment.</p>
+          : <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>}
         <div className="chair-tray">{sitting.candidates.map((candidate) => {
           const img = chairImages[candidate.id];
           const isBlessed = sitting.blessed?.id === candidate.id;
@@ -903,7 +917,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         pronouns={heroForm.pronouns}
         onSet={setIdentity}
       />
-      <AuditionRow presentation={heroForm.presentation} name={heroForm.name} voiceId={heroForm.voiceId} onBless={bless}/>
+      <AuditionRow presentation={heroForm.presentation} name={heroForm.name} voiceId={heroForm.voiceId} onBless={bless} mediaTier={mediaTier}/>
       <button className="primary-button" onClick={advance}>Choose the name <ArrowRight/></button>
     </section>}
 
@@ -995,7 +1009,8 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
 
   const [sitting, setSitting] = useState(null);
   useEffect(() => {
-    if (!sittingRequired(mediaTier) || !form.name.trim()) { setSitting(null); return; }
+    // C8 — KEYLESS FLOOR: open the sitting at ALL tiers (see CreationRouter).
+    if (!form.name.trim()) { setSitting(null); return; }
     setSitting(openSitting(form));
   }, [form.name, form.bearing, form.mark, form.background, form.hair, form.eyes, form.skin, form.build, form.attire, form.accessory, mediaTier]);
   const blessChair = (candidateId) => setSitting((current) => {
@@ -1174,7 +1189,9 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
       })()}
       {sitting && <div className="sitting-panel">
         <h3>The Sitting — a face is accepted, not assigned</h3>
-        <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>
+        {mediaTier === 'parchment'
+          ? <p className="fine-print forge-floor-note">No portrait service at this table — three sigils stand for the face. Tap one to keep it; the sigil is permanent from that moment.</p>
+          : <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>}
         <div className="chair-tray">{sitting.candidates.map((candidate) => {
           const img = chairImages[candidate.id];
           const isBlessed = sitting.blessed?.id === candidate.id;
@@ -1203,7 +1220,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
           <span className="chair-lightbox-caption" aria-hidden="true">{expandedChair}</span>
         </div>;
       })()}
-      <AuditionRow presentation={form.presentation} name={form.name} voiceId={form.voiceId} onBless={bless}/>
+      <AuditionRow presentation={form.presentation} name={form.name} voiceId={form.voiceId} onBless={bless} mediaTier={mediaTier}/>
       <button className="primary-button" disabled={beginBusy || (() => {
         const owed = knownCountsFor(form.caster, 1);
         const held = Array.isArray(form.spells) ? form.spells : [];

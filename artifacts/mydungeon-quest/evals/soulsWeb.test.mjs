@@ -126,7 +126,13 @@ const DIST = path.join(GAME_ROOT, 'dist');
 // beatMeasure rides the context, matching the server bench exactly. The new
 // seat is one conditional assignment and one comment — pure routing glue.
 // 639550 → 639605, a move of 55 bytes. Owner ruling: A3 parity fix.
-const CLOSURE_BYTES_PIN = 639605;
+// 639605 → 639583, a move of -22 bytes. Owner ruling: A4 curtain — the
+// storyBlock beat spread now strips the player-facing `opening` field
+// (added to spines.js as a structural curtain) from the model context.
+// The beats helper defaults opening to title so no new string literals
+// ride the sync road; the closure shrank because spines.js now carries
+// only one beat field instead of a spread-all.
+const CLOSURE_BYTES_PIN = 639583;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

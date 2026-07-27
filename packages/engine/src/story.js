@@ -907,7 +907,10 @@ export function storyBlock(codex) {
   const nearEnd = codex.beatIndex >= codex.spine.beats.length - 3;
   const sealing = Boolean(codex.sealing) && !codex.completed;
   return {
-    beat: { index: codex.beatIndex, ...beat },
+    // THE CURTAIN (A4): only model-facing beat fields ride the pack.
+    // `opening` is a player-facing hook for chapter cards — it never
+    // crosses into the DM context where it could leak back as narration.
+    beat: { index: codex.beatIndex, act: beat.act, key: beat.key, title: beat.title, goal: beat.goal },
     evil_design: codex.beatIndex >= codex.spine.revealIdx ? codex.arc?.evil_plot || '' : '[GATED UNTIL REVELATION]',
     cast: codex.cast,
     regions: codex.regions,

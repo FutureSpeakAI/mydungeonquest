@@ -90,7 +90,9 @@ export function validateSpineCandidate(spine, { bespoke = true } = {}) {
     let lastAct = 0;
     beats.forEach((beat, index) => {
       if (!beat || typeof beat !== 'object' || Array.isArray(beat)) { refuse(`beat ${index} must be a plain object`); return; }
-      for (const key of Object.keys(beat)) if (!['act', 'key', 'title', 'goal'].includes(key)) refuse(`beat ${index} carries the stranger key "${key}"`);
+      // THE CURTAIN (A4): 'opening' is the player-facing chapter hook —
+      // it is NOT a stranger key; it is a first-class beat field.
+      for (const key of Object.keys(beat)) if (!['act', 'key', 'title', 'goal', 'opening'].includes(key)) refuse(`beat ${index} carries the stranger key "${key}"`);
       if (![1, 2, 3].includes(beat.act)) refuse(`beat ${index} must name act 1, 2, or 3`);
       else { actCounts[beat.act] += 1; if (beat.act < lastAct) refuse(`beat ${index} falls backward — acts must never descend`); lastAct = Math.max(lastAct, beat.act); }
       if (!isSlug(beat.key, SPINE_FENCES.key)) refuse(`beat ${index} key must be a ${SPINE_FENCES.key.min}-${SPINE_FENCES.key.max} character slug`);

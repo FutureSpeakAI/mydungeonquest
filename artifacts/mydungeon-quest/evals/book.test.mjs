@@ -178,7 +178,8 @@ const press = async (node) => { await act(async () => { node.props.onClick(); })
   await press(holding);
   const chain = collectByClass(collectWhere(root.toJSON(), (node) => node.props['data-pack'] === 'Edda')[0], 'trove-chain');
   assert.equal(chain.length, 1, 'provenance is one tap deep');
-  assert.match(textOf(chain[0]), new RegExp(`${heroName} \\(turn \\d+\\) → Edda \\(turn \\d+\\)`), 'the chain of hands, each cited');
+  // A4: a since-0 hand renders as "Carried from the start", not "Name (turn 0)".
+  assert.match(textOf(chain[0]), /Carried from the start → Edda \(turn \d+\)/, 'the chain of hands, each cited (since-0 is "Carried from the start")');
   await show({ pack: null });
 }
 

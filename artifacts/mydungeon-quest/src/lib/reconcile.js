@@ -34,7 +34,7 @@ export async function reconcileLegacyPurse(campaign) {
     const turn = fresh.turnNumber || 0;
     const movement = {
       holder: heroName, delta: figure.coin,
-      reason: 'reconciled from the old ledger lane \u2014 stake and gold_delta rows, folded once'
+      reason: 'recovered, an old debt settled and added to the purse.'
     };
     const citations = figure.entries.map((entry) => entry.turn);
     // Seal FIRST, save once after — a failed seal leaves no unsealed row

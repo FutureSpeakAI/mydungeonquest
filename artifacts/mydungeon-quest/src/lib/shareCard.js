@@ -26,7 +26,9 @@ export function chapterEntries(campaign, beatIndex) {
 // The chapter's public face, composed in the engine's own words.
 export function chapterCard(campaign, beatIndex, plate = null) {
   const beat = campaign?.codex?.spine?.beats?.[beatIndex] || null;
-  const chapterLabel = beat ? `Chapter ${romanNumeral(beatIndex + 1)} \u2014 ${beat.title}` : '';
+  // THE CURTAIN (A4) — chapter cards render the player-facing opening
+  // line, never the model-facing design goal or directive.
+  const chapterLabel = beat ? `Chapter ${romanNumeral(beatIndex + 1)} \u2014 ${beat.opening || beat.title}` : '';
   return composeShareCard({
     worldTitle: campaign?.title || '',
     taleTitle: campaign?.codex?.arc?.title || campaign?.title || '',

@@ -51,7 +51,7 @@ function PackHolding({ item }) {
     <span className="thread-kind">{item.kind}</span>
     <button className="text-button" onClick={() => setOpen(!open)}>{item.name}</button>
     {item.equipped && <span className="ready-mark">at the ready</span>}
-    {open && <small className="trove-chain">{item.chain.map((hand) => `${hand.holder} (turn ${hand.since})`).join(' → ')}</small>}
+    {open && <small className="trove-chain">{item.chain.map((hand) => hand.since === 0 ? 'Carried from the start' : `${hand.holder} (turn ${hand.since})`).join(' \u2192 ')}</small>}
     {open && item.note && <small className="trove-note">“{item.note}”</small>}
   </div>;
 }
@@ -167,7 +167,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
           ? <div className="seal-tale-row"><button className="secondary-button" onClick={onSealTale}>Seal the Tale</button><p className="muted">End with honor: a few closing turns, then the wax.</p></div>
           : null}
     <h3>The evil design</h3><p className={revealed ? '' : 'gated'}>{revealed ? c.arc?.evil_plot : 'The page refuses to hold the whole shape. Revelation must be earned.'}</p>
-    {roomPlan && <><h3>The scriptorium — the room plans, the door speaks</h3>
+    {import.meta.env.DEV && roomPlan && <><h3>The scriptorium — the room plans, the door speaks</h3>
     <ul className="scriptorium-plan">{SCRIBES.map((scribe) => <li key={scribe}><b>{scribe}</b> — <span className="muted">{roomPlan.scratchpad[scribe]}</span></li>)}</ul></>}
     {tells && tells.report.flagged.length > 0 && <><h3>The human hand — the tell court</h3>
     <ul className="scriptorium-plan">{tells.report.flagged.map((key) => <li key={key}><b>{TELL_FAMILIES[key].name}</b> — <span className="muted">{TELL_FAMILIES[key].finding}</span></li>)}</ul></>}
@@ -286,7 +286,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
             <span className="thread-kind">{item.kind}</span>
             <b>{item.name}</b>
             {item.equipped && <span className="ready-mark">at the ready</span>}
-            <small className="trove-chain">{item.chain.map((hand) => `${hand.holder} (turn ${hand.since})`).join(' → ')}</small>
+            <small className="trove-chain">{item.chain.map((hand) => hand.since === 0 ? 'Carried from the start' : `${hand.holder} (turn ${hand.since})`).join(' \u2192 ')}</small>
             {item.note && <small className="trove-note">“{item.note}”</small>}
             {item.status === 'gone' && <span className="outcome">gone{item.removedReason ? ` — ${item.removedReason}` : ''}, turn {item.removedTurn}</span>}
           </div>)}</div>}

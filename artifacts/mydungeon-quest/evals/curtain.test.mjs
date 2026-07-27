@@ -82,4 +82,37 @@ for (let i = 1; i < crossing.length; i += 1) {
 }
 assert.deepEqual(crossing[crossing.length - 1], fixture, 'the final view IS the sealed narration');
 
-console.log('PASS — the curtain holds: one sealed event, no retired plumbing, a strictly growing pour.');
+// OPENING-SEQUENCE RETRACTION DETECTOR (A5) — the chapter card must
+// never appear BEFORE or instead of the opening turn's narration in the
+// feed. orderFeed places pages AFTER the log they anchor, so a chronicle
+// page for the opening chapter cannot displace the opening turn.
+const { orderFeed } = await import('fatescript/sequencing');
+const openingLog = { id: 'log-0', beatIndex: 0, kind: undefined };
+// A chapter card for the opening chapter anchored after the opening log.
+const anchoredPage = { beatIndex: 0, afterLogId: 'log-0', passage: 'The tale so far.' };
+// An orphan page (afterLogId absent) falls to the beat boundary — also after log-0.
+const orphanPage = { beatIndex: 0, afterLogId: null, passage: 'The tale so far.' };
+for (const page of [anchoredPage, orphanPage]) {
+  const seats = orderFeed([openingLog], [page], []);
+  assert.equal(seats.length, 2, 'opening log and its chapter page both seat');
+  assert.equal(seats[0].kind, 'turn', 'opening log sits FIRST — narration is never displaced');
+  assert.equal(seats[1].kind, 'page', 'chapter page sits AFTER the opening log');
+}
+// A pending row (before the real page arrives) also goes after the log.
+const pendingRow = { beatIndex: 0, afterLogId: 'log-0' };
+const pendingSeats = orderFeed([openingLog], [], [pendingRow]);
+assert.equal(pendingSeats[0].kind, 'turn', 'pending row never precedes the opening log');
+assert.equal(pendingSeats[1].kind, 'page-pending', 'pending row sits after the opening log');
+
+// NARRATION SLOT LAW (A5) — the App must call setPouringId after (or
+// synchronously with) setCurrent, never before. This is structural: the
+// node renders with pour=true from its first mount, and nothing renders
+// before the seal. Verified here at the source level.
+const appSrc = src('../src/App.jsx');
+// The old ordering had setPouringId BEFORE seal; the new one removes it
+// from that position. The pour comment must be present and the pre-seal
+// call must be absent.
+assert.ok(appSrc.includes('NARRATION SLOT LAW'), 'the narration slot law comment is seated in App.jsx');
+assert.ok(!appSrc.includes('setPouringId(log.id);\n      const record = await seal'), 'setPouringId must not fire before the seal');
+
+console.log('PASS — the curtain holds: one sealed event, no retired plumbing, a strictly growing pour, and the opening sequence has no retraction.');

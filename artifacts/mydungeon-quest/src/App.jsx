@@ -1010,7 +1010,12 @@ export default function App() {
       // THE POUR — the sealed page pours into its permanent seat (never a
       // provisional article): the entry is marked, the text grows in place,
       // and no node is ever swapped out from under the reader.
-      setPouringId(log.id);
+      //
+      // NARRATION SLOT LAW (A5): setPouringId is called AFTER the seal
+      // completes and together with setCurrent (line below) so React batches
+      // them into one render. Nothing renders in the narration slot until
+      // the turn is fully sealed; the LogEntry mounts with pour=true from
+      // its very first render, with no pre-seal draft visible to the player.
       const record = await seal(base.id, 'turn', { player, visiblePlayer, deed, dm, stateAfter: { hero, combat }, storyAfter: codex, entropy, resolution, room: roomLedger });
       const sealed = await db.campaigns.get(base.id);
       next = { ...next, headHash: sealed.headHash, turnCount: sealed.turnCount, signatureStatus: sealed.signatureStatus };
@@ -1104,7 +1109,11 @@ export default function App() {
         const afterPost = await db.campaigns.get(base.id);
         next = { ...next, headHash: afterPost.headHash, turnCount: afterPost.turnCount, signatureStatus: afterPost.signatureStatus, waypost };
       }
-      await saveCampaign(next); setCurrent(next); await refreshShelf();
+      // NARRATION SLOT LAW (A5, continued): setCurrent and setPouringId are
+      // called synchronously so React 18 batches them into one render. The
+      // LogEntry mounts with pour=true from its very first appearance — no
+      // render where the entry exists but pour is false, no re-mount.
+      await saveCampaign(next); setCurrent(next); setPouringId(log.id); await refreshShelf();
       setStatus('✦ The turn is sealed.');
       // THE ACT TURNS — when this turn crossed an act boundary, a full-bleed
       // interstitial presents it: "Act II — the world unravelling." It waits

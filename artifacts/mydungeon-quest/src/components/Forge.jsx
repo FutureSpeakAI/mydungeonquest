@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Dices, ShieldCheck } from 'lucide-react';
-import { SparkRow } from './Sparks.jsx';
 import { Dowry } from './Dowry.jsx';
-import { sparks } from '../lib/onboarding.js';
 import { isProving } from '../lib/proving.js';
+import { WORLD_DECK, shuffleWorldDeck } from '../lib/worldDeck.js';
 import { SPINES } from 'fatescript/spines';
-import { portraitPrompt, keyArtPrompt } from '../lib/cinema/prompts.js';
+import { portraitPrompt } from '../lib/cinema/prompts.js';
 import { nameSeed } from '../lib/cinema/prologue.js';
 import { oracleWorld, oracleHero, ORACLE_WORLD, ORACLE_HERO, CLASSES, BEARINGS, BACKGROUNDS, rollAbilities } from 'fatescript/forgeRolls';
 import { FIELD_MAP, XCARD_COPY, fieldEntry, spineFromPromise, spineLabel, titleFromPromise, WORLD_KEYS, HERO_KEYS, CALLING_RIDERS } from 'fatescript/smith';
-import { smithSpin, spineSpin } from '../lib/smithClient.js';
+import { smithSpin } from '../lib/smithClient.js';
 import { openSitting, blessSitting, sittingRequired } from '../lib/sitting.js';
 import { ATELIER_FIELDS, dealAppearance, rollAppearance, heroCanonSoul } from '../lib/atelier.js';
 import { dealAuditions } from '../lib/audition.js';
@@ -187,8 +186,32 @@ function CreationProgress({ step, maxReached, onGoTo }) {
   </nav>;
 }
 
-// World defaults — the same fallback the old WorldForge used.
+// World defaults — fallback shape; deck cards override title/covenant/tone/asset.
 const WORLD_FALLBACK = { title: 'The Unwritten Road', covenant: 'A moonlit frontier where roads choose their travelers.', spineId: 'classic-epic', tone: 'Mythic, warm, and dangerous', linesText: '', veilsText: '', homeRegion: 'Larkspur Vale', styleBible: 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.', __sovereign: [] };
+
+// C2 — WORLD DECK CARD — one card in the swipeable deck.
+// Each card shows a 4:5 full-bleed image, title, one-sentence premise, tone label.
+// The active card is highlighted; clicking one makes it the selection for "Choose this world".
+function WorldDeckCard({ world, active, onActivate }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      className={`world-deck-card${active ? ' selected' : ''}`}
+      onClick={() => onActivate(world)}
+    >
+      {world.asset
+        ? <img className="world-deck-art" src={world.asset} alt="" aria-hidden="true"/>
+        : <div className="world-deck-art world-deck-no-art" aria-hidden="true"/>}
+      <div className="world-deck-caption">
+        <strong className="world-deck-title">{world.title}</strong>
+        <p className="world-deck-premise">{world.covenant}</p>
+        <small className="world-deck-tone">{world.tone}</small>
+      </div>
+    </button>
+  );
+}
 // Hero defaults — the same fallback the old HeroForge used.
 const HERO_FALLBACK = { name: 'Aster Vale', sigil: '✦', ancestry: 'Human', className: 'Ranger', caster: 'half', hitDie: 10, abilities: { STR: 14, DEX: 15, CON: 13, INT: 10, WIS: 12, CHA: 8 }, skills: ['Perception','Survival','Stealth'], bearing: 'Weather-worn leathers, a road-warden\u2019s longbow, and eyes that never stop reading the treeline.', background: 'A former road-warden who can hear when a path is lying.', presentation: 'neutral', pronouns: '', mark: '', keepsake: 'a river-stone that is always warm', voiceId: null, hair: 'chestnut hair bound in a travel knot', eyes: 'storm-grey eyes', skin: 'olive skin weathered by road-sun', build: 'wiry and quick', attire: 'weather-worn ranger leathers', accessory: 'a river-stone pendant on a cord', __sovereign: [] };
 
@@ -215,7 +238,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
   };
   const goBack = () => { if (step > 0) setStep(step - 1); else onBack?.(); };
 
-  // ── world form ───────────────────────────────────────────────────────────
+  // ── world form (covenant / description field and sovereign tracking) ────────
   const [worldForm, setWorldForm] = useState(() => {
     const saved = loadDraft(WORLD_DRAFT_KEY);
     return saved && typeof saved.title === 'string' ? { ...WORLD_FALLBACK, ...saved } : { ...WORLD_FALLBACK };
@@ -224,44 +247,61 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
 
   const worldPen = (key) => (event) => setWorldForm((v) => ({ ...v, [key]: event.target.value, __sovereign: markSovereign(v, key) }));
   const worldSov = sovereignOf(worldForm);
+  // effSpine / effTitle: used in step 1+ after a card is chosen and worldForm is updated.
   const effSpine = worldSov.has('spineId') ? worldForm.spineId : spineFromPromise(worldForm.covenant);
-  const bespoke = worldForm.bespokeSpine?.spine ? worldForm.bespokeSpine : null;
-  const shapeName = bespoke ? bespoke.spine.label : spineLabel(effSpine);
   const effTitle = (worldSov.has('covenant') && !worldSov.has('title')) ? titleFromPromise(worldForm.covenant) : worldForm.title;
 
-  const spinBusy = useRef(false);
-  const shuffleWorld = async () => {
-    if (spinBusy.current) return; spinBusy.current = true;
-    try {
-      const result = await smithSpin({ scope: 'world', locked: sovereignLock(worldForm, WORLD_KEYS), seed: randomSeed(), tier: mediaTier });
-      setWorldForm((v) => applyCandidate(v, result.candidates[0]));
-    } finally { spinBusy.current = false; }
-  };
-  const worldFieldDie = (key) => async () => {
-    const result = await smithSpin({ scope: 'field', field: key, locked: remainderLock(worldForm, WORLD_KEYS, key), seed: randomSeed(), tier: mediaTier });
-    setWorldForm((v) => applyCandidate(v, result.candidates[0], [key]));
-  };
-  const spineDie = async () => {
-    const dealt = await spineSpin({ covenant: worldForm.covenant, tone: worldForm.tone, seed: randomSeed(), tier: mediaTier });
-    setWorldForm((v) => ({ ...v, bespokeSpine: dealt, __sovereign: markSovereign(v, 'spineId') }));
+  // C2 — DECK STATE: three cards drawn from fixture; a custom-generated card
+  // sits first when present. No smithSpin fires for the three default cards.
+  const initialSeed = isProving() ? 0 : (Date.now() / 60000) | 0;
+  const [deckSeed, setDeckSeed] = useState(initialSeed);
+  const [customCard, setCustomCard] = useState(null);
+  const [activeDeckCard, setActiveDeckCard] = useState(null);
+  const [generateBusy, setGenerateBusy] = useState(false);
+  const generateBusyRef = useRef(false);
+
+  // The displayed deck: customCard always first when present; otherwise 3 fixture cards.
+  const displayedDeck = useMemo(() => {
+    const three = shuffleWorldDeck(deckSeed);
+    return customCard ? [customCard, ...three.slice(0, 2)] : three;
+  }, [deckSeed, customCard]);
+
+  // resolvedActiveCard: the selected card, falling back to the first in the deck.
+  const resolvedActiveCard = activeDeckCard ?? displayedDeck[0];
+
+  // Shuffle: draw 3 new fixture cards, clear custom card, reset active selection.
+  const shuffleDeck = () => {
+    setDeckSeed((s) => s + 1);
+    setCustomCard(null);
+    setActiveDeckCard(null);
   };
 
-  // Key art fades in behind the world step as the promise takes shape.
-  const [keyArt, setKeyArt] = useState(null);
-  const keyArtUrlRef = useRef(null);
-  useEffect(() => {
-    if (step !== 0 || mediaTier === 'parchment' || !worldForm.covenant.trim()) return;
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const prompt = keyArtPrompt({ ...worldForm, title: effTitle }, 'establishing');
-        const url = await paintPreview({ prompt, kind: 'keyart', label: 'keyart', variant: 'establishing', seed: nameSeed(`${effTitle}:${worldForm.covenant}`), dimensions: '1280x720' }, controller.signal);
-        if (keyArtUrlRef.current) URL.revokeObjectURL(keyArtUrlRef.current);
-        keyArtUrlRef.current = url; setKeyArt(url);
-      } catch { /* preview is ritual; sealed art comes at genesis */ }
-    }, 1100);
-    return () => { controller.abort(); clearTimeout(timer); };
-  }, [worldForm.covenant, worldForm.tone, worldForm.styleBible, worldForm.title, worldForm.homeRegion, mediaTier, step]);
+  // Generate custom card from description: ONE smithSpin call, seats the card first.
+  const generateCustomCard = async () => {
+    if (generateBusyRef.current || !worldForm.covenant.trim()) return;
+    generateBusyRef.current = true;
+    setGenerateBusy(true);
+    try {
+      const result = await smithSpin({ scope: 'world', locked: { covenant: worldForm.covenant }, seed: randomSeed(), tier: mediaTier });
+      const c = result.candidates[0];
+      const card = {
+        id: 'custom',
+        title: c.title || titleFromPromise(worldForm.covenant),
+        covenant: worldForm.covenant,
+        tone: c.tone || worldForm.tone,
+        asset: null,
+        spineId: c.spineId || spineFromPromise(worldForm.covenant),
+        homeRegion: c.homeRegion || WORLD_FALLBACK.homeRegion,
+        styleBible: c.styleBible || WORLD_FALLBACK.styleBible,
+        linesText: '', veilsText: '',
+      };
+      setCustomCard(card);
+      setActiveDeckCard(card);
+    } finally {
+      generateBusyRef.current = false;
+      setGenerateBusy(false);
+    }
+  };
 
   // ── hero form ────────────────────────────────────────────────────────────
   const [heroForm, setHeroForm] = useState(() => {
@@ -341,7 +381,6 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
   useEffect(() => () => {
     paintCtl.current?.abort();
     if (portraitUrlRef.current) URL.revokeObjectURL(portraitUrlRef.current);
-    if (keyArtUrlRef.current) URL.revokeObjectURL(keyArtUrlRef.current);
   }, []);
   const hasFace = portrait && portrait !== 'pending';
 
@@ -356,33 +395,32 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
     return out.ok ? out.sitting : current;
   });
 
-  // ── sparks + xcard (world step) ─────────────────────────────────────────
-  const [sparkDeal] = useState(() => sparks(isProving() ? 42 : (Date.now() / 60000) | 0));
+  // ── xcard + dowry secondary door ─────────────────────────────────────────
   const [xcardDealt] = useState(() => { try { return localStorage.getItem(XCARD_SEEN_KEY) === '1'; } catch { return true; } });
   const [dowry, setDowry] = useState(null);
-  // ── world secondary door (the Dowry import ceremony) ─────────────────────
-  // C1 removes the method-selector tabs; the Dowry lives on as an
-  // expandable secondary section so the ceremony remains reachable without
-  // requiring a four-tab picker on the world step.
   const [door, setDoor] = useState(null);
-  // Secondary-door entries: each is [id, label, subtitle].
   const WORLD_SECONDARY = [
     ['dowry', 'The Dowry', 'Pages from an elder table — carried in, judged, and blessed by hand.'],
   ];
 
-  // ── world card preview ───────────────────────────────────────────────────
-  const worldCard = <article className="spin-card">
-    <h3>{effTitle}</h3>
-    <p>{worldForm.covenant}</p>
-    <div className="spin-meta"><span>{shapeName}</span><span>{worldForm.tone}</span><span>Home — {worldForm.homeRegion}</span></div>
-  </article>;
-
   // ── collect world data when leaving step 0 ───────────────────────────────
-  const storeWorld = () => {
-    try { localStorage.setItem(XCARD_SEEN_KEY, '1'); } catch { /* dealt elsewhere */ }
+  // C2: builds the world object from the selected deck card, merging any
+  // sovereign description the player typed. Syncs worldForm so effTitle
+  // is correct in step 1+ (React 18 batches both updates).
+  const storeWorldAndAdvance = () => {
+    try { localStorage.setItem(XCARD_SEEN_KEY, '1'); } catch {}
+    const card = resolvedActiveCard;
+    const base = { ...WORLD_FALLBACK, ...(card || {}) };
+    const sov = sovereignOf(worldForm);
+    const merged = { ...base };
+    for (const k of [...sov]) { if (worldForm[k] !== undefined) merged[k] = worldForm[k]; }
+    const title = card?.title || effTitle;
+    const spineId = merged.spineId || effSpine;
     const out = {};
-    for (const [key, value] of Object.entries(worldForm)) if (!key.startsWith('__')) out[key] = value;
-    onWorldReady?.({ ...out, title: effTitle, spineId: effSpine, lines: (worldForm.linesText || '').split(',').map((x) => x.trim()).filter(Boolean), veils: (worldForm.veilsText || '').split(',').map((x) => x.trim()).filter(Boolean), dowry });
+    for (const [key, value] of Object.entries(merged)) if (!key.startsWith('__')) out[key] = value;
+    onWorldReady?.({ ...out, title, spineId, lines: (merged.linesText || '').split(',').map((x) => x.trim()).filter(Boolean), veils: (merged.veilsText || '').split(',').map((x) => x.trim()).filter(Boolean), dowry });
+    setWorldForm({ ...merged, __sovereign: [...sov] });
+    advance();
   };
 
   // ── start the campaign ───────────────────────────────────────────────────
@@ -450,22 +488,44 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
 
     {/* ── Step 0: World ─────────────────────────────────────────────── */}
     {step === 0 && <section className="forge-card creation-step-panel">
-      {keyArt && <div className="forge-keyart" style={{ backgroundImage: `url("${keyArt}")` }} aria-hidden />}
       <header className="forge-header">
         <span className="eyebrow">World — step 1 of 5</span>
-        <h1>Speak the world into being.</h1>
-        <p>A sentence is enough — or one tap. Every field tells you where its answer lands.</p>
+        <h1>Choose your world.</h1>
+        <p>Three worlds wait. Pick one, shuffle for more, or write one sentence and generate your own.</p>
       </header>
-      <SparkRow sparks={sparkDeal} onPick={(spark) => setWorldForm((v) => applyCandidate({ ...v, __sovereign: (v.__sovereign || []).filter((k) => !['title', 'covenant', 'tone', 'homeRegion'].includes(k)) }, { title: spark.title, covenant: spark.covenant, tone: spark.tone, homeRegion: spark.region }))}/>
-      <label className="ask-row"><span className="label-line">{ask('world', 'covenant')} <DiceButton label="Shuffle a promise" onRoll={worldFieldDie('covenant')}/></span>
-        <textarea value={worldForm.covenant} onChange={worldPen('covenant')} rows="3" maxLength={2000}/>
-        <small className="fine-print">{fieldEntry('world', 'covenant').hint}</small>
+
+      {/* World deck — three cards, no AI call for defaults */}
+      <div className="world-deck" role="radiogroup" aria-label="World options">
+        {displayedDeck.map((world) => (
+          <WorldDeckCard
+            key={world.id}
+            world={world}
+            active={resolvedActiveCard?.id === world.id}
+            onActivate={(w) => setActiveDeckCard(w)}
+          />
+        ))}
+      </div>
+
+      <div className="world-deck-actions button-row">
+        <button className="primary-button" onClick={storeWorldAndAdvance}>
+          Choose this world <ArrowRight/>
+        </button>
+        <button type="button" className="secondary-button" onClick={shuffleDeck}>
+          <Dices/> Shuffle
+        </button>
+        <button type="button" className="text-button" onClick={() => setDoor(door === 'customize' ? null : 'customize')}>
+          Customize
+        </button>
+      </div>
+
+      <label className="ask-row world-describe">
+        <span className="label-line">Or describe your world in a sentence.</span>
+        <textarea value={worldForm.covenant} onChange={worldPen('covenant')} rows="2" maxLength={2000} placeholder="A moonlit frontier where roads choose their travelers."/>
+        <button type="button" className="secondary-button" disabled={!worldForm.covenant.trim() || generateBusy} onClick={generateCustomCard}>
+          {generateBusy ? 'Generating\u2026' : 'Generate a card'} <ArrowRight/>
+        </button>
       </label>
-      <label className="ask-row"><span className="label-line">{ask('world', 'tone')} <DiceButton label="Shuffle the feel" onRoll={worldFieldDie('tone')}/></span>
-        <input value={worldForm.tone} onChange={worldPen('tone')} maxLength={120}/>
-      </label>
-      <p className="shape-line">{ask('world', 'shape')} — <b>{shapeName}</b><small>{fieldEntry('world', 'shape').hint}</small></p>
-      {worldCard}
+
       {!xcardDealt && <XCard/>}
       <div className="secondary-door-row">
         {WORLD_SECONDARY.map(([id, label, sub]) =>
@@ -475,11 +535,8 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         )}
       </div>
       {door === 'dowry' && <Dowry dowry={dowry} onDowry={setDowry}/>}
-      <div className="button-row">
-        <button type="button" className="secondary-button" onClick={shuffleWorld}><Dices/> Shuffle</button>
-        <button className="primary-button" onClick={() => { storeWorld(); advance(); }}>Choose the hero <ArrowRight/></button>
-      </div>
-      <p className="fine-print">Nothing is final — each step has a die beside every field if you want your hands on them.</p>
+
+      <p className="fine-print">Nothing is final — the next four steps shape the hero.</p>
     </section>}
 
     {/* ── Step 1: Class ─────────────────────────────────────────────── */}

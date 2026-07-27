@@ -145,7 +145,10 @@ const DIST = path.join(GAME_ROOT, 'dist');
 // 640040 → 640089, a move of +49 bytes. Owner ruling: C1 — Dowry secondary
 //   section added to World step (the ceremony stays reachable; door==='dowry'
 //   state + WORLD_SECONDARY array + Dowry render). Net still -236 vs pre-C1.
-const CLOSURE_BYTES_PIN = 640089;
+// 640089 → 640080, a move of -9 bytes. Owner ruling: C2 — keyArtUrlRef ref
+//   and its revokeObjectURL cleanup removed (key-art preview paint retired;
+//   deck uses bundled assets). Ratchet tightens downward.
+const CLOSURE_BYTES_PIN = 640080;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

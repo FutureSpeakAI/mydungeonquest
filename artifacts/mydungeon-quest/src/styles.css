@@ -436,6 +436,22 @@
 .audition-chip.selected{border-color:var(--gold);background:linear-gradient(150deg,rgba(212,162,78,.18),rgba(0,0,0,.26))}
 .audition-chip:disabled{opacity:.55;cursor:wait}
 @media (max-width:640px){.door-row{grid-template-columns:1fr}}
+/* ---- C2: world deck ---- */
+.world-deck{display:flex;gap:.85rem;overflow-x:auto;scroll-snap-type:x mandatory;padding:.25rem .05rem 1rem;-webkit-overflow-scrolling:touch}
+.world-deck-card{flex:0 0 min(260px,72vw);aspect-ratio:4/5;border-radius:16px;overflow:hidden;position:relative;cursor:pointer;scroll-snap-align:center;border:2px solid transparent;background:#111;transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column}
+.world-deck-card.selected{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,162,78,.18)}
+.world-deck-card:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.world-deck-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+.world-deck-no-art{position:absolute;inset:0;background:linear-gradient(160deg,#1b1526,#0e0b14)}
+.world-deck-caption{position:relative;z-index:1;margin-top:auto;padding:.65rem .75rem .75rem;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.55) 60%,transparent 100%);display:flex;flex-direction:column;gap:.2rem}
+.world-deck-title{color:#fff;font:600 1rem Cinzel,serif;line-height:1.25;display:block}
+.world-deck-premise{color:rgba(255,255,255,.82);font-size:.8rem;line-height:1.4;margin:0}
+.world-deck-tone{color:var(--gold);font-size:.72rem;letter-spacing:.06em;font-style:italic}
+.world-deck-actions{flex-wrap:wrap;gap:.5rem .75rem;align-items:center;margin:.25rem 0 .6rem}
+.world-describe{margin:1rem 0 .5rem;gap:.5rem}
+.world-describe textarea{min-height:60px;resize:vertical}
+@media (max-width:640px){.world-deck-card{flex:0 0 min(220px,78vw)}}
+
 /* ---- C1: creation step router ---- */
 .creation-page{min-height:100vh;max-width:900px;margin:auto;padding:1rem 1rem 5rem}
 .creation-progress{display:flex;gap:.35rem;padding:.7rem 0;overflow-x:auto;margin-bottom:.5rem;position:sticky;top:0;z-index:10;background:linear-gradient(to bottom,#0e0b14 80%,transparent)}

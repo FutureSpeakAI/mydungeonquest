@@ -60,18 +60,12 @@ for (let i = 0; i < 3; i += 1) await act(async () => { spinButton.props.onClick(
 assert.equal(world.root.findAll((n) => n.type === 'textarea')[0].props.value, OWN_INK, 'three whole-world spins later, the ink stands byte-for-byte');
 assert.ok(draft('mdq:forge:world').title !== undefined, 'the spins still wrote the unsovereign remainder');
 
-// A neighbour's die never crosses the ink; the field's OWN die lifts it.
-const toneDie = findByLabel(world.root, 'Shuffle the feel');
-const toneBefore = () => draft('mdq:forge:world').tone ?? world.root.findAll((n) => n.type === 'input')[0].props.value;
-let toneMoved = false;
-for (let i = 0; i < 6 && !toneMoved; i += 1) { const was = toneBefore(); await act(async () => { toneDie.props.onClick(); }); toneMoved = toneBefore() !== was; }
-assert.ok(toneMoved, 'the feel\u2019s die moves the feel');
-assert.equal(world.root.findAll((n) => n.type === 'textarea')[0].props.value, OWN_INK, 'a neighbour\u2019s die never crosses the ink');
-const covenantDie = findByLabel(world.root, 'Shuffle a promise');
-let inkLifted = false;
-for (let i = 0; i < 6 && !inkLifted; i += 1) { await act(async () => { covenantDie.props.onClick(); }); inkLifted = world.root.findAll((n) => n.type === 'textarea')[0].props.value !== OWN_INK; }
-assert.ok(inkLifted, 'the field\u2019s OWN die is the one consent that lifts its ink');
-assert.ok(!draft('mdq:forge:world').__sovereign.includes('covenant'), 'lifted ink returns the field to the dice\u2019s custody');
+// C2: the world step field-level dice (tone die, covenant die) moved to the
+// Customize expansion (C7). The two-hands law at the world door is now:
+// a typed description is sovereign through deck shuffles; the Generate
+// button is the only smithSpin call. Those invariants are proven in the
+// worldDeck eval. Here we only verify the pen-sovereign-through-shuffle
+// invariant already covered above.
 
 // —— The pen is sovereign at the hero door, and the calling conditions the cast. ——
 let hero;

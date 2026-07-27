@@ -165,7 +165,7 @@ function AuditionRow({ presentation, name, voiceId, onBless }) {
   };
 
   return <div className="audition-row">
-    <span className="eyebrow label-line">{ask('hero', 'voice')} <DiceButton label="Shuffle a voice" onRoll={() => setShuffleSeed((s) => s + 1)}/></span>
+    <div className="audition-header"><span className="eyebrow">{ask('hero', 'voice')}</span><DiceButton label="Shuffle a voice" onRoll={() => setShuffleSeed((s) => s + 1)}/></div>
     {expanded && <p className="audition-register-label">{registerLabel}</p>}
     <div className="audition-choices">{shown.map((candidate) =>
       <button key={candidate.id} type="button" className={`audition-chip${voiceId === candidate.id ? ' selected' : ''}`} disabled={Boolean(busy) && busy !== candidate.id}
@@ -207,7 +207,7 @@ function CreationProgress({ step, maxReached, onGoTo }) {
 }
 
 // World defaults — fallback shape; deck cards override title/covenant/tone/asset.
-const WORLD_FALLBACK = { title: 'The Unwritten Road', covenant: 'A moonlit frontier where roads choose their travelers.', spineId: 'classic-epic', tone: 'Mythic, warm, and dangerous', linesText: '', veilsText: '', homeRegion: 'Larkspur Vale', styleBible: 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.', __sovereign: [] };
+export const WORLD_FALLBACK = { title: 'The Unwritten Road', covenant: 'A moonlit frontier where roads choose their travelers.', spineId: 'classic-epic', tone: 'Mythic, warm, and dangerous', linesText: '', veilsText: '', homeRegion: 'Larkspur Vale', styleBible: 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.', __sovereign: [] };
 
 // C2 — WORLD DECK CARD — one card in the swipeable deck.
 // Each card shows a 4:5 full-bleed image, title, one-sentence premise, tone label.
@@ -688,6 +688,34 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         </button>
       </div>
 
+      {/* ── World Customize door — opens in place, prefills from worldForm ─── */}
+      {door === 'customize' && <div className="world-customize-panel">
+        <div className="customize-panel-header">
+          <h3>Customize this world</h3>
+          <button type="button" className="text-button" onClick={() => setDoor(null)}>Close</button>
+        </div>
+        <label className="ask-row">
+          <span className="label-line">World title</span>
+          <input value={worldForm.title} onChange={worldPen('title')} maxLength={80}/>
+        </label>
+        <label className="ask-row">
+          <span className="label-line">Tone</span>
+          <input value={worldForm.tone} onChange={worldPen('tone')} maxLength={120}/>
+        </label>
+        <label className="ask-row">
+          <span className="label-line">Home region</span>
+          <input value={worldForm.homeRegion} onChange={worldPen('homeRegion')} maxLength={80}/>
+        </label>
+        <label className="ask-row">
+          <span className="label-line">Lines <small className="fine-print">(optional — topics kept off-limits)</small></span>
+          <textarea value={worldForm.linesText} onChange={worldPen('linesText')} rows="2" maxLength={500} placeholder="Comma-separated — these topics never enter the story."/>
+        </label>
+        <label className="ask-row">
+          <span className="label-line">Veils <small className="fine-print">(optional — topics handled off-camera)</small></span>
+          <textarea value={worldForm.veilsText} onChange={worldPen('veilsText')} rows="2" maxLength={500} placeholder="Comma-separated — these topics happen off-screen only."/>
+        </label>
+      </div>}
+
       <label className="ask-row world-describe">
         <span className="label-line">Or describe your world in a sentence.</span>
         <textarea value={worldForm.covenant} onChange={worldPen('covenant')} rows="2" maxLength={2000} placeholder="A moonlit frontier where roads choose their travelers."/>
@@ -822,8 +850,10 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         <p className="fine-print">Six strokes of the portrait. Your ink is sovereign, and the painting reads every word.</p>
         <div className="form-grid atelier-grid">
           {ATELIER_FIELDS.map(({ key, ask: askWord, placeholder }) =>
-            <label key={key}><span className="label-line">{askWord} <DiceButton label={`Shuffle ${key}`} onRoll={atelierDie(key)}/></span>
-              <input value={heroForm[key] || ''} onChange={heroPen(key)} maxLength={90} placeholder={placeholder}/></label>)}
+            <label key={key}>
+              <span className="label-line">{askWord}</span>
+              <span className="field-row"><input value={heroForm[key] || ''} onChange={heroPen(key)} maxLength={90} placeholder={placeholder}/><DiceButton label={`Shuffle ${key}`} onRoll={atelierDie(key)}/></span>
+            </label>)}
         </div>
         <button type="button" className="secondary-button" onClick={shuffleLook}><Dices/> Shuffle the look</button>
       </div>
@@ -884,15 +914,20 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         <h1>Name the hero.</h1>
         <p>The name is the first thing the world will know them by.</p>
       </header>
-      <label className="ask-row"><span className="label-line">{ask('hero', 'name')} <DiceButton label="Shuffle a name" onRoll={heroFieldDie('name')}/></span>
-        <input value={heroForm.name} onChange={heroPen('name')} maxLength={60}/>
+      <label className="ask-row">
+        <span className="label-line">{ask('hero', 'name')}</span>
+        <span className="field-row"><input value={heroForm.name} onChange={heroPen('name')} maxLength={60}/><DiceButton label="Shuffle a name" onRoll={heroFieldDie('name')}/></span>
       </label>
       <div className="hero-sigil name-step-sigil"><span>{heroForm.sigil}</span><input aria-label="Sigil" value={heroForm.sigil} onChange={heroPen('sigil')} maxLength={2}/><DiceButton label="Shuffle a sigil" onRoll={heroFieldDie('sigil')}/></div>
       <div className="form-grid">
-        <label className="ask-row"><span className="label-line">{ask('hero', 'mark')} <DiceButton label="Shuffle a mark" onRoll={heroFieldDie('mark')}/></span>
-          <input value={heroForm.mark} onChange={heroPen('mark')} maxLength={80} placeholder="A scar, a brand, a streak of white…"/></label>
-        <label className="ask-row"><span className="label-line">{ask('hero', 'keepsake')} <DiceButton label="Shuffle a keepsake" onRoll={heroFieldDie('keepsake')}/></span>
-          <input value={heroForm.keepsake} onChange={heroPen('keepsake')} maxLength={60} placeholder="It goes into their pack — and into the story."/></label>
+        <label className="ask-row">
+          <span className="label-line">{ask('hero', 'mark')}</span>
+          <span className="field-row"><input value={heroForm.mark} onChange={heroPen('mark')} maxLength={80} placeholder="A scar, a brand, a streak of white…"/><DiceButton label="Shuffle a mark" onRoll={heroFieldDie('mark')}/></span>
+        </label>
+        <label className="ask-row">
+          <span className="label-line">{ask('hero', 'keepsake')}</span>
+          <span className="field-row"><input value={heroForm.keepsake} onChange={heroPen('keepsake')} maxLength={60} placeholder="It goes into their pack — and into the story."/><DiceButton label="Shuffle a keepsake" onRoll={heroFieldDie('keepsake')}/></span>
+        </label>
       </div>
       {grimoirePanel}
       <button className="primary-button" disabled={beginDisabled} onClick={handleBegin}>Start the campaign <ArrowRight/></button>
@@ -1063,8 +1098,10 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
         <p className="fine-print">Six strokes of the portrait. Your ink is sovereign, and the painting reads every word.</p>
         <div className="form-grid atelier-grid">
           {ATELIER_FIELDS.map(({ key, ask: askWord, placeholder }) =>
-            <label key={key}><span className="label-line">{askWord} <DiceButton label={`Shuffle ${key}`} onRoll={atelierDie(key)}/></span>
-              <input value={form[key] || ''} onChange={pen(key)} maxLength={90} placeholder={placeholder}/></label>)}
+            <label key={key}>
+              <span className="label-line">{askWord}</span>
+              <span className="field-row"><input value={form[key] || ''} onChange={pen(key)} maxLength={90} placeholder={placeholder}/><DiceButton label={`Shuffle ${key}`} onRoll={atelierDie(key)}/></span>
+            </label>)}
         </div>
         <button type="button" className="secondary-button" onClick={spinLook}><Dices/> Shuffle the look</button>
       </div>
@@ -1077,22 +1114,39 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
       <div className="button-row">
         <button type="button" className="secondary-button" onClick={shuffleAll}><Dices/> Shuffle</button>
       </div>
-      <label className="ask-row"><span className="label-line">{ask('hero', 'name')} <DiceButton label="Shuffle a name" onRoll={fieldDie('name')}/></span><input value={form.name} onChange={pen('name')} maxLength={60}/></label>
+      <label className="ask-row">
+        <span className="label-line">{ask('hero', 'name')}</span>
+        <span className="field-row"><input value={form.name} onChange={pen('name')} maxLength={60}/><DiceButton label="Shuffle a name" onRoll={fieldDie('name')}/></span>
+      </label>
       <div className="form-grid">
-        <label><span className="label-line">{ask('hero', 'ancestry')} <DiceButton label="Shuffle an ancestry" onRoll={fieldDie('ancestry')}/></span><input value={form.ancestry} onChange={pen('ancestry')} maxLength={40}/></label>
-        <label><span className="label-line">{ask('hero', 'className')} <DiceButton label="Shuffle a calling" onRoll={fieldDie('className')}/></span>
-          <select value={CLASSES.some((c) => c.className === form.className) ? form.className : ''} onChange={setCalling}>
-            {!CLASSES.some((c) => c.className === form.className) && <option value="" disabled>{form.className}</option>}
-            {CLASSES.map((c) => <option key={c.className} value={c.className}>{c.className}</option>)}
-          </select></label>
+        <label>
+          <span className="label-line">{ask('hero', 'ancestry')}</span>
+          <span className="field-row"><input value={form.ancestry} onChange={pen('ancestry')} maxLength={40}/><DiceButton label="Shuffle an ancestry" onRoll={fieldDie('ancestry')}/></span>
+        </label>
+        <label>
+          <span className="label-line">{ask('hero', 'className')}</span>
+          <span className="field-row">
+            <select value={CLASSES.some((c) => c.className === form.className) ? form.className : ''} onChange={setCalling}>
+              {!CLASSES.some((c) => c.className === form.className) && <option value="" disabled>{form.className}</option>}
+              {CLASSES.map((c) => <option key={c.className} value={c.className}>{c.className}</option>)}
+            </select>
+            <DiceButton label="Shuffle a calling" onRoll={fieldDie('className')}/>
+          </span>
+        </label>
       </div>
       <IdentityControl
         presentation={form.presentation}
         pronouns={form.pronouns}
         onSet={setIdentity}
       />
-      <label className="ask-row"><span className="label-line">{ask('hero', 'mark')} <DiceButton label="Shuffle a mark" onRoll={fieldDie('mark')}/></span><input value={form.mark} onChange={pen('mark')} maxLength={80} placeholder="A scar, a brand, a streak of white…"/></label>
-      <label className="ask-row"><span className="label-line">{ask('hero', 'keepsake')} <DiceButton label="Shuffle a keepsake" onRoll={fieldDie('keepsake')}/></span><input value={form.keepsake} onChange={pen('keepsake')} maxLength={60} placeholder="It goes into their pack — and into the story."/></label>
+      <label className="ask-row">
+        <span className="label-line">{ask('hero', 'mark')}</span>
+        <span className="field-row"><input value={form.mark} onChange={pen('mark')} maxLength={80} placeholder="A scar, a brand, a streak of white…"/><DiceButton label="Shuffle a mark" onRoll={fieldDie('mark')}/></span>
+      </label>
+      <label className="ask-row">
+        <span className="label-line">{ask('hero', 'keepsake')}</span>
+        <span className="field-row"><input value={form.keepsake} onChange={pen('keepsake')} maxLength={60} placeholder="It goes into their pack — and into the story."/><DiceButton label="Shuffle a keepsake" onRoll={fieldDie('keepsake')}/></span>
+      </label>
       {(() => {
         const owed = knownCountsFor(form.caster, 1);
         if (owed.cantrips === 0 && owed.spells === 0) return null;

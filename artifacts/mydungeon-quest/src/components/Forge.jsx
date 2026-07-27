@@ -217,6 +217,12 @@ function CreationProgress({ step, maxReached, onGoTo }) {
 // World defaults — fallback shape; deck cards override title/covenant/tone/asset.
 export const WORLD_FALLBACK = { title: 'The Unwritten Road', covenant: 'A moonlit frontier where roads choose their travelers.', spineId: 'classic-epic', tone: 'Mythic, warm, and dangerous', linesText: '', veilsText: '', homeRegion: 'Larkspur Vale', styleBible: 'Romantic dark-fantasy oil painting with gold-leaf light, deep atmospheric perspective, expressive faces, and restrained PG-13 peril.', __sovereign: [] };
 
+// C9 — CREATION IMAGE BUDGET (Rule 7).
+// Total creation spend never exceeds this cap on any one creation session.
+// Declared breakdown: custom world cover (1) + sitting portraits (3) +
+// manual repaints (≤3 before the cap). Default path (parchment) = 0.
+export const CREATION_IMAGE_CAP = 7;
+
 // C2 — WORLD DECK CARD — one card in the swipeable deck.
 // Each card shows a 4:5 full-bleed image, title, one-sentence premise, tone label.
 // The active card is highlighted; clicking one makes it the selection for "Choose this world".
@@ -377,6 +383,15 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
   const [generateBusy, setGenerateBusy] = useState(false);
   const generateBusyRef = useRef(false);
 
+  // C9 — SESSION SPEND COUNTER. A ref mirrors the state for synchronous
+  // reads inside async effects without adding them to dependency arrays.
+  const imageSpendRef = useRef(0);
+  const [imageSpend, setImageSpend] = useState(0);
+  const addImageSpend = (n = 1) => {
+    imageSpendRef.current = Math.min(imageSpendRef.current + n, CREATION_IMAGE_CAP);
+    setImageSpend(imageSpendRef.current);
+  };
+
   // The displayed deck: customCard always first when present; otherwise 3 fixture cards.
   const displayedDeck = useMemo(() => {
     const three = shuffleWorldDeck(deckSeed);
@@ -394,6 +409,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
   };
 
   // Generate custom card from description: ONE smithSpin call, seats the card first.
+  // C9 — at illuminated tier, also paints one cover image for the custom card (1 image).
   const generateCustomCard = async () => {
     if (generateBusyRef.current || !worldForm.covenant.trim()) return;
     generateBusyRef.current = true;
@@ -414,6 +430,20 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
       };
       setCustomCard(card);
       setActiveDeckCard(card);
+      // Cover art — 1 image in the session budget. Reserved immediately so the
+      // cap is respected even if the paint is in-flight when Face step fires.
+      if (mediaTier !== 'parchment' && imageSpendRef.current < CREATION_IMAGE_CAP) {
+        addImageSpend(1);
+        const coverTitle = card.title;
+        const coverTone = card.tone || 'Mythic and atmospheric';
+        (async () => {
+          try {
+            const prompt = `Fantasy landscape key art: "${coverTitle}". ${coverTone}. Wide painterly illustration, epic scale.`;
+            const url = await paintPreview({ prompt, kind: 'cover', label: coverTitle, seed: randomSeed() });
+            setCustomCard((prev) => (prev?.id === 'custom' ? { ...prev, asset: url } : prev));
+          } catch { /* cover art is optional — the card works without it */ }
+        })();
+      }
     } finally {
       generateBusyRef.current = false;
       setGenerateBusy(false);
@@ -495,6 +525,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
   const paintCtl = useRef(null);
   const paintFace = () => {
     if (mediaTier === 'parchment' || !heroForm.name.trim() || portrait === 'pending') return;
+    if (imageSpendRef.current >= CREATION_IMAGE_CAP) return; // budget exhausted
     paintCtl.current?.abort();
     const controller = new AbortController(); paintCtl.current = controller;
     setPortrait('pending');
@@ -502,8 +533,11 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
       try {
         const prompt = portraitPrompt(worldForm, heroCanonSoul(heroForm), 'bust');
         const url = await paintPreview({ prompt, kind: 'portrait', label: heroForm.name, variant: 'bust', seed: nameSeed(heroForm.name) }, controller.signal);
-        if (portraitUrlRef.current) URL.revokeObjectURL(portraitUrlRef.current);
-        portraitUrlRef.current = url; setPortrait(url);
+        if (!controller.signal.aborted) {
+          addImageSpend(1); // counted on success
+          if (portraitUrlRef.current) URL.revokeObjectURL(portraitUrlRef.current);
+          portraitUrlRef.current = url; setPortrait(url);
+        } else { URL.revokeObjectURL(url); }
       } catch { if (!controller.signal.aborted) setPortrait(null); }
     })();
   };
@@ -549,12 +583,17 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
     chairCtls.current = {};
   }, [sittingKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // Generate a portrait for each candidate that hasn't started painting yet.
+  // C9 — budget check: reserve all candidate slots before firing; bail if cap hit.
   useEffect(() => {
     if (!sitting || mediaTier === 'parchment') return undefined;
     const pending = sitting.candidates.filter((c) => !(c.id in chairImagesRef.current));
     if (!pending.length) return undefined;
+    const slotsAvailable = CREATION_IMAGE_CAP - imageSpendRef.current;
+    if (slotsAvailable <= 0) return undefined; // budget exhausted
+    const toPaint = pending.slice(0, slotsAvailable);
+    addImageSpend(toPaint.length); // reserve all slots up-front
     let alive = true;
-    for (const candidate of pending) {
+    for (const candidate of toPaint) {
       const ctl = new AbortController();
       chairCtls.current[candidate.id] = ctl;
       chairImagesRef.current[candidate.id] = 'pending';
@@ -567,7 +606,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         } catch { if (alive && !ctl.signal.aborted) { chairImagesRef.current[candidate.id] = null; setChairImages((prev) => ({ ...prev, [candidate.id]: null })); } }
       })();
     }
-    return () => { alive = false; for (const c of pending) { chairCtls.current[c.id]?.abort(); } };
+    return () => { alive = false; for (const c of toPaint) { chairCtls.current[c.id]?.abort(); } };
   }, [sittingKey, mediaTier]); // eslint-disable-line react-hooks/exhaustive-deps
   // Lightbox focus trap and body scroll lock for the chair lightbox (D4 pattern).
   useEffect(() => {
@@ -731,7 +770,10 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
       <label className="ask-row world-describe">
         <span className="label-line">Or describe your world in a sentence.</span>
         <textarea value={worldForm.covenant} onChange={worldPen('covenant')} rows="2" maxLength={2000} placeholder="A moonlit frontier where roads choose their travelers."/>
-        <button type="button" className="secondary-button" disabled={!worldForm.covenant.trim() || generateBusy} onClick={generateCustomCard}>
+        <button type="button" className="secondary-button"
+          disabled={!worldForm.covenant.trim() || generateBusy}
+          aria-label={generateBusy ? 'Generating a world card…' : mediaTier === 'parchment' ? 'Generate a card' : 'Generate a world card — 1 image'}
+          onClick={generateCustomCard}>
           {generateBusy ? 'Generating\u2026' : 'Generate a card'} <ArrowRight/>
         </button>
       </label>
@@ -853,7 +895,13 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
           </figcaption>
         </figure>
         {mediaTier !== 'parchment'
-          ? <button type="button" className="secondary-button repaint-button" onClick={paintFace} disabled={!heroForm.name.trim() || portrait === 'pending'}>{portrait === 'pending' ? 'The face is arriving…' : hasFace ? 'Repaint' : 'Paint the face'}</button>
+          ? <><button type="button" className="secondary-button repaint-button"
+              aria-label={portrait === 'pending' ? 'The face is arriving…' : hasFace ? 'Repaint — 1 image' : 'Paint the face — 1 image'}
+              onClick={paintFace}
+              disabled={!heroForm.name.trim() || portrait === 'pending' || imageSpend >= CREATION_IMAGE_CAP}>
+              {portrait === 'pending' ? 'The face is arriving…' : hasFace ? 'Repaint' : 'Paint the face'}
+            </button>
+            <p className="fine-print spend-note">{CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} images remaining in creation</p></>
           : <p className="fine-print">Parchment paints the face procedurally when the chronicle begins; the sigil stands for it here.</p>}
         <div className="hero-sigil"><span>{heroForm.sigil}</span><input aria-label="Sigil" value={heroForm.sigil} onChange={heroPen('sigil')} maxLength={2}/><DiceButton label="Shuffle a sigil" onRoll={heroFieldDie('sigil')}/></div>
       </div>
@@ -874,6 +922,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         {mediaTier === 'parchment'
           ? <p className="fine-print forge-floor-note">No portrait service at this table — three sigils stand for the face. Tap one to keep it; the sigil is permanent from that moment.</p>
           : <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>}
+        {mediaTier !== 'parchment' && <p className="fine-print spend-note" aria-label="Three portraits — 3 images">Three portraits — 3 images · {CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} remaining</p>}
         <div className="chair-tray">{sitting.candidates.map((candidate) => {
           const img = chairImages[candidate.id];
           const isBlessed = sitting.blessed?.id === candidate.id;
@@ -992,6 +1041,14 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
   const castBusy = useRef(false);
   const sov = sovereignOf(form);
 
+  // C9 — SESSION SPEND COUNTER for the heir forge path.
+  const imageSpendRef = useRef(0);
+  const [imageSpend, setImageSpend] = useState(0);
+  const addImageSpend = (n = 1) => {
+    imageSpendRef.current = Math.min(imageSpendRef.current + n, CREATION_IMAGE_CAP);
+    setImageSpend(imageSpendRef.current);
+  };
+
   const shuffleAll = async () => {
     if (castBusy.current) return; castBusy.current = true;
     try {
@@ -1039,8 +1096,12 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
     if (!sitting || mediaTier === 'parchment') return undefined;
     const pending = sitting.candidates.filter((c) => !(c.id in chairImagesRef.current));
     if (!pending.length) return undefined;
+    const slotsAvailable = CREATION_IMAGE_CAP - imageSpendRef.current;
+    if (slotsAvailable <= 0) return undefined; // budget exhausted
+    const toPaint = pending.slice(0, slotsAvailable);
+    addImageSpend(toPaint.length); // reserve all slots up-front
     let alive = true;
-    for (const candidate of pending) {
+    for (const candidate of toPaint) {
       const ctl = new AbortController();
       chairCtls.current[candidate.id] = ctl;
       chairImagesRef.current[candidate.id] = 'pending';
@@ -1053,7 +1114,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
         } catch { if (alive && !ctl.signal.aborted) { chairImagesRef.current[candidate.id] = null; setChairImages((prev) => ({ ...prev, [candidate.id]: null })); } }
       })();
     }
-    return () => { alive = false; for (const c of pending) { chairCtls.current[c.id]?.abort(); } };
+    return () => { alive = false; for (const c of toPaint) { chairCtls.current[c.id]?.abort(); } };
   }, [sittingKey, mediaTier]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!expandedChair) return undefined;
@@ -1075,6 +1136,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
 
   const paintFace = () => {
     if (mediaTier === 'parchment' || !form.name.trim() || portrait === 'pending') return;
+    if (imageSpendRef.current >= CREATION_IMAGE_CAP) return; // budget exhausted
     paintCtl.current?.abort();
     const controller = new AbortController(); paintCtl.current = controller;
     setPortrait('pending');
@@ -1082,8 +1144,11 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
       try {
         const prompt = portraitPrompt(world, heroCanonSoul(form), 'bust');
         const url = await paintPreview({ prompt, kind: 'portrait', label: form.name, variant: 'bust', seed: nameSeed(form.name) }, controller.signal);
-        if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-        urlRef.current = url; setPortrait(url);
+        if (!controller.signal.aborted) {
+          addImageSpend(1); // counted on success
+          if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+          urlRef.current = url; setPortrait(url);
+        } else { URL.revokeObjectURL(url); }
       } catch { if (!controller.signal.aborted) setPortrait(null); }
     })();
   };
@@ -1104,7 +1169,13 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
           </figcaption>
         </figure>
         {mediaTier !== 'parchment'
-          ? <button type="button" className="secondary-button repaint-button" onClick={paintFace} disabled={!form.name.trim() || portrait === 'pending'}>{portrait === 'pending' ? 'The face is arriving…' : hasFace ? 'Repaint' : 'Paint the face'}</button>
+          ? <><button type="button" className="secondary-button repaint-button"
+              aria-label={portrait === 'pending' ? 'The face is arriving…' : hasFace ? 'Repaint — 1 image' : 'Paint the face — 1 image'}
+              onClick={paintFace}
+              disabled={!form.name.trim() || portrait === 'pending' || imageSpend >= CREATION_IMAGE_CAP}>
+              {portrait === 'pending' ? 'The face is arriving…' : hasFace ? 'Repaint' : 'Paint the face'}
+            </button>
+            <p className="fine-print spend-note">{CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} images remaining in creation</p></>
           : <p className="fine-print">Parchment paints the face procedurally when the chronicle begins; the sigil stands for it here.</p>}
         <div className="hero-sigil"><span>{form.sigil}</span><input aria-label="Sigil" value={form.sigil} onChange={pen('sigil')} maxLength={2}/><DiceButton label="Shuffle a sigil" onRoll={fieldDie('sigil')}/></div>
       </div>
@@ -1192,6 +1263,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
         {mediaTier === 'parchment'
           ? <p className="fine-print forge-floor-note">No portrait service at this table — three sigils stand for the face. Tap one to keep it; the sigil is permanent from that moment.</p>
           : <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>}
+        {mediaTier !== 'parchment' && <p className="fine-print spend-note" aria-label="Three portraits — 3 images">Three portraits — 3 images · {CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} remaining</p>}
         <div className="chair-tray">{sitting.candidates.map((candidate) => {
           const img = chairImages[candidate.id];
           const isBlessed = sitting.blessed?.id === candidate.id;

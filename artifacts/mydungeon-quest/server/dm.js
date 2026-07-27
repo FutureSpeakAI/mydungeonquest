@@ -39,6 +39,10 @@ import { dmBudgetMs, withClock } from './clock.js';
 
 const bornAtZero = (turn) => (turn && dashCheck(proseOfTurn(turn)).flagged ? dashFoldTurn(turn) : turn);
 import { cueCourt, propLawCheck, movedItems, groundFixtures } from '../src/lib/plateroad.js';
+// TITLE SHAPE (B3) — noun-phrase validator; added to judgeTurn so the
+// existing repair-retry loop in getDmTurn handles the one regeneration
+// automatically without a separate code path.
+import { isNounPhraseTitle } from './titleShape.js';
 
 // THE CENSUS AT THE DOOR — Directive VI, Phase 11. The validator rules the
 // shape; the census rules the roll: an attributed speaker the record does
@@ -115,6 +119,14 @@ export function judgeTurn(turn, input) {
     moved: movedItems(turn.story)
   });
   if (!props.ok) errors.push(...props.refusals);
+  // TITLE SHAPE (B3): when this genesis turn sets the arc, its title must be
+  // a noun phrase — the second word may not be a finite verb form. The repair-
+  // retry loop in getDmTurn treats this like any other violation: one guided
+  // regeneration attempt before the fallback floor.
+  if (turn.story?.arc?.title) {
+    const titleCheck = isNounPhraseTitle(turn.story.arc.title);
+    if (!titleCheck.ok) errors.push(titleCheck.reason);
+  }
   return { ok: errors.length === 0, errors };
 }
 

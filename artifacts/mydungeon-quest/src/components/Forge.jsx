@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Dices, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Dices, ShieldCheck, X } from 'lucide-react';
 import { Dowry } from './Dowry.jsx';
 import { isProving } from '../lib/proving.js';
 import { WORLD_DECK, shuffleWorldDeck } from '../lib/worldDeck.js';
@@ -497,6 +497,66 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
     return out.ok ? out.sitting : current;
   });
 
+  // ── C5: portrait tray — three painted chairs for the sitting ─────────────
+  const [chairImages, setChairImages] = useState({});
+  const chairImagesRef = useRef({});
+  const chairCtls = useRef({});
+  const [expandedChair, setExpandedChair] = useState(null);
+  const chairLightboxRef = useRef(null);
+  // A key derived from the candidates' briefs — changes only when appearance
+  // fields change enough to open a new sitting with different lighting prompts.
+  const sittingKey = sitting?.candidates?.map((c) => c.brief.slice(0, 40)).join('\u00b6') ?? '';
+  // Reset images and abort in-flight fetches when the sitting identity changes.
+  useEffect(() => {
+    Object.values(chairImagesRef.current).forEach((url) => {
+      if (url && url !== 'pending' && url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
+    setChairImages({});
+    chairImagesRef.current = {};
+    setExpandedChair(null);
+    Object.values(chairCtls.current).forEach((ctl) => ctl?.abort());
+    chairCtls.current = {};
+  }, [sittingKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Generate a portrait for each candidate that hasn't started painting yet.
+  useEffect(() => {
+    if (!sitting || mediaTier === 'parchment') return undefined;
+    const pending = sitting.candidates.filter((c) => !(c.id in chairImagesRef.current));
+    if (!pending.length) return undefined;
+    let alive = true;
+    for (const candidate of pending) {
+      const ctl = new AbortController();
+      chairCtls.current[candidate.id] = ctl;
+      chairImagesRef.current[candidate.id] = 'pending';
+      setChairImages((prev) => ({ ...prev, [candidate.id]: 'pending' }));
+      (async () => {
+        try {
+          const url = await paintPreview({ prompt: candidate.brief, kind: 'portrait', label: heroForm.name, variant: 'bust', seed: nameSeed(heroForm.name + candidate.id) }, ctl.signal);
+          if (alive) { chairImagesRef.current[candidate.id] = url; setChairImages((prev) => ({ ...prev, [candidate.id]: url })); }
+          else { URL.revokeObjectURL(url); }
+        } catch { if (alive && !ctl.signal.aborted) { chairImagesRef.current[candidate.id] = null; setChairImages((prev) => ({ ...prev, [candidate.id]: null })); } }
+      })();
+    }
+    return () => { alive = false; for (const c of pending) { chairCtls.current[c.id]?.abort(); } };
+  }, [sittingKey, mediaTier]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Lightbox focus trap and body scroll lock for the chair lightbox (D4 pattern).
+  useEffect(() => {
+    if (!expandedChair) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const opener = document.activeElement;
+    const onKey = (event) => {
+      if (event.key === 'Escape') setExpandedChair(null);
+      if (event.key === 'Tab') { event.preventDefault(); chairLightboxRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    chairLightboxRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+      if (opener && document.contains(opener)) opener.focus?.();
+    };
+  }, [expandedChair]);
+
   // ── xcard + dowry secondary door ─────────────────────────────────────────
   const [xcardDealt] = useState(() => { try { return localStorage.getItem(XCARD_SEEN_KEY) === '1'; } catch { return true; } });
   const [dowry, setDowry] = useState(null);
@@ -727,7 +787,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
       </header>
       <div className="hero-identity atelier-identity">
         <figure className={`hero-portrait atelier-portrait${portrait === 'pending' ? ' summoning' : ''}`}>
-          {hasFace ? <img src={portrait} alt={heroForm.name}/> : <span className="portrait-mark">{heroForm.sigil}</span>}
+          {hasFace ? <img src={portrait} alt={heroForm.name}/> : <span className="portrait-mark" role="img" aria-label={heroForm.name ? `Portrait placeholder for ${heroForm.name}` : 'Portrait placeholder'}>{heroForm.sigil}</span>}
           <figcaption>
             {hasFace ? heroForm.name : portrait === 'pending' ? 'The face is arriving…' : 'A face waiting to be painted'}
             {heroForm.mark.trim() && <span className="portrait-inscription">{heroForm.mark}</span>}
@@ -750,12 +810,35 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
       </div>
       {sitting && <div className="sitting-panel">
         <h3>The Sitting — a face is accepted, not assigned</h3>
-        <p className="fine-print">Three chairs, one identity — only the light differs. Choose one; the choice is final, and every later painting answers to the face you accept. No sheet is minted before the choice.</p>
-        <div className="audition-choices">{sitting.candidates.map((candidate) =>
-          <button key={candidate.id} type="button" className={`door-tab${sitting.blessed?.id === candidate.id ? ' selected' : ''}`} aria-pressed={sitting.blessed?.id === candidate.id} disabled={sitting.status === 'blessed' && sitting.blessed?.id !== candidate.id} onClick={() => blessChair(candidate.id)}>
-            {candidate.id}
-          </button>)}</div>
+        <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>
+        <div className="chair-tray">{sitting.candidates.map((candidate) => {
+          const img = chairImages[candidate.id];
+          const isBlessed = sitting.blessed?.id === candidate.id;
+          const isOther = sitting.status === 'blessed' && !isBlessed;
+          return <div key={candidate.id} className={`chair-card${isBlessed ? ' chair-card--selected' : ''}${isOther ? ' chair-card--dimmed' : ''}`}>
+            <button type="button" className="chair-tap" aria-label={`Study the ${candidate.id} portrait`}
+              onClick={() => setExpandedChair(candidate.id)} disabled={isOther}>
+              {img && img !== 'pending'
+                ? <img src={img} alt={`${heroForm.name} in ${candidate.id} light`}/>
+                : <div className={`chair-placeholder${img === 'pending' ? ' chair-placeholder--loading' : ''}`} role="img" aria-label={img === 'pending' ? `${candidate.id} portrait arriving` : `${candidate.id} portrait placeholder`}>{img !== 'pending' && heroForm.sigil}</div>}
+            </button>
+            <figcaption className="chair-caption">{candidate.id}</figcaption>
+            {isBlessed && <span className="chair-badge" aria-hidden="true">✦</span>}
+          </div>;
+        })}</div>
+        {sitting.status === 'blessed' && <p className="fine-print chair-accepted">{sitting.blessed.id} — accepted. Every painting from this moment answers to this face.</p>}
       </div>}
+      {expandedChair && (() => {
+        const img = chairImages[expandedChair];
+        const isAlreadyBlessed = sitting?.blessed?.id === expandedChair;
+        const canSelect = !isAlreadyBlessed && sitting?.status !== 'blessed';
+        return <div className="plate-lightbox" role="dialog" aria-modal="true" aria-label={`${expandedChair} portrait, enlarged`} onClick={() => setExpandedChair(null)}>
+          {img && img !== 'pending' && <img src={img} alt={heroForm.name} onClick={(e) => e.stopPropagation()}/>}
+          <button type="button" ref={chairLightboxRef} className="lightbox-close" aria-label="Close" onClick={() => setExpandedChair(null)}><X/></button>
+          {canSelect && <button type="button" className="chair-select-button" aria-label="Use this portrait. This is permanent." onClick={(e) => { e.stopPropagation(); blessChair(expandedChair); setExpandedChair(null); }}>Use this portrait. This is permanent.</button>}
+          <span className="chair-lightbox-caption" aria-hidden="true">{expandedChair}</span>
+        </div>;
+      })()}
       <button className="primary-button" onClick={advance}>Choose the voice <ArrowRight/></button>
     </section>}
 
@@ -866,6 +949,61 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
     return out.ok ? out.sitting : current;
   });
 
+  // ── C5: portrait tray for HeroForge sitting ───────────────────────────────
+  const [chairImages, setChairImages] = useState({});
+  const chairImagesRef = useRef({});
+  const chairCtls = useRef({});
+  const [expandedChair, setExpandedChair] = useState(null);
+  const chairLightboxRef = useRef(null);
+  const sittingKey = sitting?.candidates?.map((c) => c.brief.slice(0, 40)).join('\u00b6') ?? '';
+  useEffect(() => {
+    Object.values(chairImagesRef.current).forEach((url) => {
+      if (url && url !== 'pending' && url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
+    setChairImages({});
+    chairImagesRef.current = {};
+    setExpandedChair(null);
+    Object.values(chairCtls.current).forEach((ctl) => ctl?.abort());
+    chairCtls.current = {};
+  }, [sittingKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!sitting || mediaTier === 'parchment') return undefined;
+    const pending = sitting.candidates.filter((c) => !(c.id in chairImagesRef.current));
+    if (!pending.length) return undefined;
+    let alive = true;
+    for (const candidate of pending) {
+      const ctl = new AbortController();
+      chairCtls.current[candidate.id] = ctl;
+      chairImagesRef.current[candidate.id] = 'pending';
+      setChairImages((prev) => ({ ...prev, [candidate.id]: 'pending' }));
+      (async () => {
+        try {
+          const url = await paintPreview({ prompt: candidate.brief, kind: 'portrait', label: form.name, variant: 'bust', seed: nameSeed(form.name + candidate.id) }, ctl.signal);
+          if (alive) { chairImagesRef.current[candidate.id] = url; setChairImages((prev) => ({ ...prev, [candidate.id]: url })); }
+          else { URL.revokeObjectURL(url); }
+        } catch { if (alive && !ctl.signal.aborted) { chairImagesRef.current[candidate.id] = null; setChairImages((prev) => ({ ...prev, [candidate.id]: null })); } }
+      })();
+    }
+    return () => { alive = false; for (const c of pending) { chairCtls.current[c.id]?.abort(); } };
+  }, [sittingKey, mediaTier]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!expandedChair) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const opener = document.activeElement;
+    const onKey = (event) => {
+      if (event.key === 'Escape') setExpandedChair(null);
+      if (event.key === 'Tab') { event.preventDefault(); chairLightboxRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    chairLightboxRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+      if (opener && document.contains(opener)) opener.focus?.();
+    };
+  }, [expandedChair]);
+
   const paintFace = () => {
     if (mediaTier === 'parchment' || !form.name.trim() || portrait === 'pending') return;
     paintCtl.current?.abort();
@@ -890,7 +1028,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
     <section className="forge-card hero-forge">
       <div className="hero-identity atelier-identity">
         <figure className={`hero-portrait atelier-portrait${portrait === 'pending' ? ' summoning' : ''}`}>
-          {hasFace ? <img src={portrait} alt={form.name}/> : <span className="portrait-mark">{form.sigil}</span>}
+          {hasFace ? <img src={portrait} alt={form.name}/> : <span className="portrait-mark" role="img" aria-label={form.name ? `Portrait placeholder for ${form.name}` : 'Portrait placeholder'}>{form.sigil}</span>}
           <figcaption>
             {hasFace ? form.name : portrait === 'pending' ? 'The face is arriving…' : 'A face waiting to be painted'}
             {form.mark.trim() && <span className="portrait-inscription">{form.mark}</span>}
@@ -963,12 +1101,35 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
       })()}
       {sitting && <div className="sitting-panel">
         <h3>The Sitting — a face is accepted, not assigned</h3>
-        <p className="fine-print">Three chairs, one identity — only the light differs. Choose one; the choice is final, and every later painting answers to the face you accept. No sheet is minted before the choice.</p>
-        <div className="audition-choices">{sitting.candidates.map((candidate) =>
-          <button key={candidate.id} type="button" className={`door-tab${sitting.blessed?.id === candidate.id ? ' selected' : ''}`} aria-pressed={sitting.blessed?.id === candidate.id} disabled={sitting.status === 'blessed' && sitting.blessed?.id !== candidate.id} onClick={() => blessChair(candidate.id)}>
-            {candidate.id}
-          </button>)}</div>
+        <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>
+        <div className="chair-tray">{sitting.candidates.map((candidate) => {
+          const img = chairImages[candidate.id];
+          const isBlessed = sitting.blessed?.id === candidate.id;
+          const isOther = sitting.status === 'blessed' && !isBlessed;
+          return <div key={candidate.id} className={`chair-card${isBlessed ? ' chair-card--selected' : ''}${isOther ? ' chair-card--dimmed' : ''}`}>
+            <button type="button" className="chair-tap" aria-label={`Study the ${candidate.id} portrait`}
+              onClick={() => setExpandedChair(candidate.id)} disabled={isOther}>
+              {img && img !== 'pending'
+                ? <img src={img} alt={`${form.name} in ${candidate.id} light`}/>
+                : <div className={`chair-placeholder${img === 'pending' ? ' chair-placeholder--loading' : ''}`} role="img" aria-label={img === 'pending' ? `${candidate.id} portrait arriving` : `${candidate.id} portrait placeholder`}>{img !== 'pending' && form.sigil}</div>}
+            </button>
+            <figcaption className="chair-caption">{candidate.id}</figcaption>
+            {isBlessed && <span className="chair-badge" aria-hidden="true">✦</span>}
+          </div>;
+        })}</div>
+        {sitting.status === 'blessed' && <p className="fine-print chair-accepted">{sitting.blessed.id} — accepted. Every painting from this moment answers to this face.</p>}
       </div>}
+      {expandedChair && (() => {
+        const img = chairImages[expandedChair];
+        const isAlreadyBlessed = sitting?.blessed?.id === expandedChair;
+        const canSelect = !isAlreadyBlessed && sitting?.status !== 'blessed';
+        return <div className="plate-lightbox" role="dialog" aria-modal="true" aria-label={`${expandedChair} portrait, enlarged`} onClick={() => setExpandedChair(null)}>
+          {img && img !== 'pending' && <img src={img} alt={form.name} onClick={(e) => e.stopPropagation()}/>}
+          <button type="button" ref={chairLightboxRef} className="lightbox-close" aria-label="Close" onClick={() => setExpandedChair(null)}><X/></button>
+          {canSelect && <button type="button" className="chair-select-button" aria-label="Use this portrait. This is permanent." onClick={(e) => { e.stopPropagation(); blessChair(expandedChair); setExpandedChair(null); }}>Use this portrait. This is permanent.</button>}
+          <span className="chair-lightbox-caption" aria-hidden="true">{expandedChair}</span>
+        </div>;
+      })()}
       <AuditionRow presentation={form.presentation} name={form.name} voiceId={form.voiceId} onBless={bless}/>
       <button className="primary-button" disabled={beginBusy || (() => {
         const owed = knownCountsFor(form.caster, 1);

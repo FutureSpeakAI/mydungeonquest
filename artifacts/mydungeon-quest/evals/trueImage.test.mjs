@@ -203,7 +203,10 @@ const svgSize = (bytes) => {
 
   // The landing writes the papers beside the image — the door's evidence
   // is seated in the same settlement that lands the plate.
-  assert.ok(read('src/App.jsx').includes('imagePapers: { assetHash: asset.assetHash, originTurnHash: asset.originTurnHash ?? null }'), 'the settlement writes the plate\u2019s papers');
+  // A2 binding: the settlement stamps logId (from the job closure) beside the
+  // asset hash and originTurnHash so the render door can bind by log UUID.
+  assert.ok(read('src/App.jsx').includes('logId: job.logId'), 'the settlement stamps the logId from the job closure (A2 binding)');
+  assert.ok(read('src/App.jsx').includes('originTurnHash: asset.originTurnHash ?? null'), 'the settlement carries originTurnHash for provenance and pre-A2 backward-compat');
 
   console.log('PASS — fresh plate: this turn\u2019s papers or an honest empty frame; history grandfathered whole.');
 }

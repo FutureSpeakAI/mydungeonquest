@@ -4757,3 +4757,46 @@ The house takes a dowry: pages from an elder table — session notes, a dead cam
 **THE LEDGER.** `pnpm run check` keyless exit 0 at exactly 174 PASS / 0 FAIL with `plateTrace` printing its five section headers and one final summary (six new `\bPASS\b` occurrences). Engine check and the engine eval count are unchanged. The lean door is uncrossed (closure growth was examined above). Muster: present 65 / regressed 0 — the instrumentation is not a new feature, so no muster row was added. The G13 pin advances from 168 → 174.
 
 **STANDING WATCHES (carried forward from Phase 14 + new).** The regex source courts and browser-side activation checks remain from Phase 13. The dowry grounding watch from Phase 14 stands. New watch: browser-side Path A/B determination must be confirmed under live play by a player who can share their DevTools console output; the instrumentation is live but the diagnosis is based on code analysis, not a captured trace from a real failing session. The fix (A2) must address both paths; the arrival-state race (Path B) is the harder of the two to reproduce deterministically and the more dangerous to fix incorrectly.
+
+---
+
+### TASK 67, PHASE A2 — PLATE DELIVERY FIX (2026-07-27)
+
+**THE REMIT.** Fix the plate-delivery failure proven by A1. Scene plates for gameplay turns are refused by the render door with the `stale-papers` verdict. The door must remain fail-closed; only the binding mechanism changes. Plates must bind by the turn's LOG UUID (a field set at log creation, before any seal), not by the seal hash (which may be absent from React state at arrival time, or null when the plate was minted). Ticks, act changes, and cache-hit latency must not invalidate an in-flight plate.
+
+**THE MECHANISM.** `admitPlate` now uses a two-branch binding check:
+
+*NEW BINDING (A2+):* If `attestation.logId != null`, the primary check is `attestation.logId === logId`. The log's UUID (`log.id`) is set at creation (line 977 of App.jsx), before any `seal()` call, so it is NEVER null and is ALWAYS present in React state. The `imagePapers.logId` is taken from `job.logId` in the `setCurrent` closure — the closed-over job variable, NOT from the `asset` row — so cache-hit plates (which return the stored foundry row) carry the same `logId` as freshly generated ones. This is the key invariant: the binding key is set by the CALLER (job at enqueue time), not by the STORED ASSET.
+
+*OLD BINDING (pre-A2 backward-compat):* If `attestation.logId` is null/undefined (plates minted before this fix), the door falls back to `attestation.originTurnHash === turnHash`. This preserves existing campaign history exactly.
+
+Both paths are fail-closed: a plate with a wrong logId (or wrong hash for old plates) is still refused.
+
+**WHY BOTH PATHS BREAK WITH THE OLD MECHANISM:**
+
+*Path A (null originTurnHash):* If `turnRecord.recordHash = null` at mint time (e.g., `retryRefusedPour` with a legacy log that lacks `recordHash`), the stored asset row has `originTurnHash = null`. Every render of that log produces stale-papers because `null !== log.recordHash`. With the new binding, `logId` is always `job.logId = log.id` — never null, always matching.
+
+*Path B (null log.recordHash in state):* If a cache-hit plate resolves as a microtask before React commits the `setCurrent(next)` batch from line 1079, `prev.logs[matching].recordHash` is absent. The old check `!turnHash` fires. With the new binding, `log.id` is always present in React state (it's set at object creation, not after a seal).
+
+**THE CHANGES:**
+
+*`src/lib/plateroad.js`*: `admitPlate` has a new `boundById` branch before the hash branch. Comment describes the two paths and their rationale. Both branches emit a `door` trace record.
+
+*`src/App.jsx`*: In the `setCurrent` callback inside `queueMedia`, `imagePapers` now carries `logId: job.logId` alongside `assetHash` and `originTurnHash`. The logId comes from the closed-over `job`, not from `asset`.
+
+*`evals/trueImage.test.mjs`*: Source-text pin updated. The old pin checked for the exact pre-A2 `imagePapers` literal; the new pin checks for `logId: job.logId` (the binding field) and `originTurnHash: asset.originTurnHash ?? null` (the provenance/backward-compat field) as separate assertions.
+
+**THE EVAL: `evals/plateBinding.test.mjs`.** Six binding courts:
+
+① Plate minted at turn N renders on log-N even after ticks and new turns advance the record — the logId binding is position-independent.
+② Turn N's plate presented on turn N+1's LogEntry is refused (logId mismatch) — cross-log stuffing is fail-closed.
+③ Tampered logId refused; null logId falls back to hash path (backward compat for `logId: null` vs absent).
+④ Path A fixed: `originTurnHash = null` plate with correct `logId` is ADMITTED — the primary binding is the UUID, not the hash.
+⑤ Pre-A2 plates (no logId in attestation) still use hash fallback — existing campaign history renders correctly.
+⑥ Path B fixed: A2+ plate admitted when `log.recordHash = null` in React state — `log.id` is always present.
+
+**THE CLOSURE PIN.** Entry closure grew 637654 → 637723 (69 bytes). Updated in `soulsWeb.test.mjs` under the owner-ruling procedure with examined bytes noted. The lean door is uncrossed (623 kB against the 624 kB pin).
+
+**THE LEDGER.** `pnpm run check` keyless exit 0 at exactly 182 PASS (174 + 8 new PASS lines from `plateBinding.test.mjs`'s 7 named courts + 1 summary). Engine check unchanged. Muster: present 65 / regressed 0 — no new feature minted; the fix is a render-door mechanism change. The G13 pin advances from 174 → 182.
+
+**STANDING WATCHES (A2 additions).** The `plateTrace` instrumentation added by A1 remains live. The mint/arrive/door traces now surface `logId` alongside the hash fields in the browser DevTools console, making Path A/B diagnosis instant for any player with DevTools open. Pre-A2 imagePapers (no logId) still use the hash path and are still vulnerable to Path B (though Path B only fires on a cache-hit race, which is uncommon in practice); only A2+ plates are immune to both paths. Any future code that stores imagePapers must include `logId: job.logId` from the job closure, not from the asset row.

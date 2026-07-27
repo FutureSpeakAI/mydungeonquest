@@ -230,23 +230,45 @@ export function plateTrace(record) {
 
 // ---- THE FRESH PLATE LAW (XVII, Article III) — the render door ----
 // Every player-visible plate carries its attested cue and caption or
-// it cannot render. Papers are THIS turn's papers: the attestation's
-// originTurnHash must equal the sealed hash of the very turn the
-// plate claims to illustrate. No prior turn's painting may stand in.
+// it cannot render. The door binds the plate to the log entry that
+// minted the cue:
+//
+//   NEW BINDING (A2): papers carry logId (the log's UUID, set at log
+//   creation — before any seal — and never null). The door checks
+//   attestation.logId === logId. This fixes both failure paths
+//   identified in A1:
+//     Path A: originTurnHash was null when plate was minted → logId
+//             is unaffected (UUID is always set)
+//     Path B: log.recordHash absent from React state at cache-hit
+//             arrival → log.id is always present in state (set before
+//             the seal, never missing)
+//
+//   OLD BINDING (backward-compat for pre-A2 imagePapers): plates that
+//   predate this fix carry no logId in their attestation. These fall
+//   back to the seal-hash comparison (originTurnHash === turnHash) so
+//   existing campaign history renders correctly.
+//
+// Fail-closed in both paths: a plate with a wrong or absent binding
+// key is refused regardless of which branch runs.
 export function admitPlate({ turnHash = null, attestation = null, caption = '', logId = null } = {}) {
   if (!attestation || typeof attestation !== 'object' || !attestation.assetHash) {
     plateTrace({ phase: 'door', outcome: 'paperless', turnHash, originTurnHash: attestation?.originTurnHash ?? null, logId });
     return { admit: false, status: 'paperless' };
   }
-  if (!turnHash || attestation.originTurnHash !== turnHash) {
+  // THE BINDING CHECK — prefer logId (A2+) over hash (pre-A2).
+  const boundById = attestation.logId != null;
+  const bound = boundById
+    ? (logId != null && attestation.logId === logId)
+    : (turnHash != null && attestation.originTurnHash === turnHash);
+  if (!bound) {
     plateTrace({ phase: 'door', outcome: 'stale-papers', turnHash, originTurnHash: attestation.originTurnHash ?? null, logId });
     return { admit: false, status: 'stale-papers' };
   }
   if (typeof caption !== 'string' || !caption.trim()) {
-    plateTrace({ phase: 'door', outcome: 'captionless', turnHash, originTurnHash: attestation.originTurnHash, logId });
+    plateTrace({ phase: 'door', outcome: 'captionless', turnHash, originTurnHash: attestation.originTurnHash ?? null, logId });
     return { admit: false, status: 'captionless' };
   }
-  plateTrace({ phase: 'door', outcome: 'admitted', turnHash, originTurnHash: attestation.originTurnHash, logId });
+  plateTrace({ phase: 'door', outcome: 'admitted', turnHash, originTurnHash: attestation.originTurnHash ?? null, logId });
   return { admit: true, status: 'admitted' };
 }
 

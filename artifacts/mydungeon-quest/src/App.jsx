@@ -676,7 +676,18 @@ export default function App() {
             // the current state tree; originTurnHash is what the plate brings.
             const arrivalLog = prev.logs.find((l) => l.id === job.logId);
             plateTrace({ phase: 'arrive', logId: job.logId, prevLogRecordHash: arrivalLog?.recordHash ?? null, originTurnHash: asset.originTurnHash ?? null, headTurnNumber: prev.turnNumber ?? null });
-            const logs = prev.logs.map((log) => log.id === job.logId ? { ...log, imageUrl: dataUrl, imageAssetHash: asset.assetHash, imagePapers: { assetHash: asset.assetHash, originTurnHash: asset.originTurnHash ?? null } } : log);
+            const logs = prev.logs.map((log) => log.id === job.logId ? {
+              ...log,
+              imageUrl: dataUrl,
+              imageAssetHash: asset.assetHash,
+              // THE PLATE BINDING (A2) — logId ties this plate to the exact
+              // log entry that minted the cue. It is taken from the closed-over
+              // job, NOT from the asset row, so cache-hit plates (which return
+              // the stored row) carry the same logId as freshly-generated ones.
+              // originTurnHash is kept for the sealed attestation record and for
+              // the backward-compatible render-door path on pre-A2 imagePapers.
+              imagePapers: { assetHash: asset.assetHash, originTurnHash: asset.originTurnHash ?? null, logId: job.logId },
+            } : log);
             const next = { ...prev, logs };
             saveCampaign(next); return next;
           });

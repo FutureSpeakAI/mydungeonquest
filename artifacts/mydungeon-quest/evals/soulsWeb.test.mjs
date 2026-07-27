@@ -108,7 +108,12 @@ const DIST = path.join(GAME_ROOT, 'dist');
 // mint/arrive trace calls and logId on admitPlate. All additions are
 // diagnosis-only pure functions and console emits — no new surfaces.
 // 636450 → 637654, a move of 1204 bytes. Owner ruling: A1 diagnosis.
-const CLOSURE_BYTES_PIN = 637654;
+// Task 67 A2 (plate binding fix): admitPlate gained the logId-first
+// branch with hash fallback; App.jsx stamps logId: job.logId in
+// imagePapers at plate arrival. All changes are pure routing logic in
+// the render door and the setCurrent callback — no new surfaces.
+// 637654 → 637723, a move of 69 bytes. Owner ruling: A2 fix.
+const CLOSURE_BYTES_PIN = 637723;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

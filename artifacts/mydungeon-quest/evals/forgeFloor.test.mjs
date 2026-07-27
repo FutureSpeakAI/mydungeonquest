@@ -59,8 +59,8 @@ assert.ok(
   `Expected ≥2 forge-floor-note elements (one per forge component), found ${floorNoteCount}`,
 );
 assert.ok(
-  forge.includes('No portrait service at this table'),
-  'Sitting panel honest label "No portrait service at this table" is missing',
+  forge.includes('Portrait art is not available at this tier.'),
+  'Sitting panel honest label "Portrait art is not available at this tier." is missing',
 );
 
 // ── 5. AuditionRow accepts mediaTier prop ────────────────────────────────────

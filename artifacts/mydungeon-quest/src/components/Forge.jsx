@@ -120,7 +120,7 @@ function DiceButton({ onRoll, label }) {
 function XCard() {
   return <article className="xcard-card" role="note">
     <ShieldCheck aria-hidden/>
-    <p>{XCARD_COPY}</p>
+    <p>Tap the X card at any point and the scene will change direction, no explanation needed. Content limits live in the Customize section.</p>
   </article>;
 }
 
@@ -182,7 +182,7 @@ function AuditionRow({ presentation, name, voiceId, onBless, mediaTier = 'illumi
     <small className="fine-print">
       {mediaTier === 'parchment'
         ? 'Audio is unavailable at this table — tap to choose a voice.'
-        : voiceId ? 'Chosen — this voice is theirs, for good.' : 'Tap to hear and choose one.'}
+        : voiceId ? 'Voice chosen. This voice stays with the character.' : 'Tap to hear a voice and choose one.'}
     </small>
   </div>;
 }
@@ -632,7 +632,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
   const [dowry, setDowry] = useState(null);
   const [door, setDoor] = useState(null);
   const WORLD_SECONDARY = [
-    ['dowry', 'The Dowry', 'Pages from an elder table — carried in, judged, and blessed by hand.'],
+    ['dowry', 'Import a world', 'Bring pages from a previous story into this one.'],
   ];
 
   // ── collect world data when leaving step 0 ───────────────────────────────
@@ -685,8 +685,8 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
     const toggle = (key) => setHeroForm((v) => { const has = Array.isArray(v.spells) ? v.spells : []; return { ...v, spells: has.includes(key) ? has.filter((k) => k !== key) : [...has, key], __sovereign: markSovereign(v, 'spells') }; });
     const verdict = held.length ? validateSpellPicks({ archetype: heroForm.caster, level: 1, known: [], picks: held }) : { ok: true, errors: [] };
     return <div className="sitting-panel grimoire-picks">
-      <h3>The grimoire opens — {owed.cantrips} cantrips, {owed.spells} first-circle spells</h3>
-      <p className="fine-print">Mechanics from tables, flavor from the tale: every number a cast will ever carry lives in the spell&rsquo;s own row. Pick your starting craft; the milestones open the book again.</p>
+      <h3>Starting spells — {owed.cantrips} cantrips, {owed.spells} first-circle spells</h3>
+      <p className="fine-print">Spell rules come from the tables below. Each row shows everything that spell does. Pick your starting spells — you will gain more at higher levels.</p>
       <div className="spell-pick-grid">
         <div><b>Cantrips ({heldCantrips}/{owed.cantrips})</b>
           {rows.filter(([, row]) => row.level === 0).map(([key, row]) => <label key={key} className={`spell-pick${held.includes(key) ? ' picked' : ''}`}><input type="checkbox" checked={held.includes(key)} onChange={() => toggle(key)} /><span>{key}</span><small>{row.school}</small></label>)}
@@ -695,13 +695,13 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
           {rows.filter(([, row]) => row.level === 1).map(([key, row]) => <label key={key} className={`spell-pick${held.includes(key) ? ' picked' : ''}`}><input type="checkbox" checked={held.includes(key)} onChange={() => toggle(key)} /><span>{key}</span><small>{row.school}{row.concentration ? ' · concentration' : ''}</small></label>)}
         </div>
       </div>
-      {(heldCantrips !== owed.cantrips || heldSpells !== owed.spells) && <p className="fine-print">The chronicle waits until the counts stand exact.</p>}
+      {(heldCantrips !== owed.cantrips || heldSpells !== owed.spells) && <p className="fine-print">The story cannot begin until the spell counts are exact.</p>}
       {verdict.errors.length > 0 && <p className="fine-print">{verdict.errors[0]}</p>}
     </div>;
   })();
 
   // ── render ────────────────────────────────────────────────────────────────
-  const backLabel = step === 0 ? 'Chronicle shelf' : CREATION_STEPS[step - 1];
+  const backLabel = step === 0 ? 'Story shelf' : CREATION_STEPS[step - 1];
 
   return <main className="creation-page page-enter">
     <CreationProgress step={step} maxReached={maxStep} onGoTo={goTo} />
@@ -774,7 +774,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
           disabled={!worldForm.covenant.trim() || generateBusy}
           aria-label={generateBusy ? 'Generating a world card…' : mediaTier === 'parchment' ? 'Generate a card' : 'Generate a world card — 1 image'}
           onClick={generateCustomCard}>
-          {generateBusy ? 'Generating\u2026' : 'Generate a card'} <ArrowRight/>
+          {generateBusy ? 'Generating a world card\u2026' : 'Generate a card'} <ArrowRight/>
         </button>
       </label>
 
@@ -884,7 +884,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
       <header className="forge-header">
         <span className="eyebrow">Face — step 3 of 5</span>
         <h1>Compose their face.</h1>
-        <p>Six strokes of the portrait. Your ink is sovereign.</p>
+        <p>Fill in these fields. What you write takes priority over any shuffle.</p>
       </header>
       <div className="hero-identity atelier-identity">
         <figure className={`hero-portrait atelier-portrait${portrait === 'pending' ? ' summoning' : ''}`}>
@@ -902,12 +902,12 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
               {portrait === 'pending' ? 'The face is arriving…' : hasFace ? 'Repaint' : 'Paint the face'}
             </button>
             <p className="fine-print spend-note">{CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} images remaining in creation</p></>
-          : <p className="fine-print">Parchment paints the face procedurally when the chronicle begins; the sigil stands for it here.</p>}
+          : <p className="fine-print">A face will be generated when your story begins. The sigil stands in until then.</p>}
         <div className="hero-sigil"><span>{heroForm.sigil}</span><input aria-label="Sigil" value={heroForm.sigil} onChange={heroPen('sigil')} maxLength={2}/><DiceButton label="Shuffle a sigil" onRoll={heroFieldDie('sigil')}/></div>
       </div>
       <div className="atelier-fields">
         <h3>The looking glass</h3>
-        <p className="fine-print">Six strokes of the portrait. Your ink is sovereign, and the painting reads every word.</p>
+        <p className="fine-print">These fields shape the portrait. Everything you write here is used exactly as written.</p>
         <div className="form-grid atelier-grid">
           {ATELIER_FIELDS.map(({ key, ask: askWord, placeholder }) =>
             <label key={key}>
@@ -918,10 +918,10 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         <button type="button" className="secondary-button" onClick={shuffleLook}><Dices/> Shuffle the look</button>
       </div>
       {sitting && <div className="sitting-panel">
-        <h3>The Sitting — a face is accepted, not assigned</h3>
+        <h3>Portrait options — choose the face that fits.</h3>
         {mediaTier === 'parchment'
-          ? <p className="fine-print forge-floor-note">No portrait service at this table — three sigils stand for the face. Tap one to keep it; the sigil is permanent from that moment.</p>
-          : <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>}
+          ? <p className="fine-print forge-floor-note">Portrait art is not available at this tier. Three sigil options stand in for the face. Tap one to keep it permanently.</p>
+          : <p className="fine-print">Three portrait options are generated for this character. Tap any face to preview it. Accepting a portrait is permanent — all future art will use the face you keep.</p>}
         {mediaTier !== 'parchment' && <p className="fine-print spend-note" aria-label="Three portraits — 3 images">Three portraits — 3 images · {CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} remaining</p>}
         <div className="chair-tray">{sitting.candidates.map((candidate) => {
           const img = chairImages[candidate.id];
@@ -938,7 +938,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
             {isBlessed && <span className="chair-badge" aria-hidden="true">✦</span>}
           </div>;
         })}</div>
-        {sitting.status === 'blessed' && <p className="fine-print chair-accepted">{sitting.blessed.id} — accepted. Every painting from this moment answers to this face.</p>}
+        {sitting.status === 'blessed' && <p className="fine-print chair-accepted">Portrait accepted. All future art will use this face.</p>}
       </div>}
       {expandedChair && (() => {
         const img = chairImages[expandedChair];
@@ -958,8 +958,8 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
     {step === 3 && <section className="forge-card creation-step-panel">
       <header className="forge-header">
         <span className="eyebrow">Voice — step 4 of 5</span>
-        <h1>How do they present?</h1>
-        <p>One question, one answer. Audition voices in the next step.</p>
+        <h1>Choose how they present.</h1>
+        <p>Set their presentation and choose a voice sample below.</p>
       </header>
       <IdentityControl
         presentation={heroForm.presentation}
@@ -993,7 +993,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         </label>
       </div>
       {grimoirePanel}
-      <button className="primary-button" disabled={beginDisabled} onClick={handleBegin}>Start the campaign <ArrowRight/></button>
+      <button className="primary-button" disabled={beginDisabled} onClick={handleBegin} aria-label="Start the campaign — your hero and world choices are now permanent.">Start the campaign <ArrowRight/></button>
     </section>}
   </main>;
 }
@@ -1158,7 +1158,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
   const heardAs = { feminine: 'Heard feminine', masculine: 'Heard masculine', neutral: 'Heard as they choose' }[form.presentation] || 'Heard as they choose';
   return <main className="forge-page page-enter">
     <button className="text-button" onClick={onBack}>← {world.title}</button>
-    <header className="forge-header"><span className="eyebrow">Heir Forge</span><h1>Give the world someone new to remember.</h1><p>{world.title} waits for a new voice.</p></header>
+    <header className="forge-header"><span className="eyebrow">New heir</span><h1>Give the world someone new to remember.</h1><p>{world.title} waits for a new voice.</p></header>
     <section className="forge-card hero-forge">
       <div className="hero-identity atelier-identity">
         <figure className={`hero-portrait atelier-portrait${portrait === 'pending' ? ' summoning' : ''}`}>
@@ -1176,12 +1176,12 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
               {portrait === 'pending' ? 'The face is arriving…' : hasFace ? 'Repaint' : 'Paint the face'}
             </button>
             <p className="fine-print spend-note">{CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} images remaining in creation</p></>
-          : <p className="fine-print">Parchment paints the face procedurally when the chronicle begins; the sigil stands for it here.</p>}
+          : <p className="fine-print">A face will be generated when your story begins. The sigil stands in until then.</p>}
         <div className="hero-sigil"><span>{form.sigil}</span><input aria-label="Sigil" value={form.sigil} onChange={pen('sigil')} maxLength={2}/><DiceButton label="Shuffle a sigil" onRoll={fieldDie('sigil')}/></div>
       </div>
       <div className="atelier-fields">
         <h3>The looking glass</h3>
-        <p className="fine-print">Six strokes of the portrait. Your ink is sovereign, and the painting reads every word.</p>
+        <p className="fine-print">These fields shape the portrait. Everything you write here is used exactly as written.</p>
         <div className="form-grid atelier-grid">
           {ATELIER_FIELDS.map(({ key, ask: askWord, placeholder }) =>
             <label key={key}>
@@ -1244,8 +1244,8 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
         const toggle = (key) => setForm((v) => { const has = Array.isArray(v.spells) ? v.spells : []; return { ...v, spells: has.includes(key) ? has.filter((k) => k !== key) : [...has, key], __sovereign: markSovereign(v, 'spells') }; });
         const verdict = held.length ? validateSpellPicks({ archetype: form.caster, level: 1, known: [], picks: held }) : { ok: true, errors: [] };
         return <div className="sitting-panel grimoire-picks">
-          <h3>The grimoire opens — {owed.cantrips} cantrips, {owed.spells} first-circle spells</h3>
-          <p className="fine-print">Mechanics from tables, flavor from the tale: every number a cast will ever carry lives in the spell&rsquo;s own row. Pick your starting craft; the milestones open the book again.</p>
+          <h3>Starting spells — {owed.cantrips} cantrips, {owed.spells} first-circle spells</h3>
+          <p className="fine-print">Spell rules come from the tables below. Each row shows everything that spell does. Pick your starting spells — you will gain more at higher levels.</p>
           <div className="spell-pick-grid">
             <div><b>Cantrips ({heldCantrips}/{owed.cantrips})</b>
               {rows.filter(([, row]) => row.level === 0).map(([key, row]) => <label key={key} className={`spell-pick${held.includes(key) ? ' picked' : ''}`}><input type="checkbox" checked={held.includes(key)} onChange={() => toggle(key)} /><span>{key}</span><small>{row.school}</small></label>)}
@@ -1254,15 +1254,15 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
               {rows.filter(([, row]) => row.level === 1).map(([key, row]) => <label key={key} className={`spell-pick${held.includes(key) ? ' picked' : ''}`}><input type="checkbox" checked={held.includes(key)} onChange={() => toggle(key)} /><span>{key}</span><small>{row.school}{row.concentration ? ' · concentration' : ''}</small></label>)}
             </div>
           </div>
-          {(heldCantrips !== owed.cantrips || heldSpells !== owed.spells) && <p className="fine-print">The chronicle waits until the counts stand exact.</p>}
+          {(heldCantrips !== owed.cantrips || heldSpells !== owed.spells) && <p className="fine-print">The story cannot begin until the spell counts are exact.</p>}
           {verdict.errors.length > 0 && <p className="fine-print">{verdict.errors[0]}</p>}
         </div>;
       })()}
       {sitting && <div className="sitting-panel">
-        <h3>The Sitting — a face is accepted, not assigned</h3>
+        <h3>Portrait options — choose the face that fits.</h3>
         {mediaTier === 'parchment'
-          ? <p className="fine-print forge-floor-note">No portrait service at this table — three sigils stand for the face. Tap one to keep it; the sigil is permanent from that moment.</p>
-          : <p className="fine-print">Three chairs, one identity — only the light differs. Tap a face to study it; once you accept it the choice is permanent, and every painting after answers to the face you keep.</p>}
+          ? <p className="fine-print forge-floor-note">Portrait art is not available at this tier. Three sigil options stand in for the face. Tap one to keep it permanently.</p>
+          : <p className="fine-print">Three portrait options are generated for this character. Tap any face to preview it. Accepting a portrait is permanent — all future art will use the face you keep.</p>}
         {mediaTier !== 'parchment' && <p className="fine-print spend-note" aria-label="Three portraits — 3 images">Three portraits — 3 images · {CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} remaining</p>}
         <div className="chair-tray">{sitting.candidates.map((candidate) => {
           const img = chairImages[candidate.id];
@@ -1279,7 +1279,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
             {isBlessed && <span className="chair-badge" aria-hidden="true">✦</span>}
           </div>;
         })}</div>
-        {sitting.status === 'blessed' && <p className="fine-print chair-accepted">{sitting.blessed.id} — accepted. Every painting from this moment answers to this face.</p>}
+        {sitting.status === 'blessed' && <p className="fine-print chair-accepted">Portrait accepted. All future art will use this face.</p>}
       </div>}
       {expandedChair && (() => {
         const img = chairImages[expandedChair];
@@ -1300,7 +1300,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
         const cantrips = held.filter((key) => SPELL_TABLE[key]?.level === 0).length;
         const leveled = held.filter((key) => (SPELL_TABLE[key]?.level ?? 0) >= 1).length;
         return cantrips !== owed.cantrips || leveled !== owed.spells || !validateSpellPicks({ archetype: form.caster, level: 1, known: [], picks: held }).ok;
-      })()} onClick={() => { const hero = sitting ? { ...form, sitting } : { ...form }; const out = {}; for (const [key, value] of Object.entries(hero)) if (!key.startsWith('__')) out[key] = value; onBegin(out); }}>Start the campaign <ArrowRight/></button>
+      })()} onClick={() => { const hero = sitting ? { ...form, sitting } : { ...form }; const out = {}; for (const [key, value] of Object.entries(hero)) if (!key.startsWith('__')) out[key] = value; onBegin(out); }} aria-label="Start the campaign — your hero and world choices are now permanent.">Start the campaign <ArrowRight/></button>
     </section>
   </main>;
 }

@@ -39,6 +39,22 @@ export const AMBITION_OUTCOMES = new Set(['achieved','renounced','lost']);
 export const CLOCK_SEGMENTS = new Set([4, 6, 8]);
 export const CLOCK_OUTCOMES = new Set(['struck','averted','lapsed']);
 export const STANDING_DELTAS = new Set([-2, -1, 1, 2]);
+// THE NARRATION FLOOR (A3) — one named constant for the minimum word count
+// and block count, imported by both the prompt (systemPrompt.js) and the
+// validator (validateDmTurn). Per-measure entries own their word and block
+// floors and ceilings; 'none' is the floor when no beat_intent rides.
+// The absolute minWords and minBlocks are the fallback's own floor: the
+// fallback text is designed to clear them by construction.
+export const NARRATION_FLOOR = Object.freeze({
+  minWords: 40,
+  minBlocks: 1,
+  byMeasure: Object.freeze({
+    lean:     Object.freeze({ minWords: 40,  maxWords: 90,  minBlocks: 1, maxBlocks: 2 }),
+    standard: Object.freeze({ minWords: 90,  maxWords: 200, minBlocks: 3, maxBlocks: 5 }),
+    rich:     Object.freeze({ minWords: 200, maxWords: 360, minBlocks: 6, maxBlocks: 8 }),
+    none:     Object.freeze({ minWords: 60,  maxWords: 160, minBlocks: 2, maxBlocks: 6 }),
+  }),
+});
 // THE WORLD SHAPE COURT (Directive XIX, Article VIII) — the architect's
 // finding C, cured at the door. Every world payload is judged for shape
 // (a plain object with known keys only), bounds (the schema's own
@@ -909,6 +925,53 @@ function validateAliasLedger(story, context, errors) {
 // the record does not know. The court seats iff the context carries a
 // presence array, a party array, AND a standing scene — all three, or
 // silence: the law binds only where the record can testify.
+// THE PRESENCE DIALOGUE FLOOR (A3) — when named cast are at the scene
+// (presence evidence seated), at least one must speak or give a cue.
+// A solitary scene (no party, no cast at the current ground) is exempt.
+// Court seats only when scene, presence, AND party all ride the context —
+// the same triple gate the elsewhere court uses; never seat half a court
+// on partial evidence.
+function validatePresenceDialogue(payload, context, errors) {
+  if (!Array.isArray(context.presence) || !Array.isArray(context.party)) return;
+  const sceneRegion = context.scene && typeof context.scene === 'object'
+    ? String(context.scene.region || '').trim() : '';
+  if (!sceneRegion) return;
+
+  const heroName = typeof context.hero === 'string' ? context.hero.trim().toLowerCase() : '';
+  const partyNames = new Set(
+    context.party.filter((n) => typeof n === 'string').map((n) => n.trim().toLowerCase())
+  );
+
+  // NPCs at the current scene (excluding the hero).
+  const castAtScene = context.presence.filter((entry) => {
+    if (!entry || typeof entry.ground !== 'string') return false;
+    if (entry.ground.trim().toLowerCase() !== sceneRegion.toLowerCase()) return false;
+    const name = typeof entry.name === 'string' ? entry.name.trim().toLowerCase() : '';
+    if (!name || name === heroName) return false;
+    return true;
+  });
+
+  // Solitary: no party members traveling with the hero, no cast at scene.
+  if (!partyNames.size && !castAtScene.length) return;
+
+  // Check whether anyone speaks in this turn.
+  const blocks = Array.isArray(payload.narration_blocks) ? payload.narration_blocks : [];
+  const hasSpeaker = blocks.some((b) => typeof b?.speaker === 'string' && b.speaker.trim());
+  const hasCueSpeaker = payload.dialogue_cue != null
+    && typeof payload.dialogue_cue.speaker === 'string'
+    && payload.dialogue_cue.speaker.trim();
+
+  if (!hasSpeaker && !hasCueSpeaker) {
+    const named = [
+      ...context.party.slice(0, 2),
+      ...castAtScene.slice(0, 2).map((e) => e.name),
+    ].filter(Boolean).join(', ');
+    errors.push(
+      `no dialogue: cast are present at the scene (${named || 'companions present'}) but no one speaks — give at least one a line, or mark this a solitary scene`
+    );
+  }
+}
+
 function validateSpeakerGround(payload, context, errors) {
   if (!payload || typeof payload !== 'object') return;
   if (!Array.isArray(context.presence) || !Array.isArray(context.party)) return;
@@ -1084,6 +1147,7 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     validateCastSpell(payload.story, context, errors);
     validateAliasLedger(payload.story, context, errors);
     validateSpeakerGround(payload, context, errors);
+    validatePresenceDialogue(payload, context, errors);
     validateImageCue(payload, context, errors);
   }
   assert(payload && typeof payload === 'object' && !Array.isArray(payload), 'payload must be an object', errors);
@@ -1127,7 +1191,21 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     assert(!speaksFromTheGrave(block.speaker), `narration_blocks[${index}]: the dead do not speak — ${block.speaker} is dead and cannot be given dialogue`, errors);
     words += String(block.text || '').trim().split(/\s+/).filter(Boolean).length;
   }
-  assert(words >= 20 && words <= 180, `narration total must be 20-180 words (received ${words})`, errors);
+  // THE NARRATION FLOOR (A3) — when the beat measure rides the context the
+  // floor is measure-aware and names the specific deficiency in the repair
+  // instruction; when no measure rides the legacy 20-180 check holds so
+  // bare-context callers (elder evals, fixtures) stay byte-identical.
+  if (context.beatMeasure && NARRATION_FLOOR.byMeasure[context.beatMeasure]) {
+    const band = NARRATION_FLOOR.byMeasure[context.beatMeasure];
+    const deficiencies = [];
+    if (words < band.minWords) deficiencies.push(`too few words (${words} of at least ${band.minWords} required for ${context.beatMeasure})`);
+    if (words > band.maxWords) deficiencies.push(`too many words (${words}; ceiling is ${band.maxWords} for ${context.beatMeasure})`);
+    if (deficiencies.length) {
+      errors.push(`narration floor breach: ${deficiencies.join('; ')} — add concrete sensory prose and at least one character line if cast are present`);
+    }
+  } else {
+    assert(words >= 20 && words <= 180, `narration total must be 20-180 words (received ${words})`, errors);
+  }
 
   assert(Array.isArray(payload.suggestions) && payload.suggestions.length === 3, 'suggestions must contain exactly 3 entries', errors);
   const normalized = (payload.suggestions || []).map((s) => String(s).trim().toLowerCase());
@@ -1334,7 +1412,7 @@ export function makeEntropy(seed = Math.random) {
 
 export function safeFallbackTurn(playerText = '', turn = 0) {
   return {
-    narration_blocks: [{ text: `The world holds its breath around your choice. ${playerText ? 'Your intent is clear, but fate asks for a cleaner telling before it will move.' : 'A distant bell marks the beginning of an unwritten road.'} Nothing mechanical changes while the Dungeon Master gathers the thread again.`, speaker: null }],
+    narration_blocks: [{ text: `The world holds its breath. ${playerText ? 'Your intent lands with weight, but fate asks for a cleaner telling before it will move: the bones of the scene are sound; the words need resetting.' : 'A distant bell marks the beginning of an unwritten road, one stone set against another until the path remembers itself.'} Nothing changes in the record while the Dungeon Master gathers the thread again. The moment will keep.`, speaker: null }],
     suggestions: ['Look for another path', 'Ask what changed', 'Wait and listen'],
     roll_request: null, state_updates: null, combat: null,
     cinematic: turn === 0 ? { type: 'chapter', title: 'The First Turning', subtitle: 'Every world begins with one impossible choice.', palette: ['#0d0b14','#6f3f2d','#d4a24e'] } : null,

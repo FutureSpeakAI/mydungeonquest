@@ -916,6 +916,11 @@ export default function App() {
       if (Array.isArray(story?.clocks_state)) landingContext.openClocks = story.clocks_state;
       if (Array.isArray(story?.rumors_state)) landingContext.rumors = story.rumors_state.filter((text) => typeof text === 'string');
       if (Array.isArray(base.codex?.spine?.beats)) landingContext.spine = { beats: base.codex.spine.beats, beatIndex: Number.isInteger(base.codex.beatIndex) ? base.codex.beatIndex : null };
+      // THE NARRATION FLOOR (A3): the beat measure rides the landing bench in
+      // lockstep with the server bench — both benches apply identical word-law.
+      // Without this seat a standard/rich turn above 180 words (lawful on the
+      // server) would be refused by the legacy 20-180 check at the landing.
+      if (typeof beatIntent?.measure === 'string') landingContext.beatMeasure = beatIntent.measure;
       const validation = validateDmTurn(dm, entropy, landingContext);
       // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
       // the door ran, run once more where the turn becomes record, on the

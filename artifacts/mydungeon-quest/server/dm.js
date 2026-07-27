@@ -94,6 +94,10 @@ export function judgeTurn(turn, input) {
     if (typeof input.hero.concentration === 'string' && input.hero.concentration) context.concentration = input.hero.concentration;
   }
   if (Array.isArray(input.story?.sheet_state)) context.sheetCasters = input.story.sheet_state.filter((row) => Array.isArray(row?.spells));
+  // THE NARRATION FLOOR (A3): the beat measure rides the context so the
+  // validator can apply the measure-aware word floor and name the deficiency
+  // precisely in any repair instruction sent to the model.
+  if (typeof input.story?.beat_intent?.measure === 'string') context.beatMeasure = input.story.beat_intent.measure;
   const validation = validateDmTurn(turn, input.entropy, context);
   const errors = validation.ok ? [] : [...validation.errors];
   const strangers = unrecordedSouls(turn, input.story?.cast || [], { hero: input.hero || null });
@@ -611,7 +615,15 @@ export async function getDmTurn(input, { barred = {}, seat = null } = {}) {
       // validator, at every door alike: the merged cue is judged in
       // the same seal as the rest of the turn.
       const turn = artDirectorSits(bornAtZero(mockDmTurn(input)));
-      const validation = judgeTurn(turn, input);
+      // THE MOCK WORD FLOOR (A3): mock output is a known fixture that cannot
+      // self-repair — the measure-specific word floor applies to live AI turns
+      // that the repair path can address. Strip beat_intent for the mock's
+      // validation call so the legacy 20-180 check holds; the new floor courts
+      // govern live AI output only.
+      const mockJudgeInput = input.story?.beat_intent
+        ? { ...input, story: { ...input.story, beat_intent: null } }
+        : input;
+      const validation = judgeTurn(turn, mockJudgeInput);
       if (!validation.ok) throw new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
       return { turn, provider: 'mock', model: 'mock' };
     } catch (error) {

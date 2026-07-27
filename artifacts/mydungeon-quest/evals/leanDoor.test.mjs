@@ -24,6 +24,12 @@
 //     the name road and collision court ride the client entry because turns
 //     validate on the device — law growing, not a surface creeping back.
 //     Headroom mirrors ruling day at ten.
+//   2026-07-27 — measured 625 kB; ruled 625 kB. A3 substance floors: the
+//     NARRATION_FLOOR constant, validatePresenceDialogue, expanded
+//     safeFallbackTurn text, systemPrompt floor-as-requirement prose, and
+//     EDITOR_ADDENDUM measure-word ranges — all turn-law that validates on
+//     the device. Law growing, not a surface creeping back. No headroom;
+//     ratchet binds at the measured value.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a
@@ -45,7 +51,7 @@ import { entryClosureOf, closureBytesOf } from './manifestClosure.mjs';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
-const PIN_KB = 624; // ruled 2026-07-24 — see the movement ledger in this header
+const PIN_KB = 625; // ruled 2026-07-27 — see the movement ledger in this header
 // CROSS-POINTER: the web-of-souls seating court (soulsWeb.test.mjs) pins the
 // closure's EXACT bytes; a ruled move of the closure re-seats BOTH pins in
 // the same ruling. Both courts read the ONE walk in manifestClosure.mjs.

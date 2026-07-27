@@ -113,7 +113,20 @@ const DIST = path.join(GAME_ROOT, 'dist');
 // imagePapers at plate arrival. All changes are pure routing logic in
 // the render door and the setCurrent callback — no new surfaces.
 // 637654 → 637723, a move of 69 bytes. Owner ruling: A2 fix.
-const CLOSURE_BYTES_PIN = 637723;
+// Task 68 A3 (substance floors): NARRATION_FLOOR constant and its
+// byMeasure bands, validatePresenceDialogue (client-side validator),
+// expanded safeFallbackTurn text (~50 words up from ~34), systemPrompt
+// floor-as-requirement prose (the constant's values interpolated at
+// call time), and EDITOR_ADDENDUM measure-word ranges. All are turn-law
+// additions that validate on the device — no new surfaces, law growing.
+// 637723 → 639550, a move of 1827 bytes. Owner ruling: A3 substance floors.
+// Landing bench parity fix (A3, same ruling): App.jsx now seats beatMeasure
+// from beat_intent before calling validateDmTurn at the client landing — a
+// 190-word standard turn refused by the legacy ceiling (180) is accepted when
+// beatMeasure rides the context, matching the server bench exactly. The new
+// seat is one conditional assignment and one comment — pure routing glue.
+// 639550 → 639605, a move of 55 bytes. Owner ruling: A3 parity fix.
+const CLOSURE_BYTES_PIN = 639605;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

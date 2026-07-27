@@ -12,7 +12,7 @@ import { FIELD_MAP, XCARD_COPY, fieldEntry, spineFromPromise, spineLabel, titleF
 import { smithSpin } from '../lib/smithClient.js';
 import { openSitting, blessSitting, sittingRequired } from '../lib/sitting.js';
 import { ATELIER_FIELDS, dealAppearance, rollAppearance, heroCanonSoul } from '../lib/atelier.js';
-import { dealAuditions } from '../lib/audition.js';
+import { dealAuditions, soundDesc } from '../lib/audition.js';
 // THE GRIMOIRE OPENS AT THE FORGE (XVIII, Article IV) — learning is
 // sealed here, at the surface: fixed counts from the tables, picks judged
 // by the one door (validateSpellPicks), never prose promotion.
@@ -124,17 +124,31 @@ function XCard() {
   </article>;
 }
 
-// THE AUDITION (XVII, Article VIII) — TEN voices step forward under the
-// unchanged Tenor law: the stated register leads the deal exactly as the
-// old three did (an earlier choice keeps its chip), and the far register
-// fills the back of the row. Tap to hear, tap to choose. A chosen voice
-// rides the hero forever (the casting session yields to it); unchosen,
-// the session reads the finished card. On a keyless table the throat is a
-// plain tone — the choice still seals. The die beside the row is the
-// voice's own die: a candidate steps forward chosen.
+// C6 — VOICE AUDITION (F4) — three candidates, described by sound.
+// The stated register's voices step forward three at a time; Shuffle
+// draws three more from the same register. An expanded view shows all
+// voices in the register with a register label. Provider names never
+// reach the player — every description comes from the sound lexicon.
 function AuditionRow({ presentation, name, voiceId, onBless }) {
   const [busy, setBusy] = useState(null);
-  const candidates = dealAuditions(presentation, name);
+  const [shuffleSeed, setShuffleSeed] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+  // THE POOL — the unchanged ten-voice dealer under the Tenor law.
+  // Shuffle uses a seeded salt to rotate fresh candidates from the
+  // same register without altering the underlying deal order.
+  const pool = shuffleSeed === 0
+    ? dealAuditions(presentation, name)
+    : dealAuditions(presentation, `${name}:s${shuffleSeed}`);
+  // Three candidates from the stated register for the default tray.
+  const tray = pool.slice(0, 3);
+  // Stated presentations have 6 ensemble voices; neutral uses all ten.
+  const stated = ['feminine', 'masculine'].includes(String(presentation || '').toLowerCase());
+  const fullRegister = stated ? pool.slice(0, 6) : pool;
+  const shown = expanded ? fullRegister : tray;
+  const registerLabel = { feminine: 'Feminine voices', masculine: 'Masculine voices' }[
+    String(presentation || '').toLowerCase()
+  ] ?? 'All voices';
+
   const play = async (candidate) => {
     setBusy(candidate.id);
     try {
@@ -149,14 +163,19 @@ function AuditionRow({ presentation, name, voiceId, onBless }) {
     } catch { /* the audition is ritual; the choice still seals */ }
     finally { setBusy(null); }
   };
+
   return <div className="audition-row">
-    <span className="eyebrow label-line">{ask('hero', 'voice')} <DiceButton label="Shuffle a voice" onRoll={() => { const c = candidates[Math.floor(Math.random() * candidates.length)]; onBless(c.id); play(c); }}/></span>
-    <div className="audition-choices">{candidates.map((candidate) =>
+    <span className="eyebrow label-line">{ask('hero', 'voice')} <DiceButton label="Shuffle a voice" onRoll={() => setShuffleSeed((s) => s + 1)}/></span>
+    {expanded && <p className="audition-register-label">{registerLabel}</p>}
+    <div className="audition-choices">{shown.map((candidate) =>
       <button key={candidate.id} type="button" className={`audition-chip${voiceId === candidate.id ? ' selected' : ''}`} disabled={Boolean(busy) && busy !== candidate.id}
         onClick={() => { onBless(candidate.id); play(candidate); }}>
-        {busy === candidate.id ? '…' : '▶'} {candidate.label} — {candidate.line}
+        {busy === candidate.id ? '…' : '▶'} {soundDesc(candidate.id)}
       </button>)}</div>
-    <small className="fine-print">Ten voices wait. Tap to hear and choose one. {voiceId ? 'Chosen — this voice is theirs, for good.' : 'Unchosen, the casting session reads the finished card.'}</small>
+    <button type="button" className="audition-expand" onClick={() => setExpanded((e) => !e)}>
+      {expanded ? 'Fewer voices' : 'All voices in this register'}
+    </button>
+    <small className="fine-print">{voiceId ? 'Chosen — this voice is theirs, for good.' : 'Tap to hear and choose one.'}</small>
   </div>;
 }
 

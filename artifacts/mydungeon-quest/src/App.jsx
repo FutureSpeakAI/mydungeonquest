@@ -65,7 +65,7 @@ import { PatronDoor } from './patron/doorFrame.jsx';
 import { burnFromVault, nudgeVault, subscribeVault, syncShelf, listVaultShelf, restoreFromVault, redirectSpine, onSpineForked, onVaultSession } from './lib/vault.js';
 import { settleTollReturn, tollAllows, TollNotice } from './patron/toll.jsx';
 import { rememberRefusedPour, reportTollRefusal, setPourContext, tollRefusal } from './patron/tollNotice.js';
-import { admitPlate, cueCourt, easelOrder, emptyFrameLine, groundFixtures, movedItems, propLawCheck, renderableTurn, seatingPlan } from './lib/plateroad.js';
+import { admitPlate, cueCourt, easelOrder, emptyFrameLine, groundFixtures, movedItems, plateTrace, propLawCheck, renderableTurn, seatingPlan } from './lib/plateroad.js';
 import { heroSheetJob, sheetJobs } from './lib/sheets.js';
 import { sceneVerdict, TEMPO_SETTINGS } from './lib/tempo.js';
 
@@ -652,6 +652,12 @@ export default function App() {
       // The scene plate is painting: show a shimmer over the procedural stand-in
       // until the illuminated image lands (or the job resolves without one).
       if (job.logId && job.kind === 'paint') setPaintingImages((prev) => ({ ...prev, [job.logId]: true }));
+      // PLATE TRACE — cue mint: the moment the scene plate enters the lane.
+      // Records the cue hash (= originTurnHash the plate will carry) and the
+      // turn index so the arrival trace can compute elapsed time and drift.
+      if (job.logId && job.kind === 'paint') {
+        plateTrace({ phase: 'mint', logId: job.logId, cueHash: turnRecord.recordHash ?? null, cueTurnNumber: campaign.turnNumber ?? null, t: Date.now() });
+      }
       settlements.push(foundry.enqueue({ ...job, originTurnHash: turnRecord.recordHash }).then(async (asset) => {
         if (job.logId && job.kind === 'paint') clearPainting(job.logId);
         if (!asset) return;
@@ -664,6 +670,12 @@ export default function App() {
             // (admitPlate) will hold these papers against the log's sealed
             // hash; a stand-in from another moment shows an honest empty
             // frame, never yesterday's painting.
+            // PLATE TRACE — arrival: record what the log's recordHash is at
+            // this exact moment so a mismatch can be diagnosed without the
+            // browser debugger. prevLogRecordHash is what the log carries in
+            // the current state tree; originTurnHash is what the plate brings.
+            const arrivalLog = prev.logs.find((l) => l.id === job.logId);
+            plateTrace({ phase: 'arrive', logId: job.logId, prevLogRecordHash: arrivalLog?.recordHash ?? null, originTurnHash: asset.originTurnHash ?? null, headTurnNumber: prev.turnNumber ?? null });
             const logs = prev.logs.map((log) => log.id === job.logId ? { ...log, imageUrl: dataUrl, imageAssetHash: asset.assetHash, imagePapers: { assetHash: asset.assetHash, originTurnHash: asset.originTurnHash ?? null } } : log);
             const next = { ...prev, logs };
             saveCampaign(next); return next;
@@ -2109,7 +2121,7 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = 
   // FRAME — never yesterday's painting, never a recycled stand-in. Logs
   // sealed before papers existed are grandfathered whole: immutable history
   // renders exactly as it always did (including retired-film posters).
-  const verdict = log.imagePapers ? admitPlate({ turnHash: log.recordHash ?? null, attestation: log.imagePapers, caption: mood }) : null;
+  const verdict = log.imagePapers ? admitPlate({ turnHash: log.recordHash ?? null, attestation: log.imagePapers, caption: mood, logId: log.id }) : null;
   const refused = Boolean(verdict && !verdict.admit);
   const still = refused ? null : (log.imageUrl || log.videoPosterUrl || null);
   const showScene = Boolean(still || cue || painting || refused);

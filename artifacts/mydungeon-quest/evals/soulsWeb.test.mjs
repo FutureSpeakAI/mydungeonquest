@@ -103,7 +103,12 @@ const DIST = path.join(GAME_ROOT, 'dist');
 // word, no engine module entered the entry — the dowry gate's denylist
 // tooth walked its list green on the very build that measured 636450.
 // The lean door stands uncrossed, 621.6 kB against its 624 kB pin.
-const CLOSURE_BYTES_PIN = 636450;
+// Task 66 A1 (plateTrace instrumentation): plateroad.js gained the
+// PLATE_TRACE_LOG array and plateTrace() emitter; App.jsx gained the
+// mint/arrive trace calls and logId on admitPlate. All additions are
+// diagnosis-only pure functions and console emits — no new surfaces.
+// 636450 → 637654, a move of 1204 bytes. Owner ruling: A1 diagnosis.
+const CLOSURE_BYTES_PIN = 637654;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

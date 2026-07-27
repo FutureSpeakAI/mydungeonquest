@@ -200,15 +200,53 @@ export function sheetBrief({ name, kind = 'soul', canon = '' }) {
   ].filter(Boolean).join(' ');
 }
 
+// ---- THE PLATE TRACE (A1 instrumentation) ----
+// Structured telemetry for the plate-delivery path. Module-level so
+// both the app and the eval harness read the same array. Three phases
+// write here: 'mint' (cue enqueued), 'arrive' (plate lands in state),
+// 'door' (admitPlate verdict). No IO, no side-effects beyond the log.
+export const PLATE_TRACE_LOG = [];
+export function plateTrace(record) {
+  PLATE_TRACE_LOG.push({ ...record, t: Date.now() });
+  // Browser-visible refusals: a warning in DevTools is the fastest way
+  // to see a stale-papers storm without opening the source debugger.
+  if (typeof console !== 'undefined' && record.phase === 'door' && record.outcome !== 'admitted') {
+    console.warn('[plateTrace] render door refused:', {
+      outcome: record.outcome,
+      turnHash: record.turnHash,
+      originTurnHash: record.originTurnHash,
+      logId: record.logId,
+    });
+  }
+  if (typeof console !== 'undefined' && record.phase === 'arrive') {
+    console.debug('[plateTrace] plate arrived:', {
+      logId: record.logId,
+      prevLogRecordHash: record.prevLogRecordHash,
+      originTurnHash: record.originTurnHash,
+      headTurnNumber: record.headTurnNumber,
+    });
+  }
+}
+
 // ---- THE FRESH PLATE LAW (XVII, Article III) — the render door ----
 // Every player-visible plate carries its attested cue and caption or
 // it cannot render. Papers are THIS turn's papers: the attestation's
 // originTurnHash must equal the sealed hash of the very turn the
 // plate claims to illustrate. No prior turn's painting may stand in.
-export function admitPlate({ turnHash = null, attestation = null, caption = '' }) {
-  if (!attestation || typeof attestation !== 'object' || !attestation.assetHash) return { admit: false, status: 'paperless' };
-  if (!turnHash || attestation.originTurnHash !== turnHash) return { admit: false, status: 'stale-papers' };
-  if (typeof caption !== 'string' || !caption.trim()) return { admit: false, status: 'captionless' };
+export function admitPlate({ turnHash = null, attestation = null, caption = '', logId = null } = {}) {
+  if (!attestation || typeof attestation !== 'object' || !attestation.assetHash) {
+    plateTrace({ phase: 'door', outcome: 'paperless', turnHash, originTurnHash: attestation?.originTurnHash ?? null, logId });
+    return { admit: false, status: 'paperless' };
+  }
+  if (!turnHash || attestation.originTurnHash !== turnHash) {
+    plateTrace({ phase: 'door', outcome: 'stale-papers', turnHash, originTurnHash: attestation.originTurnHash ?? null, logId });
+    return { admit: false, status: 'stale-papers' };
+  }
+  if (typeof caption !== 'string' || !caption.trim()) {
+    plateTrace({ phase: 'door', outcome: 'captionless', turnHash, originTurnHash: attestation.originTurnHash, logId });
+    return { admit: false, status: 'captionless' };
+  }
+  plateTrace({ phase: 'door', outcome: 'admitted', turnHash, originTurnHash: attestation.originTurnHash, logId });
   return { admit: true, status: 'admitted' };
 }
 

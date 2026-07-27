@@ -452,6 +452,28 @@
 .world-describe textarea{min-height:60px;resize:vertical}
 @media (max-width:640px){.world-deck-card{flex:0 0 min(220px,78vw)}}
 
+/* ---- C3: class deck ---- */
+.class-deck-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem;margin:.5rem 0 .75rem}
+.class-deck-card{aspect-ratio:4/5;border-radius:14px;overflow:hidden;position:relative;cursor:pointer;border:2px solid transparent;background:#111;transition:border-color .2s,box-shadow .2s;display:flex;flex-direction:column;text-align:left;width:100%}
+.class-deck-card.selected{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,162,78,.18)}
+.class-deck-card:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.class-deck-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.class-deck-no-art{background:linear-gradient(160deg,#1b1526,#0e0b14)}
+.class-deck-caption{position:relative;z-index:1;margin-top:auto;padding:.5rem .6rem .65rem;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.6) 60%,transparent 100%);display:flex;flex-direction:column;gap:.15rem}
+.class-deck-name{color:#fff;font:700 .95rem Cinzel,serif;line-height:1.2;display:block}
+.class-deck-role{color:rgba(255,255,255,.8);font-size:.7rem;line-height:1.4;margin:0}
+.class-deck-gear{color:var(--gold);font-size:.65rem;line-height:1.35;font-style:italic;margin:0}
+.class-deck-expand{display:inline-block;margin:.25rem 0 .75rem;font-size:.82rem;color:var(--gold);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0}
+.class-expanded-section{margin:.25rem 0 .75rem;display:flex;flex-direction:column;gap:.85rem}
+.stat-array-table{width:100%;border-collapse:collapse}
+.stat-array-table td{padding:.3rem .25rem;vertical-align:middle;font-size:.85rem}
+.stat-array-table td:first-child{color:rgba(255,255,255,.65);width:45%}
+.stat-array-table td:nth-child(2){font-weight:700;color:#fff;width:2.5rem;text-align:right}
+.stat-array-table td:nth-child(3){padding-left:.4rem;width:2.5rem}
+.stat-array-table tr.stat-total td{border-top:1px solid rgba(255,255,255,.15);padding-top:.5rem;color:rgba(255,255,255,.55);font-size:.75rem}
+.class-equipment-list{list-style:disc;padding-left:1.25rem;margin:0;display:flex;flex-direction:column;gap:.25rem;font-size:.83rem;color:rgba(255,255,255,.75)}
+.class-section-label{font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.45);margin:0 0 .3rem}
+
 /* ---- C1: creation step router ---- */
 .creation-page{min-height:100vh;max-width:900px;margin:auto;padding:1rem 1rem 5rem}
 .creation-progress{display:flex;gap:.35rem;padding:.7rem 0;overflow-x:auto;margin-bottom:.5rem;position:sticky;top:0;z-index:10;background:linear-gradient(to bottom,#0e0b14 80%,transparent)}

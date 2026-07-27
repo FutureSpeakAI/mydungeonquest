@@ -3,6 +3,7 @@ import { ArrowRight, Dices, ShieldCheck } from 'lucide-react';
 import { Dowry } from './Dowry.jsx';
 import { isProving } from '../lib/proving.js';
 import { WORLD_DECK, shuffleWorldDeck } from '../lib/worldDeck.js';
+import { CLASS_DECK, CLASS_DECK_DEFAULT, CLASS_EQUIPMENT, STAT_LABELS, swapStat } from '../lib/classDeck.js';
 import { SPINES } from 'fatescript/spines';
 import { portraitPrompt } from '../lib/cinema/prompts.js';
 import { nameSeed } from '../lib/cinema/prologue.js';
@@ -212,6 +213,29 @@ function WorldDeckCard({ world, active, onActivate }) {
     </button>
   );
 }
+// C3 — CLASS DECK CARD — one card in the 2-column class selection grid.
+// Bundled /reel/ image at 4:5, class name, one-line role, one-line gear.
+function ClassDeckCard({ card, active, onChoose }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      className={`class-deck-card${active ? ' selected' : ''}`}
+      onClick={() => onChoose(card.className)}
+    >
+      {card.asset
+        ? <img className="class-deck-art" src={card.asset} alt="" aria-hidden="true" style={{ objectPosition: card.assetPosition || 'center top' }}/>
+        : <div className="class-deck-art class-deck-no-art" aria-hidden="true"/>}
+      <div className="class-deck-caption">
+        <strong className="class-deck-name">{card.className}</strong>
+        <p className="class-deck-role">{card.role}</p>
+        <p className="class-deck-gear">{card.gear}</p>
+      </div>
+    </button>
+  );
+}
+
 // Hero defaults — the same fallback the old HeroForge used.
 const HERO_FALLBACK = { name: 'Aster Vale', sigil: '✦', ancestry: 'Human', className: 'Ranger', caster: 'half', hitDie: 10, abilities: { STR: 14, DEX: 15, CON: 13, INT: 10, WIS: 12, CHA: 8 }, skills: ['Perception','Survival','Stealth'], bearing: 'Weather-worn leathers, a road-warden\u2019s longbow, and eyes that never stop reading the treeline.', background: 'A former road-warden who can hear when a path is lying.', presentation: 'neutral', pronouns: '', mark: '', keepsake: 'a river-stone that is always warm', voiceId: null, hair: 'chestnut hair bound in a travel knot', eyes: 'storm-grey eyes', skin: 'olive skin weathered by road-sun', build: 'wiry and quick', attire: 'weather-worn ranger leathers', accessory: 'a river-stone pendant on a cord', __sovereign: [] };
 
@@ -334,6 +358,14 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
     const riders = { caster: cls.caster, hitDie: cls.hitDie, skills: cls.skills, abilities: rollAbilities(cls.className, randomSeed()), bearing: BEARINGS[cls.className], background: BACKGROUNDS[cls.className], spells: dealGrimoire(cls.caster) };
     return { ...applyCandidate(v, riders), className: cls.className, __sovereign: markSovereign({ ...v, __sovereign: (v.__sovereign || []).filter((k) => k !== 'className') }, 'className') };
   });
+  // C3 — chooseCalling: same logic as setCalling but takes a className string directly.
+  // Pure-local (rollAbilities is seeded, no smithSpin), keeps total=72.
+  const chooseCalling = (className) => setHeroForm((v) => {
+    const cls = CLASSES.find((c) => c.className === className) || CLASSES[0];
+    const riders = { caster: cls.caster, hitDie: cls.hitDie, skills: cls.skills, abilities: rollAbilities(cls.className, randomSeed()), bearing: BEARINGS[cls.className], background: BACKGROUNDS[cls.className], spells: dealGrimoire(cls.caster) };
+    return { ...applyCandidate(v, riders), className: cls.className, __sovereign: markSovereign({ ...v, __sovereign: (v.__sovereign || []).filter((k) => k !== 'className') }, 'className') };
+  });
+  const [classExpanded, setClassExpanded] = useState(false);
   const updateAbility = (ability, value) => setHeroForm((f) => ({ ...f, abilities: { ...f.abilities, [ability]: Number(value) }, __sovereign: markSovereign(f, 'abilities') }));
   const bless = (voiceId) => setHeroForm((value) => ({ ...value, voiceId }));
   const heroSov = sovereignOf(heroForm);
@@ -544,21 +576,86 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
       <header className="forge-header">
         <span className="eyebrow">Class — step 2 of 5</span>
         <h1>Choose the calling.</h1>
-        <p>{effTitle} is waiting for someone.</p>
+        <p>{effTitle} is waiting for someone like this.</p>
       </header>
-      {heroCard}
-      <div className="button-row">
-        <button type="button" className="secondary-button" onClick={shuffleHero}><Dices/> Shuffle</button>
+
+      {/* C3 — 2-column class card grid (6 default) */}
+      <div className="class-deck-grid" role="radiogroup" aria-label="Class options">
+        {CLASS_DECK_DEFAULT.map((card) => (
+          <ClassDeckCard
+            key={card.className}
+            card={card}
+            active={heroForm.className === card.className}
+            onChoose={chooseCalling}
+          />
+        ))}
       </div>
-      <div className="form-grid">
-        <label><span className="label-line">{ask('hero', 'ancestry')} <DiceButton label="Shuffle an ancestry" onRoll={heroFieldDie('ancestry')}/></span>
-          <input value={heroForm.ancestry} onChange={heroPen('ancestry')} maxLength={40}/></label>
-        <label><span className="label-line">{ask('hero', 'className')} <DiceButton label="Shuffle a calling" onRoll={heroFieldDie('className')}/></span>
-          <select value={CLASSES.some((c) => c.className === heroForm.className) ? heroForm.className : ''} onChange={setCalling}>
-            {!CLASSES.some((c) => c.className === heroForm.className) && <option value="" disabled>{heroForm.className}</option>}
-            {CLASSES.map((c) => <option key={c.className} value={c.className}>{c.className}</option>)}
-          </select></label>
-      </div>
+
+      {/* Expand to see all 8 + stat array + equipment */}
+      <button type="button" className="class-deck-expand" onClick={() => setClassExpanded((v) => !v)}>
+        {classExpanded ? 'Hide full details' : 'See all eight callings, stats, and gear'}
+      </button>
+
+      {classExpanded && (() => {
+        const currentClass = CLASSES.find((c) => c.className === heroForm.className) || CLASSES[0];
+        const totalAbilities = Object.values(heroForm.abilities).reduce((a, b) => a + b, 0);
+        return (
+          <div className="class-expanded-section">
+            {/* All 8 class cards */}
+            <div className="class-deck-grid" role="radiogroup" aria-label="All class options">
+              {CLASS_DECK.map((card) => (
+                <ClassDeckCard
+                  key={card.className}
+                  card={card}
+                  active={heroForm.className === card.className}
+                  onChoose={chooseCalling}
+                />
+              ))}
+            </div>
+
+            {/* Stat array */}
+            <div>
+              <p className="class-section-label">Ability scores — by {heroForm.className} priority</p>
+              <table className="stat-array-table">
+                <tbody>
+                  {currentClass.order.map((stat) => (
+                    <tr key={stat}>
+                      <td>{STAT_LABELS[stat]}</td>
+                      <td>{heroForm.abilities[stat]}</td>
+                      <td>
+                        <DiceButton
+                          label={`Swap ${STAT_LABELS[stat]} with another stat`}
+                          onRoll={() => setHeroForm((v) => ({
+                            ...v,
+                            abilities: swapStat(v.abilities, stat, randomSeed()),
+                            __sovereign: markSovereign(v, 'abilities'),
+                          }))}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="stat-total">
+                    <td>Total</td>
+                    <td>{totalAbilities}</td>
+                    <td/>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* SRD equipment */}
+            <div>
+              <p className="class-section-label">Starting equipment</p>
+              <ul className="class-equipment-list">
+                {(CLASS_EQUIPMENT[heroForm.className] || []).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      })()}
+
       <button className="primary-button" onClick={advance}>Choose the face <ArrowRight/></button>
     </section>}
 

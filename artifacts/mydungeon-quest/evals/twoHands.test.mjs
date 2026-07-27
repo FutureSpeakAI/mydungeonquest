@@ -19,7 +19,8 @@ globalThis.window = globalThis.window || { location: { search: '', href: 'http:/
 
 const { mockSmith, WORLD_KEYS, HERO_KEYS, CALLING_RIDERS, fastFields } = await import('fatescript/smith');
 const { CLASSES } = await import('fatescript/forgeRolls');
-const { WorldForge, HeroForge } = await import('../src/components/Forge.jsx');
+// C1: WorldForge replaced by CreationRouter. World step is step 0 of the router.
+const { CreationRouter, HeroForge } = await import('../src/components/Forge.jsx');
 
 const draft = (key) => JSON.parse(store.get(`s:${key}`) || 'null');
 const act = (fn) => TestRenderer.act(fn);
@@ -49,7 +50,7 @@ for (const candidate of heldRider.candidates) assert.ok(!('bearing' in candidate
 
 // —— The pen is sovereign at the world door. ——
 let world;
-act(() => { world = TestRenderer.create(h(WorldForge, { mediaTier: 'parchment', onBack: () => {}, onContinue: () => {} })); });
+act(() => { world = TestRenderer.create(h(CreationRouter, { mediaTier: 'parchment', onBack: () => {}, onWorldReady: () => {}, onBegin: () => {} })); });
 const covenantField = world.root.findAll((n) => n.type === 'textarea')[0];
 const OWN_INK = 'My own promise of rust and rain.';
 await act(async () => { covenantField.props.onChange({ target: { value: OWN_INK } }); });
@@ -60,13 +61,13 @@ assert.equal(world.root.findAll((n) => n.type === 'textarea')[0].props.value, OW
 assert.ok(draft('mdq:forge:world').title !== undefined, 'the spins still wrote the unsovereign remainder');
 
 // A neighbour's die never crosses the ink; the field's OWN die lifts it.
-const toneDie = findByLabel(world.root, 'Spin the feel');
+const toneDie = findByLabel(world.root, 'Shuffle the feel');
 const toneBefore = () => draft('mdq:forge:world').tone ?? world.root.findAll((n) => n.type === 'input')[0].props.value;
 let toneMoved = false;
 for (let i = 0; i < 6 && !toneMoved; i += 1) { const was = toneBefore(); await act(async () => { toneDie.props.onClick(); }); toneMoved = toneBefore() !== was; }
 assert.ok(toneMoved, 'the feel\u2019s die moves the feel');
 assert.equal(world.root.findAll((n) => n.type === 'textarea')[0].props.value, OWN_INK, 'a neighbour\u2019s die never crosses the ink');
-const covenantDie = findByLabel(world.root, 'Spin a promise');
+const covenantDie = findByLabel(world.root, 'Shuffle a promise');
 let inkLifted = false;
 for (let i = 0; i < 6 && !inkLifted; i += 1) { await act(async () => { covenantDie.props.onClick(); }); inkLifted = world.root.findAll((n) => n.type === 'textarea')[0].props.value !== OWN_INK; }
 assert.ok(inkLifted, 'the field\u2019s OWN die is the one consent that lifts its ink');
@@ -91,7 +92,8 @@ assert.ok(after.__sovereign.includes('name') && after.__sovereign.includes('clas
 
 // Every fast-path hero field wears BOTH hands on the rendered door.
 const heroDice = hero.root.findAll((n) => n.type === 'button' && /\bdice-button\b/.test(String(n.props.className || ''))).map((n) => n.props['aria-label']);
-for (const label of ['Spin a name', 'Spin an ancestry', 'Spin a calling', 'Spin the words', 'Spin a mark', 'Spin a keepsake', 'Spin a voice']) {
+// C1: field dice renamed from "Spin X" to "Shuffle X".
+for (const label of ['Shuffle a name', 'Shuffle an ancestry', 'Shuffle a calling', 'Shuffle the words', 'Shuffle a mark', 'Shuffle a keepsake', 'Shuffle a voice']) {
   assert.ok(heroDice.includes(label), `the die "${label}" waits beside its pen`);
 }
 assert.equal(fastFields('hero').length, 8, 'eight questions, eight surfaces');

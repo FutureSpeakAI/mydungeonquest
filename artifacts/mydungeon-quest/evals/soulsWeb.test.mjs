@@ -139,7 +139,13 @@ const DIST = path.join(GAME_ROOT, 'dist');
 // the streaming-div label swap. All are behavioral law for the opening
 // sixty seconds — no new surface, no ceremony word, law growing.
 // 639583 → 640325, a move of 742 bytes. Owner ruling: B2 opening flow.
-const CLOSURE_BYTES_PIN = 640325;
+// 640325 → 640040, a move of -285 bytes. Owner ruling: C1 creation step router
+//   (WorldForge export + world/hero two-page route removed; CreationRouter and
+//    single creation route replace them; net closure shrink).
+// 640040 → 640089, a move of +49 bytes. Owner ruling: C1 — Dowry secondary
+//   section added to World step (the ceremony stays reachable; door==='dowry'
+//   state + WORLD_SECONDARY array + Dowry render). Net still -236 vs pre-C1.
+const CLOSURE_BYTES_PIN = 640089;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

@@ -100,10 +100,13 @@ assert.equal(titleFromPromise('so it goes'), 'The Unwritten Road', 'a promise to
 assert.equal(titleFromPromise('A drowned empire where memories are legal tender.'), titleFromPromise('A drowned empire where memories are legal tender.'), 'the derived title is deterministic');
 
 // —— The doors render FROM the map (headless), and the X-card is a card. ——
-const { WorldForge, HeroForge } = await import('../src/components/Forge.jsx');
+// C1: WorldForge is replaced by CreationRouter (five-step router). The world
+// step is step 0 of CreationRouter, which renders the same covenant/tone/shape
+// asks and the X-card. The HeroForge export is kept for the heir path.
+const { CreationRouter, HeroForge } = await import('../src/components/Forge.jsx');
 const texts = (node) => node.findAll((n) => typeof n.type === 'string').flatMap((n) => n.children).filter((c) => typeof c === 'string');
 let world;
-TestRenderer.act(() => { world = TestRenderer.create(h(WorldForge, { mediaTier: 'parchment', onBack: () => {}, onContinue: () => {} })); });
+TestRenderer.act(() => { world = TestRenderer.create(h(CreationRouter, { mediaTier: 'parchment', onBack: () => {}, onWorldReady: () => {}, onBegin: () => {} })); });
 const worldText = texts(world.root).join('\n');
 for (const key of ['covenant', 'tone', 'shape']) assert.ok(worldText.includes(PINNED.world[key]), `the world fast door asks "${PINNED.world[key]}" from the map`);
 const xcard = world.root.findAll((n) => typeof n.type === 'string' && /\bxcard-card\b/.test(String(n.props.className || '')));
@@ -113,7 +116,7 @@ assert.equal(xcard[0].findAll((n) => ['input', 'textarea', 'select', 'form'].inc
 assert.equal(world.root.findAll((n) => typeof n.type === 'string' && /\bspark-card\b/.test(String(n.props.className || ''))).length, 3, 'the three sparks lead the door');
 localStorage.setItem('mdq:xcard:seen', '1');
 let second;
-TestRenderer.act(() => { second = TestRenderer.create(h(WorldForge, { mediaTier: 'parchment', onBack: () => {}, onContinue: () => {} })); });
+TestRenderer.act(() => { second = TestRenderer.create(h(CreationRouter, { mediaTier: 'parchment', onBack: () => {}, onWorldReady: () => {}, onBegin: () => {} })); });
 assert.equal(second.root.findAll((n) => typeof n.type === 'string' && /\bxcard-card\b/.test(String(n.props.className || ''))).length, 0, 'the X-card is dealt once per device');
 
 let hero;

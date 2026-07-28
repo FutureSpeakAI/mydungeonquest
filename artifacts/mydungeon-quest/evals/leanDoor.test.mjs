@@ -47,6 +47,10 @@
 //     hero-synthetic entry added to Book.jsx (cast grid); knownCount useMemo
 //     added to App.jsx; all surfaces route through one clock and one name gate.
 //     Law growing, not a surface creeping back.
+//   2026-07-28 — measured 628 kB; pin 629 kB (ratchet passes). D8 copy & type:
+//     em dashes replaced with commas/colons across chrome strings in App.jsx,
+//     Book.jsx, Overlays.jsx, Sequence.jsx — string literals shrank; bond-label
+//     span added, details/summary for Settings cellar. Net reduction, pin stays.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a

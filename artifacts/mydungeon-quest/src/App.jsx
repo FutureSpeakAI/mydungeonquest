@@ -207,7 +207,7 @@ function LevelRitual({ hero, onAccept }) {
   const toggle = (key) => setPicks((held) => held.includes(key) ? held.filter((k) => k !== key) : [...held, key]);
   const verdict = picks.length ? validateSpellPicks({ archetype: hero.caster, level: hero.level, known, picks }) : { ok: true, errors: [] };
   const exact = heldCantrips === owedCantrips && heldSpells === owedSpells && verdict.ok;
-  return <div className="ritual grimoire-ritual"><Sparkles/><span>Level {hero.level}</span><h2>The story has made you larger — and the book opens.</h2>
+  return <div className="ritual grimoire-ritual"><Sparkles/><span>Level {hero.level}</span><h2>The story has made you larger, and the book opens.</h2>
     <p className="fine-print">The tables owe you {owedCantrips} {owedCantrips === 1 ? 'cantrip' : 'cantrips'} and {owedSpells} {owedSpells === 1 ? 'spell' : 'spells'} up to the {reachable === 1 ? 'first' : reachable === 2 ? 'second' : 'third'} circle. Mechanics from tables, flavor from the tale.</p>
     <div className="spell-pick-grid">
       {owedCantrips > 0 && <div><b>Cantrips ({heldCantrips}/{owedCantrips})</b>{rows.filter(([, row]) => row.level === 0).map(([key, row]) => <label key={key} className={`spell-pick${picks.includes(key) ? ' picked' : ''}`}><input type="checkbox" checked={picks.includes(key)} onChange={() => toggle(key)} /><span>{key}</span><small>{row.school}</small></label>)}</div>}
@@ -287,7 +287,7 @@ export default function App() {
     if (currentIdRef.current !== from) return;
     const next = await db.campaigns.get(to);
     if (next) setCurrent(next);
-    setStatus('⑂ Two tellings met — this device keeps its own spine.');
+    setStatus('⑂ Two tellings met: this device keeps its own spine.');
   }), [refreshShelf]);
   const drawFromVault = useCallback(async (campaignId) => {
     try {
@@ -309,18 +309,18 @@ export default function App() {
       await burnCampaign(campaign.id);
       if (currentIdRef.current === campaign.id) setCurrent(null);
       await refreshShelf(); await refreshVaultShelf();
-      setStatus(word === 'burned' ? `✦ "${campaign.title}" is burned — this shelf and the vault both.` : `✦ "${campaign.title}" is burned from this device.`);
+      setStatus(word === 'burned' ? `✦ "${campaign.title}" is burned: this shelf and the vault both.` : `✦ "${campaign.title}" is burned from this device.`);
     } catch {
-      setStatus('✦ The vault would not let go — the tale stays whole until it can burn everywhere at once.');
+      setStatus('✦ The vault would not let go; the tale stays whole until it can burn everywhere at once.');
     }
   }, [refreshShelf, refreshVaultShelf]);
   const burnVaultSpine = useCallback(async (spine) => {
     try {
       const word = await burnFromVault(spine.campaignId);
-      if (word === 'dormant') { setStatus('✦ The vault is out of reach — nothing was burned.'); return; }
+      if (word === 'dormant') { setStatus('✦ The vault is out of reach; nothing was burned.'); return; }
       await refreshVaultShelf();
       setStatus(`✦ "${spine.title}" is burned from the vault.`);
-    } catch { setStatus('✦ The vault would not let go — nothing was burned.'); }
+    } catch { setStatus('✦ The vault would not let go; nothing was burned.'); }
   }, [refreshVaultShelf]);
   // CLOSE THE BOOK — leave the table for the hearth. Every told page is
   // already sealed as it was lived; closing loses nothing but the chair's
@@ -332,7 +332,7 @@ export default function App() {
     setPaintingImages({});
     setCurrent(null); setFlow('title');
     await refreshShelf(); refreshVaultShelf();
-    setStatus('✦ The book rests on the shelf — every page kept.');
+    setStatus('✦ The book rests on the shelf, every page kept.');
   }, [refreshShelf, refreshVaultShelf]);
   useEffect(() => { refreshShelf(); db.settings.get('care').then((row) => { if (!row) return; const { score: _score, voice: _voice, ...kept } = row.value || {}; const value = { ...DEFAULT_SETTINGS, ...kept }; if (value.mediaTier === 'cinema') value.mediaTier = 'illuminated'; setSettings(value); }); }, [refreshShelf]);
   // THE POURED-AGAIN OFFER — a refused pour that sent the patron to checkout,
@@ -473,7 +473,7 @@ export default function App() {
   // transaction on the media shelf alone, honest counts spoken back in
   // house words. A lazy door — the entry's closure never grows for it.
   const sweepByHand = useCallback(async () => {
-    if (!current) return 'No tale is open — the cellar rests.';
+    if (!current) return 'No tale is open; the cellar rests.';
     const { sweepCellar, sweepStory } = await import('./lib/cellar.js');
     const act = current.codex?.spine?.beats?.[current.codex?.beatIndex]?.act || 1;
     const plan = await sweepCellar(current.id, act);
@@ -589,7 +589,7 @@ export default function App() {
     const leadName = seating.painted[0]?.name || null;
     const sceneBearing = leadName
       ? (campaign.hero && String(leadName).trim().toLowerCase() === String(campaign.hero.name).trim().toLowerCase()
-          ? `${campaign.hero.name} — ${identityClause(heroSoul(campaign.hero))}`
+          ? `${campaign.hero.name}: ${identityClause(heroSoul(campaign.hero))}`
           : bearingTextFor(campaign, leadName))
       : null;
     // THE SLOT LAW (XVII, Article II) — the seating plan is deterministic
@@ -639,7 +639,7 @@ export default function App() {
       // bed, never under a voice. No ambience wallpaper, no pre-spoken line:
       // the narration itself reads the dialogue in the character's cast voice
       // after the card closes.
-      jobs.push({ kind: 'music', prompt: `A short orchestral phrase for ${dm.cinematic.type} — "${dm.cinematic.subtitle}". One musical sentence, eight to twelve seconds, ending cleanly and resolving toward silence. Restrained, cinematic, PG-13. No vocals.`, priority: 4, cacheKey: keys.score, options: { durationSeconds: 10 } });
+      jobs.push({ kind: 'music', prompt: `A short orchestral phrase for ${dm.cinematic.type} : "${dm.cinematic.subtitle}". One musical sentence, eight to twelve seconds, ending cleanly and resolving toward silence. Restrained, cinematic, PG-13. No vocals.`, priority: 4, cacheKey: keys.score, options: { durationSeconds: 10 } });
     }
     briefUpcomingBeat(campaign, foundry, campaign.codex.beatIndex);
     const clearPainting = (logId) => setPaintingImages((prev) => { if (!prev[logId]) return prev; const next = { ...prev }; delete next[logId]; return next; });
@@ -996,7 +996,7 @@ export default function App() {
       // refused pours poured again all get it without remembering to pass it.
       // Kept apart from `player` so retellings never quote a die as speech.
       const deed = !visiblePlayer && resolution
-        ? `The ${resolution.selectedDie || 'die'} falls ${resolution.total} — ${String(resolution.outcome || '').replaceAll('_', ' ')}.`
+        ? `The ${resolution.selectedDie || 'die'} falls ${resolution.total}: ${String(resolution.outcome || '').replaceAll('_', ' ')}.`
         : null;
       // The row now carries the roll the seal has always kept (additive,
       // duplicating sealed truth only) so the narrator can direct the line
@@ -1137,7 +1137,7 @@ export default function App() {
       const nowAct = codex.spine.beats[codex.beatIndex]?.act || 1;
       const actName = ACT_NAMES[nowAct] || ACT_NAMES[1];
       const actCard = nowAct > prevAct ? {
-        cinematic: { type: 'act', title: `Act ${romanNumeral(nowAct)}`, subtitle: `${actName[0].toUpperCase()}${actName.slice(1)}.`, palette: ACT_PALETTES[nowAct] || ACT_PALETTES[1] },
+        cinematic: { type: 'act', title: `Act ${nowAct}`, subtitle: `${actName[0].toUpperCase()}${actName.slice(1)}.`, palette: ACT_PALETTES[nowAct] || ACT_PALETTES[1] },
         dialogue_cue: null, campaign: next, turnRecordHash: record.recordHash, beatIndex: next.codex.beatIndex
       } : null;
       // THE SOUND LAW at the turn boundary: when a cinematic card fires, its
@@ -1333,7 +1333,7 @@ export default function App() {
       codex = dowryFold.codex;
       if (dowryFold.refused.length) {
         const held = dowryFold.refused.map((row) => row.op?.name).filter(Boolean).join(', ');
-        setStatus(`✦ The canon held at the threshold — ${held || 'a dowry gift'} stayed at the door: ${dowryFold.refused[0].errors[0]}`);
+        setStatus(`✦ The canon held at the threshold: ${held || 'a dowry gift'} stayed at the door: ${dowryFold.refused[0].errors[0]}`);
       }
     }
     const campaign = {
@@ -1426,7 +1426,7 @@ export default function App() {
     if (!dying) return;
     const walked = (dying.sheet.deathSaves?.successes || 0) + (dying.sheet.deathSaves?.failures || 0);
     const slug = String(dying.name).toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    setCurrent((prior) => prior && !prior.pendingRoll ? { ...prior, pendingRoll: { id: `doom-${slug}-${walked + 1}`, label: `Death save — ${dying.name}`, kind: 'death_save', die: 'd20', ability: null, skill: null, proficient: false, dc: 10, advantage: 'normal', extra_mod: 0, action_id: null, actor_id: dying.name, target_id: null } } : prior);
+    setCurrent((prior) => prior && !prior.pendingRoll ? { ...prior, pendingRoll: { id: `doom-${slug}-${walked + 1}`, label: `Death save: ${dying.name}`, kind: 'death_save', die: 'd20', ability: null, skill: null, proficient: false, dc: 10, advantage: 'normal', extra_mod: 0, action_id: null, actor_id: dying.name, target_id: null } } : prior);
   }, [current, busy]);
 
   const resolveCompanionDoom = async (member, result) => {
@@ -1438,13 +1438,13 @@ export default function App() {
     if (folded.verdict === 'dead') {
       // The seal: status dead through the standing grave law — memorial
       // fact, fall notes on held threads, the validator's watch. Permanent.
-      codex = applyStoryUpdates(codex, { cast_update: [{ name: member.name, status: 'dead', last_seen: 'Fell to wounds — the third failure sealed it.' }] }, { turn: current.turnNumber });
+      codex = applyStoryUpdates(codex, { cast_update: [{ name: member.name, status: 'dead', last_seen: 'Fell to wounds: the third failure sealed it.' }] }, { turn: current.turnNumber });
     }
     await seal(current.id, 'resolution', { ...result, deathSaves: folded.deathSaves, verdict: folded.verdict });
     const sealed = await db.campaigns.get(current.id);
     const next = { ...current, codex, pendingRoll: null, headHash: sealed.headHash, turnCount: sealed.turnCount };
     await saveCampaign(next); setCurrent(next);
-    if (folded.verdict === 'dead') setTimeout(() => playTurn(next, `Resolve Death save — ${member.name} has fallen.`, result, null), 950);
+    if (folded.verdict === 'dead') setTimeout(() => playTurn(next, `Resolve Death save: ${member.name} has fallen.`, result, null), 950);
   };
 
   const resolveRoll = async () => {
@@ -1596,7 +1596,7 @@ export default function App() {
       const [{ downloadQuestAudio }] = await Promise.all([import('./lib/cinema/questaudio.js'), import('./lib/podcast.js')]);
       const blob = await downloadQuestAudio(current, (message) => setStatus(message));
       downloadBlob(blob, `${slugify(current.title)}.podcast.mp3`);
-      setStatus('✦ Your episode is forged — sealed, and true.');
+      setStatus('✦ Your episode is forged: sealed and true.');
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -1622,7 +1622,7 @@ export default function App() {
     // synchronously with the click — and the save settles behind it.
     setCurrent(next);
     setOverlay('sealing');
-    setStatus('✦ The denouement begins — the road turns home.');
+    setStatus('✦ The denouement begins: the road turns home.');
     await saveCampaign(next);
   };
 
@@ -1684,7 +1684,7 @@ export default function App() {
       const next = { ...current, hero: heir, codex, updatedAt: Date.now() };
       await saveCampaign(next); setCurrent(next); setFlow('table');
       import('./components/Forge.jsx').then((m) => m.clearForgeDrafts()).catch(() => {}); // the heir stood from the same forge; the sitting's draft burns — best-effort by design
-      setStatus(`✦ ${heir.name} rises — the world holds, and the debts stand.`);
+      setStatus(`✦ ${heir.name} rises: the world holds, and the debts stand.`);
     } catch (error) {
       setStatus(`✦ The heir could not stand: ${error?.message || 'the road fell'}`);
     } finally {
@@ -1836,7 +1836,7 @@ export default function App() {
   // shelf or at the table alike. The patron pours or lets it rest; either
   // way the offer is made once and never nags.
   const pourBanner = pourOffer ? <div className="pour-again" role="status">
-    <span>✦ Your seat is raised — the pour the house refused can flow again.</span>
+    <span>✦ Your seat is raised; the pour the house refused can flow again.</span>
     <button onClick={() => { const intent = pourOffer; setPourOffer(null); retryRefusedPour(intent); }}>Pour it now</button>
     <button className="secondary-button" onClick={() => setPourOffer(null)}>Let it rest</button>
   </div> : null;
@@ -1889,7 +1889,7 @@ export default function App() {
                 ? <img key={member.name} className="party-face" src={gallery[member.name]} alt={member.name} title={member.name}/>
                 : <i key={member.name} className="party-face" title={member.name}>{member.name.split(' ').map((part) => part[0]).join('')}</i>)
               : (knownCount > 0
-                  ? <em>Alone — {knownCount} {knownCount === 1 ? 'soul' : 'souls'} known</em>
+                  ? <em>Alone: {knownCount} {knownCount === 1 ? 'soul' : 'souls'} known</em>
                   : <em>The hero travels alone</em>)}</span>
             <span className="table-chip" data-chip="health"><HeartPulse/> {table.chips[3].words}</span>
           </div>
@@ -1899,7 +1899,7 @@ export default function App() {
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
-      <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Act {act.numeral} · Chapter {chapter.numeral} of {chapter.countNumeral}</span><h1>{chapter.title}</h1><p>{chapter.goal}</p></div>
+      <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Act {act.act} · Chapter {current.codex.beatIndex + 1} of {chapter.count}</span><h1>{chapter.title}</h1><p>{chapter.goal}</p></div>
       {recap && recap.campaignId === current.id && <RecapCard recap={recap} onDismiss={() => setRecap(null)} />}
       {(() => {
         // THE FOLIO COUNT — plates are numbered the way a folio numbers its
@@ -1925,7 +1925,7 @@ export default function App() {
             // THE ERA DOOR'S ONE RECORD (Directive XII §IV.5) — spoken plainly
             // in the feed, never hidden; fail-closed if the row cannot be read.
             const moved = Number(seat.log?.dm?.story?.purse?.[0]?.delta) || 0;
-            return <div className="reconciliation-line" key={seat.log.id}>⚖ The old lane’s coin was reconciled — {moved} gold seated as one sealed purse movement.</div>;
+            return <div className="reconciliation-line" key={seat.log.id}>⚖ The old lane’s coin was reconciled: {moved} gold seated as one sealed purse movement.</div>;
           }
           const log = seat.log;
           if (log.redacted) return <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div>;
@@ -1938,7 +1938,7 @@ export default function App() {
       {overBudget && paintingImages[overBudget] && <div className="over-budget-notice" role="status">{OVER_BUDGET_MESSAGE}</div>}
       <div ref={logEndRef}/>
     </main>
-    {!current.readOnly && current.codex.sealing && !current.completed && <div className="near-end denouement"><span>✦ The denouement — the road turns home.</span></div>}
+    {!current.readOnly && current.codex.sealing && !current.completed && <div className="near-end denouement"><span>✦ The denouement: the road turns home.</span></div>}
     {!current.readOnly && nearEnd && <div className="near-end"><span>✦ The final chapters draw near.</span><button onClick={() => setOverlay('seal-ask')}>Seal the Tale</button></div>}
     {!current.readOnly && !current.completed && <Composer campaign={current} busy={busy} reduceMotion={stillness} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
     {/* A restored chronicle is a BOOK — its keepsakes (storybook, wax,
@@ -1987,8 +1987,8 @@ const dyeOf = (id) => SPINE_DYES[Math.abs([...String(id)].reduce((h, c) => (h * 
 const VAULT_MARKS = {
   vaulted: { glyph: '⛨', word: 'kept in the vault' },
   syncing: { glyph: '…', word: 'reaching the vault' },
-  'diverged-forked': { glyph: '⑂', word: 'two tellings — this device kept its own spine' },
-  error: { glyph: '◌', word: 'the vault is out of reach — the tale is safe on this device' },
+  'diverged-forked': { glyph: '⑂', word: 'two tellings: this device kept its own spine' },
+  error: { glyph: '◌', word: 'the vault is out of reach; the tale is safe on this device' },
 };
 
 function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVaultRestore, onBurn, onBurnVault, onNew, onOpen, onRestore, onDemoDraw, reduceMotion, mediaTier, status }) {
@@ -2087,8 +2087,8 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
         <div className="book-row">
           {campaigns.map((c) => {
             const waxed = Boolean(c.sealedAt || c.completed);
-            const label = `${c.title} — ${c.hero?.name || 'a hero'}${c.completed ? (c.sealedAt ? ', told and sealed' : ', told') : ', still being lived'}`;
-            const engrave = () => setPlaque(`${c.title} — ${c.hero?.name || 'a hero'} · ${c.codex?.spine?.label || 'a spine'}${c.sealedAt ? ' · opens to its keepsakes' : c.completed ? ' · told, awaiting the wax' : ''}`);
+            const label = `${c.title}: ${c.hero?.name || 'a hero'}${c.completed ? (c.sealedAt ? ', told and sealed' : ', told') : ', still being lived'}`;
+            const engrave = () => setPlaque(`${c.title}: ${c.hero?.name || 'a hero'} · ${c.codex?.spine?.label || 'a spine'}${c.sealedAt ? ' · opens to its keepsakes' : c.completed ? ' · told, awaiting the wax' : ''}`);
             return <div key={c.id} className="spine-slot">
               <button className="book-spine" style={{ '--dye': dyeOf(c.id), height: `${158 + Math.min(26, c.turnCount || 0)}px` }}
                 aria-label={label} title={label}
@@ -2153,7 +2153,7 @@ function TitleScreen({ campaigns, vaultMarks = new Map(), vaultShelf = [], onVau
       <h2>Burn “{pyre.title}”?</h2>
       <p>{pyre.scope === 'vault'
         ? 'This takes the vault’s copy to ash. Any device that still holds the tale keeps its own pages.'
-        : 'This takes the tale to ash on this device — and in the vault, if it is kept there. Every page, plate, and voice. Ash keeps no pages.'}</p>
+        : 'This takes the tale to ash on this device, and in the vault, if it is kept there. Every page, plate, and voice. Ash keeps no pages.'}</p>
       <div className="ritual-row">
         <button className="secondary-button" onClick={() => setPyre(null)} autoFocus>Keep the tale</button>
         <button className="danger-button" onClick={() => { const p = pyre; setPyre(null); if (p.scope === 'vault') onBurnVault?.(p.spine); else onBurn?.(p.campaign); }}><span className="burn-word">Burn it</span></button>
@@ -2379,7 +2379,7 @@ function Epitaph({ campaign, onIntervene, onFaceTheDark, onDeathSave, onHeir }) 
   return <div className="epitaph"><span>{hero.sigil}</span><p>{walking ? 'The dark leans close. Roll, and be counted.' : 'An epitaph waits, but fate has not yet closed its hand.'}</p><h1>{hero.name}</h1>
     {walking
       ? <>
-          <p className="doom-tally">Death saves — successes {saves.successes} of 3 · failures {saves.failures} of 3</p>
+          <p className="doom-tally">Death saves: successes {saves.successes} of 3 · failures {saves.failures} of 3</p>
           <button className="roll-button doom" onClick={onDeathSave}><Dices/><span><small>{hero.name} {hero.sigil} · death_save · DC 10</small>Death save</span><b>Roll d20</b></button>
         </>
       : <>

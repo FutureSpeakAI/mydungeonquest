@@ -93,7 +93,7 @@ export function RecapCard({ recap, onDismiss }) {
   const mast = recap.mast || {};
   return <section className="recap-card" aria-label="The tale so far">
     <span className="eyebrow">The tale so far</span>
-    <p className="recap-mast"><b>{mast.arc}</b> · Act {mast.act} · {mast.chapter}{mast.goal ? ` — ${mast.goal}` : ''}</p>
+    <p className="recap-mast"><b>{mast.arc}</b> · Act {mast.act} · {mast.chapter}{mast.goal ? `: ${mast.goal}` : ''}</p>
     {recap.kind === 'page' && <ChroniclePage page={recap.page} />}
     {/* (Directive XIV) The Tale chapter re-reads this card as a page — a
         reading has no dismiss; the feed's own card keeps its door. */}

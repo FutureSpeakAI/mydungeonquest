@@ -158,7 +158,7 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   added to Overlays.jsx, which is a static import from App.jsx (rides
 //   the synchronous road). Accessible controls replacing native browser
 //   inputs — UI law growing on the sync road, not a surface creeping back.
-const CLOSURE_BYTES_PIN = 643379;
+const CLOSURE_BYTES_PIN = 643286;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

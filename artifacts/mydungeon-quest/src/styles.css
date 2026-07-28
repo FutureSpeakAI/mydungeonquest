@@ -161,7 +161,7 @@ img.region-plate{width:100%;aspect-ratio:16/9;height:auto;object-fit:cover;displ
 .bond-thread{display:flex;gap:.28rem;margin:.3rem 0 .1rem}
 .bond-thread i{width:22px;height:4px;border-radius:2px;background:rgba(233,223,200,.14)}
 .bond-thread i.lit{background:linear-gradient(90deg,var(--gold),#e9dfc8)}
-.bond-why{display:block;font-style:italic;color:rgba(233,223,200,.6);margin:.1rem 0 .2rem}
+.bond-label{font-size:.66rem;color:var(--vellum-dim);letter-spacing:.02em;white-space:nowrap;margin-right:.3rem;align-self:center}.bond-why{display:block;font-style:italic;color:rgba(233,223,200,.6);margin:.1rem 0 .2rem}
 .known-facts{margin:.35rem 0 .2rem;padding-left:1rem;display:grid;gap:.2rem}
 .known-facts li{font-size:.78rem;color:rgba(233,223,200,.78);line-height:1.35}
 .soul-card .trail{display:block;margin-top:.25rem}
@@ -818,3 +818,5 @@ a.secondary-button{display:inline-grid;place-items:center;text-decoration:none}
 .web-legend .key-enemy{border-color:#8d2f2f;border-top-style:dashed}
 .web-legend .key-ally{border-color:var(--gold-soft)}
 .web-legend .key-met{border-color:var(--vellum-dim)}
+
+.settings-detail{color:var(--vellum-dim);font-size:.88rem;margin:.35rem 0 .55rem}.settings-detail summary{cursor:pointer;list-style:none;padding:.1rem 0}.settings-detail summary::-webkit-details-marker{display:none}.settings-detail-body{margin:.35rem 0 0;padding-left:.55rem}

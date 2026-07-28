@@ -56,7 +56,7 @@ export function AnchorBust({ campaign }) {
   const face = useHeroBust(campaign);
   return face
     ? <img className="hero-face" src={face} alt={h.name}/>
-    : <span className="hero-face parchment-bust" role="img" aria-label={`${h.name} — the parchment mark`}>{h.sigil}</span>;
+    : <span className="hero-face parchment-bust" role="img" aria-label={`${h.name}: parchment mark`}>{h.sigil}</span>;
 }
 
 // Frame lives in gallery.jsx now (lean door, XX Law V), beside the hook.
@@ -87,12 +87,12 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
         projections of the hero record — the tables own the numbers, the
         sheet only speaks them. Non-casters keep the old sheet whole. */}
     {h.spellEnergy ? <><h3>Spell energy</h3><div className="slot-row"><span>Charges {Array.from({length:h.spellEnergy.max},(_,i)=><i className={i<h.spellEnergy.current?'full':''} key={i}/>)}</span></div></> : null}
-    {Array.isArray(h.spells) && h.spells.length > 0 && <><h3>Spells known</h3><div className="spell-list">{h.spells.map((s) => <span className="spell-known" key={s}>{s}</span>)}</div>{h.concentration ? <p className="muted">Concentrating: {h.concentration} — one thread at a time; a new one asks the old to fall.</p> : null}</>}
+    {Array.isArray(h.spells) && h.spells.length > 0 && <><h3>Spells known</h3><div className="spell-list">{h.spells.map((s) => <span className="spell-known" key={s}>{s}</span>)}</div>{h.concentration ? <p className="muted">Concentrating: {h.concentration}, one thread at a time; a new one asks the old to fall.</p> : null}</>}
     <h3>Conditions</h3>{h.conditions.length ? h.conditions.map((c)=><div className="condition" key={c}><b>{c}</b><span>{CONDITIONS[c]}</span></div>) : <p className="muted">No conditions.</p>}
     <h3>Inventory</h3><ul>{purse.pack.map(({ item, qty }) => <li key={item}>{qty > 1 ? `${qty}\u00d7 ${item}` : item}</li>)}</ul>
-    {purse.refusals.length > 0 && <><h3>The till’s receipts</h3>{purse.refusals.map((r, i) => <p className="muted" key={i}>Refused at t.{r.turn} — {r.reason}.</p>)}</>}
-    {slate.lines.length > 0 && <><h3>The market slate — {slate.region}</h3>{slate.lines.map((line, i) => <p className="muted" key={i}>{line}</p>)}</>}
-    {chart.origin && <><h3>The chart — from {chart.origin}</h3>{chart.lines.map((line, i) => <p className="muted" key={i}>{line}</p>)}{chart.fogged > 0 && <p className="muted">… and {chart.fogged} {chart.fogged === 1 ? 'place' : 'places'} spoken of in the codex, not yet witnessed at the table.</p>}</>}
+    {purse.refusals.length > 0 && <><h3>The till’s receipts</h3>{purse.refusals.map((r, i) => <p className="muted" key={i}>Refused at turn {r.turn}: {r.reason}.</p>)}</>}
+    {slate.lines.length > 0 && <><h3>The market slate: {slate.region}</h3>{slate.lines.map((line, i) => <p className="muted" key={i}>{line}</p>)}</>}
+    {chart.origin && <><h3>The chart: from {chart.origin}</h3>{chart.lines.map((line, i) => <p className="muted" key={i}>{line}</p>)}{chart.fogged > 0 && <p className="muted">… and {chart.fogged} {chart.fogged === 1 ? 'place' : 'places'} spoken of in the codex, not yet witnessed at the table.</p>}</>}
     <button className="secondary-button" onClick={onExport}><Download/> Export sealed chronicle</button>
   </Frame>;
 }
@@ -178,9 +178,9 @@ function bellRoomStands() {
 }
 
 const BELL_WORD = {
-  sent: 'Sent — the herald delivered the test ping.',
-  undelivered: 'Undelivered — the webhook was rung but did not answer. Check the chalked address.',
-  mute: 'Mute — no herald webhook is chalked on this house, so there was nothing to ring.',
+  sent: 'Sent: the herald delivered the test ping.',
+  undelivered: 'Undelivered: the webhook was rung but did not answer. Check the chalked address.',
+  mute: 'Mute: no herald webhook is chalked on this house, so there was nothing to ring.',
 };
 
 function OwnersBell() {
@@ -208,7 +208,7 @@ function OwnersBell() {
       <input type="password" placeholder="Admin token" value={token} autoComplete="off" onChange={(e) => keepToken(e.target.value)} aria-label="Admin token"/>
       <button className="secondary-button" disabled={busy || !token.trim()} onClick={ring}>{busy ? 'Ringing…' : 'Ring the test'}</button>
     </div>
-    {rung?.refused && <p className="muted">The bell-pull answers only the owner's hand — that token was refused.</p>}
+    {rung?.refused && <p className="muted">The bell-pull answers only the owner's hand; that token was refused.</p>}
     {rung?.broke && <p className="muted">{rung.broke}</p>}
     {rung?.status && <div className="bell-outcome">
       <p><b>{BELL_WORD[rung.status] || rung.status}</b></p>
@@ -232,40 +232,40 @@ export function Settings({ campaign, settings, onChange, onTempo, onDownloadAudi
     {/* D5 — switches: role=switch, aria-checked, 44 × 44 hit area; labels use id/aria-labelledby */}
     <div className="toggle"><span id="hbl-motion">Reduce motion<small>Replace cinematics with quiet beat lines.</small></span><HcSwitch checked={settings.reduceMotion} onChange={(v)=>onChange({...settings,reduceMotion:v})}/></div>
     <div className="toggle"><span id="hbl-haptics">Haptics<small>Use a brief vibration for dice.</small></span><HcSwitch checked={settings.haptics} onChange={(v)=>onChange({...settings,haptics:v})}/></div>
-    <div className="toggle"><span id="hbl-sky">The shared sky<small>One sky hangs over every world — a seasonal omen the Dungeon Master may read by this world's covenant, or ignore entirely. Close it and this world's sky falls silent.</small></span><HcSwitch checked={campaign.sky !== 'off'} onChange={(v)=>onChange({...settings,sky:v?'open':'off'})}/></div>
-    <div className="toggle"><span id="hbl-narrator">The narrator<small>Each new turn is read aloud — the storyteller's voice for the prose, each soul's own voice for its lines. One voice at a time, nothing beneath it. Tap "Listen" on any turn to replay it.{voiceElsewhere ? ' The voiced seat opens this throat — see the toll-house below.' : ''}</small></span><HcSwitch checked={settings.narrator} onChange={(v)=>onChange({...settings,narrator:v})}/></div>
+    <div className="toggle"><span id="hbl-sky">The shared sky<small>One sky hangs over every world: a seasonal omen the Dungeon Master may read by this world's covenant, or ignore entirely. Close it to silence this world's sky.</small></span><HcSwitch checked={campaign.sky !== 'off'} onChange={(v)=>onChange({...settings,sky:v?'open':'off'})}/></div>
+    <div className="toggle"><span id="hbl-narrator">The narrator<small>Each new turn is read aloud: the storyteller's voice for the prose, each soul's own voice for its lines. One voice at a time, nothing beneath it. Tap "Listen" on any turn to replay it.{voiceElsewhere ? ' The voiced seat opens this throat (see the toll-house below).' : ''}</small></span><HcSwitch checked={settings.narrator} onChange={(v)=>onChange({...settings,narrator:v})}/></div>
     {/* D5 — text scale: styled slider, never a range input */}
     <div className="hc-scale-row"><span>Text scale</span><HcSlider value={settings.textScale} stops={TEXT_SCALE_STOPS} onChange={(v)=>onChange({...settings,textScale:v})} label="Text scale"/></div>
     {/* D5 — radio cards: role=radiogroup + role=radio + aria-checked; visible ✓ mark on selection */}
     <h3>Foundry tier</h3><div className="tier-grid" role="radiogroup" aria-label="Foundry tier">{[
-      ['parchment','Parchment','Procedural woodcut art, instant, free — and silent.'],['illuminated','Illuminated','Painted stills, voiced narration, music only at the turning points.']
-    ].map(([id,tierLabel,desc])=><button role="radio" aria-checked={campaign.mediaTier===id} className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{tierLabel}</b><span>{desc}{id==='illuminated' && paintsBehindDoor ? ' The house paints for named patrons — give your name at the door.' : ''}</span></button>)}</div>
+      ['parchment','Parchment','Procedural woodcut art, instant, free, and silent.'],['illuminated','Illuminated','Painted stills, voiced narration, music only at the turning points.']
+    ].map(([id,tierLabel,desc])=><button role="radio" aria-checked={campaign.mediaTier===id} className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{tierLabel}</b><span>{desc}{id==='illuminated' && paintsBehindDoor ? ' The house paints for named patrons; give your name at the door.' : ''}</span></button>)}</div>
     <h3>The tempo of the brush</h3><div className="tier-grid" role="radiogroup" aria-label="The tempo of the brush">{[
-      ['every','Every turn','Each turn lands with its own painted plate — the standing cadence, unchanged.'],
+      ['every','Every turn','Each turn lands with its own painted plate; the standing cadence unchanged.'],
       ['turning','Where the story turns','New chapters, first meetings, new ground, first blood, and scenes the Dungeon Master calls for earn the brush; quiet turns hold the standing plate.'],
-      ['sparse','The great turnings','Only genesis, a new chapter, and a scene the Dungeon Master calls for — the rarest, boldest book.']
+      ['sparse','The great turnings','Only genesis, a new chapter, and a scene the Dungeon Master calls for : the rarest, boldest book.']
     ].map(([id,tempoLabel,desc])=><button role="radio" aria-checked={(campaign.tempo||'every')===id} className={(campaign.tempo||'every')===id?'selected':''} key={id} onClick={()=>onTempo(id)}><b>{tempoLabel}</b><span>{desc}</span></button>)}</div>
     <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Music {campaign.spend?.music||0}/8</span></div>
     <h3>The cellar</h3>
-    <p className="muted">Beneath the house the old canvases pile up. The sweep keeps every treasure — the anchors, the reference sheets, each region's standing plate, the held frame, every painting of the last two acts, every plate bound into a book, and any canvas the record cannot name — and clears only elder scenes and superseded region states. The sealed record is never touched; music and voices rest untouched this season.</p>
+    <details className="settings-detail"><summary className="muted">Beneath the house the old canvases pile up. The sweep clears only elder scenes and superseded region states.</summary><p className="muted settings-detail-body">Kept: anchors, reference sheets, each region's standing plate, the held frame, every painting of the last two acts, every plate bound into a book, and any canvas the record cannot name. The sealed record is never touched; music and voices rest untouched this season.</p></details>
     {onSweep && <button className="secondary-button" disabled={cellar.busy} onClick={async () => {
       setCellar({ busy: true, word: null });
       try { setCellar({ busy: false, word: await onSweep() }); }
-      catch { setCellar({ busy: false, word: 'The cellar door held fast — nothing was moved.' }); }
+      catch { setCellar({ busy: false, word: 'The cellar door held fast; nothing was moved.' }); }
     }}><Wind/> {cellar.busy ? 'Sweeping the cellar…' : 'Sweep the cellar'}</button>}
     {cellar.word && <p className="muted">{cellar.word}</p>}
     <TollSection toll={toll} />
     {onDownloadAudio && <>
       <h3>The chronicle, read aloud</h3>
-      <p className="muted">Stitch every turn's narration — each soul in its own voice, nothing playing beneath — into one reading you can keep.</p>
+      <p className="muted">Stitch every turn's narration (each soul in its own voice, nothing playing beneath) into one reading you can keep.</p>
       <button className="secondary-button" disabled={audioBusy} onClick={onDownloadAudio}><Download/> {audioBusy ? 'Forging the episode…' : 'Forge the podcast'}</button>
-      <p className="muted">One produced episode from the sealed record — the Chronicler retells, the cast re-speak their own lines, stings sound only between sections. The forge binds real voices only; a keyless table keeps the book.{forgeElsewhere ? ' The forge lights for the voiced seat — the toll-house below tells the way.' : ''}</p>
+      <p className="muted">One produced episode from the sealed record: the Chronicler retells, the cast re-speak their own lines, stings sound only between sections. The forge binds real voices only; a keyless table keeps the book.{forgeElsewhere ? ' The forge lights for the voiced seat (see the toll-house below).' : ''}</p>
     </>}
     <BetaDoor campaign={campaign} settings={settings} toll={toll} />
     {doorBuilt && toll?.plan && toll.plan !== 'guest' && <OwnersRights />}
     <OwnersBell/>
     <div className="law-note"><Heart/><span>{doorBuilt
-      ? 'Your chronicles stay on this device. A name at the door is only a key — the tale itself never leaves without you.'
+      ? 'Your chronicles stay on this device. A name at the door is only a key; the tale itself never leaves without you.'
       : 'No accounts. Nothing leaves this device without you.'}</span></div>
   </Frame>;
 }
@@ -291,7 +291,7 @@ function BetaDoor({ campaign, settings, toll }) {
       <a className="secondary-button" href={`mailto:?subject=${encodeURIComponent('MyDungeon.Quest beta report')}&body=${encodeURIComponent(report)}`}>Send by hand</a>
     </div>
     {word && <p className="muted" role="status">{word}</p>}
-    <p className="muted">Until the Commons lands, this vault lives on this device alone. Export a sealed chronicle now and then — the sheet's export door keeps the tale in your own hands.</p>
+    <p className="muted">Until the Commons lands, this vault lives on this device alone. Export a sealed chronicle now and then; the sheet's export door keeps the tale in your own hands.</p>
   </>;
 }
 
@@ -340,7 +340,7 @@ function OwnersRights() {
   const tally = pyre.verdict ? Object.entries(pyre.verdict.rows || {}).map(([shelf, n]) => `${shelf} ${n}`).join(' · ') : null;
   return <>
     <h3>The owner's rights</h3>
-    <p className="muted">Two rights stand over everything the house keeps under your name — the cloud vault, published pages, the ledger of use, your seat itself. Take the whole record, or burn it.</p>
+    <p className="muted">Two rights stand over everything the house keeps under your name: the cloud vault, published pages, the ledger of use, your seat itself. Take the whole record, or burn it.</p>
     <button className="secondary-button" disabled={parcel.busy} onClick={bale}><Download/> {parcel.busy ? 'Baling the parcel…' : 'Take the parcel'}</button>
     {parcel.word && <p className="muted" role="status">{parcel.word}</p>}
     {!rite && <button className="secondary-button" onClick={() => setRite(true)}>Light the account pyre…</button>}
@@ -372,6 +372,6 @@ export function Storybook({ html, onClose, onPdf, onHtml, onSize }) {
       <button className="secondary-button" onClick={onHtml}><Download/> Keep as HTML</button>
       <button className="primary-button" onClick={onPdf}><Download/> Bind to PDF</button>
     </div>
-    <p className="muted">Your tale is told. Bind it — the book turns its own pages here, prints to {size}, and carries its proof for the notary.</p>
+    <p className="muted">Your tale is told. Bind it: the book turns its own pages here, prints to {size}, and carries its proof for the notary.</p>
   </Frame>;
 }

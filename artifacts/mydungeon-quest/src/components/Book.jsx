@@ -66,7 +66,7 @@ function PackCoin({ purse }) {
         <div key={i} className="purse-row">
           <span className={`purse-delta${entry.delta < 0 ? ' spent' : ''}`}>{entry.delta > 0 ? `+${entry.delta}` : entry.delta}</span>
           <b>{entry.reason}</b>
-          <small>turn {entry.turn}{entry.clamped ? ' — held at zero' : ''}</small>
+          <small>turn {entry.turn}{entry.clamped ? ' (held at zero)' : ''}</small>
         </div>)}</div>
       : <p className="muted">No coin has moved through this hand.</p>)}
   </div>;
@@ -188,7 +188,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         pages ahead keep their titles to themselves — no spoilers. */}
     <h3>The shape of the tale</h3>
     <div className="tale-arc">{acts.map((act) => <div className="act-row" key={act}>
-      <b>Act {romanNumeral(act)} — {ACT_NAMES[act] || 'the road beyond'}</b>
+      <b>Act {act}: {ACT_NAMES[act] || 'the road beyond'}</b>
       <ol>{c.spine.beats.map((beat, i) => (beat.act || 1) === act
         ? <li key={i} className={i < c.beatIndex ? 'walked' : i === c.beatIndex ? 'here' : ''}>{i <= c.beatIndex ? beat.title : '· · ·'}{(i < c.beatIndex || campaign.completed) && <button className="text-button" onClick={() => shareChapter(i)}>public face</button>}</li>
         : null)}</ol>
@@ -196,21 +196,21 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
     {campaign.completed
       ? <p className="muted seal-tale-row">✦ The tale is told{campaign.sealedAt ? ', and the wax has taken the sigil' : ''}.</p>
       : c.sealing
-        ? <p className="muted seal-tale-row">✦ The denouement — the road turns home.</p>
+        ? <p className="muted seal-tale-row">✦ The denouement: the road turns home.</p>
         : onSealTale
           ? <div className="seal-tale-row"><button className="secondary-button" onClick={onSealTale}>Seal the Tale</button><p className="muted">End with honor: a few closing turns, then the wax.</p></div>
           : null}
     <h3>The evil design</h3><p className={revealed ? '' : 'gated'}>{revealed ? c.arc?.evil_plot : 'The page refuses to hold the whole shape. Revelation must be earned.'}</p>
-    {import.meta.env.DEV && roomPlan && <><h3>The scriptorium — the room plans, the door speaks</h3>
-    <ul className="scriptorium-plan">{SCRIBES.map((scribe) => <li key={scribe}><b>{scribe}</b> — <span className="muted">{roomPlan.scratchpad[scribe]}</span></li>)}</ul></>}
-    {tells && tells.report.flagged.length > 0 && <><h3>The human hand — the tell court</h3>
-    <ul className="scriptorium-plan">{tells.report.flagged.map((key) => <li key={key}><b>{TELL_FAMILIES[key].name}</b> — <span className="muted">{TELL_FAMILIES[key].finding}</span></li>)}</ul></>}
+    {import.meta.env.DEV && roomPlan && <><h3>The scriptorium: room plans, the door speaks</h3>
+    <ul className="scriptorium-plan">{SCRIBES.map((scribe) => <li key={scribe}><b>{scribe}</b>: <span className="muted">{roomPlan.scratchpad[scribe]}</span></li>)}</ul></>}
+    {tells && tells.report.flagged.length > 0 && <><h3>The human hand: the tell court</h3>
+    <ul className="scriptorium-plan">{tells.report.flagged.map((key) => <li key={key}><b>{TELL_FAMILIES[key].name}</b>: <span className="muted">{TELL_FAMILIES[key].finding}</span></li>)}</ul></>}
     <h3>Cinematic archive</h3><div className="replay-list">{logs.filter((l)=>l.dm?.cinematic && !l.redacted).map((log)=><button key={log.id} onClick={()=>onReplay(log.dm, log)}><Film/> {log.dm.cinematic.title}</button>)}</div>
     <h3>Memoir</h3>{c.memoir.length ? c.memoir.map((m,i)=><p key={i}>{m}</p>) : <p className="muted">The Chronicler has not yet needed to compress the road behind you.</p>}
     </div>}
 
     {chapter === 'people' && <div className="book-page" data-page="people">
-    <h3>The cast — what the world remembers</h3>
+    <h3>The cast: what the world remembers</h3>
     {openCard && <article className="soul-page">
       <button className="text-button" onClick={() => onNav({ soul: null })}>← All souls</button>
       <div className="soul-page-head">
@@ -234,7 +234,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         return !readable
           ? <p className="cite ground-line">The presence record cannot be read.</p>
           : entry?.ground
-            ? <p className="cite ground-line">Last seen standing in {entry.ground} — turn {entry.cite}.</p>
+            ? <p className="cite ground-line">Last seen standing in {entry.ground}, turn {entry.cite}.</p>
             : <p className="cite ground-line">Whereabouts unknown.</p>; })()}
       {/* THE UNMET LAW (XVII, Article VI) — a tie chip may only name the
           spoken; an edge to the unmet is absence, not a teaser. */}
@@ -244,7 +244,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
       <h4 className="eyebrow">Appearances</h4>
       <ol className="soul-timeline">{openCard.chronicle.map((line, i) => {
         const scene = logs.find((log) => log.turn === line.turn && log.dm?.cinematic && !log.redacted);
-        return <li key={i}><b>Turn {line.turn}</b> — {line.gloss}{scene && <button className="text-button" onClick={() => onReplay(scene.dm, scene)}>replay</button>}</li>;
+        return <li key={i}><b>Turn {line.turn}:</b> {line.gloss}{scene && <button className="text-button" onClick={() => onReplay(scene.dm, scene)}>replay</button>}</li>;
       })}</ol>
     </article>}
     {/* D7: hero always leads the cast — the graph seats the hero at the centre,
@@ -263,8 +263,8 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
           <h4>{soul.name}</h4>
           <span className={`status-badge ${soul.status}`}>{STATUS_WORD[soul.status] || 'Walks the tale'}</span>
           <p>{soul.visual}</p>
-          <div className="bond-thread" title="Bond 4/4" aria-label="Bond 4 of 4">{Array.from({length:4},(_,i)=><i key={i} className="lit"/>)}</div>
-          <small className="trail">The hero — present from the first page</small>
+          <div className="bond-thread" title="Bond 4/4" aria-label="Bond 4 of 4"><span className="bond-label">Bond 4/4</span>{Array.from({length:4},(_,i)=><i key={i} className="lit"/>)}</div>
+          <small className="trail">The hero: present from the first page</small>
         </article>); })();
       return <>{heroCard}{shownCast.map((soul)=>{
       const dead = soul.status === 'dead';
@@ -275,10 +275,10 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         <h4>{soul.name}</h4>
         <span className={`status-badge ${soul.status || 'active'}`}>{STATUS_WORD[soul.status] || soul.status || 'Walks the tale'}</span>
         <p>{soul.visual}</p>
-        <div className="bond-thread" title={`Bond ${soul.bond}/4`} aria-label={`Bond ${soul.bond} of 4`}>{Array.from({length:4},(_,i)=><i key={i} className={i<soul.bond?'lit':''}/>)}</div>
+        <div className="bond-thread" title={`Bond ${soul.bond}/4`} aria-label={`Bond ${soul.bond} of 4`}><span className="bond-label">Bond {soul.bond}/4</span>{Array.from({length:4},(_,i)=><i key={i} className={i<soul.bond?'lit':''}/>)}</div>
         {lastWhy && <small className="bond-why">"{lastWhy}"</small>}
         {(soul.known_facts || []).length > 0 && <ul className="known-facts">{soul.known_facts.map((fact,i)=><li key={i}>{fact}</li>)}</ul>}
-        <small className="trail">{soul.last_seen ? `Last seen — ${soul.last_seen}` : 'The trail is quiet.'}{Number.isInteger(soul.introduced_turn) ? (soul.introduced_turn === 0 ? ' · Present from the first page' : ` · Entered the tale at turn ${soul.introduced_turn}`) : ''}</small>
+        <small className="trail">{soul.last_seen ? `Last seen: ${soul.last_seen}` : ''}{Number.isInteger(soul.introduced_turn) ? (soul.introduced_turn === 0 ? ' · Present from the first page' : ` · Entered the tale at turn ${soul.introduced_turn}`) : ''}</small>
       </article>;
     })}</>;
     })()}</div>}
@@ -319,7 +319,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
           fold, sealed once, each cited to the turn that sealed it. */}
       {(() => { const placeFixtures = (c.fixtures || []).filter((entry) => entry.place === place.name);
         return placeFixtures.length > 0 && <><h4 className="eyebrow">Fixtures</h4>
-          <ul className="presence-list fixture-list">{placeFixtures.map((entry, i) => <li key={i}><b>{entry.name}</b> — {entry.visual}{Number.isInteger(entry.since) && <span className="cite">sealed turn {entry.since}</span>}</li>)}</ul></>; })()}
+          <ul className="presence-list fixture-list">{placeFixtures.map((entry, i) => <li key={i}><b>{entry.name}</b>: {entry.visual}{Number.isInteger(entry.since) && <span className="cite">sealed turn {entry.since}</span>}</li>)}</ul></>; })()}
     </article>; })()}
     </div>}
 
@@ -331,10 +331,10 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         <div key={i} className="purse-row">
           <span className={`purse-delta${entry.delta < 0 ? ' spent' : ''}`}>{entry.delta > 0 ? `+${entry.delta}` : entry.delta}</span>
           <b>{entry.reason}</b>
-          <small>turn {entry.turn}{entry.clamped ? ' — held at zero' : ''}</small>
+          <small>turn {entry.turn}{entry.clamped ? ' (held at zero)' : ''}</small>
         </div>)}</div>}
       {items.length === 0
-        ? <p className="muted">Nothing registered yet — when a named thing enters the tale and matters, it is recorded here with every hand it passes through.</p>
+        ? <p className="muted">Nothing registered yet; when a named thing enters the tale and matters, it is recorded here with every hand it passes through.</p>
         : <div className="thread-list trove-list">{items.map((item, i) =>
           <div key={i} className={`thread-row trove-row${item.status === 'held' ? '' : ' settled'}`}>
             <span className="thread-kind">{item.kind}</span>

@@ -106,7 +106,7 @@ const CAMPAIGN = {
   assert.ok(engineAtlas.includes('parsePlacement'), 'placement is parsed, never guessed');
   const overlays = read('src/components/Overlays.jsx');
   assert.ok(overlays.includes('chartRibbon'), 'the folio draws the chart');
-  assert.ok(overlays.includes('The chart —'), 'the ribbon is seated');
+  assert.ok(overlays.includes('The chart:'), 'the ribbon is seated');
   assert.ok(overlays.includes('not yet witnessed'), 'rumors are named to the patron');
 }
 

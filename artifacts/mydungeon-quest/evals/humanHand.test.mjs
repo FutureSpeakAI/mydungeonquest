@@ -69,7 +69,7 @@ const CAMPAIGN = {
   assert.ok(app.includes('tellCourtAt(base)'), 'the sealed record is measured at the table — through the waypost door, one road for app and harness');
   assert.ok(app.includes('...hand.directives'), 'the counter-directives ride the pack, additively');
   const book = read('src/components/Book.jsx'); // Task 58C: the tell court's face moved whole into the Book.
-  assert.ok(book.includes('The human hand — the tell court'), 'the finding is visible to the patron');
+  assert.ok(book.includes('The human hand:'), 'the finding is visible to the patron');
   const lib = read('src/lib/tells.js');
   // The parity cut seated the court's session home: the lib is the
   // engine's door, whole.

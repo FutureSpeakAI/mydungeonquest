@@ -600,9 +600,19 @@ img.region-plate{width:100%;aspect-ratio:16/9;height:auto;object-fit:cover;displ
 .hero-sigil .dice-button{margin-left:.35rem}
 
 /* ---- THE OPEN BOOK & THE TABLE LAW (Directive XIV) ---- */
-.book-chapters{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 1rem;border-bottom:1px solid rgba(212,162,78,.22);padding-bottom:.6rem;position:sticky;top:calc(var(--modal-chrome) - 1.2rem);z-index:2;background:linear-gradient(145deg,#211927,#100d15)}
-.book-chapters button{border:1px solid transparent;border-radius:999px;background:none;color:var(--vellum-dim);padding:.42rem .8rem;font-family:Cinzel,Georgia,serif;font-size:.78rem;letter-spacing:.06em}
-.book-chapters button.open{border-color:var(--gold-soft);background:rgba(212,162,78,.1);color:var(--vellum)}
+/* D2 TAB RAIL: one scrollable rail — sticky wrapper hosts the edge-fade
+   masks (pseudo-elements clipped by overflow:hidden); the inner nav owns
+   scroll-snap and overflow-x:auto so sticky is never broken by an ancestor. */
+.book-chapters-wrap{position:sticky;top:calc(var(--modal-chrome) - 1.2rem);z-index:2;background:linear-gradient(145deg,#211927,#100d15);border-bottom:1px solid rgba(212,162,78,.22);padding-bottom:.6rem;overflow:hidden}
+.book-chapters-wrap::before,.book-chapters-wrap::after{content:'';position:absolute;top:0;bottom:.6rem;width:32px;z-index:1;pointer-events:none;opacity:0;transition:opacity .15s}
+.book-chapters-wrap::before{left:0;background:linear-gradient(to right,#211927 50%,transparent)}
+.book-chapters-wrap::after{right:0;background:linear-gradient(to left,#211927 50%,transparent)}
+.book-chapters-wrap.scroll-has-left::before{opacity:1}
+.book-chapters-wrap.scroll-has-right::after{opacity:1}
+.book-chapters{display:flex;gap:.75rem;overflow-x:auto;scroll-snap-type:x mandatory;padding:.4rem .6rem .1rem;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0}
+.book-chapters::-webkit-scrollbar{display:none}
+.book-chapters button{flex:none;scroll-snap-align:start;min-height:44px;border:1px solid transparent;border-radius:999px;background:none;color:var(--vellum-dim);padding:.5rem .9rem;font-family:Cinzel,Georgia,serif;font-size:.78rem;letter-spacing:.06em;white-space:nowrap;transition:background .15s,color .15s}
+.book-chapters button.open{background:rgba(212,162,78,.12);color:var(--vellum);border-color:var(--gold-soft);box-shadow:inset 0 -2px 0 var(--gold)}
 .book-page{animation:page-in .3s ease both}
 .header-chips{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
 .table-chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid rgba(233,223,200,.14);border-radius:999px;background:rgba(233,223,200,.05);padding:.3rem .7rem;font-size:.78rem;color:var(--vellum-dim);white-space:nowrap}

@@ -88,41 +88,39 @@ assert.ok(
   '@media(max-width:720px) must not zero-out scroll-padding-top (affects 360/390/430 widths)',
 );
 
-// ── 4. .book-chapters IS position:sticky BENEATH THE MODAL HEADER ────────────
-// The tab rail (The Tale / The People / The Places …) scrolls away on small
-// devices if it is not sticky. It must stick just below the modal header.
-// Sticky top = --modal-chrome minus the modal's padding (1.2rem offset) so
-// the rail aligns with the header's bottom edge.
+// ── 4. .book-chapters-wrap IS position:sticky BENEATH THE MODAL HEADER ───────
+// D2 moved the sticky+background to .book-chapters-wrap so the inner nav can
+// own overflow-x:auto (sticky + ancestor-overflow conflict does not apply
+// to the sticky element itself). The rail must still stick just below the
+// modal header at the same calc() offset.
 assert.ok(
-  css.includes('position:sticky') && css.includes('.book-chapters{'),
-  '.book-chapters must exist and position:sticky must be present in the stylesheet',
+  css.includes('.book-chapters-wrap{'),
+  '.book-chapters-wrap must be present in the stylesheet (D2 sticky wrapper)',
 );
 
-const bookChaptersRule = css.match(/\.book-chapters\{[^}]+\}/)?.[0] || '';
+const bookChaptersWrapRule = css.match(/\.book-chapters-wrap\{[^}]+\}/)?.[0] || '';
 assert.ok(
-  bookChaptersRule.includes('position:sticky'),
-  '.book-chapters must declare position:sticky',
+  bookChaptersWrapRule.includes('position:sticky'),
+  '.book-chapters-wrap must declare position:sticky',
 );
 assert.ok(
-  bookChaptersRule.includes('top:calc(var(--modal-chrome) - 1.2rem)'),
-  '.book-chapters top must be calc(var(--modal-chrome) - 1.2rem) to clear the modal header',
+  bookChaptersWrapRule.includes('top:calc(var(--modal-chrome) - 1.2rem)'),
+  '.book-chapters-wrap top must be calc(var(--modal-chrome) - 1.2rem) to clear the modal header',
 );
 assert.ok(
-  bookChaptersRule.includes('z-index:2'),
-  '.book-chapters must have z-index:2 to paint above scrolling content',
+  bookChaptersWrapRule.includes('z-index:2'),
+  '.book-chapters-wrap must have z-index:2 to paint above scrolling content',
 );
 assert.ok(
-  // Background must be opaque (any non-transparent background), ensuring
-  // scrolled content does not bleed through the sticky rail.
-  bookChaptersRule.includes('background:') && !bookChaptersRule.includes('background:transparent'),
-  '.book-chapters must have an opaque background so content does not bleed through',
+  bookChaptersWrapRule.includes('background:') && !bookChaptersWrapRule.includes('background:transparent'),
+  '.book-chapters-wrap must have an opaque background so content does not bleed through',
 );
 
-// Width verification: mobile override must not remove sticky from book-chapters.
+// Width verification: mobile override must not remove sticky from the wrapper.
 assert.ok(
-  !mobile720Block.includes('.book-chapters{position:static') &&
-  !mobile720Block.includes('.book-chapters{position:relative'),
-  '@media(max-width:720px) must not un-stick .book-chapters (affects 360/390/430 widths)',
+  !mobile720Block.includes('.book-chapters-wrap{position:static') &&
+  !mobile720Block.includes('.book-chapters-wrap{position:relative'),
+  '@media(max-width:720px) must not un-stick .book-chapters-wrap (affects 360/390/430 widths)',
 );
 
 // ── 5. .seal-status RESERVES THE BADGE ZONE ──────────────────────────────────

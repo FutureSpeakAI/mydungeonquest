@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Film, ScrollText } from 'lucide-react';
 import { db } from '../lib/db.js';
 import { ACT_NAMES, romanNumeral, standingsOf } from 'fatescript/story';
@@ -105,6 +105,27 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
   // THE ROW WITNESS at the Book's own door — junk rows prove nothing here
   // either; every read below this line touches witnessed rows only.
   const logs = rowsOf(campaign.logs);
+  // D2 TAB RAIL — edge-fade masks driven by scroll position; each mount
+  // re-reads so a tab reopened at a different chapter starts correctly.
+  const railRef = useRef(null);
+  const tabRefs = useRef({});
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return undefined;
+    const update = () => {
+      const wrap = rail.parentElement;
+      if (!wrap) return;
+      const { scrollLeft, scrollWidth, clientWidth } = rail;
+      wrap.classList.toggle('scroll-has-left', scrollLeft > 2);
+      wrap.classList.toggle('scroll-has-right', scrollLeft < scrollWidth - clientWidth - 2);
+    };
+    update();
+    rail.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    return () => { rail.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
+  }, []);
+  // Center the active tab in the rail on chapter changes (including first mount).
+  const chapter = CHAPTERS.some((entry) => entry.id === nav?.chapter) ? nav.chapter : 'tale';
   const gallery = useGallery(campaign);
   // THE LIVING WIKI: cards are derived lawfully from the log; each soul is a
   // page, each tie a backlink, each chronicle line a citation into the tale.
@@ -117,7 +138,10 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
   // nobody rather than everybody.
   const shownCast = useMemo(() => { try { return introducedCast(campaign); } catch { return []; } }, [campaign]);
   const spoken = useMemo(() => { try { return introducedNames(campaign); } catch { return new Set(); } }, [campaign]);
-  const chapter = CHAPTERS.some((entry) => entry.id === nav?.chapter) ? nav.chapter : 'tale';
+  useEffect(() => {
+    const btn = tabRefs.current[chapter];
+    if (btn) btn.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [chapter]);
   const openSoul = nav?.soul || null;
   const openPlace = nav?.place || null;
   const openPack = nav?.pack || null;
@@ -144,8 +168,14 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
   };
   return <Frame title="The Book" icon={<ScrollText/>} onClose={onClose} wide>
     <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p><p className="muted codex-clock" role="note">{clockWords(logs)}</p></div><div className="codex-meta"><span className="day-chip">Day {calendarOf(logs).day}</span><div className="blight">Blight <b>{c.blight}/5</b></div></div></div>
-    <nav className="book-chapters" role="tablist" aria-label="Chapters">{CHAPTERS.map((entry) =>
-      <button key={entry.id} role="tab" data-chapter={entry.id} aria-selected={chapter === entry.id} className={chapter === entry.id ? 'open' : ''} onClick={() => onNav({ chapter: entry.id })}>{entry.word}</button>)}</nav>
+    <div className="book-chapters-wrap">
+      <nav className="book-chapters" ref={railRef} role="tablist" aria-label="Chapters">{CHAPTERS.map((entry) =>
+        <button key={entry.id} role="tab" ref={(el) => { tabRefs.current[entry.id] = el; }}
+          data-chapter={entry.id} aria-selected={chapter === entry.id}
+          className={chapter === entry.id ? 'open' : ''}
+          onClick={() => onNav({ chapter: entry.id })}>{entry.word}</button>)}
+      </nav>
+    </div>
     <div className="book-body" data-stillness={reduceMotion ? 'true' : undefined}>
 
     {chapter === 'tale' && <div className="book-page" data-page="tale">

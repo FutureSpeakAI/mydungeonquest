@@ -208,4 +208,43 @@ test.describe('G28 — the open book', () => {
     await page.keyboard.press('Escape');
     await expect(lightbox).not.toBeVisible();
   });
+
+  test('G28f — lightbox closes cleanly when the Book modal is dismissed while it is open', async ({ page }) => {
+    // Covers the edge case where the player dismisses the Book modal (via the
+    // header X or scrim) while the lightbox is open. The scroll lock and the
+    // keydown listener added by the lightbox effect must both be torn down on
+    // unmount, not just when the lightbox is closed normally from inside.
+    test.setTimeout(300_000);
+    const id = await seedFixture(page);
+    await paintFixtureExtras(page, id);
+
+    // Open the places chapter which has painted region art.
+    await openChapter(page, 'places');
+    const regionImg = page.locator('.region-gallery img.region-plate.book-art-tap').first();
+    await expect(regionImg).toBeVisible({ timeout: 30_000 });
+
+    // Tap the art to open the lightbox.
+    await regionImg.click();
+    const lightbox = page.locator('.plate-lightbox[role="dialog"]');
+    await expect(lightbox).toBeVisible();
+
+    // The scroll lock must be in place while the lightbox is open.
+    const overflowLocked = await page.evaluate(() => document.body.style.overflow);
+    expect(overflowLocked).toBe('hidden');
+
+    // Dismiss the outer Book modal while the lightbox is still open.
+    await closeModal(page);
+
+    // The lightbox must be gone once the modal unmounts.
+    await expect(lightbox).not.toBeVisible();
+
+    // The scroll lock must be released on unmount.
+    const overflowAfter = await page.evaluate(() => document.body.style.overflow);
+    expect(overflowAfter).toBe('');
+
+    // No stale keydown listener: pressing Escape after the modal is closed
+    // must not cause any visible effect (no lightbox resurrection, no error).
+    await page.keyboard.press('Escape');
+    await expect(lightbox).not.toBeVisible();
+  });
 });

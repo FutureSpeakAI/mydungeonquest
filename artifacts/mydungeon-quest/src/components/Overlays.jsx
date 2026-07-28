@@ -101,6 +101,71 @@ export function CharacterSheet({ campaign, onClose, onExport }) {
 // exists when ADMIN_TOKEN is chalked (a tokenless fork answers 404), so we
 // ask ONCE per page load — an unauthorized knock, refused before any ping
 // rides out — and render nothing at all where the room does not stand.
+// ── D5 — HOUSE CONTROLS (Rule 15) ─────────────────────────────────────────
+// Styled switch: 44 × 44 hit area, role="switch", aria-checked.
+// Never renders a raw browser checkbox.
+function HcSwitch({ checked, onChange }) {
+  return (
+    <button type="button" role="switch" aria-checked={checked} className="hc-switch"
+      onClick={() => onChange(!checked)}>
+      <span className="hc-switch-track" aria-hidden="true">
+        <span className="hc-switch-thumb" />
+      </span>
+    </button>
+  );
+}
+
+// Text-scale slider: discrete labeled stops, role="slider", keyboard-navigable.
+// Never renders a raw browser range input.
+const TEXT_SCALE_STOPS = [0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3];
+function HcSlider({ value, stops, onChange, label }) {
+  const idx = (() => {
+    const exact = stops.indexOf(value);
+    if (exact >= 0) return exact;
+    return stops.reduce((best, stop, i) =>
+      Math.abs(stop - value) < Math.abs(stops[best] - value) ? i : best, 0);
+  })();
+  const pct = stops.length > 1 ? (idx / (stops.length - 1)) * 100 : 0;
+  const handleKey = (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault(); if (idx < stops.length - 1) onChange(stops[idx + 1]);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault(); if (idx > 0) onChange(stops[idx - 1]);
+    }
+  };
+  const handleClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    onChange(stops[Math.round(frac * (stops.length - 1))]);
+  };
+  return (
+    <div className="hc-slider"
+      role="slider" tabIndex="0"
+      aria-label={label}
+      aria-valuenow={value}
+      aria-valuemin={stops[0]}
+      aria-valuemax={stops[stops.length - 1]}
+      aria-valuetext={`${Math.round(value * 100)}%`}
+      onKeyDown={handleKey}>
+      <div className="hc-slider-rail" onClick={handleClick}>
+        <div className="hc-slider-fill-wrap">
+          <div className="hc-slider-fill" style={{ width: `${pct}%` }} />
+          {stops.map((stop, i) => (
+            <span key={stop}
+              className={`hc-slider-pip${stop === stops[idx] ? ' active' : ''}`}
+              style={{ left: `${(i / (stops.length - 1)) * 100}%` }}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="hc-slider-labels" aria-hidden="true">
+        <span>Aa−</span><span>Aa</span><span>Aa+</span>
+      </div>
+    </div>
+  );
+}
+// ── end D5 ────────────────────────────────────────────────────────────────
+
 // Keyless/unconfigured forks see Settings byte-for-byte as before.
 let bellRoomAsked = null;
 function bellRoomStands() {
@@ -164,19 +229,22 @@ export function Settings({ campaign, settings, onChange, onTempo, onDownloadAudi
   const voiceElsewhere = toll?.live && toll.plan !== 'guest' && toll.quotas?.speak === 0;
   const forgeElsewhere = toll?.live && toll.plan !== 'guest' && toll.quotas?.podcast === 0;
   return <Frame title="Settings & Care" icon={<Sparkles/>} onClose={onClose}>
-    <label className="toggle"><span>Reduce motion<small>Replace cinematics with quiet beat lines.</small></span><input type="checkbox" checked={settings.reduceMotion} onChange={(e)=>onChange({...settings,reduceMotion:e.target.checked})}/></label>
-    <label className="toggle"><span>Haptics<small>Use a brief vibration for dice.</small></span><input type="checkbox" checked={settings.haptics} onChange={(e)=>onChange({...settings,haptics:e.target.checked})}/></label>
-    <label className="toggle"><span>The shared sky<small>One sky hangs over every world — a seasonal omen the Dungeon Master may read by this world's covenant, or ignore entirely. Close it and this world's sky falls silent.</small></span><input type="checkbox" checked={campaign.sky !== 'off'} onChange={(e)=>onChange({...settings,sky:e.target.checked?'open':'off'})}/></label>
-    <label className="toggle"><span>The narrator<small>Each new turn is read aloud — the storyteller's voice for the prose, each soul's own voice for its lines. One voice at a time, nothing beneath it. Tap “Listen” on any turn to replay it.{voiceElsewhere ? ' The voiced seat opens this throat — see the toll-house below.' : ''}</small></span><input type="checkbox" checked={settings.narrator} onChange={(e)=>onChange({...settings,narrator:e.target.checked})}/></label>
-    <label>Text scale<input type="range" min=".9" max="1.3" step=".05" value={settings.textScale} onChange={(e)=>onChange({...settings,textScale:Number(e.target.value)})}/></label>
-    <h3>Foundry tier</h3><div className="tier-grid">{[
+    {/* D5 — switches: role=switch, aria-checked, 44 × 44 hit area; labels use id/aria-labelledby */}
+    <div className="toggle"><span id="hbl-motion">Reduce motion<small>Replace cinematics with quiet beat lines.</small></span><HcSwitch checked={settings.reduceMotion} onChange={(v)=>onChange({...settings,reduceMotion:v})}/></div>
+    <div className="toggle"><span id="hbl-haptics">Haptics<small>Use a brief vibration for dice.</small></span><HcSwitch checked={settings.haptics} onChange={(v)=>onChange({...settings,haptics:v})}/></div>
+    <div className="toggle"><span id="hbl-sky">The shared sky<small>One sky hangs over every world — a seasonal omen the Dungeon Master may read by this world's covenant, or ignore entirely. Close it and this world's sky falls silent.</small></span><HcSwitch checked={campaign.sky !== 'off'} onChange={(v)=>onChange({...settings,sky:v?'open':'off'})}/></div>
+    <div className="toggle"><span id="hbl-narrator">The narrator<small>Each new turn is read aloud — the storyteller's voice for the prose, each soul's own voice for its lines. One voice at a time, nothing beneath it. Tap "Listen" on any turn to replay it.{voiceElsewhere ? ' The voiced seat opens this throat — see the toll-house below.' : ''}</small></span><HcSwitch checked={settings.narrator} onChange={(v)=>onChange({...settings,narrator:v})}/></div>
+    {/* D5 — text scale: styled slider, never a range input */}
+    <div className="hc-scale-row"><span>Text scale</span><HcSlider value={settings.textScale} stops={TEXT_SCALE_STOPS} onChange={(v)=>onChange({...settings,textScale:v})} label="Text scale"/></div>
+    {/* D5 — radio cards: role=radiogroup + role=radio + aria-checked; visible ✓ mark on selection */}
+    <h3>Foundry tier</h3><div className="tier-grid" role="radiogroup" aria-label="Foundry tier">{[
       ['parchment','Parchment','Procedural woodcut art, instant, free — and silent.'],['illuminated','Illuminated','Painted stills, voiced narration, music only at the turning points.']
-    ].map(([id,label,desc])=><button className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{label}</b><span>{desc}{id==='illuminated' && paintsBehindDoor ? ' The house paints for named patrons — give your name at the door.' : ''}</span></button>)}</div>
-    <h3>The tempo of the brush</h3><div className="tier-grid">{[
+    ].map(([id,tierLabel,desc])=><button role="radio" aria-checked={campaign.mediaTier===id} className={campaign.mediaTier===id?'selected':''} key={id} onClick={()=>onChange({...settings,mediaTier:id})}><b>{tierLabel}</b><span>{desc}{id==='illuminated' && paintsBehindDoor ? ' The house paints for named patrons — give your name at the door.' : ''}</span></button>)}</div>
+    <h3>The tempo of the brush</h3><div className="tier-grid" role="radiogroup" aria-label="The tempo of the brush">{[
       ['every','Every turn','Each turn lands with its own painted plate — the standing cadence, unchanged.'],
       ['turning','Where the story turns','New chapters, first meetings, new ground, first blood, and scenes the Dungeon Master calls for earn the brush; quiet turns hold the standing plate.'],
       ['sparse','The great turnings','Only genesis, a new chapter, and a scene the Dungeon Master calls for — the rarest, boldest book.']
-    ].map(([id,label,desc])=><button className={(campaign.tempo||'every')===id?'selected':''} key={id} onClick={()=>onTempo(id)}><b>{label}</b><span>{desc}</span></button>)}</div>
+    ].map(([id,tempoLabel,desc])=><button role="radio" aria-checked={(campaign.tempo||'every')===id} className={(campaign.tempo||'every')===id?'selected':''} key={id} onClick={()=>onTempo(id)}><b>{tempoLabel}</b><span>{desc}</span></button>)}</div>
     <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Music {campaign.spend?.music||0}/8</span></div>
     <h3>The cellar</h3>
     <p className="muted">Beneath the house the old canvases pile up. The sweep keeps every treasure — the anchors, the reference sheets, each region's standing plate, the held frame, every painting of the last two acts, every plate bound into a book, and any canvas the record cannot name — and clears only elder scenes and superseded region states. The sealed record is never touched; music and voices rest untouched this season.</p>

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Feather } from 'lucide-react';
 import ChroniclePage from './ChroniclePage.jsx';
 import { tickPhrase, tickWhispers } from 'fatescript/sequencing';
@@ -41,12 +42,48 @@ export function PendingPage({ reduceMotion }) {
 
 // CHOICES ON THE BEAT — suggestion chips fade in after a short reading
 // beat, staggered; reduced motion sees them at once; input is never gated.
+// Long suggestions (>55 chars) open a full-text sheet before committing; short
+// ones pick directly. Edge fades appear only when the rail can scroll.
 export function SuggestionRow({ suggestions, disabled, onPick, reduceMotion }) {
-  return <div className="suggestions">{suggestions.map((suggestion, index) =>
-    <button key={suggestion} disabled={disabled}
-      className={reduceMotion ? undefined : 'chip-enter'}
-      style={reduceMotion ? undefined : { animationDelay: `${(0.55 + index * 0.07).toFixed(2)}s` }}
-      onClick={() => onPick(suggestion)}>{suggestion}</button>)}</div>;
+  const railRef = useRef(null);
+  const [sheet, setSheet] = useState(null); // index of expanded chip, or null
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return undefined;
+    const update = () => {
+      const wrap = rail.parentElement;
+      if (!wrap) return;
+      const { scrollLeft, scrollWidth, clientWidth } = rail;
+      wrap.classList.toggle('scroll-has-left', scrollLeft > 2);
+      wrap.classList.toggle('scroll-has-right', scrollLeft < scrollWidth - clientWidth - 2);
+    };
+    update();
+    rail.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    return () => { rail.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
+  }, []);
+
+  return <div className="suggestions-wrap">
+    {sheet !== null && <div className="chip-sheet" role="dialog" aria-modal="true" aria-label="Full suggestion text">
+      <p>{suggestions[sheet]}</p>
+      <div className="chip-sheet-row">
+        <button onClick={() => { onPick(suggestions[sheet]); setSheet(null); }} disabled={disabled}>Use this</button>
+        <button className="secondary-button" onClick={() => setSheet(null)}>Back</button>
+      </div>
+    </div>}
+    <div className="suggestions" ref={railRef}>
+      {suggestions.map((suggestion, index) => {
+        const isLong = suggestion.length > 55;
+        return <button key={suggestion} disabled={disabled}
+          className={`${reduceMotion ? '' : 'chip-enter '}chip-item${isLong ? ' chip-long' : ''}`}
+          style={reduceMotion ? undefined : { animationDelay: `${(0.55 + index * 0.07).toFixed(2)}s` }}
+          onClick={() => isLong ? setSheet(index) : onPick(suggestion)}>
+          {suggestion}
+        </button>;
+      })}
+    </div>
+  </div>;
 }
 
 // THE TALE SO FAR — re-entry orientation built only from what is already

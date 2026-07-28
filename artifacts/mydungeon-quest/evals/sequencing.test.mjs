@@ -101,13 +101,13 @@ assert.ok(dividerText.trim().length > 0, 'never an empty row');
 let chips;
 TestRenderer.act(() => { chips = TestRenderer.create(h(SuggestionRow, { suggestions: ['Press on', 'Rest', 'Ask her'], disabled: false, onPick: () => {}, reduceMotion: true })); });
 for (const button of chips.root.findAllByType('button')) {
-  assert.equal(button.props.className, undefined, 'reduced motion: no entrance class');
+  assert.ok(!String(button.props.className || '').includes('chip-enter'), 'reduced motion: no entrance animation class');
   assert.equal(button.props.style, undefined, 'reduced motion: no staggered delay');
 }
 TestRenderer.act(() => { chips = TestRenderer.create(h(SuggestionRow, { suggestions: ['Press on', 'Rest', 'Ask her'], disabled: false, onPick: () => {}, reduceMotion: false })); });
 const delays = chips.root.findAllByType('button').map((button) => parseFloat(button.props.style.animationDelay));
 assert.ok(delays.every((d, i) => i === 0 || d > delays[i - 1]), 'chips arrive on a staggered beat');
-assert.ok(chips.root.findAllByType('button').every((button) => button.props.className === 'chip-enter'));
+assert.ok(chips.root.findAllByType('button').every((button) => String(button.props.className || '').includes('chip-enter')), 'normal mode: each chip has the entrance class');
 
 // --- 9. Amendments after review: borrowed books and the app-level still ---
 const { PendingPage } = await import('../src/components/Sequence.jsx');

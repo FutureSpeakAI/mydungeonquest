@@ -1761,6 +1761,7 @@ export default function App() {
 
   const regionStripRef = useRef(null);
   const logScrollRef = useRef(null);
+  const stateChipsRef = useRef(null);
   useEffect(() => {
     const el = logScrollRef.current; if (!el) return;
     const onScroll = () => { if (regionStripRef.current) regionStripRef.current.style.backgroundPositionY = `${Math.round(el.scrollTop * 0.28)}px`; };
@@ -1812,6 +1813,23 @@ export default function App() {
     lastSealRef.current = { id: current.id, hash: current.headHash };
   }, [current?.id, current?.headHash]);
 
+  // D3 HUD — state-chip row edge fades, driven by scroll position.
+  useEffect(() => {
+    const chips = stateChipsRef.current;
+    if (!chips) return undefined;
+    const update = () => {
+      const wrap = chips.parentElement;
+      if (!wrap) return;
+      const { scrollLeft, scrollWidth, clientWidth } = chips;
+      wrap.classList.toggle('scroll-has-left', scrollLeft > 2);
+      wrap.classList.toggle('scroll-has-right', scrollLeft < scrollWidth - clientWidth - 2);
+    };
+    update();
+    chips.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    return () => { chips.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
+  }, []);
+
   // THE POURED-AGAIN RIBBON — one quiet offer after a paid return, at the
   // shelf or at the table alike. The patron pours or lets it rest; either
   // way the offer is made once and never nags.
@@ -1839,17 +1857,34 @@ export default function App() {
       <span>{groundChip.words}</span>{groundChip.state && <small>{groundChip.state}</small>}
     </div>
     <header className="table-header">
-      <button className="sigil-button" onClick={() => setOverlay('sheet')}><span>{current.hero.sigil}</span><div><b>{current.hero.name}</b><small>Level {current.hero.level} {current.hero.className}</small></div></button>
-      <div className="header-chips" data-stillness={stillness ? 'true' : undefined}>
-        <span className="table-chip" data-chip="calendar">{table.chips[0].words}</span>
-        <span className="table-chip chip-party" data-chip="party">{table.chips[2].members.length
-          ? table.chips[2].members.map((member) => gallery[member.name]
-            ? <img key={member.name} className="party-face" src={gallery[member.name]} alt={member.name} title={member.name}/>
-            : <i key={member.name} className="party-face" title={member.name}>{member.name.split(' ').map((part) => part[0]).join('')}</i>)
-          : <em>The hero travels alone</em>}</span>
-        <span className="table-chip" data-chip="health"><HeartPulse/> {table.chips[3].words}</span>
+      {/* D3 HUD: row 1 — avatar, calendar chip, icon rail; row 2 — state chips. */}
+      <div className="hud-row-1">
+        <button className="sigil-button" onClick={() => setOverlay('sheet')} aria-label={`Character sheet: ${current.hero.name}`}>
+          {gallery[current.hero.name]
+            ? <img className="sigil-portrait" src={gallery[current.hero.name]} alt={current.hero.name}/>
+            : <span role="img" aria-label={current.hero.sigil}>{current.hero.sigil}</span>}
+          <div><b>{current.hero.name}</b><small>Level {current.hero.level} {current.hero.className}</small></div>
+        </button>
+        <div className="hud-calendar"><span className="table-chip" data-chip="calendar">{table.chips[0].words}</span></div>
+        <nav>
+          <button onClick={closeBook} disabled={busy} aria-label={busy ? 'The scribe is mid-stroke' : 'Return to the shelf'}><DoorOpen/><span>Hearth</span></button>
+          <button onClick={() => setOverlay('codex')} aria-label="Open the Book"><BookOpen/><span>Book</span></button>
+          <button onClick={() => setOverlay('settings')} aria-label="Open settings"><SettingsIcon/><span>Care</span></button>
+          <button className="chronicle-die" onClick={openStorybook} aria-label="Open the bound chronicle"><Dices/><span>Seal</span></button>
+        </nav>
       </div>
-      <nav><button onClick={closeBook} disabled={busy} title={busy ? 'The scribe is mid-stroke — the page must land first' : 'Close the book and return to the shelf'} aria-label="Close the book and return to the shelf"><DoorOpen/><span>Hearth</span></button><button onClick={() => setOverlay('codex')}><BookOpen/><span>Book</span></button><button onClick={() => setOverlay('settings')}><SettingsIcon/><span>Care</span></button><button className="wax-seal" onClick={openStorybook} title="The bound chronicle and its seal" aria-label="Open the bound chronicle"><span key={sealPulse} className="wax-emboss">{current.hero.sigil}</span></button></nav>
+      <div className="hud-row-2" data-stillness={stillness ? 'true' : undefined}>
+        <div className="hud-state-chips-wrap">
+          <div className="hud-state-chips" ref={stateChipsRef}>
+            <span className="table-chip chip-party" data-chip="party">{table.chips[2].members.length
+              ? table.chips[2].members.map((member) => gallery[member.name]
+                ? <img key={member.name} className="party-face" src={gallery[member.name]} alt={member.name} title={member.name}/>
+                : <i key={member.name} className="party-face" title={member.name}>{member.name.split(' ').map((part) => part[0]).join('')}</i>)
+              : <em>The hero travels alone</em>}</span>
+            <span className="table-chip" data-chip="health"><HeartPulse/> {table.chips[3].words}</span>
+          </div>
+        </div>
+      </div>
     </header>
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
@@ -2272,7 +2307,17 @@ function Composer({ campaign, busy, reduceMotion, onSubmit, onSuggestion, onRoll
   const latest=[...campaign.logs].reverse().find((l)=>!l.redacted && !l.kind);
   return <section className="composer-wrap">
     {latest?.dm?.suggestions && !pending && <SuggestionRow key={latest.id} suggestions={latest.dm.suggestions} disabled={busy} onPick={onSuggestion} reduceMotion={reduceMotion} />}
-    {pending ? <button className="roll-button" onClick={onRoll} disabled={busy}><Dices/><span><small>{ownerTag(campaign, pending)}{pending.kind} · DC {pending.dc ?? 'hidden'}</small>{pending.label}</span><b>Roll {pending.die}</b></button> : <div className="composer"><button className="x-card" onClick={onXCard} disabled={busy} title="Remove the last scene from active canon"><MessageCircleWarning/></button><textarea value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}} placeholder="What do you do?" rows="1" disabled={busy}/><button className={`declare-toggle${declareArmed ? ' armed' : ''}`} onClick={()=>setDeclareArmed((armed)=>!armed)} disabled={busy} title={declareArmed ? 'This message will be sealed as your declared ambition' : 'Declare this message as an ambition'} aria-pressed={declareArmed}><Flag/></button><button onClick={send} disabled={busy||!text.trim()}><Feather/></button></div>}
+    {pending ? <button className="roll-button" onClick={onRoll} disabled={busy}><Dices/><span><small>{ownerTag(campaign, pending)}{pending.kind} · DC {pending.dc ?? 'hidden'}</small>{pending.label}</span><b>Roll {pending.die}</b></button>
+    : <div className="composer">
+        <button className="x-card" onClick={onXCard} disabled={busy} aria-label="Remove the last scene from active canon"><MessageCircleWarning/></button>
+        <div className="composer-field">
+          <textarea value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}} placeholder="What do you do?" rows="1" disabled={busy}/>
+          <div className="composer-secondary">
+            <button className={`declare-toggle${declareArmed ? ' armed' : ''}`} onClick={()=>setDeclareArmed((armed)=>!armed)} disabled={busy} title={declareArmed ? 'This message will be sealed as your declared ambition' : 'Declare this message as an ambition'} aria-pressed={declareArmed}><Flag/><span>Declare</span></button>
+          </div>
+        </div>
+        <button className="composer-send" onClick={send} disabled={busy||!text.trim()} aria-label="Send your action"><Feather/></button>
+      </div>}
   </section>;
 }
 

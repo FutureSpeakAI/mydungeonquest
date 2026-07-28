@@ -12,6 +12,9 @@ import { chartAt } from '../lib/waypost.js';
 // neither does the chart. Layout is the fold's deterministic
 // placement scaled to the page; the same tale always draws the same
 // chart. Tapping a medallion opens that place's own page.
+//
+// D6 — EMPTY STATES: below five medallions, a centred list replaces
+// the canvas. Rumors rendered one per line. figcaption stacked.
 // ------------------------------------------------------------
 export default function TravelersChart({ campaign, gallery, onOpenPlace }) {
   const chart = useMemo(() => chartAt(campaign), [campaign]);
@@ -28,7 +31,38 @@ export default function TravelersChart({ campaign, gallery, onOpenPlace }) {
       sy: (y) => PAD + ((y - minY) / spanY) * (H - PAD * 2)
     };
   }, [chart]);
+
   if (chart.medallions.length === 0) return <p className="muted">No ground has entered the record yet — the vellum waits.</p>;
+
+  // D6 — LIST FALLBACK: below five medallions, a centred list replaces the canvas.
+  if (chart.medallions.length <= 4) {
+    return <figure className="travelers-chart travelers-chart--list">
+      <ul className="chart-list">
+        {chart.medallions.map((m) => (
+          <li key={m.name} className={m.current ? 'chart-list-current' : ''}>
+            <button className="text-button" onClick={() => onOpenPlace(m.name)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenPlace(m.name); } }}
+              aria-label={`${m.name} — open the place page`}>
+              {m.name}
+            </button>
+            <span className="muted">{m.state}{Number.isInteger(m.discoveredTurn) ? ` · entered turn ${m.discoveredTurn}` : ''}</span>
+          </li>
+        ))}
+      </ul>
+      <figcaption className="chart-caption">
+        <p className="chart-route">{chart.route.length
+          ? <>The road so far: {chart.route.map((stand, i) => <span key={i}>{i > 0 ? ' → ' : ''}{stand.ground}{Number.isInteger(stand.turn) ? <span className="cite"> (turn {stand.turn})</span> : null}</span>)}</>
+          : 'The road has not yet been walked.'}</p>
+        {(chart.edge_rumors || []).length > 0 && <>
+          <p className="muted">At the vellum's edge, rumor only — never geography:</p>
+          <ul className="chart-rumor-list">{(chart.edge_rumors || []).map((rumor, i) => <li key={i}>"{rumor}"</li>)}</ul>
+        </>}
+        <p className="muted chart-vellum-note">Beyond these grounds the vellum stays blank — the record does not guess, so neither does the chart.</p>
+      </figcaption>
+    </figure>;
+  }
+
+  // FULL CANVAS — five or more medallions.
   const { W, H, sx, sy } = layout;
   return <figure className="travelers-chart">
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="The Traveler's Chart — the witnessed world">
@@ -57,11 +91,15 @@ export default function TravelersChart({ campaign, gallery, onOpenPlace }) {
         <text className="medallion-state" y="60" textAnchor="middle">{m.state}{Number.isInteger(m.discoveredTurn) ? ` · entered turn ${m.discoveredTurn}` : ''}</text>
       </g>)}
     </svg>
-    <figcaption>
+    {/* D6: figcaption stacked (chart-caption), rumors as list. */}
+    <figcaption className="chart-caption">
       <p className="chart-route">{chart.route.length
         ? <>The road so far: {chart.route.map((stand, i) => <span key={i}>{i > 0 ? ' → ' : ''}{stand.ground}{Number.isInteger(stand.turn) ? <span className="cite"> (turn {stand.turn})</span> : null}</span>)}</>
         : 'The road has not yet been walked.'}</p>
-      {(chart.edge_rumors || []).length > 0 && <p className="muted chart-edge-rumors">At the vellum's edge, rumor only — never geography: {chart.edge_rumors.map((rumor, i) => <span key={i} className="edge-rumor">{i > 0 ? ' · ' : ''}“{rumor}”</span>)}</p>}
+      {(chart.edge_rumors || []).length > 0 && <>
+        <p className="muted">At the vellum's edge, rumor only — never geography:</p>
+        <ul className="chart-rumor-list">{(chart.edge_rumors || []).map((rumor, i) => <li key={i}>"{rumor}"</li>)}</ul>
+      </>}
       <p className="muted chart-vellum-note">Beyond these grounds the vellum stays blank — the record does not guess, so neither does the chart.</p>
     </figcaption>
   </figure>;

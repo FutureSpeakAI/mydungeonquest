@@ -133,25 +133,33 @@ const press = async (node) => { await act(async () => { node.props.onClick(); })
 }
 
 // ---- 5. The Places: the chart's sealed roads, cited, doored ----
+// D6 NOTE: the proving fixture has 2 regions — below the 5-medallion canvas
+// threshold — so TravelersChart renders the list fallback (.travelers-chart--list).
+// Canvas-only assertions (chart-medallion, medallion-plateless, chart-road-label)
+// are replaced by their list-fallback equivalents; the route, vellum note, and
+// navigation door assertions are unchanged.
 {
   await show({ chapter: 'places' });
   let tree = root.toJSON();
   assert.equal(collectByClass(tree, 'travelers-chart').length, 1, 'the chart hangs in Places');
-  const medallions = collectByClass(tree, 'chart-medallion');
-  assert.equal(medallions.length, 2, 'two medallions — the record\'s regions, nothing invented');
-  assert.equal(collectByClass(tree, 'medallion-plateless').length, 2, 'keyless plates are honestly plateless');
-  assert.equal(medallions.filter((m) => m.props['data-current'] === 'true' || m.props['data-current'] === true).length, 1, 'one current mark');
-  assert.equal(collectByClass(tree, 'chart-road-label').length, 1, 'one sealed road');
-  assert.equal(textOf(collectByClass(tree, 'chart-road-label')[0]), '1 day', 'the road speaks the calendar\'s own cost');
+  // D6: 2 regions → list fallback — verify the --list variant class is present
+  assert.equal(collectByClass(tree, 'travelers-chart--list').length, 1, 'D6: two regions render the list fallback');
+  // The chart-list carries one item per region; chart-list-current marks the active ground
+  const listItems = collectByClass(tree, 'chart-list').flatMap((l) => l.children?.filter?.((c) => c?.type === 'li') || []);
+  assert.equal(listItems.length, 2, 'two list items — the record\'s regions, nothing invented');
+  assert.equal(collectByClass(tree, 'chart-list-current').length, 1, 'one current mark');
+  // Route, turn citations, and vellum note are the same in both paths
   const route = textOf(collectByClass(tree, 'chart-route')[0]);
   assert.match(route, /Larkspur Vale/, 'the route names the Vale');
   assert.match(route, /The Duchy/, 'and the Duchy');
   assert.match(route, /\(turn 5\)/, 'the outbound crossing cites its sealed TURN — tick rows shift indexes, never citations');
   assert.match(route, /\(turn 7\)/, 'the homecoming cites its sealed turn');
   assert.equal(collectByClass(tree, 'chart-vellum-note').length, 1, 'the blank vellum says why it is blank');
-  const duchy = medallions.find((m) => m.props['data-region'] === 'The Duchy');
-  await press(duchy);
-  assert.deepEqual(navLog.at(-1), { place: 'The Duchy' }, 'a medallion is a door');
+  // Navigation: the list button opens the same place door as the SVG medallion did
+  const duchyBtn = collectWhere(tree, (n) => n.type === 'button' && String(n.props?.['aria-label'] || '').startsWith('The Duchy'));
+  assert.equal(duchyBtn.length, 1, 'The Duchy has one list button');
+  await press(duchyBtn[0]);
+  assert.deepEqual(navLog.at(-1), { place: 'The Duchy' }, 'the list button is a door');
   await show({ place: 'The Duchy' });
   tree = root.toJSON();
   const placePage = collectByClass(tree, 'place-page');

@@ -152,7 +152,13 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   restructured to vertical framed card at 4:5 (pack-portrait class,
 //   pack-identity wrapper, pack-portrait-placeholder; soul-face retired from
 //   pack context).
-const CLOSURE_BYTES_PIN = 640170;
+// 640186 → 642106, a move of +1920 bytes. Owner ruling: D5 house controls
+//   — HcSwitch (role=switch, aria-checked, 44×44 hit) and HcSlider
+//   (role=slider, keyboard arrows, discrete pips) with TEXT_SCALE_STOPS
+//   added to Overlays.jsx, which is a static import from App.jsx (rides
+//   the synchronous road). Accessible controls replacing native browser
+//   inputs — UI law growing on the sync road, not a surface creeping back.
+const CLOSURE_BYTES_PIN = 642106;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -231,7 +237,11 @@ const LOGS = [
   { id: 'e3', turn: 3, redacted: false, dm: dmEnvelope({ narration_blocks: [{ speaker: 'Brannoc', text: 'The vale is already mine.' }, { speaker: 'Mira', text: 'The vale answers to no crown.' }], story: { cast_add: [{ name: 'Brannoc', role: 'villain', visual: 'Crowned in wax', voice: 'Cold', goal: 'drain the vale' }] } }) },
   { id: 'e4', turn: 4, redacted: false, dm: dmEnvelope({ narration_blocks: [{ speaker: 'Mira', text: 'Hold the lantern high.' }, { speaker: 'Tam', text: 'The ford is watching us.' }], story: { cast_update: [{ name: 'Mira', bond_delta: 3, bond_reason: 'Stood between the hero and the arch' }] } }) },
   { id: 'e5', turn: 5, redacted: false, dm: dmEnvelope({ story: { cast_add: [{ name: 'Edda', role: 'lantern-bearer', visual: 'Ash in her braid', voice: 'Low', goal: 'carry the light' }], cast_update: [{ name: 'Mira', known_as_add: 'The Rowan Witch' }] } }) },
-  { id: 'e6', turn: 6, redacted: false, dm: dmEnvelope({ narration_blocks: [{ speaker: 'The Rowan Witch', text: 'The well remembers.' }], story: { cast_update: [{ name: 'Edda', status: 'dead', last_seen: 'the ford, at rest' }] } }) }
+  { id: 'e6', turn: 6, redacted: false, dm: dmEnvelope({ narration_blocks: [{ speaker: 'The Rowan Witch', text: 'The well remembers.' }], story: { cast_update: [{ name: 'Edda', status: 'dead', last_seen: 'the ford, at rest' }] } }) },
+  // D6 — 5th soul raises the node count above the list-fallback threshold so
+  // the fixture still exercises the full SVG canvas (Wren has no ties, so
+  // strand counts are unchanged and the unmet/secret assertions hold).
+  { id: 'e7', turn: 7, redacted: false, dm: dmEnvelope({ story: { cast_add: [{ name: 'Wren', role: 'guide', visual: 'Sure-footed and quiet', voice: 'Steady', goal: 'find the pass' }] } }) }
 ];
 const fixtureCampaign = deepFreeze({
   id: 'c-web-fixture',
@@ -242,7 +252,8 @@ const fixtureCampaign = deepFreeze({
       { name: 'Mira', role: 'healer', status: 'active', bond: 3, introduced_turn: 1, known_facts: [], bond_arc: [] },
       { name: 'Tam', role: 'scout', status: 'active', bond: 1, introduced_turn: 2, known_facts: [], bond_arc: [] },
       { name: 'Edda', role: 'lantern-bearer', status: 'dead', bond: 2, introduced_turn: 5, known_facts: [], bond_arc: [] },
-      { name: 'Brannoc', role: 'villain', secret: 'WEB-BAIT-4Q' }
+      { name: 'Brannoc', role: 'villain', secret: 'WEB-BAIT-4Q' },
+      { name: 'Wren', role: 'guide', status: 'active', bond: 0, introduced_turn: 7, known_facts: [], bond_arc: [] }
     ]
   },
   logs: LOGS
@@ -262,12 +273,16 @@ await act(async () => { root = TestRenderer.create(h(SoulsWeb, { campaign: fixtu
     assert.ok(!bytes.includes(token), `the unmet, their secrets, and stray epithets are ABSENT from every rendered byte (leaked: ${token})`);
   }
   const text = textOf(tree);
-  for (const words of ['bound by blood', 'sworn enemies', 'oath and bond', 'paths crossed', 'sealed at turn', 'tap a soul to open their page']) {
+  // D6: legend is filtered to PRESENT strand types — sworn enemies absent when no
+  // enemy tie is sealed; the other three house words (kin, ally, met) are present.
+  for (const words of ['bound by blood', 'oath and bond', 'paths crossed', 'sealed at turn', 'tap a soul to open their page']) {
     assert.ok(text.toLowerCase().includes(words.toLowerCase()), `the web speaks house words — missing: ${words}`);
   }
+  assert.ok(!text.toLowerCase().includes('sworn enemies'), 'D6: filtered legend — sworn enemies absent when no enemy tie is sealed in the record');
   assert.doesNotMatch(text, /\b(nodes?|edges?|graph)\b/i, 'never machinery words — souls and strands, not nodes and edges');
   const souls = collectByClass(tree, 'web-soul');
-  assert.deepEqual(souls.map((soul) => textOf(soul).replace(/[^A-Za-z]/g, '').match(/Aldric|Mira|Tam|Edda/)?.[0]), ['Aldric', 'Mira', 'Tam', 'Edda'], 'the four known souls stand, in the record\u2019s own order');
+  // D6: five known souls (Wren added to push fixture above the list-fallback threshold)
+  assert.deepEqual(souls.map((soul) => textOf(soul).replace(/[^A-Za-z]/g, '').match(/Aldric|Mira|Tam|Edda|Wren/)?.[0]), ['Aldric', 'Mira', 'Tam', 'Edda', 'Wren'], 'the five known souls stand, in the record\u2019s own order');
   const heroSeat = collectByClass(tree, 'the-hero');
   assert.equal(heroSeat.length, 1, 'the hero alone holds the centre');
   assert.ok(textOf(heroSeat[0]).includes('Aldric'), 'and the centre is the hero');
@@ -308,7 +323,9 @@ const elder = deepFreeze({
   assert.ok(bytes.includes('Aldric'), 'the hero stands the centre of an elder web');
   assert.ok(!bytes.includes('Tam'), 'a soul the elder canon never registered is absence, even with a card in the log');
   assert.ok(!bytes.includes('Brannoc'), 'canon without record stays absence on an elder save');
-  assert.ok(bytes.includes('web-strand-ally'), 'the elder record\u2019s own proven bond still strings its strand');
+  // D6: the elder save has only 2 nodes (Aldric + Mira) — list fallback renders.
+  // The ally bond shows as text ('oath and bond') rather than an SVG strand class.
+  assert.ok(bytes.includes('oath and bond') || bytes.includes('web-strand-ally'), 'the elder record\u2019s own proven bond renders — as a list tie or SVG strand');
 }
 
 // ---- Court 5 — the lone soul and the empty loom speak, never crash ----

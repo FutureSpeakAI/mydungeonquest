@@ -36,6 +36,12 @@
 //     hook wiring in both genesis paths, and streaming-div label swap in
 //     App.jsx. All behavioral law for the first sixty seconds — no new
 //     surface, no ceremony word. Law growing, not a surface creeping back.
+//   2026-07-28 — measured 628 kB; ruled 628 kB. D5 house controls: HcSwitch
+//     (role=switch, aria-checked, 44×44 hit area) and HcSlider (role=slider,
+//     keyboard arrows, discrete pips) with TEXT_SCALE_STOPS added to
+//     Overlays.jsx — a direct static import from App.jsx, so it rides the
+//     synchronous road. Accessible controls replacing native browser inputs
+//     — UI law growing, not a surface creeping back.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a
@@ -57,7 +63,7 @@ import { entryClosureOf, closureBytesOf } from './manifestClosure.mjs';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
-const PIN_KB = 626; // ruled 2026-07-27 — see the movement ledger in this header
+const PIN_KB = 628; // ruled 2026-07-28 — see the movement ledger in this header
 // CROSS-POINTER: the web-of-souls seating court (soulsWeb.test.mjs) pins the
 // closure's EXACT bytes; a ruled move of the closure re-seats BOTH pins in
 // the same ruling. Both courts read the ONE walk in manifestClosure.mjs.

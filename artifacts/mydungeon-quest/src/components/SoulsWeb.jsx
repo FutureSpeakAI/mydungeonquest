@@ -20,9 +20,14 @@ import { tieLine } from 'fatescript/wikiText';
 // record's introduction order, drawn inward by bond — the same tale
 // always weaves the same web. Tapping a soul opens their own page in
 // the Book's manner; the dead rest marked, as the record remembers.
+//
+// D6 — EMPTY STATES: below five nodes a centred list replaces the
+// canvas. Legend filtered to only the strand types the record holds.
+// All non-hero nodes uniform in size — position encodes bond.
 // ------------------------------------------------------------
 
 const STRAND_WORDS = { kin: 'bound by blood', enemy: 'sworn enemies', ally: 'oath and bond', met: 'paths crossed' };
+const STRAND_ENTRIES = Object.entries(STRAND_WORDS);
 
 export default function SoulsWeb({ campaign, onNav, statusWord = {} }) {
   const web = useMemo(() => {
@@ -30,10 +35,48 @@ export default function SoulsWeb({ campaign, onNav, statusWord = {} }) {
     catch { return null; }
   }, [campaign]);
 
+  // Hoist open so both the list and the canvas can use it.
+  const open = (name) => onNav && onNav({ chapter: 'people', place: null, soul: name });
+
   if (!web) return <p className="muted">The web cannot be read.</p>;
   if (web.nodes.length === 0) return <p className="muted">No soul has entered the record yet — the loom holds no thread.</p>;
   if (web.nodes.length === 1) return <p className="muted">The web waits — the record knows only one soul so far.</p>;
 
+  // Only the strand types actually in the record belong in the legend.
+  const presentTypes = new Set(web.edges.map((e) => e.type));
+
+  // D6 — LIST FALLBACK: below five nodes, a centred list replaces the canvas.
+  if (web.nodes.length <= 4) {
+    return <figure className="souls-web souls-web--list">
+      <ul className="souls-list">
+        {web.nodes.map((node) => {
+          const rest = node.status === 'dead';
+          const word = statusWord[node.status] || node.status;
+          const nodeEdges = web.edges.filter((e) => e.from === node.name || e.to === node.name);
+          return <li key={node.name}
+            className={`souls-list-item${node.hero ? ' the-hero' : ''}${rest ? ' at-rest' : ''}`}>
+            <button className="text-button" onClick={() => open(node.name)}
+              aria-label={`${node.name} — ${word}. Open their page.`}>
+              {node.name}{rest ? <span className="muted"> †</span> : null}
+            </button>
+            {nodeEdges.map((edge, i) => {
+              const other = edge.from === node.name ? edge.to : edge.from;
+              return <span key={i} className="souls-list-tie muted">
+                {STRAND_WORDS[edge.type] || edge.type} with {other}
+              </span>;
+            })}
+          </li>;
+        })}
+      </ul>
+      {presentTypes.size > 0 && <figcaption className="web-legend">
+        {STRAND_ENTRIES.filter(([type]) => presentTypes.has(type)).map(([type, label]) =>
+          <span key={type}><i className={`key-${type}`} />{label}</span>)}
+        <span className="muted">Tap a soul to open their page.</span>
+      </figcaption>}
+    </figure>;
+  }
+
+  // FULL CANVAS — five or more nodes.
   const W = 560, H = 470, cx = W / 2, cy = H / 2 - 10;
   const anchor = web.nodes.find((node) => node.hero) || null;
   const ring = web.nodes.filter((node) => node !== anchor);
@@ -41,11 +84,9 @@ export default function SoulsWeb({ campaign, onNav, statusWord = {} }) {
   if (anchor) seat.set(anchor.name, { x: cx, y: cy });
   ring.forEach((node, i) => {
     const angle = -Math.PI / 2 + (i * 2 * Math.PI) / ring.length;
-    const radius = 195 - (Number(node.bond) || 0) * 30; // the bound draw close; strangers keep the rim
+    const radius = 195 - (Number(node.bond) || 0) * 30; // position encodes bond
     seat.set(node.name, { x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius });
   });
-
-  const open = (name) => onNav && onNav({ chapter: 'people', place: null, soul: name });
 
   return <figure className="souls-web">
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="The web of souls — every known soul and every sealed tie">
@@ -59,7 +100,8 @@ export default function SoulsWeb({ campaign, onNav, statusWord = {} }) {
       {web.nodes.map((node) => {
         const at = seat.get(node.name);
         const rest = node.status === 'dead';
-        const r = node.hero ? 16 : 9 + (Number(node.bond) || 0) * 2;
+        // D6: uniform size — position (distance from centre) encodes bond.
+        const r = node.hero ? 16 : 11;
         const word = statusWord[node.status] || node.status;
         return <g key={node.name} className={`web-soul${node.hero ? ' the-hero' : ''}${rest ? ' at-rest' : ''}`}
           transform={`translate(${at.x},${at.y})`} role="button" tabIndex={0}
@@ -74,12 +116,11 @@ export default function SoulsWeb({ campaign, onNav, statusWord = {} }) {
         </g>;
       })}
     </svg>
+    {/* D6: legend filtered to only the strand types the record holds. */}
     <figcaption className="web-legend">
-      <span><i className="key-kin" />bound by blood</span>
-      <span><i className="key-enemy" />sworn enemies</span>
-      <span><i className="key-ally" />oath and bond</span>
-      <span><i className="key-met" />paths crossed</span>
-      <span className="muted">Every strand a sealed tie — tap a soul to open their page.</span>
+      {STRAND_ENTRIES.filter(([type]) => presentTypes.has(type)).map(([type, label]) =>
+        <span key={type}><i className={`key-${type}`} />{label}</span>)}
+      <span className="muted">Closer to the hero means higher bond — tap a soul to open their page.</span>
     </figcaption>
   </figure>;
 }

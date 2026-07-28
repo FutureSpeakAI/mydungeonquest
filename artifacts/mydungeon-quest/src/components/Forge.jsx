@@ -140,6 +140,10 @@ function AuditionRow({ presentation, name, voiceId, onBless, mediaTier = 'illumi
   const [busy, setBusy] = useState(null);
   const [shuffleSeed, setShuffleSeed] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  // G2 — honest play failure: quota exhausted, autoplay blocked, or provider
+  // unavailable. Shown in the fine-print so the player knows the tap landed
+  // even if no sound played.
+  const [playFail, setPlayFail] = useState(null);
   // THE POOL — the unchanged ten-voice dealer under the Tenor law.
   // Shuffle uses a seeded salt to rotate fresh candidates from the
   // same register without altering the underlying deal order.
@@ -159,17 +163,44 @@ function AuditionRow({ presentation, name, voiceId, onBless, mediaTier = 'illumi
   const play = async (candidate) => {
     if (mediaTier === 'parchment') return; // no audio at this table — honest floor
     setBusy(candidate.id);
+    setPlayFail(null);
+    // G2 — CREATE the Audio element synchronously, WITHIN the gesture context,
+    // before any await. Mobile Chrome and Safari tie autoplay permission to the
+    // original user gesture; after the first await the gesture context is gone
+    // and play() will be rejected. Assigning src after the fetch is valid:
+    // setting src on an already-constructed element re-uses the browser's
+    // existing permission grant.
+    const audio = new Audio();
+    audio.load();
     try {
       const line = `I am ${name || 'the hero'}. The road is long, and I mean to walk it.`;
       const res = await fetch('/api/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: line, voiceId: candidate.id }) });
       if (res.ok) {
         const url = URL.createObjectURL(await res.blob());
-        const audio = new Audio(url);
         audio.onended = () => URL.revokeObjectURL(url);
-        await audio.play();
+        audio.src = url;
+        try {
+          await audio.play();
+        } catch (playErr) {
+          // Log so diagnostics can detect the pattern; do not surface to the player
+          // as an error — the gesture-context fix should handle most cases.
+          console.warn('[audition] play() rejected:', playErr?.name, playErr?.message);
+          setPlayFail('Preview blocked — the choice still seals.');
+        }
+      } else {
+        // Surface quota and provider errors honestly so the player understands
+        // why no sound played without needing to open developer tools.
+        const body = await res.text().catch(() => '');
+        const hint = /quota|credit|limit/i.test(body)
+          ? 'Voice credits are exhausted — the choice still seals.'
+          : `Voice preview unavailable (${res.status}) — the choice still seals.`;
+        console.warn('[audition] speak refused:', res.status, body.slice(0, 200));
+        setPlayFail(hint);
       }
-    } catch { /* the audition is ritual; the choice still seals */ }
-    finally { setBusy(null); }
+    } catch (err) {
+      console.warn('[audition] audition failed:', err?.message || err);
+      // Network or other failure — the audition is ritual; the choice still seals.
+    } finally { setBusy(null); }
   };
 
   return <div className="audition-row">
@@ -184,9 +215,11 @@ function AuditionRow({ presentation, name, voiceId, onBless, mediaTier = 'illumi
       {expanded ? 'Fewer voices' : 'All voices in this register'}
     </button>
     <small className="fine-print">
-      {mediaTier === 'parchment'
-        ? 'Audio is unavailable at this table — tap to choose a voice.'
-        : voiceId ? 'Voice chosen. This voice stays with the character.' : 'Tap to hear a voice and choose one.'}
+      {playFail
+        ? playFail
+        : mediaTier === 'parchment'
+          ? 'Audio is unavailable at this table — tap to choose a voice.'
+          : voiceId ? 'Voice chosen. This voice stays with the character.' : 'Tap to hear a voice and choose one.'}
     </small>
   </div>;
 }

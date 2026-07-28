@@ -125,3 +125,26 @@ export async function burnCampaign(id) {
 export async function campaignJournal(campaignId) {
   return db.journal.where('campaignId').equals(campaignId).sortBy('i');
 }
+
+// EXPORT RAW JOURNAL — reads every row exactly as persisted, with no
+// replay, reduction, or shape transformation. Safe to call on any
+// campaign including ones whose shape has drifted and cannot be
+// replayed through the reducers. Returns a plain object suitable for
+// JSON.stringify; the campaign snapshot is included for provenance but
+// never transformed. For recovery and diagnostic use only.
+export async function exportRawJournal(campaignId) {
+  const [rows, campaign] = await Promise.all([
+    db.journal.where('campaignId').equals(campaignId).sortBy('i').catch(() => []),
+    db.campaigns.get(campaignId).catch(() => null),
+  ]);
+  return {
+    campaignId,
+    heroName: campaign?.hero?.name ?? null,
+    worldTitle: campaign?.title ?? null,
+    rows,
+    rowCount: rows.length,
+    campaignSnapshot: campaign,
+    exportedAt: new Date().toISOString(),
+    note: 'Raw journal rows as persisted — no replay, no transformation. For recovery use only.',
+  };
+}

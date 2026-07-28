@@ -1,6 +1,6 @@
 # THE FEATURES — the muster roll
 
-*Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-27). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
+*Generated from `tools/muster/features.mjs` by `pnpm run muster -- --write-doc` (2026-07-28). The document and the acceptance tests share one source; they cannot drift. Statuses below are live.*
 
 **Standing: 65 present · 6 pending wiring · 0 regressed · 7 charted.** The law suite beneath all of this is `pnpm run check` — the gates, always green — and they only grow.
 

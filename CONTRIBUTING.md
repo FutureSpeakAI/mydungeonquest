@@ -9,7 +9,7 @@ pnpm install
 pnpm run check        # engine gates, then the game suite — keyless, no network
 ```
 
-Sixty-five gates. **PASS only grows.** Evals are append-only: a gate may gain assertions, it may never lose them, and fixing a live failure by loosening a validator or deleting a test is the one forbidden move. If your change is right and a gate is wrong, that is an amendment — see below — not an edit-in-passing.
+169 eval files and growing. **PASS only grows.** Evals are append-only: a gate may gain assertions, it may never lose them, and fixing a live failure by loosening a validator or deleting a test is the one forbidden move. If your change is right and a gate is wrong, that is an amendment — see below — not an edit-in-passing.
 
 **Keyless first.** Every gate passes with zero keys and zero network. If a test needs a secret to go green, the test is wrong; write the mock. CI enforces this by simply not having any secrets.
 
@@ -46,6 +46,20 @@ And one rule of growth: **`App.jsx` gains hooks, never logic.** New behavior lan
 ## Adding or amending a law
 
 A law is three parts landed in one change: the **statement** (row in `docs/CLAWS.md`), the **enforcement** (named module), and the **gate**. Amendments are stated plainly in the CLAWS amendment log, never weaken an existing gate, and synchronize every document they touch — README, ARCHITECTURE, GLOSSARY — in the same commit. If the docs and the code disagree, that is a failing state even when the suite is green.
+
+## Code and documentation move together
+
+**This rule was restored in Stage 3 after three stages accumulated without it. The backlog it produced took a full G6 phase to clear. Do not accumulate another one.**
+
+Every change that touches a law, a pin, a narration bound, or a feature count must update the matching documents in the same commit:
+
+- `docs/CLAWS.md` — any new or amended rule
+- `README.md` — narration bounds, eval count, feature surface
+- `artifacts/mydungeon-quest/CHANGELOG.md` — every pin, version, or law-byte change
+- `LOOP_LOG.md` — every phase that closes a bug or moves a pin
+- `docs/FEATURES.md` — regenerated with `pnpm -w run muster -- --write-doc`
+
+A commit where the docs and the code disagree is a failing state even when the suite is green.
 
 ## The house voice
 

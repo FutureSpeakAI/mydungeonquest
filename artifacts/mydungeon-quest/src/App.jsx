@@ -621,7 +621,13 @@ export default function App() {
       region: sceneCue.region || null,
       species: speciesInFrame
     }).plan;
-    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', ...(sceneMoment.prose ? { moment: { prose: sceneMoment.prose } } : {}), referenceLabels: scenePlan.map((seat) => seat.name), seating: scenePlan, ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: turnRecord.recordHash ? `scene:${campaign.id}:${turnRecord.recordHash}` : undefined });
+    // E3 campaign isolation: the cacheKey is ALWAYS campaign-scoped. When
+    // turnRecord.recordHash is not yet available (seal races the job brief),
+    // fall back to the logId — a stable UUID that is unique to this turn.
+    // An undefined cacheKey would fall back to the spec hash, which is
+    // content-addressed across campaigns and would trip the E3 boundary
+    // assertion if any other campaign happened to generate an identical prompt.
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', ...(sceneMoment.prose ? { moment: { prose: sceneMoment.prose } } : {}), referenceLabels: scenePlan.map((seat) => seat.name), seating: scenePlan, ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: `scene:${campaign.id}:${turnRecord.recordHash || logId}` });
     } // the tempo court's writ ends here — every easel law below is untouched
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
@@ -1877,7 +1883,7 @@ export default function App() {
 
   if (flow === 'creation') return <RoadBoundary road="the creation forge"><Suspense fallback={<div className="lean-veil">Loading setup…</div>}><CreationRouter mediaTier={settings.mediaTier} beginBusy={forging} onBack={() => setFlow('title')} onWorldReady={(world) => setWorldDraft(world)} onBegin={beginCampaign} /></Suspense></RoadBoundary>;
   if (flow === 'heir') return <RoadBoundary road="the heir's forge"><Suspense fallback={<div className="lean-veil">Loading setup…</div>}><HeroForge world={{ title: current?.title || 'The world', covenant: current?.covenant || '', tone: current?.tone || '' }} mediaTier={settings.mediaTier} beginBusy={forging} onBack={() => setFlow('table')} onBegin={beginHeir} /></Suspense></RoadBoundary>;
-  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={stillness} mediaTier={settings.mediaTier} onNew={() => setFlow('creation')} onOpen={async (campaign, opts) => { if (campaign.mediaTier === 'cinema') { campaign = { ...campaign, mediaTier: 'illuminated' }; saveCampaign(campaign).catch(() => {}); } if (!campaign.readOnly && campaign.hero && !campaign.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ campaign = { ...campaign, hero: { ...campaign.hero, voiceId: castHeroVoice(campaign.hero) } }; saveCampaign(campaign).catch(() => {}); } campaign = await reconcileLegacyPurse(campaign); /* the era door's one write (§IV.5) — before the table seats, so no turn can race it */ setCurrent(campaign); setFlow('table'); greetTale(campaign); if (opts?.keepsakes && campaign.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} onDemoDraw={drawDemoTale} status={status} /></>;
+  if (flow === 'title') return <>{pourBanner}<TitleScreen campaigns={campaigns} vaultMarks={vaultMarks} vaultShelf={vaultShelf} onVaultRestore={drawFromVault} onBurn={burnSpine} onBurnVault={burnVaultSpine} reduceMotion={stillness} mediaTier={settings.mediaTier} onNew={() => setFlow('creation')} onOpen={async (campaign, opts) => { let opened = campaign; try { /* G1: wrap the whole open-road setup so a shape-drift or unexpected throw never leaves the player stranded on the title screen with no feedback. reconcileLegacyPurse has its own try/catch and returns the original on error, but an outer guard ensures setCurrent is ALWAYS called even if the inner path throws. */ if (opened.mediaTier === 'cinema') { opened = { ...opened, mediaTier: 'illuminated' }; saveCampaign(opened).catch(() => {}); } if (!opened.readOnly && opened.hero && !opened.hero.voiceId) { /* a hero from before the casting law is cast by their forge card on open; read-only spines resolve the same answer in memory, without a write */ opened = { ...opened, hero: { ...opened.hero, voiceId: castHeroVoice(opened.hero) } }; saveCampaign(opened).catch(() => {}); } opened = await reconcileLegacyPurse(opened); /* the era door's one write (§IV.5) — before the table seats, so no turn can race it */ } catch (openSetupError) { console.error('[open] open-road setup threw unexpectedly; seating with best-effort campaign:', openSetupError); } setCurrent(opened); setFlow('table'); greetTale(opened); if (opts?.keepsakes && opened.sealedAt) setOverlay('sealing'); /* a finished book opens straight to its keepsakes */ }} onRestore={restoreFile} onDemoDraw={drawDemoTale} status={status} /></>;
   if (!current) return null;
 
   const chapter = chapterInfo(current.codex);
@@ -2225,7 +2231,7 @@ function NarrationButton({ campaign, log }) {
   // the turn and blesses the throat for the rest of the session.
   const invited = state.id === log.id && state.blocked && !state.playing;
   if (!log.dm?.narration_blocks?.length) return null;
-  return <button type="button" className={`narrate-button ${active ? 'playing' : ''} ${invited ? 'invited' : ''}`} onClick={() => toggleNarration(campaign, log)} aria-label={invited ? 'Tap to hear this turn' : active ? 'Pause narration' : 'Read this turn aloud'} title={invited ? 'Tap to hear this turn' : 'Read this turn aloud'}>
+  return <button type="button" className={`narrate-button ${active ? 'playing' : ''} ${invited ? 'invited' : ''}`} onClick={() => { primeNarration(); toggleNarration(campaign, log); }} aria-label={invited ? 'Tap to hear this turn' : active ? 'Pause narration' : 'Read this turn aloud'} title={invited ? 'Tap to hear this turn' : 'Read this turn aloud'}>
     {active ? <Pause/> : <Play/>}<span>{invited ? 'Tap to listen' : active ? 'Narrating' : 'Listen'}</span>
   </button>;
 }

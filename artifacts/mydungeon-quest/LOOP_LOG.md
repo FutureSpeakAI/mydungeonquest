@@ -4828,3 +4828,58 @@ Both paths are fail-closed: a plate with a wrong logId (or wrong hash for old pl
 **ADDENDUM — A3 parity fix (same ruling).**
 
 A code-review pass caught a client/server validation mismatch: `validateDmTurn` at the client landing in `App.jsx` was called without `context.beatMeasure`, so a 190-word `standard` turn — lawful on the server (90-200 band) — was refused by the legacy 20-180 ceiling at the client. Added `if (typeof beatIntent?.measure === 'string') landingContext.beatMeasure = beatIntent.measure;` immediately before the `validateDmTurn` call at line ~919 in `App.jsx`, using the `beatIntent` already captured from `body.beat_intent`. Added court ⑤ to `substanceFloor.test.mjs`: proves the 190-word standard turn is refused without `beatMeasure` (legacy ceiling fires) and accepted with it (standard band accepts), confirming both benches apply identical word-law. soulsWeb exact-bytes pin re-seated 639550 → 639605 (55 bytes, one conditional assignment) under the same A3 owner ruling.
+
+---
+
+## Stage 3 — G1–G4, G6 (2026-07-28)
+
+### G1 — Load-path resilience and raw export
+
+**Root causes diagnosed.** P11 (campaign permanently unplayable) traced to three likely chains: (1) shape drift — Stage 1 Phase C4 changed the identity object, E3 changed cache keys, E5 changed narration bounds; a campaign opened by newer code hits a required-but-absent field; (2) an unguarded throw in the `onOpen` callback that never calls `setCurrent`, leaving the player on the title screen; (3) `reconcileLegacyPurse` already has an internal try/catch but the outer callback has none.
+
+**`exportRawJournal` added to `src/lib/db.js`.** Reads every row via `campaignJournal`'s Dexie query with no replay, reduction, or shape transformation. Returns a stable envelope: `{ campaignId, heroName, worldTitle, rows, rowCount, campaignSnapshot, exportedAt, note }`. Works on missing campaigns (empty rows), valid campaigns, and campaigns with malformed rows — never throws.
+
+**Open-road guard added to `App.jsx` `onOpen` callback.** The entire setup block (mediaTier migration, castHeroVoice, reconcileLegacyPurse) is wrapped in `try/catch`; `setCurrent(opened)` and `setFlow('table')` are called unconditionally after the catch. A throw during setup is logged with `console.error('[open]')` and seating proceeds with the best-effort campaign.
+
+**Gate `loadNeverThrows` added.** Three courts: missing campaign, real campaign with rows, malformed row — none throw; envelope is stable. PASS keyless.
+
+### G2 — Voice narration and audition repair
+
+**Root causes diagnosed.** Both creation audition and gameplay narration broken. Shared layer: the `/api/speak` fetch happens before `Audio.play()`. On mobile Chrome and Safari, the user-gesture context is gone after the first `await` — `play()` returns a rejected promise, silently. Two additional paths: (a) `NarrationButton.onClick` never calls `primeNarration()` before `toggleNarration()` — every other gesture calls it; (b) quota/HTTP errors in `AuditionRow.play()` are swallowed silently.
+
+**Fixes applied.**
+- `NarrationButton` onClick: `primeNarration()` added before `toggleNarration(campaign, log)`.
+- `AuditionRow.play()`: `new Audio()` + `audio.load()` created synchronously inside the gesture handler before any `await`; `audio.src` set after fetch resolves.
+- `AuditionRow.play()`: `playFail` state added; quota/credit errors surface "Voice credits are exhausted — the choice still seals." in the fine-print section; HTTP errors surface the status code.
+
+**Note.** ElevenLabs credits are at zero in the live account — code fixes land correctly but audio will not play until credits are refilled externally. The Node harness cannot verify playback (Rule 26).
+
+### G3 — Scene plate campaign isolation (P13)
+
+**Root cause diagnosed.** `App.jsx` scene plate job: `cacheKey: turnRecord.recordHash ? \`scene:${campaign.id}:${turnRecord.recordHash}\` : undefined`. When `turnRecord.recordHash` is null (turn not yet sealed at brief time), `cacheKey` falls to `undefined`; the Foundry uses `spec.hash` as fallback — content-addressed, shared across campaigns. If any other campaign's media row carries the same spec hash, the E3 boundary assertion at `foundry.js:108` throws `[E3] campaign isolation violated`, the paint job fails, and the narrative column shows an empty frame.
+
+**Fix.** `cacheKey: \`scene:${campaign.id}:${turnRecord.recordHash || logId}\`` — always campaign-scoped; `logId` (a stable UUID always defined at job-brief time) provides the non-null anchor when `recordHash` is absent.
+
+**`tempo.test.mjs` updated** to match the new key pattern; previous string literal replaced with comment + new pattern.
+
+**Gate `plateBindingLive` added.** Source-level court: the new pattern is present, `: undefined` fallback is absent, `campaign.id` is embedded, `|| logId` fallback is present, `campaignIsolation.test.mjs` still holds the E3 boundary assertion. PASS keyless.
+
+**soulsWeb exact-bytes pin re-seated** 646228 → 646337 (+109 bytes: G3 cacheKey comment + G1 onOpen guard). Owner ruling recorded in movement ledger.
+
+### G4 — Harness honesty audit (Rule 26)
+
+**Audit finding.** The Node/react-test-renderer harness cannot certify: pixel positions, bounding boxes, element overlap, computed layout, audio playback, AudioContext, navigator.storage.estimate(), font rendering. Existing layout tests (`safeInsets`, `composerFit`, `hudFit`, `forgeChrome`, `chromeRegressions`) check CSS source text, not rendered DOM — this is honest and correct; their headers declare the methodology.
+
+**Gate `harnessHonest` added.** Four courts: README carries the honest caveat; `safeInsets.test.mjs` is labelled as CSS source verification; no eval calls `getBoundingClientRect`, `offsetHeight`, or `getComputedStyle`; layout-adjacent evals all declare CSS/source methodology. PASS keyless.
+
+### G6 — Documentation repair
+
+**Rules 21–26 added to `docs/CLAWS.md`** in a new "The experience rules (Stages 1–3)" section. Each rule names its enforcement module and gate.
+
+**CHANGELOG updated** with G1–G4 and G6 entries.
+
+**CONTRIBUTING.md updated.** Gate count corrected from stale "Sixty-five" to "169 eval files and growing." Doc-sync rule added: code and documentation move in the same commit, with the specific list of files that must travel together.
+
+**`docs/FEATURES.md` regenerated** via `pnpm -w run muster -- --write-doc`.
+
+**Keyless check: exit 0.** Three new PASS lines from `plateBindingLive`, `loadNeverThrows`, `harnessHonest`.

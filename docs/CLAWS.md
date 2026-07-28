@@ -63,6 +63,20 @@ Nine laws for the long road, stated in full in [`directives/EXPERIENCE-DIRECTIVE
 | The Warden | machine vision keeps the blessed face; the house never ships a stranger | gate `warden` |
 | The Salon | the human shelf is read, respected, never committed | root gate `check:salon` |
 
+## The experience rules (Stages 1–3)
+
+These rules govern the player surface and the proving ground. Each is stated once, enforced by a named code point, and held by a named gate.
+
+| Rule | What it holds | Enforced | Gate |
+|---|---|---|---|
+| **20. Setup speaks plainly** | Every string a player reads before the first turn is hand-written or fully generated and correct — no template directives, no field names, no internal identifiers, no AI leakage. | `src/lib/systemPrompt.js`, `evals/plainSpeech.test.mjs` | `plainSpeech` |
+| **21. Campaigns are isolated** | A plate, audio segment, or text asset minted for campaign A may never render, play, or land in campaign B. Foundry cache keys carry the campaign ID as their first segment. The E3 boundary assertion (foundry.js) throws on a foreign hit and never silently passes. | `src/lib/cinema/foundry.js`, `src/App.jsx` (scene plate cacheKey) | `campaignIsolation`, `plateBindingLive` |
+| **22. Repair notes are ledger-only** | When the DM validator returns violations, the repair payload is a tool-error envelope. It never reaches the player's feed as narrative prose, as a visible UI message, or as any string the player could read. | `server/dm.js` (repair loop), `fatescript/protocol` | `repairNotesHidden` |
+| **23. Detection implies enforcement, and a constraint must be satisfiable** | A check on model output must both detect violations AND have an eval gate that confirms it fires on a bent fixture. A constraint that can never be satisfied (floor above ceiling) is rewritten until it can. | `fatescript/protocol` → `validateDmTurn`, `server/dm.js` | `substanceFloor`, `narrationLaw` |
+| **24. The record survives the code** | The journal must be readable even after a shape change that breaks normal replay. `exportRawJournal` reads raw rows without applying reducers; the open-road callback wraps its setup in a guard so a shape-drift throw never leaves the player stranded on the title screen. | `src/lib/db.js` → `exportRawJournal`, `src/App.jsx` (open-road guard) | `loadNeverThrows` |
+| **25. Export always works** | `exportRawJournal` returns a stable envelope for any campaign ID — missing, valid, or malformed-row — and never throws. | `src/lib/db.js` → `exportRawJournal` | `loadNeverThrows` |
+| **26. A test that cannot observe its property does not assert it** | No gate in the Node/react-test-renderer/fake-indexeddb suite may claim to verify a layout, audio, or storage-quota property it cannot actually measure. Layout tests assert CSS source text only. Properties that require a real browser are deferred to the Playwright suite. | `evals/harnessHonest.test.mjs` checks the suite boundary | `harnessHonest` |
+
 ## The amendment log
 
 Amendments are stated plainly, landed in lockstep, and never weaken a gate.

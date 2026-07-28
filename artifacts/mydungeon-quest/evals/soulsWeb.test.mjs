@@ -182,7 +182,15 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   alone" + separate chip-known span; plateNumeral switched from romanNumeral()
 //   to String(); cueCaption() helper added (subjects+region, skips cue.mood).
 //   Two new evals: chromeRegressions, captionDistinct. UI and caption law only.
-const CLOSURE_BYTES_PIN = 646228;
+// 646228 → 646337, a move of +109 bytes. Owner ruling: Stage 3 G1+G3 fixes.
+//   G3 scene plate cacheKey: ternary `? ... : undefined` replaced with
+//   `|| logId` fallback + explanatory comment block (E3 isolation rule).
+//   G1 onOpen guard: inline one-liner callback wrapped in try/catch with a
+//   `let opened` local so setCurrent is always called even on shape drift.
+//   No new surfaces. Law growing (Rule 21 campaign isolation, Rule 24 record
+//   survives the code). Three new evals added: plateBindingLive, loadNeverThrows,
+//   harnessHonest. soulsWeb pin and leanDoor KB ceiling both re-seated.
+const CLOSURE_BYTES_PIN = 646337;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

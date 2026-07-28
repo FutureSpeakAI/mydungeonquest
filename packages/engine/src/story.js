@@ -54,7 +54,10 @@ export function chapterInfo(codex) {
     countNumeral: romanNumeral(beats.length),
     count: beats.length,
     title: beat.title,
-    goal: beat.goal,
+    // E6 (P4 fix): player-facing opening line, never the model-facing goal.
+    // The goal lives in storyBlock's beat pack — it never crosses into the
+    // view layer. chapterInfo is a view helper; it must not carry goal.
+    opening: beat.opening,
     act: beat.act || 1
   };
 }

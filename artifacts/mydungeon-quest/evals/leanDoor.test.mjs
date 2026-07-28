@@ -51,10 +51,29 @@
 //     em dashes replaced with commas/colons across chrome strings in App.jsx,
 //     Book.jsx, Overlays.jsx, Sequence.jsx — string literals shrank; bond-label
 //     span added, details/summary for Settings cellar. Net reduction, pin stays.
+//   2026-07-28 — measured 632 kB; ruled 632 kB. E4 voice provenance:
+//     narrator.js ensureSegmentAsset gained mock-sweep guard + delete
+//     before write (~11 net new lines). parity with questaudio.js.
+//   2026-07-28 — measured 632 kB; ruled 632 kB. E3 campaign isolation:
+//     heroBustJob gained explicit cacheKey; portrait/region jobs gained
+//     explicit campaign-scoped keys; Foundry enqueue gained boundary
+//     assertion; sweepUnscoped.js added to sync road. Rule 21.
+//   2026-07-28 — measured 631 kB; ruled 631 kB. E2 contaminationTrace:
+//     Foundry gained onContaminationTrace callback + 3 trace emit sites in
+//     enqueue/pump/generate; App.jsx gained DM call trace log. Permanent
+//     instrumentation per Rule 21 — no new surface, no ceremony word.
+//   2026-07-28 — measured 630 kB; ruled 630 kB. E1 Rule 22 surface guard:
+//     sanitizeSurface gained the METER_FRACTION check (~10 lines). No new
+//     surface, no ceremony word — law growing, not a surface creeping back.
 //   2026-07-28 — measured 629 kB; pin stays 629 kB. D9 destructive/terminal:
 //     terminal-action + terminal-divider added to App.jsx (seal relocation);
 //     session-caps meters added to Overlays.jsx; toll.jsx house-plan guard;
 //     two new evals (terminalDoor, settingsClarity). Growth within pin.
+//   2026-07-28 — measured 631 kB; ruled 631 kB. E5 narration law fix:
+//     the 20-180 legacy validator fallback retired; NARRATION_FLOOR.none
+//     (60-160 words) replaces it; safeFallbackTurn text extended to clear
+//     the 60-word floor; fitToMeasure word-count padding added. Net -96 bytes
+//     from prior 645967 (632 kB). Ratchet tightens to measured value.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a
@@ -76,7 +95,7 @@ import { entryClosureOf, closureBytesOf } from './manifestClosure.mjs';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
-const PIN_KB = 629; // ruled 2026-07-28 — see the movement ledger in this header
+const PIN_KB = 632; // ruled 2026-07-28 — see the movement ledger in this header
 // CROSS-POINTER: the web-of-souls seating court (soulsWeb.test.mjs) pins the
 // closure's EXACT bytes; a ruled move of the closure re-seats BOTH pins in
 // the same ruling. Both courts read the ONE walk in manifestClosure.mjs.

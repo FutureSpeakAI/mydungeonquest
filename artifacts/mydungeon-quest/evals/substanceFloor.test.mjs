@@ -160,12 +160,15 @@ const QUIET_ROAD = 'The road holds its silence. Somewhere beyond the treeline a 
 
   const turn190 = { ...BASE, narration_blocks: [{ text: text190, speaker: null }] };
 
-  // Without beatMeasure: legacy ceiling (180) fires → refused at the landing.
+  // Without beatMeasure (E5): the 'none' band ceiling (160 words) fires →
+  // refused at the landing. Before E5 this was the legacy 20-180 check
+  // ("narration total"); after E5 it is the 'none' band ceiling check
+  // ("narration floor breach: too many words"). Same outcome, new message.
   const noMeasure = validateDmTurn(turn190, [], {});
-  assert.equal(noMeasure.ok, false, 'without beatMeasure the legacy ceiling refuses a 190-word standard turn');
+  assert.equal(noMeasure.ok, false, 'without beatMeasure the none-band ceiling refuses a 190-word turn');
   assert.ok(
-    noMeasure.errors.some((e) => /narration total/.test(e)),
-    'the legacy refusal is the word-total error, not a floor-breach instruction',
+    noMeasure.errors.some((e) => /narration floor breach|narration total/.test(e)),
+    `the refusal is a word-count error (narration floor breach or narration total); got: ${noMeasure.errors.join('; ')}`,
   );
 
   // With beatMeasure = 'standard': standard band (90-200) accepts 190 words.
@@ -176,7 +179,7 @@ const QUIET_ROAD = 'The road holds its silence. Somewhere beyond the treeline a 
     `with beatMeasure='standard' the 190-word turn passes — no floor/total error; got: ${JSON.stringify(withMeasure.errors)}`,
   );
 
-  console.log('PASS \u2465 \u2014 190-word standard turn: legacy check refuses without beatMeasure, measure check accepts with it \u2014 both benches apply identical word-law when beatMeasure is seated at the landing.');
+  console.log('PASS \u2465 \u2014 190-word standard turn: E5 none-band ceiling refuses without beatMeasure, measure check accepts with it \u2014 both benches apply identical word-law when beatMeasure is seated at the landing.');
 }
 
 console.log('PASS \u2014 substanceFloor: floor breach names the deficiency in one repair instruction, fallback clears the absolute floor, present cast with no dialogue is flagged, solitary scenes are exempt, and server/landing bench parity is proven.');

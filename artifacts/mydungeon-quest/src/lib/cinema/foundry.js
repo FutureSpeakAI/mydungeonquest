@@ -68,13 +68,17 @@ async function resolveWardenAnchor(campaignId, label) {
 }
 
 export class Foundry {
-  constructor({ campaignId, tier = 'parchment', spend = {}, onAttestation = null }) {
+  constructor({ campaignId, tier = 'parchment', spend = {}, onAttestation = null, onContaminationTrace = null }) {
     this.campaignId = campaignId;
     this.tier = tier;
     this.spend = { images: 0, music: 0, ...spend };
     this.caps = { images: 80, music: 8 };
     this.lanes = { image: { queue: [], running: false }, audio: { queue: [], running: false } };
     this.onAttestation = onAttestation;
+    // CONTAMINATION TRACE (E2) — permanent instrumentation. Fires on every cache
+    // hit and every generated asset, listing the campaign id of every input
+    // consumed. E3 will add a boundary assertion that throws on foreign inputs.
+    this.onContaminationTrace = onContaminationTrace;
   }
 
   allowed(kind) {
@@ -89,7 +93,21 @@ export class Foundry {
     const spec = await generationSpec(kind, prompt, options);
     const key = cacheKey || spec.hash;
     const cached = await db.media.where('cacheKey').equals(key).first();
-    if (cached) return cached;
+    if (cached) {
+      const foreign = cached.campaignId !== this.campaignId;
+      this.onContaminationTrace?.({
+        event: 'cache_hit', foundryId: this.campaignId,
+        hitCampaignId: cached.campaignId, cacheKey: key,
+        implicitKey: key === spec.hash, foreign,
+      });
+      // E3 boundary assertion — Rule 21: a cross-campaign read must be
+      // structurally impossible. If a foreign asset surfaces here, a
+      // campaign-scoped cacheKey was omitted on the calling job; fail hard
+      // so the regression is caught in tests rather than silently painting
+      // another campaign's visuals into the active one.
+      if (foreign) throw new Error(`[E3] campaign isolation violated: foundry "${this.campaignId}" hit asset from "${cached.campaignId}" under key "${key}"`);
+      return cached;
+    }
     if (!this.allowed(kind)) return null;
     return new Promise((resolve, reject) => {
       const lane = this.lanes[laneOf(kind)];
@@ -106,6 +124,14 @@ export class Foundry {
     try {
       // Another job may have filled this key while we waited in line.
       const cached = await db.media.where('cacheKey').equals(job.cacheKey).first();
+      if (cached) {
+        this.onContaminationTrace?.({
+          event: 'cache_hit', foundryId: this.campaignId,
+          hitCampaignId: cached.campaignId, cacheKey: job.cacheKey,
+          implicitKey: job.cacheKey === job.spec.hash,
+          foreign: cached.campaignId !== this.campaignId,
+        });
+      }
       job.resolve(cached || await this.generate(job));
     } catch (error) { job.reject(error); }
     finally { lane.running = false; this.pump(lane); }
@@ -245,6 +271,12 @@ export class Foundry {
     if (spineBurned(this.campaignId)) return row;
     await db.media.put(row);
     await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, cacheKey: job.cacheKey, label: row.label, variant: row.variant, subtype: row.subtype, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size, referenceAssetHashes, ...(wardenAttest ? { warden: wardenAttest } : {}) });
+    this.onContaminationTrace?.({
+      event: 'generated', foundryId: this.campaignId,
+      cacheKey: job.cacheKey, implicitKey: job.cacheKey === job.spec.hash,
+      anchorCampaignIds: anchors.map((r) => r.campaignId),
+      foreignAnchors: anchors.some((r) => r.campaignId !== this.campaignId),
+    });
     return row;
   }
 

@@ -163,15 +163,17 @@ if (/knownCount\s*>/.test(appSrc))
 else
   fail('App.jsx must check knownCount > 0 before showing "travels alone"');
 
-if (/Alone.*known|known.*Alone/.test(appSrc))
-  pass('App.jsx party chip has an "Alone — N known" alternate text');
+// T8 (E7): party chip now says "Traveling alone"; a separate chip carries
+// the known-count fact. Check for the new pattern.
+if (/Traveling alone/.test(appSrc))
+  pass('App.jsx party chip says "Traveling alone" (T8: no house term, no contradictory fact)');
 else
-  fail('App.jsx must render "Alone — N known" when knownCount > 0 and party is empty');
+  fail('App.jsx party chip must say "Traveling alone" for the no-companions case (T8)');
 
-if (/The hero travels alone/.test(appSrc))
-  pass('"The hero travels alone" is retained for the truly alone case (no known souls)');
+if (/data-chip="known"/.test(appSrc))
+  pass('App.jsx has a separate data-chip="known" for the cast count (T8: one fact per chip)');
 else
-  fail('"The hero travels alone" text should still appear for the zero-known case');
+  fail('App.jsx must have a separate data-chip="known" chip for the known-character count (T8)');
 
 // ── §6  Runtime selector agreement ───────────────────────────────────────
 console.log('\n§6 Runtime — selectors agree on a fixture campaign');

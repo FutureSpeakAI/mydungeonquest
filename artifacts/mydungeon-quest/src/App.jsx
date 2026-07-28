@@ -625,11 +625,14 @@ export default function App() {
     } // the tempo court's writ ends here — every easel law below is untouched
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);
-      if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name], ...(variant === 'bust' ? {} : { warden: { kind: 'soul', bearingText: bearingTextFor(campaign, soul.name) } }) }, priority: variant === 'bust' ? 0 : 6 });
+      // E3 — campaign isolation: explicit campaign-scoped cacheKey so two
+      // campaigns with identically-named NPCs never share portrait assets.
+      if (locked) for (const variant of ['bust','full-figure','dramatic']) jobs.push({ kind: 'paint', prompt: portraitPrompt(campaign, locked, variant), options: { kind: 'portrait', label: soul.name, variant, seed: nameSeed(soul.name), referenceLabels: variant === 'bust' ? [] : [soul.name], ...(variant === 'bust' ? {} : { warden: { kind: 'soul', bearingText: bearingTextFor(campaign, soul.name) } }) }, priority: variant === 'bust' ? 0 : 6, cacheKey: `portrait:${campaign.id}:${String(soul.name).trim().toLowerCase()}:${variant}` });
     }
     if (dm.story?.world?.region_add) {
       const region = campaign.codex.regions.find((entry) => entry.name === dm.story.world.region_add.name);
-      if (region) jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, region), options: { kind: 'region', label: region.name, seed: nameSeed(region.name) }, priority: 3 });
+      // E3 — campaign isolation: explicit campaign-scoped cacheKey.
+      if (region) jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, region), options: { kind: 'region', label: region.name, seed: nameSeed(region.name) }, priority: 3, cacheKey: `region:${campaign.id}:${String(region.name).trim().toLowerCase()}:base` });
     }
     if (dm.story?.world?.region_update) {
       // The land sickens without moving: geography holds by the region's
@@ -641,7 +644,10 @@ export default function App() {
       // exactly when nothing but detail moved.
       const region = campaign.codex.regions.find((entry) => entry.name === dm.story.world.region_update.name);
       const stateTurned = dm.story.world.region_update.state != null;
-      if (region) jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, region), options: { kind: 'region', label: region.name, seed: nameSeed(region.name), ...(stateTurned ? {} : { referenceLabels: [region.name] }) }, priority: 3 });
+      // E3 — campaign isolation: explicit campaign-scoped cacheKey; state
+      // transitions use a distinct key so the turned plate never collides
+      // with the base-state plate.
+      if (region) jobs.push({ kind: 'paint', prompt: regionPrompt(campaign, region), options: { kind: 'region', label: region.name, seed: nameSeed(region.name), ...(stateTurned ? {} : { referenceLabels: [region.name] }) }, priority: 3, cacheKey: `region:${campaign.id}:${String(region.name).trim().toLowerCase()}:${stateTurned ? String(region.state || 'turned').toLowerCase() : 'base'}` });
     }
     // THE REFERENCE SHEETS (XVII, Article I) — every introduction mints its
     // composite sheet beside its sealed anchor: souls, places on their
@@ -844,6 +850,9 @@ export default function App() {
       // signal fires the instant it is on the wire, and only then is the
       // response awaited — so a genesis easel kicked on this signal can
       // never put paint on the wire ahead of the pour.
+      // CONTAMINATION TRACE (E2) — permanent. Every DM call emits a structured
+      // record confirming the campaign id that owns all inputs in this payload.
+      console.log('[contamination-trace]', JSON.stringify({ event: 'dm_call', campaignId: base.id, turn: base.turnNumber || 0 }));
       const dmRequest = fetch('/api/dm?stream=1', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       hooks?.onPourDispatched?.();
       const response = await dmRequest;
@@ -963,12 +972,16 @@ export default function App() {
         moved: movedItems(dm.story)
       });
       if (!validation.ok || strangers.length || !cueBench.ok || !propBench.ok) {
-        throw new Error([
+        // Rule 22 — repair notes are ledger-only: the detail never enters status.
+        const ledgerDetail = [
           ...(validation.ok ? [] : validation.errors),
           ...(strangers.length ? [censusNote(strangers)] : []),
           ...cueBench.violations,
           ...propBench.refusals,
-        ].join('; '));
+        ].join('; ');
+        const err = new Error(ledgerDetail);
+        err.ledgerOnly = true;
+        throw err;
       }
       let codex = applyStoryUpdates(base.codex, dm.story, { turn: base.turnNumber || 0, heroName: base.hero?.name, heroLevel: base.hero?.level, heroConcentration: base.hero?.concentration || null });
       if (dm.state_updates?.chronicle_add) codex.chronicle = [...codex.chronicle, String(dm.state_updates.chronicle_add).slice(0, 260)];
@@ -1188,7 +1201,11 @@ export default function App() {
       else if (codex.completed && !base.codex.completed) chronicleChapterClose(next, codex.beatIndex);
       return next;
     } catch (error) {
-      console.error(error); setStatus(`The road snagged: ${error.message}`); return base;
+      // Rule 22 — ledgerOnly errors carry validator/editor detail that must
+      // not reach the player surface; they are already logged above.
+      console.error(error);
+      if (!error.ledgerOnly) setStatus(`The road snagged: ${error.message}`);
+      return base;
     } finally { setBusy(false); }
   }, [queueMedia, refreshShelf]);
 
@@ -1901,13 +1918,16 @@ export default function App() {
           <div className="hud-state-chips" ref={stateChipsRef}>
             {/* D7: "travels alone" is reconciled — when known souls exist but no
                 active companions have joined the party, acknowledge the cast. */}
+            {/* T8: party chip = travel status only (portrait row or plain "Traveling alone").
+                A separate "N characters known" chip carries the cast count so one chip
+                never holds two contradictory facts at once. "souls" is a house term and
+                must not appear in chrome. */}
             <span className="table-chip chip-party" data-chip="party">{table.chips[2].members.length
               ? table.chips[2].members.map((member) => gallery[member.name]
                 ? <button key={member.name} type="button" className="party-face-btn" aria-label={`Expand portrait of ${member.name}`} onClick={() => setPartyLightbox({ src: gallery[member.name], alt: member.name })}><img className="party-face" src={gallery[member.name]} alt={member.name} title={member.name} style={{cursor:'zoom-in'}}/></button>
                 : <i key={member.name} className="party-face" title={member.name}>{member.name.split(' ').map((part) => part[0]).join('')}</i>)
-              : (knownCount > 0
-                  ? <em>Alone: {knownCount} {knownCount === 1 ? 'soul' : 'souls'} known</em>
-                  : <em>The hero travels alone</em>)}</span>
+              : <em>Traveling alone</em>}</span>
+            {knownCount > 0 && <span className="table-chip chip-known" data-chip="known">{knownCount} {knownCount === 1 ? 'character' : 'characters'} known</span>}
             <span className="table-chip" data-chip="health"><HeartPulse/> {table.chips[3].words}</span>
           </div>
         </div>
@@ -1916,7 +1936,7 @@ export default function App() {
     {current.readOnly && <div className="read-only-banner"><Shield/> This restored chronicle verifies as an artifact but cannot impersonate its original device. <button onClick={async()=>{const fork=await forkChronicle(current);setCurrent(fork);}}>Create a signed continuation</button></div>}
     {current.combat?.active && <CombatBanner combat={current.combat} />}
     <main ref={logScrollRef} className="adventure-log" role="log" aria-live="polite">
-      <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Act {act.act} · Chapter {current.codex.beatIndex + 1} of {chapter.count}</span><h1>{chapter.title}</h1><p>{chapter.goal}</p></div>
+      <div className={`campaign-mast ${keyArtUrl ? 'has-keyart' : ''}`} style={keyArtUrl ? { backgroundImage: `linear-gradient(180deg,rgba(13,11,20,.12),rgba(13,11,20,.5) 55%,rgba(13,11,20,.97)),url("${keyArtUrl}")` } : undefined}><span>{current.codex.spine.label} · Act {act.act} · Chapter {current.codex.beatIndex + 1} of {chapter.count}</span><h1>{chapter.title}</h1><p>{chapter.opening}</p></div>
       {recap && recap.campaignId === current.id && <RecapCard recap={recap} onDismiss={() => setRecap(null)} />}
       {(() => {
         // THE FOLIO COUNT — plates are numbered the way a folio numbers its
@@ -1947,7 +1967,8 @@ export default function App() {
           const log = seat.log;
           if (log.redacted) return <div className="redacted-line" key={log.id}>⊘ A scene was removed from active canon by the player.</div>;
           const showsPlate = Boolean(log.imageUrl || log.videoPosterUrl || log.dm?.image_cue || paintingImages[log.id]);
-          const plateNumeral = showsPlate ? romanNumeral(++plateNo) : null;
+          // T9: Arabic numerals in all chrome headings and captions (not roman).
+          const plateNumeral = showsPlate ? String(++plateNo) : null;
           return <LogEntry key={log.id} log={log} campaign={current} painting={Boolean(paintingImages[log.id])} plateNumeral={plateNumeral} pour={log.id === pouringId} reduceMotion={stillness} onPourTick={bumpPourTick} onPourDone={endPour} />;
         });
       })()}
@@ -2235,6 +2256,21 @@ function usePour(blocks, active, { still = false, onTick = null, onDone = null }
   return plan[step];
 }
 
+// T11 — caption from actual cue content, not template mood strings.
+// Priority: sealed Art Director caption → subjects + region → narration text.
+// Skips cue.mood intentionally: the model's mood field produces template
+// phrases ("beneath an unnamed sky", "as this page tells it") that carry
+// no real information. The actual subjects and region do.
+function cueCaption(cue, dm) {
+  if (typeof cue?.caption === 'string' && cue.caption.trim()) return cue.caption;
+  const subjects = Array.isArray(cue?.subjects) ? cue.subjects.filter((s) => typeof s === 'string' && s.trim()) : [];
+  const region = typeof cue?.region === 'string' ? cue.region.trim() : '';
+  if (subjects.length && region) return `${subjects.slice(0, 3).join(', ')} in ${region}`;
+  if (subjects.length) return subjects.slice(0, 3).join(', ');
+  if (region) return region;
+  return plateMood(dm, 90) || 'the scene';
+}
+
 export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = false, reduceMotion = false, onPourTick = null, onPourDone = null }) {
   const cue = log.dm.image_cue;
   const poured = usePour(log.dm.narration_blocks, pour, { still: reduceMotion, onTick: onPourTick, onDone: onPourDone });
@@ -2244,7 +2280,8 @@ export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = 
   // LAW X — a sealed caption rides the cue and is preferred whole; the
   // legacy sliced caption (plateMood) serves REPLAY ONLY, for pages
   // sealed before the Art Director's chair opened.
-  const mood = cue?.caption || cue?.mood || plateMood(log.dm, 90) || 'the scene';
+  // T11: cueCaption() skips cue.mood and derives from subjects/region instead.
+  const mood = cueCaption(cue, log.dm);
   const art = proceduralArtDataUrl(`${campaign.id}:${log.id}`, mood, log.dm.cinematic?.palette || ['#0d0b14','#4c465e','#d4a24e']);
   // THE FRESH PLATE LAW (XVII, Article III) — a plate bearing papers walks
   // the render door: its attested origin must equal this very log's sealed

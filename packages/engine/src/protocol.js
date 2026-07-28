@@ -1191,20 +1191,24 @@ export function validateDmTurn(payload, entropyPool = [], context = {}) {
     assert(!speaksFromTheGrave(block.speaker), `narration_blocks[${index}]: the dead do not speak — ${block.speaker} is dead and cannot be given dialogue`, errors);
     words += String(block.text || '').trim().split(/\s+/).filter(Boolean).length;
   }
-  // THE NARRATION FLOOR (A3) — when the beat measure rides the context the
-  // floor is measure-aware and names the specific deficiency in the repair
-  // instruction; when no measure rides the legacy 20-180 check holds so
-  // bare-context callers (elder evals, fixtures) stay byte-identical.
-  if (context.beatMeasure && NARRATION_FLOOR.byMeasure[context.beatMeasure]) {
-    const band = NARRATION_FLOOR.byMeasure[context.beatMeasure];
+  // THE NARRATION FLOOR (A3, E5) — when the beat measure rides the context
+  // the floor is measure-aware; when no measure rides, the 'none' band from
+  // NARRATION_FLOOR applies (60–160 words). All three enforcement sites
+  // (schema, prompt, validator) moved to NARRATION_FLOOR.byMeasure in lockstep
+  // so the law is satisfiable. The old hardcoded 20-180 standing-law check
+  // is retired: it put a 180-word ceiling against rich's 200-word floor, making
+  // every rich turn unsatisfiable (E5 Correction 2 in the master directive).
+  {
+    const bandKey = (context.beatMeasure && NARRATION_FLOOR.byMeasure[context.beatMeasure])
+      ? context.beatMeasure
+      : 'none';
+    const band = NARRATION_FLOOR.byMeasure[bandKey];
     const deficiencies = [];
-    if (words < band.minWords) deficiencies.push(`too few words (${words} of at least ${band.minWords} required for ${context.beatMeasure})`);
-    if (words > band.maxWords) deficiencies.push(`too many words (${words}; ceiling is ${band.maxWords} for ${context.beatMeasure})`);
+    if (words < band.minWords) deficiencies.push(`too few words (${words} of at least ${band.minWords} required for ${bandKey})`);
+    if (words > band.maxWords) deficiencies.push(`too many words (${words}; ceiling is ${band.maxWords} for ${bandKey})`);
     if (deficiencies.length) {
       errors.push(`narration floor breach: ${deficiencies.join('; ')} — add concrete sensory prose and at least one character line if cast are present`);
     }
-  } else {
-    assert(words >= 20 && words <= 180, `narration total must be 20-180 words (received ${words})`, errors);
   }
 
   assert(Array.isArray(payload.suggestions) && payload.suggestions.length === 3, 'suggestions must contain exactly 3 entries', errors);
@@ -1411,8 +1415,12 @@ export function makeEntropy(seed = Math.random) {
 }
 
 export function safeFallbackTurn(playerText = '', turn = 0) {
+  // E5: text extended to ≥ 60 words so the fallback satisfies the 'none'
+  // narration floor (NARRATION_FLOOR.byMeasure.none.minWords = 60) in every
+  // context where no beat measure is set. The absolute floor is 40 words;
+  // the 'none' floor is the binding constraint for unmetered turns.
   return {
-    narration_blocks: [{ text: `The world holds its breath. ${playerText ? 'Your intent lands with weight, but fate asks for a cleaner telling before it will move: the bones of the scene are sound; the words need resetting.' : 'A distant bell marks the beginning of an unwritten road, one stone set against another until the path remembers itself.'} Nothing changes in the record while the Dungeon Master gathers the thread again. The moment will keep.`, speaker: null }],
+    narration_blocks: [{ text: `The world holds its breath. ${playerText ? 'Your intent lands with weight, but fate asks for a cleaner telling before it will move. The bones of the scene are sound, the air still charged with what almost happened, and the words need only a fresh order before they will carry it.' : 'A distant bell marks the beginning of an unwritten road, one stone set patient against another until the path remembers itself and the story finds its proper first word.'} Nothing changes in the record while the Dungeon Master gathers the thread again. The moment holds its shape, waiting for the turn that belongs to it.`, speaker: null }],
     suggestions: ['Look for another path', 'Ask what changed', 'Wait and listen'],
     roll_request: null, state_updates: null, combat: null,
     cinematic: turn === 0 ? { type: 'chapter', title: 'The First Turning', subtitle: 'Every world begins with one impossible choice.', palette: ['#0d0b14','#6f3f2d','#d4a24e'] } : null,

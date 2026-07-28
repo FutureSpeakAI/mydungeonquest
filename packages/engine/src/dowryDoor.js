@@ -156,7 +156,10 @@ export function readPagesFloor(pages) {
 // refusal speaks in the door's own words.
 function wrapperTurn(story) {
   return {
-    narration_blocks: [{ text: 'The dowry pages are read aloud at the threshold of the tale, each claim spoken plainly before the court, so every offered soul, place, and truth may be judged by the standing law.', speaker: null }],
+    // E5: text extended to >= 60 words so the wrapper turn satisfies the
+    // 'none' narration floor (NARRATION_FLOOR.byMeasure.none.minWords = 60)
+    // now enforced by validateDmTurn when no beatMeasure rides the context.
+    narration_blocks: [{ text: 'The dowry pages are read aloud at the threshold of the tale, each claim spoken plainly before the court, so every offered soul, place, and truth may be judged by the standing law. No gift enters without this rite: the name must be the page\'s own, the words must be the page\'s own, and the law the tale keeps will keep them or turn them away by name, never by silence.', speaker: null }],
     suggestions: ['Read on', 'Set the page down', 'Ask the keeper'],
     roll_request: null, state_updates: null, combat: null, cinematic: null,
     story, image_cue: null, dialogue_cue: null, time_advance: null, entropy_use: []

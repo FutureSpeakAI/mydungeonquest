@@ -33,6 +33,10 @@ const BARE_TURN_REF = /\bturn\s+\d+\b/i;
 const ORPHAN_CLOSE_PAREN = / \)/;
 const ORPHAN_SPACE_COMMA  = / ,/;
 
+// Validator metric fractions — "49 of at least 200 required for rich"
+// is validator output and must never appear on a player-facing surface.
+const METER_FRACTION = /\d+\s+of\s+at\s+least\s+\d+/;
+
 function hasUnclosedParen(text) {
   let depth = 0;
   for (let i = 0; i < text.length; i++) {
@@ -69,6 +73,12 @@ export function sanitizeSurface(text) {
   }
   if (ORPHAN_SPACE_COMMA.test(text)) {
     throw new Error('curtain breach — orphan " ," in player-facing string');
+  }
+  const meterMatch = text.match(METER_FRACTION);
+  if (meterMatch) {
+    throw new Error(
+      `curtain breach — validator metric fraction "${meterMatch[0]}" in player-facing string`
+    );
   }
   if (hasUnclosedParen(text)) {
     throw new Error('curtain breach — unclosed "(" in player-facing string');

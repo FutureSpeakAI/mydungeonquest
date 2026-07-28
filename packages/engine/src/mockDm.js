@@ -325,27 +325,66 @@ const PAD_LINES = [
   (s) => `${s.place} answers nothing, ${s.salt}, tonight.`
 ];
 
+// THE MEASURE LAW (E5 addendum) — when no beat_intent rides the briefing,
+// the 'none' word floor (60 words) still applies. Short turns (e.g. the
+// needsRoll template at ~33 words) are padded with echo-safe PAD_LINES using
+// an offset of 12 so these pads draw from a distinct pool within PAD_LINES
+// and never collide with the measure-padded slots. The 'none' block ceiling
+// (6) is respected; the block count and echo law are preserved.
+const NONE_WORD_FLOOR = 60;
+const NONE_BLOCK_CEILING = 6; // NARRATION_FLOOR.byMeasure.none.maxBlocks
+
 function fitToMeasure(turn, input) {
+  if (!Array.isArray(turn.narration_blocks)) return turn;
   const band = MEASURE_BANDS[input?.story?.beat_intent?.measure];
-  if (!band || !Array.isArray(turn.narration_blocks)) return turn;
-  const [floor, ceiling] = band;
   const blocks = [...turn.narration_blocks];
   const turnNo = Number(input?.turn) || 0;
   const slots = {
     place: input?.campaign?.homeRegion || input?.story?.regions?.[0]?.name || 'the road',
     hero: input?.hero?.name || 'The hero'
   };
-  for (let i = 0; blocks.length < floor; i += 1) {
-    const pick = ((turnNo * 7 + i * 3) % PAD_LINES.length + PAD_LINES.length) % PAD_LINES.length;
-    const salt = WHEEL_A[(((turnNo + i) % 23) + 23) % 23];
-    blocks.push({ text: PAD_LINES[pick]({ ...slots, salt }), speaker: null });
+
+  // Word-pad helper: appends PAD_LINES blocks until words >= NONE_WORD_FLOOR
+  // or blockCeiling is hit. wordOffset ensures distinct slots vs. block-count
+  // pads (which use offset 0); offset 12 is coprime to 24 (PAD_LINES.length).
+  function padWords(blks, blockCeiling, wordOffset) {
+    let w = blks.reduce(
+      (n, b) => n + String(b.text || '').trim().split(/\s+/).filter(Boolean).length, 0
+    );
+    for (let j = 0; w < NONE_WORD_FLOOR && blks.length < blockCeiling; j += 1) {
+      const pick = ((turnNo * 7 + j * 3 + wordOffset) % PAD_LINES.length + PAD_LINES.length) % PAD_LINES.length;
+      const salt = WHEEL_A[(((turnNo + j + wordOffset) % 23) + 23) % 23];
+      const padText = PAD_LINES[pick]({ ...slots, salt });
+      blks.push({ text: padText, speaker: null });
+      w += padText.trim().split(/\s+/).filter(Boolean).length;
+    }
   }
-  while (blocks.length > ceiling) {
-    const tail = blocks.pop();
-    const last = blocks[blocks.length - 1];
-    blocks[blocks.length - 1] = { ...last, text: `${last.text} ${tail.text}`.slice(0, 1200) };
+
+  if (band) {
+    // Measure-specific: pad/trim to block count, then ensure NONE_WORD_FLOOR
+    // words so validation still passes when beat_intent is stripped for mock
+    // turns (getDmTurn strips beat_intent → validator uses 'none' band → 60 words).
+    const [floor, ceiling] = band;
+    for (let i = 0; blocks.length < floor; i += 1) {
+      const pick = ((turnNo * 7 + i * 3) % PAD_LINES.length + PAD_LINES.length) % PAD_LINES.length;
+      const salt = WHEEL_A[(((turnNo + i) % 23) + 23) % 23];
+      blocks.push({ text: PAD_LINES[pick]({ ...slots, salt }), speaker: null });
+    }
+    while (blocks.length > ceiling) {
+      const tail = blocks.pop();
+      const last = blocks[blocks.length - 1];
+      blocks[blocks.length - 1] = { ...last, text: `${last.text} ${tail.text}`.slice(0, 1200) };
+    }
+    // Apply the word floor after block shaping.
+    padWords(blocks, ceiling, 12);
+    return { ...turn, narration_blocks: blocks };
   }
-  return { ...turn, narration_blocks: blocks };
+
+  // No beat_intent: pad word count up to NONE_WORD_FLOOR.
+  // Offset 12 keeps pads distinct from the measure-path pads above.
+  const len0 = blocks.length;
+  padWords(blocks, NONE_BLOCK_CEILING, 12);
+  return blocks.length === len0 ? turn : { ...turn, narration_blocks: blocks };
 }
 
 export function mockDmTurn(input) {

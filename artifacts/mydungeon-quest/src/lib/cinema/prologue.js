@@ -51,6 +51,9 @@ export function heroBustJob(campaign) {
     // The hero's bust is an origin anchor — it references nothing and becomes
     // the anchor that every later render of the hero resolves against.
     options: { kind: 'portrait', label: campaign.hero.name, variant: 'bust', seed: nameSeed(campaign.hero.name), referenceLabels: [] },
-    priority: 0
+    priority: 0,
+    // E3 — campaign isolation: explicit campaign-scoped key prevents spec.hash
+    // fallback from serving a foreign campaign's hero bust.
+    cacheKey: `bust:${campaign.id}:${String(campaign.hero.name).trim().toLowerCase()}`,
   };
 }

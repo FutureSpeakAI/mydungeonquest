@@ -627,11 +627,13 @@ export async function getDmTurn(input, { barred = {}, seat = null } = {}) {
       // validator, at every door alike: the merged cue is judged in
       // the same seal as the rest of the turn.
       const turn = artDirectorSits(bornAtZero(mockDmTurn(input)));
-      // THE MOCK WORD FLOOR (A3): mock output is a known fixture that cannot
-      // self-repair — the measure-specific word floor applies to live AI turns
-      // that the repair path can address. Strip beat_intent for the mock's
-      // validation call so the legacy 20-180 check holds; the new floor courts
-      // govern live AI output only.
+      // THE MOCK WORD FLOOR (A3, E5): mock output is a known fixture that
+      // cannot self-repair — the measure-specific word floor applies to live AI
+      // turns that the repair path can address. Strip beat_intent for the mock's
+      // validation call so the 'none' band (60-160 words) from NARRATION_FLOOR
+      // governs; the measure-specific floor courts live AI output only. The
+      // mock narration prose is designed to clear the 60-word 'none' floor by
+      // construction — any shortfall is a mock authoring defect, not a game defect.
       const mockJudgeInput = input.story?.beat_intent
         ? { ...input, story: { ...input.story, beat_intent: null } }
         : input;

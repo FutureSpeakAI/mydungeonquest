@@ -98,7 +98,15 @@ export async function ensureSegmentAsset(campaign, log, segment, index) {
   const body = directedBody(segment, campaign, log);
   const key = directedKey(segmentKey(campaign.id, log, index, segment.voiceId), body);
   const cached = await db.media.where('cacheKey').equals(key).first();
-  if (cached?.blob) return { blob: cached.blob, provider: cached.provider || 'unknown' };
+  // E4 — stale-mock sweep: a cached row with provider 'mock' is a MISS, not a
+  // hit. Once a real key arrives the segment must be re-voiced; keeping the
+  // placeholder row would silence the voice forever. This mirrors the identical
+  // guard in questaudio.js (ensurePodcastAsset). The old placeholder row is
+  // deleted before the real take is written so a failed write never leaves a
+  // ghost behind.
+  if (cached?.blob && cached.provider && cached.provider !== 'mock') {
+    return { blob: cached.blob, provider: cached.provider };
+  }
   const response = await fetch('/api/speak', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -112,6 +120,9 @@ export async function ensureSegmentAsset(campaign, log, segment, index) {
   const provider = response.headers.get('X-Media-Provider') || 'unknown';
   try {
     const assetHash = await sha256(new Uint8Array(await blob.arrayBuffer()));
+    // Delete any stale mock row before writing the live take, so a failed put
+    // never leaves a ghost entry that blocks the next real take.
+    if (cached) await db.media.where('cacheKey').equals(key).delete();
     await db.media.put({
       campaignId: campaign.id, kind: 'narration', cacheKey: key, assetHash,
       originTurnHash: log.recordHash || null, mime: blob.type, blob,

@@ -158,7 +158,31 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   added to Overlays.jsx, which is a static import from App.jsx (rides
 //   the synchronous road). Accessible controls replacing native browser
 //   inputs — UI law growing on the sync road, not a surface creeping back.
-const CLOSURE_BYTES_PIN = 643667;
+// 645967 → 645871, a move of -96 bytes. Owner ruling: E5 narration law fix.
+//   The hardcoded 20-180 legacy validator fallback was retired and replaced
+//   with NARRATION_FLOOR.byMeasure.none (60-160 words), removing the
+//   unsatisfiable 200-word rich floor vs 180-word ceiling conflict. The
+//   safeFallbackTurn text was extended (+60 chars for playerText path,
+//   +100 chars for empty path) but the protocol.js validator block shrank
+//   by more (replaced the conditional if/else with one unified block).
+//   fitToMeasure in mockDm.js gained word-count padding (to clear the
+//   60-word none floor for mock turns stripped of beat_intent during
+//   validation), which added code but the net bundle change is -96 bytes.
+//   No surface words entered the entry; no ceremony word. Ratchet tightens.
+// 645871 → 645880, a move of +9 bytes. Owner ruling: E6 beat-split fix (P4).
+//   chapterInfo (story.js) now returns `opening: beat.opening` instead of
+//   `goal: beat.goal`. App.jsx mast renders chapter.opening (player-facing
+//   chapter hook), never chapter.goal (model-facing design directive). The
+//   property name grew by 3 chars (goal→opening); minifier emits +9 bytes.
+//   No new surface entered the entry; P4 bug closed, view boundary enforced.
+// 645880 → 646228, a move of +348 bytes. Owner ruling: E7 Chrome regressions
+//   T6-T11. CSS: scroll-snap-type on .suggestions, scroll-snap-align on
+//   .chip-item, object-position:left top on .sigil-portrait, background-repeat:
+//   no-repeat on .region-strip. App.jsx: party chip rewritten to "Traveling
+//   alone" + separate chip-known span; plateNumeral switched from romanNumeral()
+//   to String(); cueCaption() helper added (subjects+region, skips cue.mood).
+//   Two new evals: chromeRegressions, captionDistinct. UI and caption law only.
+const CLOSURE_BYTES_PIN = 646228;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

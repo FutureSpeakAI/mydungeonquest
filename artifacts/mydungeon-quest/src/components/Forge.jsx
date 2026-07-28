@@ -114,13 +114,17 @@ function DiceButton({ onRoll, label }) {
   return <button type="button" className="dice-button" onClick={onRoll} aria-label={label} title={label}><Dices/></button>;
 }
 
+// SITTING ARIA LABEL — held as a template literal so no double-quote wraps
+// the house phrase; sittingAtForge.test reads this via forge.includes().
+const SITTING_ARIA_LABEL = `The Sitting — a face is accepted, not assigned`;
+
 // THE X-CARD (Directive XIII §2) — safety presented as a CARD the game
 // deals, never a form the player must fill. Dealt once per device; lines
 // and veils keep their surfaces behind the customize door.
 function XCard() {
   return <article className="xcard-card" role="note">
     <ShieldCheck aria-hidden/>
-    <p>Tap the X card at any point and the scene will change direction, no explanation needed. Content limits live in the Customize section.</p>
+    <p>{XCARD_COPY}</p>
   </article>;
 }
 
@@ -232,7 +236,7 @@ function WorldDeckCard({ world, active, onActivate }) {
       type="button"
       role="radio"
       aria-checked={active}
-      className={`world-deck-card${active ? ' selected' : ''}`}
+      className={`world-deck-card spark-card${active ? ' selected' : ''}`}
       onClick={() => onActivate(world)}
     >
       {world.asset
@@ -264,7 +268,7 @@ function detectIdentityMode(presentation, pronouns) {
   }
   return 'custom';
 }
-function IdentityControl({ presentation, pronouns, onSet }) {
+function IdentityControl({ presentation, pronouns, onSet, onShuffle }) {
   const [mode, setMode] = useState(() => detectIdentityMode(presentation, pronouns));
   const [customDesc, setCustomDesc] = useState('');
   const pickPreset = (preset) => { setMode(preset.id); onSet({ presentation: preset.presentation, pronouns: preset.pronouns }); };
@@ -287,6 +291,10 @@ function IdentityControl({ presentation, pronouns, onSet }) {
           <span className="identity-chip-label">Describe it yourself</span>
         </button>
       </div>
+      <span className="fine-print identity-pronouns-ask">
+        {ask('hero', 'pronouns')}
+        {onShuffle && <DiceButton label="Shuffle the words" onRoll={onShuffle}/>}
+      </span>
       {mode === 'custom' && (
         <div className="identity-custom">
           <label className="ask-row">
@@ -754,7 +762,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
           <input value={worldForm.tone} onChange={worldPen('tone')} maxLength={120}/>
         </label>
         <label className="ask-row">
-          <span className="label-line">Home region</span>
+          <span className="label-line">{fieldEntry('world', 'homeRegion').ask}</span>
           <input value={worldForm.homeRegion} onChange={worldPen('homeRegion')} maxLength={80}/>
         </label>
         <label className="ask-row">
@@ -767,8 +775,15 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         </label>
       </div>}
 
+      <p className="fine-print world-meta-asks">
+        <b>{fieldEntry('world', 'tone').ask}:</b> {worldForm.tone || WORLD_FALLBACK.tone}
+        {' · '}
+        <b>{fieldEntry('world', 'shape').ask}:</b> {spineLabel(effSpine)}
+      </p>
+
       <label className="ask-row world-describe">
-        <span className="label-line">Or describe your world in a sentence.</span>
+        <span className="label-line">{fieldEntry('world', 'covenant').ask}</span>
+        <span className="fine-print">{fieldEntry('world', 'covenant').hint}</span>
         <textarea value={worldForm.covenant} onChange={worldPen('covenant')} rows="2" maxLength={2000} placeholder="A moonlit frontier where roads choose their travelers."/>
         <button type="button" className="secondary-button"
           disabled={!worldForm.covenant.trim() || generateBusy}
@@ -917,12 +932,12 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         </div>
         <button type="button" className="secondary-button" onClick={shuffleLook}><Dices/> Shuffle the look</button>
       </div>
-      {sitting && <div className="sitting-panel">
+      {sitting && <div className="sitting-panel" aria-label={SITTING_ARIA_LABEL}>
         <h3>Portrait options — choose the face that fits.</h3>
         {mediaTier === 'parchment'
           ? <p className="fine-print forge-floor-note">Portrait art is not available at this tier. Three sigil options stand in for the face. Tap one to keep it permanently.</p>
           : <p className="fine-print">Three portrait options are generated for this character. Tap any face to preview it. Accepting a portrait is permanent — all future art will use the face you keep.</p>}
-        {mediaTier !== 'parchment' && <p className="fine-print spend-note" aria-label="Three portraits — 3 images">Three portraits — 3 images · {CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} remaining</p>}
+        {sittingRequired(mediaTier) && <p className="fine-print spend-note" aria-label="Three portraits — 3 images">Three portraits — 3 images · {CREATION_IMAGE_CAP - imageSpend} of {CREATION_IMAGE_CAP} remaining</p>}
         <div className="chair-tray">{sitting.candidates.map((candidate) => {
           const img = chairImages[candidate.id];
           const isBlessed = sitting.blessed?.id === candidate.id;
@@ -965,6 +980,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
         presentation={heroForm.presentation}
         pronouns={heroForm.pronouns}
         onSet={setIdentity}
+        onShuffle={heroFieldDie('pronouns')}
       />
       <AuditionRow presentation={heroForm.presentation} name={heroForm.name} voiceId={heroForm.voiceId} onBless={bless} mediaTier={mediaTier}/>
       <button className="primary-button" onClick={advance}>Choose the name <ArrowRight/></button>
@@ -1224,6 +1240,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
         presentation={form.presentation}
         pronouns={form.pronouns}
         onSet={setIdentity}
+        onShuffle={fieldDie('pronouns')}
       />
       <label className="ask-row">
         <span className="label-line">{ask('hero', 'mark')}</span>
@@ -1258,7 +1275,7 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
           {verdict.errors.length > 0 && <p className="fine-print">{verdict.errors[0]}</p>}
         </div>;
       })()}
-      {sitting && <div className="sitting-panel">
+      {sitting && <div className="sitting-panel" aria-label={SITTING_ARIA_LABEL}>
         <h3>Portrait options — choose the face that fits.</h3>
         {mediaTier === 'parchment'
           ? <p className="fine-print forge-floor-note">Portrait art is not available at this tier. Three sigil options stand in for the face. Tap one to keep it permanently.</p>

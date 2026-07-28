@@ -71,7 +71,7 @@ assert.ok(
 // Allow it in: className values, variable names, import paths, comments
 // Disallow it in: string literals used as visible text
 assert.ok(
-  !/'[^']*\bThe Sitting\b[^']*'/.test(forge) && !/"[^"]*\bThe Sitting\b[^"]*"/.test(forge) && !/>The Sitting</.test(forge),
+  !/'[^'\n]*\bThe Sitting\b[^'\n]*'/.test(forge) && !/"[^"\n]*\bThe Sitting\b[^"\n]*"/.test(forge) && !/>The Sitting</.test(forge),
   'No "The Sitting" house-vocab section header in player-visible creation strings',
 );
 

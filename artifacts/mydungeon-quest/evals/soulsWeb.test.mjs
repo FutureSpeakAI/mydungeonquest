@@ -152,7 +152,7 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   restructured to vertical framed card at 4:5 (pack-portrait class,
 //   pack-identity wrapper, pack-portrait-placeholder; soul-face retired from
 //   pack context).
-const CLOSURE_BYTES_PIN = 640186;
+const CLOSURE_BYTES_PIN = 640170;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

@@ -126,7 +126,7 @@ assert.match(dowrySrc, /provider === 'floor'/, 'the floor is told apart from the
 assert.ok(dowrySrc.includes('house\u2019s own floor reader'), 'and labeled in house words, honestly');
 const forgeSrc = readFileSync(path.join(GAME_ROOT, 'src/components/Forge.jsx'), 'utf8');
 assert.match(forgeSrc, /import \{ Dowry \} from '\.\/Dowry\.jsx'/, 'the ceremony rides the Forge\u2019s own chunk by static import');
-assert.match(forgeSrc, /\['dowry', 'The Dowry',/, 'the fourth door hangs beside spin, oracle, and deep');
+assert.match(forgeSrc, /\['dowry', 'Import a world',/, 'the fourth door hangs beside spin, oracle, and deep');
 assert.match(forgeSrc, /door === 'dowry'/, 'and opens to the ceremony');
 assert.match(forgeSrc, /, dowry \}\);/, 'the world bundle carries the dowry through the hero forge untouched');
 
@@ -184,7 +184,7 @@ for (const word of ['dowry-proposal', 'dowry-bless', 'Lay the page on the table'
 }
 const forgeKey = Object.keys(manifest).find((k) => k.endsWith('components/Forge.jsx'));
 const forgeChunk = readFileSync(path.join(DIST, manifest[forgeKey].file), 'utf8');
-for (const word of ['dowry-proposal', 'Lay the page on the table', 'The Dowry']) {
+for (const word of ['dowry-proposal', 'Lay the page on the table', 'Import a world']) {
   assert.ok(forgeChunk.includes(word), `the ceremony rides the Forge's lazy shelf (missing: ${word})`);
 }
 

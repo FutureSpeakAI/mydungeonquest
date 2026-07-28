@@ -153,7 +153,7 @@ export const FEATURES = [
     probes: [
       { mod: 'packages/engine/src/dowryDoor.js', check: (m) => typeof m.readPagesFloor === 'function' && typeof m.judgeProposals === 'function' && typeof m.applyDowry === 'function' },
       { file: `${GAME}/src/components/Dowry.jsx` },
-      { src: `${GAME}/src/components/Forge.jsx`, needle: "['dowry', 'The Dowry'" },
+      { src: `${GAME}/src/components/Forge.jsx`, needle: "['dowry', 'Import a world'" },
       { src: `${GAME}/server/index.js`, needle: "'/api/dowry'" },
       { src: `${GAME}/src/App.jsx`, needle: "seal(id, 'dowry'" },
       { file: 'packages/engine/evals/dowryDoor.test.mjs' },

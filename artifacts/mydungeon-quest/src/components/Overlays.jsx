@@ -245,7 +245,10 @@ export function Settings({ campaign, settings, onChange, onTempo, onDownloadAudi
       ['turning','Where the story turns','New chapters, first meetings, new ground, first blood, and scenes the Dungeon Master calls for earn the brush; quiet turns hold the standing plate.'],
       ['sparse','The great turnings','Only genesis, a new chapter, and a scene the Dungeon Master calls for : the rarest, boldest book.']
     ].map(([id,tempoLabel,desc])=><button role="radio" aria-checked={(campaign.tempo||'every')===id} className={(campaign.tempo||'every')===id?'selected':''} key={id} onClick={()=>onTempo(id)}><b>{tempoLabel}</b><span>{desc}</span></button>)}</div>
-    <div className="spend"><b>Session cap</b><span>Images {campaign.spend?.images||0}/80</span><span>Music {campaign.spend?.music||0}/8</span></div>
+    <div className="session-caps">
+      <div className="cap-meter"><label>Images this session</label><div className="cap-bar"><div className="cap-fill" style={{width:`${Math.min(100,((campaign.spend?.images||0)/80)*100)}%`}}/></div><span>{campaign.spend?.images||0} of 80</span></div>
+      <div className="cap-meter"><label>Music this session</label><div className="cap-bar"><div className="cap-fill" style={{width:`${Math.min(100,((campaign.spend?.music||0)/8)*100)}%`}}/></div><span>{campaign.spend?.music||0} of 8</span></div>
+    </div>
     <h3>The cellar</h3>
     <details className="settings-detail"><summary className="muted">Beneath the house the old canvases pile up. The sweep clears only elder scenes and superseded region states.</summary><p className="muted settings-detail-body">Kept: anchors, reference sheets, each region's standing plate, the held frame, every painting of the last two acts, every plate bound into a book, and any canvas the record cannot name. The sealed record is never touched; music and voices rest untouched this season.</p></details>
     {onSweep && <button className="secondary-button" disabled={cellar.busy} onClick={async () => {
@@ -287,7 +290,7 @@ function BetaDoor({ campaign, settings, toll }) {
     <p className="muted">This is the beta: the free local build behind invites. The cloud and the toll arrive as their own works.</p>
     <pre className="beta-report" aria-label="The report, exactly as it would be sent">{report}</pre>
     <div className="button-row">
-      <button className="secondary-button" onClick={copy}>Copy the report</button>
+      <button className="primary-button" onClick={copy}>Copy the report</button>
       <a className="secondary-button" href={`mailto:?subject=${encodeURIComponent('MyDungeon.Quest beta report')}&body=${encodeURIComponent(report)}`}>Send by hand</a>
     </div>
     {word && <p className="muted" role="status">{word}</p>}

@@ -51,6 +51,10 @@
 //     em dashes replaced with commas/colons across chrome strings in App.jsx,
 //     Book.jsx, Overlays.jsx, Sequence.jsx — string literals shrank; bond-label
 //     span added, details/summary for Settings cellar. Net reduction, pin stays.
+//   2026-07-28 — measured 629 kB; pin stays 629 kB. D9 destructive/terminal:
+//     terminal-action + terminal-divider added to App.jsx (seal relocation);
+//     session-caps meters added to Overlays.jsx; toll.jsx house-plan guard;
+//     two new evals (terminalDoor, settingsClarity). Growth within pin.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a

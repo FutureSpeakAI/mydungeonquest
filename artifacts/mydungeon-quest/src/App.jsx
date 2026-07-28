@@ -1939,13 +1939,18 @@ export default function App() {
       <div ref={logEndRef}/>
     </main>
     {!current.readOnly && current.codex.sealing && !current.completed && <div className="near-end denouement"><span>✦ The denouement: the road turns home.</span></div>}
-    {!current.readOnly && nearEnd && <div className="near-end"><span>✦ The final chapters draw near.</span><button onClick={() => setOverlay('seal-ask')}>Seal the Tale</button></div>}
     {!current.readOnly && !current.completed && <Composer campaign={current} busy={busy} reduceMotion={stillness} onSubmit={submit} onSuggestion={submit} onRoll={resolveRoll} onXCard={redactLast} />}
     {/* A restored chronicle is a BOOK — its keepsakes (storybook, wax,
         export) are the whole point of restoring it. Only the mutating acts
         stay barred for read-only spines: the press refuses in pressSeal and
         hides in the ceremony; the next volume is gated where it renders. */}
     {(current.completed || current.sealedAt) && <section className="tale-told"><span>✦ Your tale is told.</span><button onClick={() => setOverlay('sealing')}>{current.sealedAt ? 'Open the keepsakes' : 'Seal the chronicle'}</button></section>}
+    {/* TERMINAL ACTION (D9, Rule 9) — Seal sits as the last interactive
+        element in its surface, behind its own divider, so the player
+        cannot tap it while composing their next move. It opens a
+        confirmation sheet that names both what happens (denouement) and
+        what is produced (the bound, exportable chronicle). */}
+    {!current.readOnly && nearEnd && <><div className="terminal-divider"/><div className="near-end terminal-seal"><span>✦ The final chapters draw near.</span><button className="terminal-action" onClick={() => setOverlay('seal-ask')}>Seal the Tale</button></div></>}
     <footer className="seal-status"><span>{status}</span>{VAULT_MARKS[vaultMarks.get(current.id)?.state] && <span className="vault-mark" title={VAULT_MARKS[vaultMarks.get(current.id).state].word}>{VAULT_MARKS[vaultMarks.get(current.id).state].glyph} {VAULT_MARKS[vaultMarks.get(current.id).state].word}</span>}</footer>
     {diceResult && <DiceOverlay result={diceResult} haptics={settings.haptics} onDone={() => setDiceResult(null)} />}
     {/* THE FRESH CARD LAW — the key forces a NEW card lifecycle per card: a
@@ -1971,7 +1976,7 @@ export default function App() {
       }
       setOverlay(null);
     }} />}
-    {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement — farewells, consequences, the road home. Then the wax presses, and the tale is bound.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal the Tale</button></div></div>}
+    {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement: farewells, consequences, the road home. When the last thread is tied, the wax presses and the chronicle is bound — a sealed, exportable record of the whole tale, artwork included.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal this tale</button></div></div>}
     {overlay === 'sealing' && <RoadBoundary road="the sealing ceremony"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense></RoadBoundary>}
     {current.hero.hp <= 0 && !current.hero.stableAtZero && <Epitaph campaign={current} onHeir={current.readOnly ? null : () => setFlow('heir')} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} onFaceTheDark={async()=>{const hero={...current.hero,doomChosen:true};const next={...current,hero};await seal(current.id,'resolution',{type:'doom_declined'});await saveCampaign(next);setCurrent(next);}} onDeathSave={async()=>{const saves=current.hero.deathSaves||{successes:0,failures:0};const rr={id:`doom-hero-${saves.successes+saves.failures+1}`,label:'Death save',kind:'death_save',die:'d20',ability:null,skill:null,proficient:false,dc:10,advantage:'normal',extra_mod:0,action_id:null,actor_id:'hero',target_id:null};const result=heroRoll(current.hero,rr);setDiceResult(result);playUiSfx(current,'die');const folded=foldDeathSave(saves,result.outcome);const hero={...current.hero,deathSaves:folded.verdict==='stable'?{successes:0,failures:0}:folded.deathSaves,...(folded.verdict==='dead'?{dead:true}:{}),...(folded.verdict==='stable'?{stableAtZero:true}:{})};await seal(current.id,'resolution',{...result,deathSaves:folded.deathSaves,verdict:folded.verdict});const next={...current,hero};await saveCampaign(next);setCurrent(next);}} />}
   </div>;

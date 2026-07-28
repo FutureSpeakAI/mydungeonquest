@@ -171,7 +171,10 @@ export function TollSection({ toll }) {
       const used = Math.min(toll.used?.[kind] || 0, quota);
       return <span key={kind} className={used >= quota ? 'spent' : ''}><b>{used}/{quota}</b> {KIND_WORDS[kind] || kind}</span>;
     })}</div>}
-    {toll.plan !== 'guest' && <div className="toll-seats">
+    {/* D9: "friend of the house" hides purchase copy entirely — no greyed
+        buttons, no legal notice. Only the ledger link stays, for the
+        rare case the owner needs to manage something. */}
+    {toll.plan !== 'guest' && toll.plan !== 'house' && <div className="toll-seats">
       {seats.map((seat) => <button key={seat.plan} className="secondary-button" disabled={busy}
         onClick={() => act(() => visitRoom('/api/toll/checkout', { plan: seat.plan }))}>
         Take a seat {SEAT_WORDS[seat.plan]?.replace('Patron ', '') || seat.plan} — {priceWords(seat)}
@@ -182,6 +185,9 @@ export function TollSection({ toll }) {
       {/* The small print at the point of coin: every seat is bound by the house rules. */}
       <p className="toll-legal">Seats are bound by the <a href="/terms.html">house rules</a> and the <a href="/privacy.html">privacy of the table</a>. The weekly seat renews each week, the yearly each year — leave any time from the ledger.</p>
     </div>}
+    {toll.plan === 'house' && toll.portal && <button className="text-button" disabled={busy} onClick={() => act(() => visitRoom('/api/toll/portal'))}>
+      Open the ledger
+    </button>}
     {word && <p className="muted">{word}</p>}
   </>;
 }

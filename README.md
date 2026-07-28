@@ -2,7 +2,9 @@
 
 **A cinematic solo RPG built for the long road — one world, many tales, played for months and years.**
 
-One player. One AI Dungeon Master. A persistent fantasy saga with real dice, real combat, painted illustrations, a voiced narrator — and a hash-linked, append-only record of every turn that keeps the story straight across chapters, devices, and years. Keyless and offline, the whole game still plays on a deterministic floor; signed in, the sealed record also syncs to the house vault, and the Saga Cut now underway teaches any signed-in device to resume the same tale mid-sentence (see [`docs/ROADMAP.md`](docs/ROADMAP.md)).
+One player. One AI Dungeon Master. A persistent fantasy saga with real dice, real combat, painted illustrations, a voiced narrator — and a hash-linked, append-only record of every turn that keeps the story straight across chapters, devices, and years.
+
+The full feature surface: hero creation with a calling, appearance, and registered voice; a persistent inventory with possessions and an armory (equipped weapon, shield, and armour change your AC and attack rolls); a living grimoire of known spells with memorisation slots and concentration tracking; a bestiary (every creature met gets a card — AC, HP, resistances, attacks) and a doom track (three failures kill a hero); a party system (up to three companions, each with their own voice and character sheet); progress clocks, faction standings, horizon rumours, and a Traveler's Chart of every discovered region; the Living World (the DM's story engine grows your world between sessions through the Raven Law — the world ticks forward while you are away); sagas and heirs (a fallen hero's tale seeds the next hero's prologue); the Chronicler (each chapter's closing retelling is lawfully countersigned into the storybook); the Forge (export your tale as a voiced reading); and the Vault (signed sync of the sealed record across devices). Keyless and offline, the whole game still plays on a deterministic floor; signed in, the sealed record also syncs to the house vault, and the Saga Cut now underway teaches any signed-in device to resume the same tale mid-sentence (see [`docs/ROADMAP.md`](docs/ROADMAP.md)).
 
 The model narrates. The client rules. That inversion is the entire architecture, and this document explains it.
 
@@ -91,7 +93,7 @@ The model never rolls a player's die, never edits state directly, and never reso
 **Second cLaw — a DM turn must obey the contract, except where obedience would conflict with the First cLaw.**
 Exactly one `dm_turn` tool call, all eleven fields present every time, every value inside the law:
 
-- **Narration:** 1–8 blocks, 20–180 words total (the craft asks for 60–140), each block only `text` + `speaker`. Dialogue speaks in a registered cast voice or not at all.
+- **Narration:** 1–8 blocks; word counts are band-bound by the beat's `beatMeasure` (`lean`: 40–90 words, 1–2 blocks; `standard`: 90–200 words, 3–5 blocks; `rich`: 200–360 words, 6–8 blocks; unassigned beat: 60–160 words, 2–6 blocks). Each block carries only `text` + optional `speaker`. Dialogue speaks in a registered cast voice or not at all.
 - **The cast:** status is an enum — `active`, `dead`, `missing` — and **the dead do not speak**: dialogue attributed to a soul who was already dead when the turn began invalidates the whole turn. A soul may speak its dying words in the very turn that kills it; afterward the validator holds the line, and there are no resurrection retcons.
 - **Suggestions:** exactly 3, distinct, ≤ 6 words each — and one should be unexpected.
 - **Rolls:** kinds `check/save/attack/damage/death_save`, dice `d4…d100`, DC an honest integer 5–30 or null, advantage from the fixed enum; attacks and damage must name their `action_id`.
@@ -142,21 +144,11 @@ A lawful page is countersigned into the journal *as written* (`chronicle_page`) 
 pnpm --filter @workspace/mydungeon-quest run check   # build + full eval suite
 ```
 
-The suite runs headless in Node — no browser, no keys, no network:
-
-- `evals/run.mjs` — the bench: DM protocol validity, streaming parity, reducers, canon integrity, PG-13 scrubber, Foundry budget caps, seal/tamper invariants (a forged chronicle must turn the audit red).
-- `evals/castLaw.test.mjs` — the cast law: the dead do not speak (including the dying-words exception), casting reads the card (timbre/age/villain scoring, deterministic tiebreak), the migration recasts nobody (legacy pool order is locked by hardcoded voice-id arrays), and the card canon holds (status enum, memorial facts, resurrection refusal, fact dedup caps, bond arcs).
-- `evals/endings.test.mjs` — acts, chapters, endings: the epilogue beat must *play* before a tale completes (arriving is not completing), Seal the Tale records exactly once and steers a quiet combat-free denouement through the [STORY] directives, the countdown ticks even across story-null turns, and a sealed tale advances no further.
-- `evals/cinematicClose.test.mjs` — the cards leave the stage lawfully: the close control fires exactly once (propagation severed, one-shot latch), so the DM card → act card → narration chain can neither double-fire nor be skipped by a race.
-- `evals/chronicler.test.mjs` — the Chronicler's three laws: uncited passages and invented names are refused, the dead are not quoted after they fall, dice must match sealed totals, quotes are verbatim and declared, digits stay out of the prose — and the keyless floor is the raw sealed text, never mock prose (plus schema/validator lockstep).
-- `evals/storybook.test.mjs` — the book always exists: Chronicler pages bind cited and drop-capped (raw sealed words when no page exists), redacted content never binds, every plate is a `data:` URI, Letter and A5 folios both print, and the keepsake carries its own verifier-format proof for the notary.
-- `evals/podcastForge.test.mjs` — the Forge speaks only sealed words: the verbatim court holds every segment to its cited source (Chronicler passages whole, sealed quotes in their own voices, sealed narration as written, liturgy by template; journal-law strikes reach here too), and the mix is verifiably sequential — one concat chain, stings only between voices, no amix anywhere in the graph.
-- `evals/mediaFallback.test.mjs` — the legacy-media contract: film-era logs render their painted posters as still plates (never a `<video>`), overlays ignore retired media rows, and the retired `cinema` tier is canonicalized to `illuminated` across export, import, and persistence round-trips.
-- `evals/narratorConcurrency.test.mjs` — the narrator never overlaps voice tracks no matter how fast turns arrive, constructs no music bed, and refuses mock-provenance segments (a keyless reading is silence, not sine tones).
-- `evals/audioDirector.test.mjs` — the Sound Law: one live sound, instant voice preemption, punctuation windows (late accents are dropped, never played), provenance refusal at the door.
-- `evals/arrival.test.mjs` — the experience cut: the Arrival cold open stages dark → candle → title → shelf and settles without a sound; the dice ritual glows gold, goes ash, and holds one extra breath on a critical; a sealed spine wears its wax and opens straight to its keepsakes; and the Notary's Desk copy stands over a byte-for-byte untouched verifier. The keyless first-run is full drama, total silence.
+The suite runs headless in Node — no browser, no keys, no network. `evals/run.mjs` is the primary bench (DM protocol, reducers, canon integrity, scrubber, Foundry budgets, seal/tamper invariants). Beyond it the `evals/` directory holds **169 eval files** covering cast law, endings, the Chronicler, storybook, podcast forge, narrator concurrency, the Audio Director, arrival, plate binding, narration floors, world smith, saga chain, vault, grimoire, armory, standing gates, and more. Listing them all here would outpace every update; see `evals/` directly for the current set.
 
 React components are exercised inside the same harness via an esbuild JSX loader, `react-test-renderer`, and `fake-indexeddb`. The suite must pass **keyless** — it asserts the mock floor, which is the design mandate: the game degrades, it never blocks. After touching the cLaws or the prompt, also spot-check a handful of live turns; nondeterminism hides there.
+
+**What the Node suite cannot see.** The harness has no audio (no `Audio` element, no `AudioContext`, no autoplay policy), no layout engine (no bounding boxes, no computed styles, no scroll), and no real IndexedDB quota. A playback failure, a chip overlapping narration, or a quota crash is structurally invisible to every eval here. A second, browser-based suite (Playwright) is the intended home for layout, playback, and storage-quota assertions; until it lands, treat every layout or audio gate as unverified at the harness level and verify on a real device.
 
 ## Providers & configuration
 
@@ -187,7 +179,7 @@ artifacts/mydungeon-quest/   ← the game (start here)
   src/                         React 19 client — reducers wired to the engine,
                                Foundry, seal, narrator, all UI
   server/                      Express 5 — DM proxy, media routes, adapters
-  evals/                       the keyless proving ground (58 gates)
+  evals/                       the keyless proving ground (169 eval files; see directory)
   GAME_NOTES.md, CHANGELOG.md, NOTICE.md, README.md
 artifacts/api-server/        unrelated workspace API template (not the game)
 artifacts/mockup-sandbox/    design-preview tooling (not the game)

@@ -6,7 +6,7 @@ import ChroniclePage from './components/ChroniclePage.jsx';
 import { TickDivider, PendingPage, SuggestionRow, RecapCard } from './components/Sequence.jsx';
 import { interludeRow, bandNotes } from './lib/clockAtTable.js';
 import { GENESIS_STEP_LABELS, PAINT_BUDGET_MS, OVER_BUDGET_MESSAGE } from './lib/openingFlow.js';
-import { packClockAt, tellCourtAt, sealWaypostIfDue, hydrateWaypost, isProvenSeat } from './lib/waypost.js';
+import { packClockAt, tellCourtAt, sealWaypostIfDue, hydrateWaypost, isProvenSeat, currentClock, canonicalNames } from './lib/waypost.js';
 import { anchoredWindow } from './lib/historyWindow.js';
 import { orderFeed, recapFor } from 'fatescript/sequencing';
 import { useToll } from './patron/toll.jsx';
@@ -1774,6 +1774,8 @@ export default function App() {
   // the newest region card; before any scene stands, the chip says so and
   // the home region's procedural art keeps the vellum warm.
   const table = useMemo(() => current ? tableOf(current) : null, [current]);
+  // D7: known souls beyond the hero — drives the reconciled party-chip empty state.
+  const knownCount = useMemo(() => current ? Math.max(0, canonicalNames(current).size - 1) : 0, [current]);
   const gallery = useGallery(current);
   const groundChip = table ? table.chips[1] : null;
   const activeRegion = (groundChip?.name && current?.codex?.regions?.find((region) => region.name === groundChip.name)) || null;
@@ -1853,7 +1855,11 @@ export default function App() {
     <RavenNotice recap={ravenRecap} onClose={() => setRavenRecap(null)} />
     {pourBanner}
     {rite && <ThresholdRite rite={rite}/>}
-    <div ref={regionStripRef} className="region-strip" data-chip="ground" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); return { backgroundImage: `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${regionPlate || regionArt}")` }; })()}>
+    {/* D7: no-scene banner and scene plate are mutually exclusive — the art
+         is only shown when a ground is set (groundChip.name is truthy).
+         Without a ground the banner says "The tale has not yet set a scene"
+         and the strip shows the gradient alone — no procedural art behind it. */}
+    <div ref={regionStripRef} className="region-strip" data-chip="ground" data-blight={current.codex.blight} style={(() => { const d = Math.min(0.55 + current.codex.blight * 0.08, 0.94); const sceneArt = groundChip.name ? (regionPlate || regionArt) : null; return { backgroundImage: sceneArt ? `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d})),url("${sceneArt}")` : `linear-gradient(90deg,rgba(13,11,20,${d}),rgba(13,11,20,${(d * 0.55).toFixed(2)}),rgba(13,11,20,${d}))` }; })()}>
       <span>{groundChip.words}</span>{groundChip.state && <small>{groundChip.state}</small>}
     </div>
     <header className="table-header">
@@ -1865,7 +1871,7 @@ export default function App() {
             : <span role="img" aria-label={current.hero.sigil}>{current.hero.sigil}</span>}
           <div><b>{current.hero.name}</b><small>Level {current.hero.level} {current.hero.className}</small></div>
         </button>
-        <div className="hud-calendar"><span className="table-chip" data-chip="calendar">{table.chips[0].words}</span></div>
+        <div className="hud-calendar"><span className="table-chip" data-chip="calendar">{currentClock(current)}</span></div>
         <nav>
           <button onClick={closeBook} disabled={busy} aria-label={busy ? 'The scribe is mid-stroke' : 'Return to the shelf'}><DoorOpen/><span>Hearth</span></button>
           <button onClick={() => setOverlay('codex')} aria-label="Open the Book"><BookOpen/><span>Book</span></button>
@@ -1876,11 +1882,15 @@ export default function App() {
       <div className="hud-row-2" data-stillness={stillness ? 'true' : undefined}>
         <div className="hud-state-chips-wrap">
           <div className="hud-state-chips" ref={stateChipsRef}>
+            {/* D7: "travels alone" is reconciled — when known souls exist but no
+                active companions have joined the party, acknowledge the cast. */}
             <span className="table-chip chip-party" data-chip="party">{table.chips[2].members.length
               ? table.chips[2].members.map((member) => gallery[member.name]
                 ? <img key={member.name} className="party-face" src={gallery[member.name]} alt={member.name} title={member.name}/>
                 : <i key={member.name} className="party-face" title={member.name}>{member.name.split(' ').map((part) => part[0]).join('')}</i>)
-              : <em>The hero travels alone</em>}</span>
+              : (knownCount > 0
+                  ? <em>Alone — {knownCount} {knownCount === 1 ? 'soul' : 'souls'} known</em>
+                  : <em>The hero travels alone</em>)}</span>
             <span className="table-chip" data-chip="health"><HeartPulse/> {table.chips[3].words}</span>
           </div>
         </div>

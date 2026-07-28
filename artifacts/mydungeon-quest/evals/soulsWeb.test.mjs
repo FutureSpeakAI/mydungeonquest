@@ -10,10 +10,10 @@
 //      pinned to the measured build of the morning the web was seated.
 //      Cross-pointed with the lean door's kB pin; both courts read the
 //      ONE closure walk in manifestClosure.mjs.
-//   2. THE SEAT: the surface asks the wiki's OWN reveals seat
-//      (introducedNames) and hands the answer to the engine builder —
-//      a private reading of the canon is a red, by the alias lesson's
-//      sibling law; the Seen Ledger (art reveals) is never consulted.
+//   2. THE SEAT: the surface asks the canonical gate (canonicalNames,
+//      D7) and hands the answer to the engine builder — hero + introduced
+//      cast + party companions; a private reading of the canon is a red,
+//      by the alias lesson's sibling law; the Seen Ledger is never consulted.
 //   3. THE RENDER: house words — bound by blood, sworn enemies — never
 //      machinery; the dead rest marked; the unmet absent from every
 //      rendered byte; a soul opens toward their page in the Book's
@@ -158,7 +158,7 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   added to Overlays.jsx, which is a static import from App.jsx (rides
 //   the synchronous road). Accessible controls replacing native browser
 //   inputs — UI law growing on the sync road, not a surface creeping back.
-const CLOSURE_BYTES_PIN = 642106;
+const CLOSURE_BYTES_PIN = 643379;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -182,8 +182,10 @@ const textOf = (node) => node == null || typeof node === 'boolean' ? ''
 
 // ---- Court 1 — THE SEAT: the source itself asks the wiki's own reveals seat ----
 const surfaceSrc = readFileSync(path.join(GAME_ROOT, 'src/components/SoulsWeb.jsx'), 'utf8');
-assert.match(surfaceSrc, /introducedNames\(/, 'the surface asks the wiki\u2019s own reveals seat');
-assert.match(surfaceSrc, /from '\.\.\/lib\/unmet\.js'/, 'the seat is the unmet law\u2019s own fold, imported from its one home');
+// D7: the reveals gate is now canonicalNames (waypost.js) — hero + introduced cast + party;
+// a surface narrower than this gate disagrees with the cast grid and the party chip.
+assert.match(surfaceSrc, /canonicalNames\(/, 'the surface asks the canonical gate (canonicalNames, D7) — the one seat shared by cast, graph, and party');
+assert.match(surfaceSrc, /from '\.\.\/lib\/waypost\.js'/, 'the canonical gate lives in waypost.js — the D7 one-road selector home');
 assert.match(surfaceSrc, /buildSoulsWeb\(/, 'the web is the engine\u2019s pure fold, drawn — never re-derived here');
 assert.match(surfaceSrc, /from 'fatescript\/soulsWeb'/, 'the builder rides the one road from the engine');
 assert.doesNotMatch(surfaceSrc, /codex\s*\??\.\s*cast/, 'a private reading of the canon is a red — no surface grows its own reveals resolver');

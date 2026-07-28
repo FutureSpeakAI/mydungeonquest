@@ -3,11 +3,12 @@ import { Film, ScrollText } from 'lucide-react';
 import { db } from '../lib/db.js';
 import { ACT_NAMES, romanNumeral, standingsOf } from 'fatescript/story';
 import { rowsOf } from 'fatescript/rows';
-import { cardsAt, tellCourtAt } from '../lib/waypost.js';
+import { cardsAt, tellCourtAt, currentClock } from '../lib/waypost.js';
 import { roomForTurn, SCRIBES } from '../lib/scriptorium.js';
 import { TELL_FAMILIES } from '../lib/tells.js';
 import { voiceLineOf, wordsLine, tieLine, knownAsLine } from 'fatescript/wikiText';
-import { clockWords } from '../lib/clockAtTable.js';
+// D7: clockWords retired from this surface — currentClock(campaign) from waypost.js is the one seat.
+// import { clockWords } from '../lib/clockAtTable.js';
 import { chapterCard, downloadCard } from '../lib/shareCard.js';
 import { placesOf, soulsSwornTo } from '../lib/atlas.js';
 import { presenceOf, visitorsOf, partyOf } from '../lib/presence.js';
@@ -136,6 +137,9 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
   // count, no trail note — and no side door (a tie chip, a soul page, a
   // sworn chip) may name them either. Fail-closed: a torn fold shows
   // nobody rather than everybody.
+  // D7: heroName in the Book component's own scope so the cast grid
+  // synthetic entry can reference it without reaching into a sub-component.
+  const heroName = campaign.hero?.name || 'The hero';
   const shownCast = useMemo(() => { try { return introducedCast(campaign); } catch { return []; } }, [campaign]);
   const spoken = useMemo(() => { try { return introducedNames(campaign); } catch { return new Set(); } }, [campaign]);
   useEffect(() => {
@@ -167,7 +171,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
     downloadCard(chapterCard(campaign, i, plate), i);
   };
   return <Frame title="The Book" icon={<ScrollText/>} onClose={onClose} wide>
-    <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p><p className="muted codex-clock" role="note">{clockWords(logs)}</p></div><div className="codex-meta"><span className="day-chip">Day {calendarOf(logs).day}</span><div className="blight">Blight <b>{c.blight}/5</b></div></div></div>
+    <div className="codex-head"><div><span className="eyebrow">{c.spine.label}</span><h3>{c.arc?.title || campaign.title}</h3><p>{c.spine.beats[c.beatIndex]?.title}</p><p className="muted codex-clock" role="note">{currentClock(campaign)}</p></div><div className="codex-meta"><span className="day-chip">Day {calendarOf(logs).day}</span><div className="blight">Blight <b>{c.blight}/5</b></div></div></div>
     <div className="book-chapters-wrap">
       <nav className="book-chapters" ref={railRef} role="tablist" aria-label="Chapters">{CHAPTERS.map((entry) =>
         <button key={entry.id} role="tab" ref={(el) => { tabRefs.current[entry.id] = el; }}
@@ -243,7 +247,26 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         return <li key={i}><b>Turn {line.turn}</b> — {line.gloss}{scene && <button className="text-button" onClick={() => onReplay(scene.dm, scene)}>replay</button>}</li>;
       })}</ol>
     </article>}
-    {!openCard && <div className="codex-grid gallery">{shownCast.map((soul)=>{
+    {/* D7: hero always leads the cast — the graph seats the hero at the centre,
+         the cast grid must agree. The hero card is a synthetic entry rendered
+         before shownCast.map so the unmet law's own fold is still the shelf. */}
+    {!openCard && <div className="codex-grid gallery">{(() => {
+      const __heroSynthetic = true;
+      const heroSoul = { __heroSynthetic, id: `hero:${heroName}`, name: heroName,
+        role: campaign.hero?.className || '',
+        status: 'active', bond: 4, bond_arc: [], known_facts: [],
+        visual: campaign.hero?.visual || '', last_seen: null, introduced_turn: 0 };
+      const heroCard = (() => { const soul = heroSoul; const dead = false; return (
+        <article key={soul.id} className="soul-card hero-cast-card" onClick={() => onNav({ soul: soul.name })} role="button" tabIndex={0}>
+          {gallery[soul.name] ? <img className="soul-face" src={gallery[soul.name]} alt={soul.name}/> : <div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div>}
+          <span className="role-tag">{soul.role}</span>
+          <h4>{soul.name}</h4>
+          <span className={`status-badge ${soul.status}`}>{STATUS_WORD[soul.status] || 'Walks the tale'}</span>
+          <p>{soul.visual}</p>
+          <div className="bond-thread" title="Bond 4/4" aria-label="Bond 4 of 4">{Array.from({length:4},(_,i)=><i key={i} className="lit"/>)}</div>
+          <small className="trail">The hero — present from the first page</small>
+        </article>); })();
+      return <>{heroCard}{shownCast.map((soul)=>{
       const dead = soul.status === 'dead';
       const lastWhy = (soul.bond_arc || []).slice(-1)[0]?.why;
       return <article key={soul.id} className={`soul-card${dead ? ' memorial' : ''}`} onClick={() => onNav({ soul: soul.name })} role="button" tabIndex={0}>
@@ -253,11 +276,12 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         <span className={`status-badge ${soul.status || 'active'}`}>{STATUS_WORD[soul.status] || soul.status || 'Walks the tale'}</span>
         <p>{soul.visual}</p>
         <div className="bond-thread" title={`Bond ${soul.bond}/4`} aria-label={`Bond ${soul.bond} of 4`}>{Array.from({length:4},(_,i)=><i key={i} className={i<soul.bond?'lit':''}/>)}</div>
-        {lastWhy && <small className="bond-why">“{lastWhy}”</small>}
+        {lastWhy && <small className="bond-why">"{lastWhy}"</small>}
         {(soul.known_facts || []).length > 0 && <ul className="known-facts">{soul.known_facts.map((fact,i)=><li key={i}>{fact}</li>)}</ul>}
         <small className="trail">{soul.last_seen ? `Last seen — ${soul.last_seen}` : 'The trail is quiet.'}{Number.isInteger(soul.introduced_turn) ? (soul.introduced_turn === 0 ? ' · Present from the first page' : ` · Entered the tale at turn ${soul.introduced_turn}`) : ''}</small>
       </article>;
-    })}</div>}
+    })}</>;
+    })()}</div>}
     {/* THE WEB OF SOULS (Directive XX, Article Five, Law XIV) — the
         ChronicleGraph drawn: the surface asks the wiki's OWN reveals
         seat and the engine builder filters at the source, so the unmet

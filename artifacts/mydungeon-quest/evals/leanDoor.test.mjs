@@ -42,6 +42,11 @@
 //     Overlays.jsx — a direct static import from App.jsx, so it rides the
 //     synchronous road. Accessible controls replacing native browser inputs
 //     — UI law growing, not a surface creeping back.
+//   2026-07-28 — measured 629 kB; ruled 629 kB. D7 surface parity: currentClock
+//     and canonicalNames selectors added to waypost.js; heroName const +
+//     hero-synthetic entry added to Book.jsx (cast grid); knownCount useMemo
+//     added to App.jsx; all surfaces route through one clock and one name gate.
+//     Law growing, not a surface creeping back.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a
@@ -63,7 +68,7 @@ import { entryClosureOf, closureBytesOf } from './manifestClosure.mjs';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
-const PIN_KB = 628; // ruled 2026-07-28 — see the movement ledger in this header
+const PIN_KB = 629; // ruled 2026-07-28 — see the movement ledger in this header
 // CROSS-POINTER: the web-of-souls seating court (soulsWeb.test.mjs) pins the
 // closure's EXACT bytes; a ruled move of the closure re-seats BOTH pins in
 // the same ruling. Both courts read the ONE walk in manifestClosure.mjs.

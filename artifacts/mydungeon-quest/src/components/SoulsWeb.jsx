@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { buildSoulsWeb } from 'fatescript/soulsWeb';
-import { introducedNames } from '../lib/unmet.js';
+import { canonicalNames } from '../lib/waypost.js';
 import { tieLine } from 'fatescript/wikiText';
 
 // ------------------------------------------------------------
@@ -9,11 +9,11 @@ import { tieLine } from 'fatescript/wikiText';
 // world strung as a web, souls weighted by bond, every strand a
 // sealed tie citing its turn. Zero model calls, zero new truth.
 //
-// THE REVEALS SEAT: this surface asks the wiki's OWN seat —
-// introducedNames, the same fold the tie chips and the cast grid
-// obey — and hands its answer to the builder, which filters at the
-// source. No private reading of the canon is grown here: the unmet
-// are absence in the data before this file ever sees it.
+// THE REVEALS SEAT: this surface uses canonicalNames (D7) — the one
+// gate shared by the cast grid, the party chip, and the graph.
+// canonicalNames = hero + introducedCast + codex.party companions.
+// No private reading of the canon is grown here: the unmet are
+// absence in the data before this file ever sees it.
 //
 // Layout is the fold's own order laid on a wheel, deterministically:
 // the hero at the centre, each known soul at an angle fixed by the
@@ -31,7 +31,7 @@ const STRAND_ENTRIES = Object.entries(STRAND_WORDS);
 
 export default function SoulsWeb({ campaign, onNav, statusWord = {} }) {
   const web = useMemo(() => {
-    try { return buildSoulsWeb(campaign, { known: introducedNames(campaign) }); }
+    try { return buildSoulsWeb(campaign, { known: canonicalNames(campaign) }); }
     catch { return null; }
   }, [campaign]);
 

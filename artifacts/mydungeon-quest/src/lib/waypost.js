@@ -95,3 +95,31 @@ export function tellCourtAt(campaign) {
   return { report, directives: styleDirectives(report) };
 }
 export function chartAt(campaign) { return chartOf(campaign, { travel: foldsAt(campaign).travel }); }
+
+// THE CLOCK SELECTOR (D7) — one function, both HUD calendar chip and
+// Book codex-head route here. The narrative clock string (clockWords)
+// is the one walk both surfaces owe the player; the old tableOf watch
+// word and calendarOf were two forks of the same truth.
+import { clockWords } from './clockAtTable.js';
+export function currentClock(campaign) {
+  const logs = Array.isArray(campaign?.logs) ? campaign.logs : [];
+  return clockWords(logs);
+}
+
+// THE CANONICAL NAMES (D7) — the full gate every character-facing
+// surface checks before it renders a soul. Hero always included; the
+// introduced cast seated by the unmet law; party companions joined.
+// A surface narrower than this set disagrees with the rest.
+import { introducedCast } from './unmet.js';
+export function canonicalNames(campaign) {
+  const names = new Set();
+  const hero = campaign?.hero;
+  if (typeof hero?.name === 'string' && hero.name.trim()) names.add(hero.name.trim().toLowerCase());
+  for (const soul of introducedCast(campaign)) {
+    if (typeof soul.name === 'string' && soul.name.trim()) names.add(soul.name.trim().toLowerCase());
+  }
+  for (const member of (campaign?.codex?.party ?? [])) {
+    if (typeof member?.name === 'string' && member.name.trim()) names.add(member.name.trim().toLowerCase());
+  }
+  return names;
+}

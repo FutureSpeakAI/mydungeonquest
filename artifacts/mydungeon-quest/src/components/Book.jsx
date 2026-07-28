@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Film, ScrollText } from 'lucide-react';
+import { Film, ScrollText, X } from 'lucide-react';
 import { db } from '../lib/db.js';
 import { ACT_NAMES, romanNumeral, standingsOf } from 'fatescript/story';
 import { rowsOf } from 'fatescript/rows';
@@ -161,6 +161,25 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
   // the strict door as a data plate (or the card goes plateless, lawfully),
   // the engine composes and escapes, and the patron receives a file named
   // by the numeral alone.
+  // BOOK ART LIGHTBOX — tapping a portrait or region art opens the full-screen
+  // plate-lightbox; the same CSS rules (z-index:200) already exist. Focus is
+  // trapped to the close button while the dialog is open; Escape closes.
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [lightboxAlt, setLightboxAlt] = useState('');
+  const lightboxCloseRef = useRef(null);
+  useEffect(() => {
+    if (!lightboxSrc) return undefined;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => {
+      if (e.key === 'Escape') setLightboxSrc(null);
+      if (e.key === 'Tab') { e.preventDefault(); lightboxCloseRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    lightboxCloseRef.current?.focus();
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [lightboxSrc]);
+  const openLightbox = (src, alt, e) => { if (e) e.stopPropagation(); setLightboxSrc(src); setLightboxAlt(alt || ''); };
+
   const shareChapter = async (i) => {
     let plate = null;
     try {
@@ -214,7 +233,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
     {openCard && <article className="soul-page">
       <button className="text-button" onClick={() => onNav({ soul: null })}>← All souls</button>
       <div className="soul-page-head">
-        {gallery[openCard.name] ? <img className="soul-face large" src={gallery[openCard.name]} alt={openCard.name}/> : <div className="procedural-portrait large">{openCard.name.split(' ').map((x)=>x[0]).join('')}</div>}
+        {gallery[openCard.name] ? <img className="soul-face large book-art-tap" src={gallery[openCard.name]} alt={openCard.name} style={{cursor:'zoom-in'}} onClick={(e) => openLightbox(gallery[openCard.name], openCard.name, e)}/> : <div className="procedural-portrait large">{openCard.name.split(' ').map((x)=>x[0]).join('')}</div>}
         <div><h4>{openCard.name}</h4><span className="role-tag">{openCard.identity.role}</span>
           <span className={`status-badge ${openCard.state.status}`}>{STATUS_WORD[openCard.state.status] || openCard.state.status}</span>
           {voiceLineOf(openCard.identity) && <p className="muted">{voiceLineOf(openCard.identity)}.</p>}
@@ -258,7 +277,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
         visual: campaign.hero?.visual || '', last_seen: null, introduced_turn: 0 };
       const heroCard = (() => { const soul = heroSoul; const dead = false; return (
         <article key={soul.id} className="soul-card hero-cast-card" onClick={() => onNav({ soul: soul.name })} role="button" tabIndex={0}>
-          {gallery[soul.name] ? <img className="soul-face" src={gallery[soul.name]} alt={soul.name}/> : <div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div>}
+          {gallery[soul.name] ? <img className="soul-face book-art-tap" src={gallery[soul.name]} alt={soul.name} style={{cursor:'zoom-in'}} onClick={(e) => openLightbox(gallery[soul.name], soul.name, e)}/> : <div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div>}
           <span className="role-tag">{soul.role}</span>
           <h4>{soul.name}</h4>
           <span className={`status-badge ${soul.status}`}>{STATUS_WORD[soul.status] || 'Walks the tale'}</span>
@@ -270,7 +289,7 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
       const dead = soul.status === 'dead';
       const lastWhy = (soul.bond_arc || []).slice(-1)[0]?.why;
       return <article key={soul.id} className={`soul-card${dead ? ' memorial' : ''}`} onClick={() => onNav({ soul: soul.name })} role="button" tabIndex={0}>
-        {gallery[soul.name] ? <img className="soul-face" src={gallery[soul.name]} alt={soul.name}/> : <div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div>}
+        {gallery[soul.name] ? <img className="soul-face book-art-tap" src={gallery[soul.name]} alt={soul.name} style={{cursor:'zoom-in'}} onClick={(e) => openLightbox(gallery[soul.name], soul.name, e)}/> : <div className="procedural-portrait">{soul.name.split(' ').map((x)=>x[0]).join('')}</div>}
         <span className="role-tag">{soul.role}</span>
         <h4>{soul.name}</h4>
         <span className={`status-badge ${soul.status || 'active'}`}>{STATUS_WORD[soul.status] || soul.status || 'Walks the tale'}</span>
@@ -293,10 +312,10 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
     {chapter === 'places' && <div className="book-page" data-page="places">
     <h3>The Traveler's Chart</h3>
     <TravelersChart campaign={campaign} gallery={gallery} onOpenPlace={(name) => onNav({ place: name })} />
-    <h3>Regions</h3><div className="region-gallery">{c.regions.map((region)=><article key={region.id} className="tappable" role="button" tabIndex={0} onClick={() => onNav({ place: openPlace === region.name ? null : region.name })}>{gallery[region.name] && <img className="region-plate" src={gallery[region.name]} alt={region.name}/>}<div className="region-copy"><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></div></article>)}</div>
+    <h3>Regions</h3><div className="region-gallery">{c.regions.map((region)=><article key={region.id} className="tappable" role="button" tabIndex={0} onClick={() => onNav({ place: openPlace === region.name ? null : region.name })}>{gallery[region.name] && <img className="region-plate book-art-tap" src={gallery[region.name]} alt={region.name} style={{cursor:'zoom-in'}} onClick={(e) => openLightbox(gallery[region.name], region.name, e)}/>}<div className="region-copy"><b>{region.name}</b><span>{region.state}</span><p>{region.visual}</p></div></article>)}</div>
     {openPlace && (() => { const place = placesOf(campaign).find((entry) => entry.name === openPlace); const sworn = soulsSwornTo(shownCast, openPlace); /* the sworn chips read the introduced fold — no unmet name on the atlas door (XVII, Article VI) */ return place && <article className="place-page">
       <header><h4>{place.name}</h4><span className="place-state">{place.state}</span><button className="text-button" style={{marginLeft:'auto'}} onClick={() => onNav({ place: null })}>close</button></header>
-      {gallery[place.name] && <img className="region-plate" src={gallery[place.name]} alt={place.name}/>}
+      {gallery[place.name] && <img className="region-plate book-art-tap" src={gallery[place.name]} alt={place.name} style={{cursor:'zoom-in'}} onClick={(e) => openLightbox(gallery[place.name], place.name, e)}/>}
       <p>{place.visual}</p>
       {place.discoveredTurn !== null && <p className="cite">Entered the tale on turn {place.discoveredTurn}{place.gloss ? ` — “${place.gloss}”` : ''}.</p>}
       {sworn.length > 0 && <div className="sworn-chips">{sworn.map((edge, i) => <button key={i} onClick={() => onNav({ chapter: 'people', place: null, soul: edge.name })}>{edge.name} — sworn of {edge.of}</button>)}</div>}
@@ -454,5 +473,10 @@ export function Book({ campaign, nav, onNav, recap, reduceMotion, onClose, onRep
     </div>}
 
     </div>
+    {/* BOOK ART LIGHTBOX — renders above the modal (z-index:200 in .plate-lightbox) */}
+    {lightboxSrc && <div className="plate-lightbox" role="dialog" aria-modal="true" aria-label={`${lightboxAlt}, enlarged`} onClick={() => setLightboxSrc(null)}>
+      <img src={lightboxSrc} alt={lightboxAlt} onClick={(e) => e.stopPropagation()}/>
+      <button type="button" ref={lightboxCloseRef} className="lightbox-close" aria-label="Close" onClick={() => setLightboxSrc(null)}><X/></button>
+    </div>}
   </Frame>;
 }

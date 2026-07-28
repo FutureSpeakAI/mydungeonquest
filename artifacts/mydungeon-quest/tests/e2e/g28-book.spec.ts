@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { closeModal, doomFixture, openChapter, openCodex, readCampaign, seedFixture } from './lib/harness';
+import { closeModal, doomFixture, openChapter, openCodex, paintFixtureExtras, readCampaign, seedFixture } from './lib/harness';
 
 // ---- G28 — THE OPEN BOOK (Task 58C, Directive XIV) ----
 //
@@ -165,5 +165,47 @@ test.describe('G28 — the open book', () => {
     await expect(page.locator('.header-chips[data-stillness="true"]')).toBeVisible();
     await openCodex(page);
     await expect(page.locator('.book-body[data-stillness="true"]')).toBeVisible();
+  });
+
+  test('G28e — book art lightbox: tapping a portrait or region plate opens the full-screen plate-lightbox', async ({ page }) => {
+    // G28e proves the tap path added by the book-art-lightbox change: a
+    // painted portrait in the cast grid and a painted region plate in the
+    // region gallery each open the plate-lightbox (role=dialog, aria-label
+    // ending in ", enlarged") and the close button dismisses it; Escape
+    // also closes. paintFixtureExtras runs first so the gallery is populated.
+    test.setTimeout(300_000);
+    const id = await seedFixture(page);
+    await paintFixtureExtras(page, id);
+
+    // --- Portrait tap in the people chapter ---
+    await openChapter(page, 'people');
+    // Wait for a painted portrait in the cast grid (gallery must have loaded)
+    const portraitImg = page.locator('.codex-grid .soul-face.book-art-tap').first();
+    await expect(portraitImg).toBeVisible({ timeout: 30_000 });
+    await portraitImg.click();
+
+    // Lightbox: role=dialog with an aria-label ending ", enlarged"
+    const lightbox = page.locator('.plate-lightbox[role="dialog"]');
+    await expect(lightbox).toBeVisible();
+    const label = await lightbox.getAttribute('aria-label');
+    expect(label).toMatch(/, enlarged$/);
+
+    // Close button dismisses the lightbox; focus returns to the scroll
+    await page.locator('.plate-lightbox .lightbox-close').click();
+    await expect(lightbox).not.toBeVisible();
+
+    // --- Region art tap in the places chapter ---
+    await openChapter(page, 'places');
+    const regionImg = page.locator('.region-gallery img.region-plate.book-art-tap').first();
+    await expect(regionImg).toBeVisible({ timeout: 30_000 });
+    await regionImg.click();
+
+    await expect(lightbox).toBeVisible();
+    const regionLabel = await lightbox.getAttribute('aria-label');
+    expect(regionLabel).toMatch(/, enlarged$/);
+
+    // Escape key also closes
+    await page.keyboard.press('Escape');
+    await expect(lightbox).not.toBeVisible();
   });
 });

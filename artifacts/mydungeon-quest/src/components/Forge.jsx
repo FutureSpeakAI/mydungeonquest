@@ -306,14 +306,17 @@ function IdentityControl({ presentation, pronouns, onSet, onShuffle }) {
             <span className="label-line">Pronouns</span>
             <input value={pronouns} onChange={(e) => onSet({ presentation, pronouns: e.target.value })} maxLength={30} placeholder="she/her, he/him, they/them\u2026"/>
           </label>
-          <label>
+          {/* D10: voice-register house radio chips (Rule 15) */}
+          <div className="register-radio-row" role="radiogroup" aria-label="Voice register">
             <span className="label-line">Voice register</span>
-            <select value={presentation} onChange={(e) => onSet({ presentation: e.target.value, pronouns })}>
-              <option value="feminine">Feminine range</option>
-              <option value="masculine">Masculine range</option>
-              <option value="neutral">Either range</option>
-            </select>
-          </label>
+            {[['feminine','Feminine range'],['masculine','Masculine range'],['neutral','Either range']].map(([val, lbl]) =>
+              <button key={val} type="button" role="radio" aria-checked={presentation === val}
+                className={`register-chip${presentation === val ? ' selected' : ''}`}
+                onClick={() => onSet({ presentation: val, pronouns })}>
+                {lbl}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1046,8 +1049,9 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
     voiceId: presentation !== v.presentation ? null : v.voiceId,
     __sovereign: markSovereign(markSovereign(v, 'presentation'), 'pronouns'),
   }));
-  const setCalling = (event) => setForm((v) => {
-    const cls = CLASSES.find((c) => c.className === event.target.value) || CLASSES[0];
+  // D10: accepts a plain className string now (house chips replaced the old picker).
+  const setCalling = (value) => setForm((v) => {
+    const cls = CLASSES.find((c) => c.className === value) || CLASSES[0];
     const riders = { caster: cls.caster, hitDie: cls.hitDie, skills: cls.skills, abilities: rollAbilities(cls.className, randomSeed()), bearing: BEARINGS[cls.className], background: BACKGROUNDS[cls.className], spells: dealGrimoire(cls.caster) };
     return { ...applyCandidate(v, riders), className: cls.className, __sovereign: markSovereign({ ...v, __sovereign: (v.__sovereign || []).filter((k) => k !== 'className') }, 'className') };
   });
@@ -1225,16 +1229,20 @@ export function HeroForge({ world, onBack, onBegin, mediaTier = 'parchment', beg
           <span className="label-line">{ask('hero', 'ancestry')}</span>
           <span className="field-row"><input value={form.ancestry} onChange={pen('ancestry')} maxLength={40}/><DiceButton label="Shuffle an ancestry" onRoll={fieldDie('ancestry')}/></span>
         </label>
-        <label>
+        {/* D10: house calling chips (Rule 15) */}
+        <div className="calling-radio-row">
           <span className="label-line">{ask('hero', 'className')}</span>
-          <span className="field-row">
-            <select value={CLASSES.some((c) => c.className === form.className) ? form.className : ''} onChange={setCalling}>
-              {!CLASSES.some((c) => c.className === form.className) && <option value="" disabled>{form.className}</option>}
-              {CLASSES.map((c) => <option key={c.className} value={c.className}>{c.className}</option>)}
-            </select>
-            <DiceButton label="Shuffle a calling" onRoll={fieldDie('className')}/>
-          </span>
-        </label>
+          <div className="calling-chips" role="radiogroup" aria-label={ask('hero', 'className')}>
+            {CLASSES.map((c) => (
+              <button key={c.className} type="button" role="radio" aria-checked={form.className === c.className}
+                className={`calling-chip${form.className === c.className ? ' selected' : ''}`}
+                onClick={() => setCalling(c.className)}>
+                {c.className}
+              </button>
+            ))}
+          </div>
+          <DiceButton label="Shuffle a calling" onRoll={fieldDie('className')}/>
+        </div>
       </div>
       <IdentityControl
         presentation={form.presentation}

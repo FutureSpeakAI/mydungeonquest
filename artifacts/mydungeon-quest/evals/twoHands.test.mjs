@@ -72,9 +72,11 @@ let hero;
 act(() => { hero = TestRenderer.create(h(HeroForge, { world: { title: 'The Probe' }, mediaTier: 'parchment', onBack: () => {}, onBegin: () => {} })); });
 const nameField = hero.root.findAll((n) => n.type === 'input' && n.props.maxLength === 60)[0];
 await act(async () => { nameField.props.onChange({ target: { value: 'Karis Vale' } }); });
-const callingSelect = hero.root.findAll((n) => n.type === 'select')[0];
+// D10: calling is now radio chips — find the chip whose text matches the class name.
 const chosen = CLASSES[2].className;
-await act(async () => { callingSelect.props.onChange({ target: { value: chosen } }); });
+const callingChips = hero.root.findAll((n) => n.type === 'button' && String(n.props.className || '').includes('calling-chip'));
+const chosenChip = callingChips.find((n) => Array.isArray(n.children) ? n.children.includes(chosen) : n.children === chosen);
+await act(async () => { chosenChip.props.onClick(); });
 assert.deepEqual(draft('mdq:forge:hero').skills, CLASSES[2].skills, 'choosing a calling seats its whole sheet');
 const castButton = hero.root.findAll((n) => n.type === 'button' && n.props.className === 'secondary-button')[0];
 for (let i = 0; i < 2; i += 1) await act(async () => { castButton.props.onClick(); });

@@ -164,12 +164,9 @@ const descChip = idChips.find((c) => findText(c.props.children).includes('Descri
 check(!!descChip, '"Describe it yourself" chip exists');
 TestRenderer.act(() => { descChip?.props.onClick(); });
 
-// After activating custom mode, the voice register select appears.
-const voiceRegSelect = tree.root.findAll((n) => n.type === 'select').find((s) => {
-  const opts = s.findAll((n) => n.type === 'option');
-  return opts.some((o) => String(o.props.value || '').includes('feminine'));
-});
-check(!!voiceRegSelect, 'voice register select appears in Describe it yourself mode');
+// After activating custom mode, the voice register chips appear (D10 house controls).
+const voiceRegChips = tree.root.findAll((n) => n.type === 'button' && String(n.props.className || '').includes('register-chip'));
+check(voiceRegChips.length >= 3, 'voice register chips appear in Describe it yourself mode (feminine, masculine, neutral)');
 
 // Primary button is still enabled (no required fields block progression).
 check(!primary()[0].props.disabled, 'primary button still enabled after switching to custom identity mode');

@@ -46,11 +46,16 @@ const { validateSpellPicks, knownCountsFor } = await import('fatescript/grimoire
 
 let begun = null; let tree;
 TestRenderer.act(() => { tree = TestRenderer.create(h(HeroForge, { world: { title: 'The Bench World' }, onBack: () => {}, onBegin: (hero) => { begun = hero; } })); });
-const callingSelect = () => tree.root.findAllByType('select').find((sel) => sel.findAllByType('option').some((o) => o.props.value === 'Wizard'));
-const reseat = (className) => TestRenderer.act(() => { callingSelect().props.onChange({ target: { value: className } }); });
+// D10: calling is now radio chips (house controls), not a native <select>.
+const callingChips = () => tree.root.findAll((n) => n.type === 'button' && String(n.props.className || '').includes('calling-chip'));
+const reseat = (className) => TestRenderer.act(() => {
+  const chip = callingChips().find((n) => Array.isArray(n.children) ? n.children.includes(className) : n.children === className);
+  if (!chip) throw new Error(`calling-chip for "${className}" not found in tree`);
+  chip.props.onClick();
+});
 const beginButton = () => tree.root.findAll((n) => n.type === 'button' && String(n.props.className || '').includes('primary-button'))[0];
 const grimoireBoxes = () => tree.root.findAll((n) => n.type === 'input' && n.props.type === 'checkbox');
-assert.ok(callingSelect() && beginButton(), 'the forge renders its calling door and its Begin door');
+assert.ok(callingChips().length > 0 && beginButton(), 'the forge renders its calling door and its Begin door');
 
 const owedFull = knownCountsFor('full', 1);
 reseat('Wizard');

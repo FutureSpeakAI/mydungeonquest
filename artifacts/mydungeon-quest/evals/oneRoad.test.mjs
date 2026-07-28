@@ -178,14 +178,16 @@ TestRenderer.act(() => { pb2()[0].props.onClick(); });
 const ew2 = tree2.root.findAll((n) => n.type === 'span' && String(n.props.className || '').includes('eyebrow'));
 check(String(ew2[0]?.children?.[0] ?? '').includes('World'), 'clicking step 0 in progress bar returns to World');
 
-// 9. HeroForge heir path: calling select + primary button survive.
+// 9. HeroForge heir path: calling chips (D10 house controls) + primary button survive.
 let tree3;
 TestRenderer.act(() => {
   tree3 = TestRenderer.create(h(HeroForge, { world: { title: 'The Bench World' }, onBack: () => {}, onBegin: () => {} }));
 });
-const callingSelect = tree3.root.findAll((n) => n.type === 'select').find((s) => s.findAll((o) => o.type === 'option' && o.props.value === 'Wizard').length > 0);
+// D10: calling is now radio chips, not a native <select>.
+const heirCallingChips = tree3.root.findAll((n) => n.type === 'button' && String(n.props.className || '').includes('calling-chip'));
+const wizardChip = heirCallingChips.find((n) => Array.isArray(n.children) ? n.children.includes('Wizard') : n.children === 'Wizard');
 const heirStart = tree3.root.findAll((n) => n.type === 'button' && String(n.props.className || '').includes('primary-button'));
-check(!!callingSelect, 'HeroForge (heir) renders a calling select with Wizard option');
+check(!!wizardChip, 'HeroForge (heir) renders a calling chip with Wizard option');
 check(heirStart.length >= 1, 'HeroForge (heir) renders a primary button');
 
 // ── final verdict ──────────────────────────────────────────────────────────

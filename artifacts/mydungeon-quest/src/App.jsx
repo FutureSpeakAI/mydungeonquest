@@ -253,6 +253,23 @@ export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const settingsRef = useRef(DEFAULT_SETTINGS); settingsRef.current = settings;
   const [bookHtml, setBookHtml] = useState('');
+  // PARTY PORTRAIT LIGHTBOX — tapping a party-face image in the header chip
+  // opens the full-screen plate-lightbox (same CSS rules as scene plates).
+  // Focus is trapped to the close button while the dialog is open; Escape closes.
+  const [partyLightbox, setPartyLightbox] = useState(null);
+  const partyLightboxCloseRef = useRef(null);
+  useEffect(() => {
+    if (!partyLightbox) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => {
+      if (e.key === 'Escape') setPartyLightbox(null);
+      if (e.key === 'Tab') { e.preventDefault(); partyLightboxCloseRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    partyLightboxCloseRef.current?.focus();
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+  }, [partyLightbox]);
   const logEndRef = useRef(null);
   // When a cinematic card fires on a sealed turn, its narration waits here
   // until the card closes — the music phrase and the voice never share the
@@ -1886,7 +1903,7 @@ export default function App() {
                 active companions have joined the party, acknowledge the cast. */}
             <span className="table-chip chip-party" data-chip="party">{table.chips[2].members.length
               ? table.chips[2].members.map((member) => gallery[member.name]
-                ? <img key={member.name} className="party-face" src={gallery[member.name]} alt={member.name} title={member.name}/>
+                ? <button key={member.name} type="button" className="party-face-btn" aria-label={`Expand portrait of ${member.name}`} onClick={() => setPartyLightbox({ src: gallery[member.name], alt: member.name })}><img className="party-face" src={gallery[member.name]} alt={member.name} title={member.name} style={{cursor:'zoom-in'}}/></button>
                 : <i key={member.name} className="party-face" title={member.name}>{member.name.split(' ').map((part) => part[0]).join('')}</i>)
               : (knownCount > 0
                   ? <em>Alone: {knownCount} {knownCount === 1 ? 'soul' : 'souls'} known</em>
@@ -1979,6 +1996,10 @@ export default function App() {
     {overlay === 'seal-ask' && <div className="ritual seal-ask"><span className="ritual-wax">{current.hero.sigil}</span><h2>End the tale with honor?</h2><p>The next few turns become the denouement: farewells, consequences, the road home. When the last thread is tied, the wax presses and the chronicle is bound — a sealed, exportable record of the whole tale, artwork included.</p><div className="ritual-row"><button className="secondary-button" onClick={() => setOverlay(null)}>Not yet</button><button onClick={confirmSeal}>Seal this tale</button></div></div>}
     {overlay === 'sealing' && <RoadBoundary road="the sealing ceremony"><Suspense fallback={<div className="lean-veil">The page is being cut…</div>}><Ceremony campaign={current} onPressSeal={pressSeal} onStorybook={() => { setOverlay(null); openStorybook(); }} onExport={exportCurrent} onPodcast={downloadAudio} onNextVolume={current.sealedAt && !current.readOnly ? openNext : null} audioBusy={audioBusy} onClose={() => setOverlay(null)} /></Suspense></RoadBoundary>}
     {current.hero.hp <= 0 && !current.hero.stableAtZero && <Epitaph campaign={current} onHeir={current.readOnly ? null : () => setFlow('heir')} onIntervene={async()=>{const hero={...current.hero,hp:Math.max(1,Math.floor(current.hero.maxHp/2)),deathTouched:true};const next={...current,hero};await seal(current.id,'resolution',{type:'fates_intervention',hp:hero.hp,deathTouched:true});await saveCampaign(next);setCurrent(next);}} onFaceTheDark={async()=>{const hero={...current.hero,doomChosen:true};const next={...current,hero};await seal(current.id,'resolution',{type:'doom_declined'});await saveCampaign(next);setCurrent(next);}} onDeathSave={async()=>{const saves=current.hero.deathSaves||{successes:0,failures:0};const rr={id:`doom-hero-${saves.successes+saves.failures+1}`,label:'Death save',kind:'death_save',die:'d20',ability:null,skill:null,proficient:false,dc:10,advantage:'normal',extra_mod:0,action_id:null,actor_id:'hero',target_id:null};const result=heroRoll(current.hero,rr);setDiceResult(result);playUiSfx(current,'die');const folded=foldDeathSave(saves,result.outcome);const hero={...current.hero,deathSaves:folded.verdict==='stable'?{successes:0,failures:0}:folded.deathSaves,...(folded.verdict==='dead'?{dead:true}:{}),...(folded.verdict==='stable'?{stableAtZero:true}:{})};await seal(current.id,'resolution',{...result,deathSaves:folded.deathSaves,verdict:folded.verdict});const next={...current,hero};await saveCampaign(next);setCurrent(next);}} />}
+    {partyLightbox && <div className="plate-lightbox" role="dialog" aria-modal="true" aria-label={`${partyLightbox.alt}, expanded`} onClick={() => setPartyLightbox(null)}>
+      <img src={partyLightbox.src} alt={partyLightbox.alt}/>
+      <button type="button" ref={partyLightboxCloseRef} className="lightbox-close" aria-label="Close the portrait" onClick={() => setPartyLightbox(null)}><X/></button>
+    </div>}
   </div>;
 }
 

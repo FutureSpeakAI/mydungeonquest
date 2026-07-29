@@ -197,7 +197,13 @@ export function scenePrompt(campaign, cue, moment = null) {
   // written matter gets its LOCAL law right beside the command that once
   // overrode it: closed, turned, or shadowed — the shape tells, never the
   // surface.
-  const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 480)}". Depict this beat literally — its action, props, weather, geography, time of day, and light — and stage every thing the telling names (a road, a fork, a bell, a glow, a lantern) large in the foreground of the frame, filling a commanding share of it, each named thing carried by its form and silhouette alone — so this moment could be no other and never a generic vista of the same place. Anything the telling names as WRITTEN — a letter, seal, sign, map, page, or book — appears only as a closed or turned object: its face away from the viewer, folded shut, or lost in shadow, its shape telling the story its surface never does. Where the beat and the region canon below disagree, the beat wins — time of day, weather, light, and the count of named features come from the moment alone, never from the canon. The telling's words are stage directions only — never painted as visible writing.` : '';
+  // P18 / Rule 28 — the cue carries who is present, where they stand, what
+  // is happening, and the light. It does NOT instruct the painter to lift
+  // every noun from the narration prose and stage each one as a dominant
+  // foreground object. The prior prop-staging directive caused contamination:
+  // non-present objects named in the prose drifted into plates as primary
+  // visual elements. The beat is a WHEN and a WHAT IS HAPPENING only.
+  const beat = moment?.prose ? ` This exact moment from the telling: "${String(moment.prose).replace(/"/g, '\u2019').slice(0, 480)}". Depict this beat literally — its action, who is present, where they stand, what is happening, and the light. Anything the telling names as WRITTEN — a letter, seal, sign, map, page, or book — appears only as a closed or turned object: its face away from the viewer, folded shut, or lost in shadow, its shape telling the story its surface never does. Where the beat and the region canon below disagree, the beat wins — time of day, weather, and light come from the moment alone, never from the canon. The telling's words are stage directions only — never painted as visible writing.` : '';
   const framing = moment ? ` Composition: ${sceneFraming(moment.seed)}.` : '';
   // THE CAMERA LAW — a mark that lives on a face is testimony; a back view
   // silences it. When a painted soul carries a named mark, the framing wheel

@@ -4940,6 +4940,52 @@ console.log({ campaign: !!campaign, rowCount: rows.length, headHash: campaign?.h
 
 ---
 
+### J6 — Hero-anchor holds gate (P24)
+
+**Finding (J0 Report 1).** P17 (foreign reference sheets contaminating plates) was not confirmed by static analysis. The actual contamination cause was P18 (beat clause staging named prose objects as foreground elements), fixed in J2. J0 noted that if reference isolation already held, P24 (hero anchor drift) would likely resolve automatically with J1 and J2 in place.
+
+**Gate** `anchorHolds.test.mjs` — 7 courts: `heroSoul` exported from prompts.js (hero seatable as a soul); hero seated via `name === campaign.hero.name` (case-exact, strict); `resolveWardenAnchor` (foundry.js) passes `sheets:false` (bust-first, never a reference sheet); foundry.js comment confirms bust-first; FUNCTIONAL: Sera named in `cue.subjects` → Sera appears in `scenePrompt` output; `heroSoul` carries name/mark/presentation; case-exact: lowercase subject does not seat the hero (strict-equal, no folding). No app code changed — hero anchor path already conforms with J1 in place.
+
+---
+
+### J5 — Plate-frame CSS gate (P23)
+
+**Finding.** P23 (consistent plate ratio/crop) — the CSS on `.illustration-panel img` already conforms: `object-fit:contain; width:100%; height:auto; max-height:74vh`. The panel element has no conflicting `aspect-ratio`. The procedural art fallback (`proceduralArtDataUrl`) is defined. Pixel geometry at real device widths is browser-only (Rule 26 caveat).
+
+**Gate** `plateFrame.test.mjs` — 7 courts: `object-fit:contain` (plate shown whole, never cropped); `width:100%` (fills column); `max-height` in `vh` (consistent frame cap); `height:auto` (natural aspect ratio preserved); no conflicting `aspect-ratio` on panel; procedural art fallback defined; Rule 26 caveat declared (pixel geometry confirmed in browser suite: h4-layout/h5-geometry/j7-layout). No CSS changed — CSS already conforms.
+
+---
+
+### J4 — Tick system fixes (P21/P22) — grammar, rotation, time-unit guard, villain gates
+
+**Problem (P21).** The `excerpt()` function (livingWorld.js) produced three grammar defects: (1) imperative goals ("Find the chalice") left the first letter capitalised mid-sentence ("presses on toward Find the chalice"); (2) trailing punctuation on goals doubled the template's terminal period ("…toward clear the path.."); (3) the 7-word hard slice could cut mid-clause.
+
+**Problem (P22).** `pickTickTargets()` sorted deterministically by bond/introduced_turn/name — the same top-N souls always ticked; no rotation. The tick invocation in App.jsx fired on any `time_advance`, including "a few moments" — too short for offscreen NPC progress.
+
+**Fix (livingWorld.js).** `excerpt()`: (a) lowercase the first letter; (b) trim trailing `[.,;:!?]+`; (c) clip at a natural clause boundary (period → close clause, comma → stop before the comma word) within the 7-word window. `pickTickTargets()`: added `turn` parameter; when the eligible pool exceeds the budget, the window start is `turn % (pool_size − budget + 1)` — deterministic rotation, same (codex, turn) → same targets. `tickUpdates()`: passes `turn` through to `pickTickTargets`.
+
+**Fix (App.jsx).** Time-unit guard: `TICK_WORTHY_UNITS = ['hours','days','weeks','months','years']`. The condition now reads `if (!next.completed && (tickWorthy || actNow !== actBefore))`. Act changes always trigger ticks (narrative milestone); small advances ('moments', 'seconds', 'minutes') do not.
+
+**Gates added (3):** `tickNoVillain.test.mjs` (5 courts: villain excluded in source; empty narration_blocks; villain+ally returns only ally; villain-only returns null; villain with goal still excluded); `tickGrammar.test.mjs` (7 courts: lowercase first letter; trim trailing punctuation; clause boundary; imperative goal lowercase in fact_add; single terminal period; comma clips; no ALL-CAPS mid-sentence); `tickBudget.test.mjs` (7 courts: TICK_BUDGET=4; 6-soul pool returns 4; rotation: turn 0 ≠ turn 1; deterministic; pool≤budget returns all; no rotation when small; villain excluded).
+
+**soulsWeb/leanDoor:** App.jsx time-unit guard added +398 bytes. Pin: 647977 → 648375. leanDoor KB: 633 → 634 (648375/1024=633.18, ceil=634). Same commit (pin-move law).
+
+---
+
+### J3 — Caption single-source + word-boundary guard (P19/P20)
+
+**Problem (P19).** Two template phrases ("the staged moment", "as this page tells it") needed to be confirmed as present only in comments (not in generated strings). `cueCaption` was already the single caption path (confirmed by J0 Report 3). No second generator path existed.
+
+**Problem (P20).** `plateMood(dm, 90)` uses `.slice(0, max)` — a hard byte cut that can land mid-word. When `cueCaption` falls through to the `plateMood` fallback (no sealed caption, no subjects, no region), the resulting caption could end mid-word.
+
+**Fix (App.jsx).** Added word-boundary backtracking in `cueCaption`'s last-resort path: assign `const raw = plateMood(dm, 90)` then `const capped = raw && raw.length >= 90 ? (raw.slice(0, raw.lastIndexOf(' ')) || raw) : raw`. The `|| raw` preserves the raw slice when no space is found (e.g., a 90-char single word). Sealed `cue.caption` and subjects+region paths are immune (they return before reaching this code).
+
+**Gates added:** `captionSingleSource.test.mjs` (6 courts: template phrases in comments only; cue.mood excluded; single non-comment cueCaption call; figcaption uses mood; no second path; priority order) and `captionShape.test.mjs` (8 courts: guard present; fires at max only; || raw fallback; sealed immune; subjects+region immune; functional 120-char → ≤89 word-end; sealed whole; subjects+region format).
+
+**soulsWeb/leanDoor:** App.jsx shrank −223 bytes (shorter cueCaption body). Pin: 648200 → 647977. leanDoor KB: 634 → 633 (647977/1024=632.79, ceil=633). Same commit (pin-move law).
+
+---
+
 ### J1 — E3 belt-and-suspenders assertion + referenceScope gate
 
 **Problem.** J0 Report 1 confirmed that `resolveAnchors` already filters by `campaignId` at the Dexie query (E3 item 3 landed). But E3 item 4 (boundary assertions at the anchor-resolution exit) was unaddressed: the cache-hit path had its assertion (foundry.js:109), but the anchor-resolution exit had no check. A future regression in the Dexie index, a wrong `campaignId` parameter, or a test that forgets to set `campaignId` could silently produce foreign anchors without any detection.

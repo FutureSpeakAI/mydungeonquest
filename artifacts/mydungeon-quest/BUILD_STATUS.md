@@ -380,6 +380,25 @@ layer (App.jsx, components, cinema/prompts, storybook, styles, prologue).
   held; the standing report lives in LOOP_LOG.md. Resumption needs the
   owner's pen: credits + a §VIII amendment.
 
+## Stage 5 — THE PAINTER (J0–J8, J8 skipped): completed 2026-07-29
+
+Seven phases, one commit per phase (J5+J6 combined). 185 keyless Node evals PASS.
+
+| Phase | Defects | Fix | Gate |
+|---|---|---|---|
+| J1 | E3 anchor isolation assertion | resolveAnchors exit assertion + logRefusal before throw | referenceScope.test.mjs (7 courts) |
+| J2 | P18 beat-clause prop-staging | Removed "stage every thing named…large in foreground" from scenePrompt | cueMoment.test.mjs (7 courts) |
+| J3 | P19/P20 caption source + word-boundary | cueCaption: word-boundary backtracking for plateMood fallback | captionSingleSource (6) + captionShape (8) |
+| J4 | P21/P22 tick grammar + rotation + time-unit | excerpt() lowercase+trim+clause; rotation by turn; tickWorthy guard | tickNoVillain (5) + tickGrammar (7) + tickBudget (7) |
+| J5 | P23 plate framing | CSS already conforms (object-fit:contain, width:100%, max-height:74vh, height:auto) | plateFrame.test.mjs (7 courts, Rule 26 caveat) |
+| J6 | P24 hero anchor holds | Already holds with J1+J2; confirmed heroSoul, case-exact match, sheets:false | anchorHolds.test.mjs (7 courts) |
+| J7 | T6/T7/T10 reopened browser items | Playwright j7-layout suite (15 courts, 5 items × 3 widths) | j7-layout project in playwright.config.ts |
+| J8 | Comet | Skipped — comet is native (Shared Sky Law) | — |
+
+soulsWeb pin at stage close: 648375 bytes. leanDoor KB: 634.
+
+---
+
 ## Task 61 — THE COMMONS: v1.1.0 CLOSED GREEN (2026-07-20, resumed window)
 - The owner's pen moved (Task #53): credits refilled, §VIII amended in one
   line — the 61.12 red was environmental — granting exactly three seats.

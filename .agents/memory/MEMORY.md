@@ -51,6 +51,8 @@
 - [Machinery rows: seal leads](journal-machinery-rows.md) — journal seal FIRST, log row (with recordHash) after, ONE save; save-first poisons memory and bars retries when the seal door jams.
 - [Gates must red under the old law](eval-binding-proofs.md) — demand failure under the old law; a bend that GREENS = dead guard in the fixture, seat a row only that guard refuses; adversarial seating.
 - [Compacted-session summaries drift](session-summary-drift.md) — "landed" lists and "remaining" steps are claims; verify by grep + git status/log before building on them.
+- [Navigator stubbing in Node 21+](navigator-stubbing-node21.md) — global.navigator is non-configurable; use an inner `_impl(storage)` fn instead of global stubs.
+- [MyDungeon CLAWS.md](mydungeon-claws.md) — docs/CLAWS.md is the canonical home for Rules 18–27 and the joint pin-move law (soulsWeb+leanDoor same commit).
 - [MyDungeon replay identity law](mydungeon-replay-identity.md) — re-views resolve only what the moment owned (cleared seat > own plate > BOUND-beat cover; unbound hangs nothing); reconcile colliding laws by conditioning the rung on provenance, never striking it; run freshPlates+mediaFallback+cellar+book together.
 - [Dowry grounding law](mydungeon-dowry-grounding.md) — citation courts bind NAMES to quotes whole-phrase (substring is not naming); the amend bypass is two-handed: caller flag + rename-minted row mark.
 - [Ghost sweeps grep content](eval-ghost-sweeps.md) — no-trace courts scope to payload bytes; envelope JSON carries base64 dice ('Xy' lands in a hash).

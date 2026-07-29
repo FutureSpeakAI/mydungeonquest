@@ -1,0 +1,28 @@
+{
+  "_note": "Two classes with opposite assertion directions. throughput values are null until the first run writes them. failure values are set by hand and are NEVER written or modified by a run.",
+  "throughput": {
+    "_direction": "floor",
+    "turnsCompleted": null,
+    "logEntries": null,
+    "narrationWords": null,
+    "narrationBlocks": null,
+    "suggestionSets": null,
+    "platesRendered": null,
+    "ticksFired": null
+  },
+  "failure": {
+    "_direction": "ceiling",
+    "playRejections": 0,
+    "platesRefusedByRenderDoor": 0,
+    "boundaryAssertionThrows": 0,
+    "unknownPageErrors": 0,
+    "unresolvedReferences": 0,
+    "quotaWarnings": 0,
+    "narrationFloorBreaches": 0,
+    "safeFallbackTurnInvocations": 0,
+    "understudyInvocations": 1,
+    "validatorRepairTurns": 3,
+    "maxTicksInOneTurn": 4
+  },
+  "targetTurns": 30
+}

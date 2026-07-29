@@ -11,6 +11,7 @@
 import { mockSmith, validateCandidateSet } from 'fatescript/smith';
 import { mockStorySmith, validateStorySmithCandidate } from 'fatescript/storySmith';
 import { isProving } from './proving.js';
+import { logRefusal } from './refusalLog.js';
 
 export async function smithSpin({ scope, field = null, locked = {}, seed = 0, tier = 'parchment' }) {
   const floor = () => mockSmith({ scope, field, locked, seed });
@@ -23,7 +24,11 @@ export async function smithSpin({ scope, field = null, locked = {}, seed = 0, ti
     if (!res.ok) return floor();
     const json = await res.json();
     const verdict = validateCandidateSet(scope, field, Array.isArray(json?.candidates) ? json.candidates : null, locked);
-    return verdict.ok ? json : floor();
+    if (!verdict.ok) {
+      logRefusal({ what: `smith candidate set (scope: ${scope})`, why: `validation failed: ${verdict.errors?.[0] || 'unknown'}`, actual: 'unlawful candidate parcel', action: 'degrading to deterministic floor' });
+      return floor();
+    }
+    return json;
   } catch {
     return floor();
   }
@@ -46,7 +51,11 @@ export async function spineSpin({ covenant = '', tone = '', carryover = null, se
     if (!res.ok) return floor();
     const json = await res.json();
     const verdict = validateStorySmithCandidate({ spine: json?.spine, rumors: json?.rumors }, { bespoke: true });
-    return verdict.ok ? json : floor();
+    if (!verdict.ok) {
+      logRefusal({ what: 'story smith candidate (spine)', why: `validation failed: ${verdict.errors?.[0] || 'unknown'}`, actual: 'unlawful spine parcel', action: 'degrading to deterministic floor' });
+      return floor();
+    }
+    return json;
   } catch {
     return floor();
   }

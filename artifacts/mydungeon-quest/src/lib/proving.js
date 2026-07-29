@@ -1,5 +1,6 @@
 import { applyStoryUpdates, initCodex } from 'fatescript/story';
 import { applyCombat } from './combat.js';
+import { logRefusal } from './refusalLog.js';
 import { createHero } from 'fatescript/rules';
 import { castHeroVoice } from 'fatescript/cinema/casting';
 import { tickUpdates, tickLogEntry } from 'fatescript/livingWorld';
@@ -137,13 +138,22 @@ export async function seedProvingCampaign(fixture) {
   }
 
   let sealed = await db.campaigns.get(id);
+  // THE STANDING ASK (G23c's seat) — a fixture may seed a pending roll
+  // the way the live table persists one (saveCampaign carries it
+  // verbatim); anything not shaped like the door's own ask is refused
+  // to null, never guessed at. Rule 27: a malformed ask is logged before
+  // being discarded so a broken fixture is visible in the test console.
+  const rawPending = fixture.pendingRoll;
+  const pendingRoll = (rawPending != null && typeof rawPending === 'object' &&
+    !Array.isArray(rawPending) && typeof rawPending.id === 'string' &&
+    typeof rawPending.kind === 'string' && typeof rawPending.actor_id === 'string')
+    ? rawPending
+    : (() => {
+        if (rawPending != null) logRefusal({ what: 'fixture.pendingRoll', why: 'malformed shape — must have id, kind, actor_id as strings', expected: '{ id: string, kind: string, actor_id: string }', actual: JSON.stringify(rawPending)?.slice(0, 80), action: 'seating null' });
+        return null;
+      })();
   let finished = {
-    ...campaign, hero, codex, logs, turnNumber, combat,
-    // THE STANDING ASK (G23c's seat) — a fixture may seed a pending roll
-    // the way the live table persists one (saveCampaign carries it
-    // verbatim); anything not shaped like the door's own ask is refused
-    // to null, never guessed at.
-    pendingRoll: fixture.pendingRoll && typeof fixture.pendingRoll === 'object' && !Array.isArray(fixture.pendingRoll) && typeof fixture.pendingRoll.id === 'string' && typeof fixture.pendingRoll.kind === 'string' && typeof fixture.pendingRoll.actor_id === 'string' ? fixture.pendingRoll : null,
+    ...campaign, hero, codex, logs, turnNumber, combat, pendingRoll,
     headHash: sealed.headHash, turnCount: sealed.turnCount, signatureStatus: sealed.signatureStatus,
     updatedAt: Date.now()
   };

@@ -4937,3 +4937,59 @@ console.log({ campaign: !!campaign, rowCount: rows.length, headHash: campaign?.h
 **`exportAlwaysWorks.test.mjs`:** DOES NOT EXIST as a standalone file. Its property (Rule 25: `exportRawJournal` returns a stable envelope for any input — missing, valid, or malformed-row — and never throws) is fully covered by courts 1, 2, and 3 of `loadNeverThrows.test.mjs`. No gap: the property is held.
 
 **`exportRawJournal` gate:** HAS a gate. Courts 2 and 3 of `loadNeverThrows` specifically exercise it against broken inputs (malformed row, missing campaign). A function whose purpose is working when everything else is broken is tested against broken fixtures. Covered.
+
+---
+
+### H1 — Narration audio chain (P14)
+
+**Architecture review.** Before any code change: `narrator.js` already uses the single-element ("one throat") pattern. `let audio = null` — one persistent element, lazily initialized, never discarded. `playSegment` reuses it by calling `element.src = url` per segment. The `onended` handler calls `playSegment(...)` without constructing a new `Audio`. A try/catch around `element.play()` is already present and stages the reading as `paused+blocked` on refusal, making the button a visible invitation. P14 as described — "each segment constructs `new Audio()`" — is NOT present in the codebase. The architecture is correct.
+
+**Gap identified.** The `play()` rejection catch did not log the error name or segment identity. H1 Step 4 requires this. A silent rejection was indistinguishable from a working segment.
+
+**Fix.** Added `console.error('[narrator] play() refused', { segment: index, error: error?.name, message: error?.message })` inside the catch block, guarded by `error?.name !== 'AbortError'` (AbortError is a normal interruption from `retire()` and must not flood the console). The staging logic (`paused = true; blocked = true`) is unchanged.
+
+**Device verification required.** The Node harness cannot verify audio playback (Rule 26). The `narrationChain` test is deferred to Phase H4's browser suite. No PASS/FAIL from the Node suite for the playback behavior itself.
+
+**Gate.** No new Node eval (Rule 26 prohibits claiming audio observation). Verification deferred to H4.
+
+---
+
+### H2 — Make refusals loud (P15, Rule 27)
+
+**Inventory.** Seven paths examined:
+1. E3 campaign-isolation boundary (foundry.js) — ALREADY logs: `[E3] campaign isolation violated...` ✓
+2. Render door attestation (plateroad.js admitPlate) — ALREADY uses `plateTrace` with outcome field ✓
+3. Audio Director provenance refusal (audioDirector.js `request()`) — SILENT ✗
+4. Audio Director expired-queue drop (audioDirector.js `pump()`) — SILENT ✗
+5. Audio Director occupied-moment drop (audioDirector.js `request()`) — SILENT ✗
+6. Validator rejection branches (smithClient.js) — SILENT on both `smithSpin` and `spineSpin` ✗
+7. Session cap exceeded (foundry.js `!this.allowed(kind)`) — SILENT ✗
+8. `onOpen` guard (App.jsx) — ALREADY logs with `console.error('[open]')` ✓
+9. Malformed `pendingRoll` (proving.js) — SILENT ✗
+
+**Shared helper.** `src/lib/refusalLog.js` created — exports `logRefusal({ what, why, expected, actual, action })`. Emits a structured `console.warn('[refusal]', record)` and returns the record for test assertion. Developer-facing only (Rule 22 stands).
+
+**Fixes applied.**
+- `audioDirector.js`: imports `logRefusal`; `request()` now logs on provenance refusal (no blob, mock provider) and on occupied-moment drop; `pump()` logs each expired staged item before filtering.
+- `smithClient.js`: imports `logRefusal`; both `smithSpin` and `spineSpin` call `logRefusal` when `verdict.ok` is false before returning `floor()`.
+- `foundry.js`: imports `logRefusal`; the `!this.allowed(kind)` early-return now emits the spent/cap counts.
+- `proving.js`: imports `logRefusal`; `pendingRoll` guard restructured from inline ternary to an IIFE that calls `logRefusal` for any non-null malformed value.
+- `narrator.js`: existing play() rejection catch already updated in H1 — logged with `console.error`.
+
+**No refusal decision changed.** Every door that closed yesterday still closes.
+
+**Gate `refusalsAreLoud` added.** Eight courts (one per inventoried silent path): source-level checks that each module imports and calls `logRefusal` with the correct `what`, `why`, and action; functional court runs `logRefusal` directly and verifies the returned record structure. PASS keyless.
+
+---
+
+### H3 — Close the recordHash fallback (P16)
+
+**Root cause confirmed.** P16 is the G3 fix re-opening the plate bug through the fallback branch. The G3 key was `` `scene:${campaign.id}:${turnRecord.recordHash || logId}` ``. At mint time, `recordHash` is absent (seal races the job brief) → key uses `logId`. After seal, `recordHash` exists → the same expression uses `recordHash`. Different identifiers produce different keys. The cache lookup misses, the plate re-mints unnecessarily, and the E3 boundary assertion would fire if the spec.hash collides cross-campaign.
+
+**Fix.** `src/lib/cinema/plateKey.js` created with `export const scenePlateKey = (campaignId, logId) => \`scene:${campaignId}:${logId}\``. `App.jsx` imports it and uses `scenePlateKey(campaign.id, logId)` — no conditional, no fallback. `logId` (the log entry's stable UUID) is always defined and never changes across the seal boundary. The comment above the job was updated to explain P16.
+
+**Eval updates.** `tempo.test.mjs` updated to check for `scenePlateKey(campaign.id, logId)` instead of the old template literal. `plateBindingLive.test.mjs` updated: the `|| logId` assertion replaced with `scenePlateKey(` assertion; added assertion that `recordHash` is absent from the key expression entirely.
+
+**Gate `plateKeyStable` added.** Six courts: plateKey.js exports the function; `scenePlateKey(id, logId)` returns the same key on two calls; key contains both identifiers and starts with `scene:`; App.jsx scene plate line uses `scenePlateKey()`; App.jsx imports from the correct path; `recordHash` and `||` conditional are absent from the scene plate line. PASS keyless.
+
+**Pins re-seated.** soulsWeb exact-bytes: 646337 → 647496 (+1159 bytes, H1–H3 Rule 27 observability + plateKey.js module, owner ruling). leanDoor KB ceiling: 632 → 633 KB, same ruling. Both pins move together in the same commit.

@@ -1,3 +1,5 @@
+import { logRefusal } from '../refusalLog.js';
+
 // ------------------------------------------------------------
 // THE AUDIO DIRECTOR — the single throat through which every
 // non-narration sound must pass. The Sound Law, enforced:
@@ -52,6 +54,10 @@ function startSound(item) {
 // because an effect is a moment and music is a mood.
 function pump() {
   const now = Date.now();
+  const expired = queue.filter((item) => item.expiresAt <= now);
+  if (expired.length) {
+    expired.forEach((item) => logRefusal({ what: `${item.lane} audio (staged)`, why: 'wait window expired before the voice yielded', action: 'dropped; silence is lawful' }));
+  }
   queue = queue.filter((item) => item.expiresAt > now);
   if (voiceActive || live || !queue.length) return;
   queue.sort((a, b) => (a.lane === b.lane ? a.requestedAt - b.requestedAt : a.lane === 'sfx' ? -1 : 1));
@@ -70,7 +76,17 @@ export function setVoiceActive(active) {
 }
 
 function request(lane, { blob, provider, volume, maxWaitMs = 0 }) {
-  if (!blob || !lawfulProvider(provider)) return false; // the audio floor is silence
+  if (!blob || !lawfulProvider(provider)) {
+    // Rule 27 — a refusal is a loud failure; the audio floor is silence.
+    logRefusal({
+      what: `${lane} audio request`,
+      why: !blob ? 'no blob provided' : `mock provenance (provider: "${provider}")`,
+      expected: 'a real audio blob with lawful (non-mock) provider',
+      actual: !blob ? 'blob is absent' : `provider="${provider}"`,
+      action: 'ensure a real audio provider key is active; the audio floor is silence',
+    });
+    return false;
+  }
   if (voiceActive || live) {
     // A newer music phrase supersedes an older one (a re-fired cinematic).
     if (lane === 'music' && !voiceActive && live?.lane === 'music') { startSound({ lane, blob, provider, volume }); return true; }
@@ -78,7 +94,9 @@ function request(lane, { blob, provider, volume, maxWaitMs = 0 }) {
       queue.push({ lane, blob, provider, volume, requestedAt: Date.now(), expiresAt: Date.now() + maxWaitMs });
       return true; // staged — it may still expire unheard, which is lawful
     }
-    return false; // its moment is occupied → dropped, never overlapped
+    // Rule 27 — log the drop so the caller can tell a timing miss from a bug.
+    logRefusal({ what: `${lane} audio request`, why: 'moment occupied and maxWaitMs=0 — dropped, never overlapped', action: 'silence is lawful' });
+    return false;
   }
   startSound({ lane, blob, provider, volume });
   return true;

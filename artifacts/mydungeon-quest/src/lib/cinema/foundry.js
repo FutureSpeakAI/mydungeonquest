@@ -1,4 +1,5 @@
 import { db } from '../db.js';
+import { logRefusal } from '../refusalLog.js';
 import { generationSpec, momentBrief, parseMoment, momentRuling } from './prompts.js';
 import { sha256 } from 'fatescript/canonical';
 import { wardenBrief, parseVerdict, mockWarden, wardenRuling } from 'fatescript/warden';
@@ -108,7 +109,11 @@ export class Foundry {
       if (foreign) throw new Error(`[E3] campaign isolation violated: foundry "${this.campaignId}" hit asset from "${cached.campaignId}" under key "${key}"`);
       return cached;
     }
-    if (!this.allowed(kind)) return null;
+    if (!this.allowed(kind)) {
+      const bucket = kind === 'paint' ? 'images' : 'music';
+      logRefusal({ what: `${kind} generation job`, why: `session cap reached`, expected: `< ${this.caps[bucket]}`, actual: `${this.spend[bucket]} ${bucket} this session`, action: 'no more media of this kind this session' });
+      return null;
+    }
     return new Promise((resolve, reject) => {
       const lane = this.lanes[laneOf(kind)];
       lane.queue.push({ kind, prompt, originTurnHash, options, priority, spec, cacheKey: key, resolve, reject, ...rest });

@@ -104,6 +104,11 @@ export default defineConfig({
     { name: 'h4-layout', testMatch: /h4-layout\.spec\.ts/ },
     { name: 'h4-audio', testMatch: /h4-audio\.spec\.ts/ },
     { name: 'h4-storage', testMatch: /h4-storage\.spec\.ts/ },
+    // H5 COMPUTED-STYLE COURTS — extends H4 layout with real getComputedStyle
+    // checks for T6 (.suggestions scroll-snap), T7 (.sigil-portrait crop),
+    // and T10 (.region-strip no-repeat). Injects a minimal campaign via IDB
+    // to reach the table view without a full forge flow. Keyless.
+    { name: 'h5-geometry', testMatch: /h5-geometry\.spec\.ts/ },
   ],
   webServer: {
     command: 'bash tests/e2e/webserver.sh',

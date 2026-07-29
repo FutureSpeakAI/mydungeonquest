@@ -96,6 +96,14 @@ export default defineConfig({
     // same dom pass as the other self-seeding courts.
     { name: 'g36-open-road', testMatch: /g36-open-road\.spec\.ts/, dependencies: ['dom'] },
     { name: 'teeth', testMatch: /sabotage\.spec\.ts/, dependencies: ['harvest'] },
+    // H4 BROWSER SUITE — separate from the proving loop. These courts cover
+    // what the Node/react-test-renderer suite cannot observe: real layout
+    // geometry, narration chain state, and IndexedDB quota behavior in a
+    // real browser. Keyless by construction (mock DM, no paint keys). No
+    // dependency on the harvest project — these tests boot a fresh context.
+    { name: 'h4-layout', testMatch: /h4-layout\.spec\.ts/ },
+    { name: 'h4-audio', testMatch: /h4-audio\.spec\.ts/ },
+    { name: 'h4-storage', testMatch: /h4-storage\.spec\.ts/ },
   ],
   webServer: {
     command: 'bash tests/e2e/webserver.sh',

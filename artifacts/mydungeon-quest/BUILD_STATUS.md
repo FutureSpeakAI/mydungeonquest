@@ -1,5 +1,25 @@
 # Build status
 
+## Suite ledger (H4 — two suites, one chain)
+
+Every gate in the chain belongs to exactly one of two suites. A reader must be able to see at a glance which suite holds each gate and what it can observe.
+
+### Node suite (keyless floor)
+The Node/react-test-renderer/fake-indexeddb suite. Runs fully keyless (`npm run eval`, 171 gates and growing). No browser, no network, no AI keys. What it can observe: module exports, CSS source text, source-level structural patterns, pure function outputs, Dexie schema against fake-indexeddb, cryptographic chain math, protocol/validator correctness. What it cannot observe (Rule 26): pixel positions, bounding boxes, element overlap, computed layout geometry, audio playback, AudioContext state, navigator.storage.estimate(), font rendering, real IndexedDB behavior.
+
+Representative gates: `run.mjs` (full table eval bench), `castLaw`, `vault`, `audioDirector`, `narratorConcurrency`, `safeInsets` (CSS source), `hudFit` (CSS source), `composerFit` (CSS source), `chromeRegressions` (CSS source), `loadNeverThrows`, `plateBindingLive`, `plateKeyStable`, `refusalsAreLoud`, `harnessHonest`, `harnessSplit`.
+
+### Browser suite (H4 — Playwright)
+The Playwright/Chromium suite. Two tiers:
+
+**Proving loop** (`tests/e2e/g00–g36`, run via `proving-loop` workflow, may require AI keys for vision courts): full campaign lifecycle, visual style verification, machine-vision plate quality, aria accessibility, the open-road walk, the commons court. 37 named projects in the proving loop.
+
+**H4 geometry/audio/storage courts** (`tests/e2e/h4-*.spec.ts`, run via `npx playwright test --project h4-layout --project h4-audio --project h4-storage`, keyless): Real geometry at 360/390/430 widths; narration chain and audio module interface; IndexedDB and navigator.storage.estimate() in a real browser; quota-stub smoke test. These gates cover what the Node suite's CSS-source checks cannot observe (Rule 26 upgrade). H5 extends the h4-layout court with the specific T6/T7/T10 regression geometry.
+
+Gate names: `h4-layout` (layout geometry at three widths), `h4-audio` (narration module, H1 verification), `h4-storage` (IndexedDB, quota stub, export path).
+
+
+
 ## The Port — parity pinned (2026-07-19, Task 60 §1)
 - One truth, two shelves (this section is pinned verbatim in both repos'
   BUILD_STATUS): the engine's keyless check stands at sixty-five gates

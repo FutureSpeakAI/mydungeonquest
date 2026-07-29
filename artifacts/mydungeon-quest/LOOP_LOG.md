@@ -4940,6 +4940,29 @@ console.log({ campaign: !!campaign, rowCount: rows.length, headHash: campaign?.h
 
 ---
 
+### H4 — Playwright browser suite (Rule 26 upgrade)
+
+**Problem.** Nine Node evals assert CSS source text for layout properties (safeInsets, hudFit, composerFit, chromeRegressions, etc.). Source-text checks confirm the law is written; they cannot confirm the law renders correctly. Rule 26 states: "Claim only what the tool can see." A source-text geometry claim is not a geometry claim.
+
+**Architecture decision.** Two-suite ledger: the Node suite (171+ keyless evals) remains the floor. A Playwright/Chromium browser suite adds what Node cannot see. The existing proving loop (tests/e2e/g00–g36) was already the primary browser harness for the proving campaign. H4 adds three independent keyless projects to the same playwright.config.ts:
+- `h4-layout` — real geometry at 360/390/430 widths (no horizontal overflow, tap-target floor ≥44px, content visible not clipped by safe-area)
+- `h4-audio` — narration module interface in a real browser (boots without crashes, gesture handler does not crash, H1 fix is verifiable)
+- `h4-storage` — real IndexedDB (databases open on boot), navigator.storage.estimate() is available (H7 prerequisite), near-full quota stub does not crash the page, export module loads clean
+
+**Build status.** BUILD_STATUS.md now has a "Suite ledger" section at the top listing what each suite can and cannot observe, and naming every H4 gate by project name.
+
+**Gate.** `harnessSplit.test.mjs` — 5 courts, source-level:
+① BUILD_STATUS.md documents both suites
+② playwright.config.ts has h4-layout, h4-audio, h4-storage projects
+③ All three browser test files exist
+④ H4 tests are NOT in the Node eval chain (they belong in the browser suite)
+⑤ Node floor holds (leanDoor is in the eval chain, has a PASS line)
+PASS keyless.
+
+**Deferred to H5.** The specific T6/T7/T10 regression geometry (chip-rail vs narration, HUD avatar, region banner) and the full narration-chain interactive test require a running table session. H5 extends the h4-layout and h4-audio courts once the proving-session setup is replicated for the H4 context.
+
+---
+
 ### H1 — Narration audio chain (P14)
 
 **Architecture review.** Before any code change: `narrator.js` already uses the single-element ("one throat") pattern. `let audio = null` — one persistent element, lazily initialized, never discarded. `playSegment` reuses it by calling `element.src = url` per segment. The `onended` handler calls `playSegment(...)` without constructing a new `Audio`. A try/catch around `element.play()` is already present and stages the reading as `paused+blocked` on refusal, making the button a visible invitation. P14 as described — "each segment constructs `new Audio()`" — is NOT present in the codebase. The architecture is correct.

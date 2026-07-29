@@ -1,13 +1,16 @@
 // G3 — plateBindingLive (Rule 21: campaigns are isolated)
+// Updated H3 — key now uses scenePlateKey(campaign.id, logId), no conditional.
 //
 // Proves that the scene plate job's cacheKey is ALWAYS campaign-scoped
-// and never falls back to `undefined`. Before the G3 fix the key was
-// conditional: `turnRecord.recordHash ? \`scene:...\` : undefined`.
-// An undefined cacheKey causes the Foundry to use spec.hash instead —
-// which is content-addressed and shared across campaigns. If any other
-// campaign's media row carries that spec.hash, the E3 boundary assertion
-// at foundry.js throws `[E3] campaign isolation violated` and the plate
-// job fails silently.
+// and never falls back to `undefined`. Before G3 the key was conditional:
+// `turnRecord.recordHash ? \`scene:...\` : undefined`. An undefined cacheKey
+// causes the Foundry to use spec.hash — shared across campaigns — and trips
+// the E3 boundary assertion at foundry.js.
+//
+// H3 closes the P16 trap in the G3 fix: `|| logId` also produced different
+// keys at mint (recordHash absent → logId) vs lookup (recordHash present →
+// recordHash). The key now uses scenePlateKey(campaign.id, logId) — logId
+// is a stable UUID that never changes across the seal boundary.
 //
 // Source-level court — no browser, no build, no AI keys.
 
@@ -46,11 +49,15 @@ assert.ok(
   'Scene plate cacheKey must embed campaign.id for campaign isolation (Rule 21)',
 );
 
-// The logId fallback: when recordHash is null (turn not yet sealed at
-// briefing time) the key must still be non-null via logId.
+// H3: the key uses scenePlateKey(campaign.id, logId) — no conditional,
+// no recordHash fallback. logId is always stable across the seal boundary.
 assert.ok(
-  scenePlateLine.includes('|| logId') || scenePlateLine.includes('||logId'),
-  'Scene plate cacheKey must use logId as fallback when recordHash is absent — logId is a stable turn UUID that is always defined at job-brief time',
+  scenePlateLine.includes('scenePlateKey('),
+  'Scene plate cacheKey must use the shared scenePlateKey() function (H3) — no recordHash conditional allowed',
+);
+assert.ok(
+  !scenePlateLine.includes('recordHash'),
+  'Scene plate cacheKey must not reference recordHash — it is absent at mint time and would produce a different key at lookup (P16 trap)',
 );
 
 // Also verify the Foundry's campaignIsolation eval still covers the E3 path.
@@ -61,7 +68,7 @@ assert.ok(
 );
 
 console.log(
-  'PASS — G3 plateBindingLive: the scene plate cacheKey is always campaign-scoped ' +
-  '(campaign.id + recordHash, logId fallback); no `: undefined` path survives; ' +
+  'PASS — G3/H3 plateBindingLive: the scene plate cacheKey is always campaign-scoped ' +
+  'via scenePlateKey(campaign.id, logId); no recordHash conditional; no `:undefined` path; ' +
   'E3 boundary assertion guard confirmed present in campaignIsolation.test.mjs.',
 );

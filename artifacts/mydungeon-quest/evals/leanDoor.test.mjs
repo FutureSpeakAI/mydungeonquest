@@ -74,6 +74,12 @@
 //     (60-160 words) replaces it; safeFallbackTurn text extended to clear
 //     the 60-word floor; fitToMeasure word-count padding added. Net -96 bytes
 //     from prior 645967 (632 kB). Ratchet tightens to measured value.
+//   2026-07-29 — measured 633 kB; ruled 633 kB. Stage 4 H1–H3:
+//     H1 narrator play() rejection logging (Rule 27); H2 refusalLog.js +
+//     logRefusal calls in 4 modules (Rule 27 — loud refusals throughout);
+//     H3 plateKey.js + scenePlateKey import in App.jsx (P16 closure).
+//     Permanent developer observability + correctness law. No new surface,
+//     no ceremony word. soulsWeb pin re-seated at 647496.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a
@@ -95,7 +101,7 @@ import { entryClosureOf, closureBytesOf } from './manifestClosure.mjs';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
-const PIN_KB = 632; // ruled 2026-07-28 — see the movement ledger in this header
+const PIN_KB = 633; // ruled 2026-07-29 — see the movement ledger in this header
 // CROSS-POINTER: the web-of-souls seating court (soulsWeb.test.mjs) pins the
 // closure's EXACT bytes; a ruled move of the closure re-seats BOTH pins in
 // the same ruling. Both courts read the ONE walk in manifestClosure.mjs.

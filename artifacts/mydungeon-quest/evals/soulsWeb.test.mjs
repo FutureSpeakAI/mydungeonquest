@@ -190,7 +190,19 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   No new surfaces. Law growing (Rule 21 campaign isolation, Rule 24 record
 //   survives the code). Three new evals added: plateBindingLive, loadNeverThrows,
 //   harnessHonest. soulsWeb pin and leanDoor KB ceiling both re-seated.
-const CLOSURE_BYTES_PIN = 646337;
+// 646337 → 647496, a move of +1159 bytes. Owner ruling: Stage 4 H1–H3.
+//   H1: narrator.js play() rejection catch gains console.error with segment
+//   index and error name (Rule 27 — refusal logging, not suppression).
+//   H2: refusalLog.js (new sync module) + logRefusal calls in audioDirector.js,
+//   smithClient.js, foundry.js, proving.js — Rule 27 compliance. Every
+//   previously silent refusal door now emits a structured record. Permanent
+//   developer observability, not a surface or ceremony word.
+//   H3: plateKey.js (new sync module) + scenePlateKey import in App.jsx;
+//   cacheKey expression simplified from inline template to shared function call
+//   (same net length but plateKey.js adds a small new module). P16 closed.
+//   Two new evals added: refusalsAreLoud, plateKeyStable. Law growing.
+//   soulsWeb pin and leanDoor KB ceiling both re-seated.
+const CLOSURE_BYTES_PIN = 647496;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

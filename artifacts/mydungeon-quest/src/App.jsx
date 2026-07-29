@@ -60,6 +60,7 @@ import { beatKeys, briefUpcomingBeat } from './lib/cinema/lookahead.js';
 import { stopAllSound } from './lib/cinema/audioDirector.js';
 import { playUiSfx } from './lib/cinema/uiSfx.js';
 import { playNarration, primeNarration, stopNarration, subscribeNarration, toggleNarration } from './lib/cinema/narrator.js';
+import { scenePlateKey } from './lib/cinema/plateKey.js';
 import { castHeroVoice } from 'fatescript/cinema/casting';
 import { slugify } from 'fatescript/canonical';
 import { PatronDoor } from './patron/doorFrame.jsx';
@@ -621,13 +622,14 @@ export default function App() {
       region: sceneCue.region || null,
       species: speciesInFrame
     }).plan;
-    // E3 campaign isolation: the cacheKey is ALWAYS campaign-scoped. When
-    // turnRecord.recordHash is not yet available (seal races the job brief),
-    // fall back to the logId — a stable UUID that is unique to this turn.
-    // An undefined cacheKey would fall back to the spec hash, which is
-    // content-addressed across campaigns and would trip the E3 boundary
-    // assertion if any other campaign happened to generate an identical prompt.
-    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', ...(sceneMoment.prose ? { moment: { prose: sceneMoment.prose } } : {}), referenceLabels: scenePlan.map((seat) => seat.name), seating: scenePlan, ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: `scene:${campaign.id}:${turnRecord.recordHash || logId}` });
+    // E3 campaign isolation (H3, P16): scenePlateKey always uses logId —
+    // the log entry's stable UUID, set at creation and never changed.
+    // Using recordHash conditionally was the P16 trap: recordHash is absent
+    // at mint time (seal races the brief) but present at lookup, so the
+    // same expression produced different keys at mint and lookup, causing
+    // a cache miss and re-mint on every post-seal request. logId is stable
+    // across the seal boundary; the conditional is gone, not softened.
+    jobs.push({ kind: 'paint', prompt: scenePrompt(campaign, sceneCue, sceneMoment), options: { kind: 'scene', ...(sceneMoment.prose ? { moment: { prose: sceneMoment.prose } } : {}), referenceLabels: scenePlan.map((seat) => seat.name), seating: scenePlan, ...(sceneBearing ? { warden: { kind: 'soul', bearingText: sceneBearing } } : {}) }, priority: 1, logId, cacheKey: scenePlateKey(campaign.id, logId) });
     } // the tempo court's writ ends here — every easel law below is untouched
     for (const soul of dm.story?.cast_add || []) {
       const locked = campaign.codex.cast.find((entry) => entry.name === soul.name);

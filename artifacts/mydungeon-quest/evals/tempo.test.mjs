@@ -55,10 +55,10 @@ deepFreeze(rows);
   const keyArt = seat('jobs.push(keyArtJob(campaign, actOf(campaign)));');
   const verdictSeat = seat('const tempoVerdict = sceneVerdict(campaign, dm, tempoTurnIndex);');
   const writ = seat('if (tempoVerdict.paints) {');
-  // G3 fix: the cacheKey is now ALWAYS campaign-scoped; when recordHash is
-  // absent (turn not yet sealed at brief time) logId provides the anchor so
-  // the key is never undefined and never falls back to spec.hash.
-  const scenePush = seat("cacheKey: `scene:${campaign.id}:${turnRecord.recordHash || logId}`");
+  // H3 fix: cacheKey now uses scenePlateKey(campaign.id, logId) — a shared
+  // function that is stable across the seal boundary (no recordHash conditional,
+  // which was the P16 trap: different key at mint vs lookup after seal).
+  const scenePush = seat("cacheKey: scenePlateKey(campaign.id, logId)");
   const writClose = seat("the tempo court's writ ends here");
   assert.ok(keyArt < verdictSeat && verdictSeat < writ && writ < scenePush && scenePush < writClose,
     'the writ wraps the scene plate alone — key art seats before the court sits, and the writ closes before every other law');

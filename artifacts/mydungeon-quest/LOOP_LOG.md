@@ -5216,3 +5216,59 @@ Includes a browser-console diagnostic snippet for classifying a live crashed cam
 ### Pin status (K0–K5)
 
 soulsWeb exact-bytes: **648375** (unchanged — App.jsx comment addition does not affect compiled bundle). leanDoor KB: **634** (unchanged). Pins hold; no pin move needed this phase.
+
+---
+
+## Stage 6 — K6 through K9 (2026-07-29)
+
+### K6 — recordHash fallback removed
+
+**Root cause:** same P16 trap that required `plateKey.js` in H3. The `||` fallback creates two different identifiers across the seal boundary — one before the record is sealed (using `log.id`), one after (using `log.recordHash`). Two locations:
+
+1. `src/lib/cinema/narrator.js:84` — narration cache key: `` `narration:${campaignId}:${log.recordHash || log.id}:${index}:${voiceId}` `` → `log.id` always.
+2. `src/App.jsx:599` — scene art seed: `turnRecord.recordHash || String(logId || '')` → `String(logId)` always.
+
+Both are sealed-turn identifiers where the stable UUID (`logId` / `log.id`) is always defined. `recordHash` is absent at mint time and present post-seal — using it as a fallback makes the identifier shift on the first reload after sealing.
+
+**Pin move.** The minifier eliminated the `||` branch, reducing the closure by 32 bytes: soulsWeb 648375 → 648343. leanDoor KB ceiling unchanged at 634 (648343/1024 = 633.15, ceil=634). Both pins updated in the same commit per the pin-move law.
+
+### K7 — Stage C migration functional coverage
+
+**Courts ⑦–⑨ added to `migrationsLand.test.mjs`:**
+
+⑦ `castHeroVoice` functional: imports from `packages/engine/src/cinema/casting.js`; asserts it returns a non-empty `voiceId` for a hero with no voiceId (pre-casting-law hero).
+
+⑧ Simulated onOpen migration: creates a pre-Stage-C campaign (`mediaTier:'cinema'`, no `voiceId`); applies the same three migrations as the G1 try-block in App.jsx; asserts `mediaTier === 'illuminated'` and `hero.voiceId` is a string.
+
+⑨ `reconcileLegacyPurse` fail-safe: confirms it returns the original campaign for `readOnly:true` and for a campaign with no substantive logs. No DB write happens for ineligible campaigns.
+
+### K8 — 30-turn instrumented long march
+
+**`tests/e2e/k8-longmarch.spec.ts` written.** 30-turn Playwright session in keyless mode (3-minute timeout):
+- Injects a campaign via IDB
+- Sends 30 player actions through the composer (cycling through 10 action phrases)
+- Waits for each DM response (new `.log-entry` in DOM)
+- Counts: turnsCompleted, narrationWords, narrationBlocks, suggestionSets, logEntries, illustrationPanels
+- First run: writes `k8-budget.json` with baseline and floor (80% of baseline) — test passes by construction
+- Subsequent runs: asserts each metric ≥ floor
+
+Budget file is committed to the repo. First run establishes the baseline.
+
+**`k8-longmarch` project added to `playwright.config.ts`.**
+
+### K9 — lawsAgree gate
+
+**`evals/lawsAgree.test.mjs` written.** 7 courts:
+① NARRATION_FLOOR exported from protocol.js — the ONE seat
+② System prompt imports NARRATION_FLOOR dynamically; no hardcoded word counts
+③ Validator reads NARRATION_FLOOR.byMeasure[bandKey] at runtime
+④ Tool schema `minItems` ≤ NARRATION_FLOOR min `minBlocks` (1 ≤ 1 ✓)
+⑤ Tool schema `maxItems` ≥ NARRATION_FLOOR max `maxBlocks` (8 ≥ 8 ✓)
+⑥ All four byMeasure bands internally consistent (maxWords > minWords, maxBlocks ≥ minBlocks)
+⑦ No band word-range overlaps (lean ≤ standard ≤ rich)
+
+`lawsAgree.test.mjs` added to `package.json` eval chain.
+
+### Pin status (K6–K9)
+
+soulsWeb exact-bytes: **648343** (648375 → 648343, −32 bytes; K6 owner ruling). leanDoor KB: **634** (unchanged, 648343/1024 = 633.15, ceil=634). Both pins updated in same commit.

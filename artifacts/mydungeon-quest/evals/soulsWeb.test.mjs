@@ -236,7 +236,12 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   TICK_WORTHY_UNITS constant, tickWorthy predicate, updated condition).
 //   App.jsx is on the sync closure. leanDoor KB ceiling returns to 634
 //   (648375 / 1024 = 633.18, Math.ceil = 634).
-const CLOSURE_BYTES_PIN = 648375;
+// 648375 → 648343, a move of -32 bytes. Owner ruling: Stage 6 K6.
+//   Two recordHash||id conditionals shortened to bare logId/log.id identifiers
+//   in App.jsx and narrator.js. The || branch is eliminated by the minifier.
+//   Downward ratchet is lawful. leanDoor KB ceiling unchanged: 634
+//   (648343 / 1024 = 633.15, Math.ceil = 634).
+const CLOSURE_BYTES_PIN = 648343;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

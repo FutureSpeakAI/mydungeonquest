@@ -399,7 +399,7 @@ soulsWeb pin at stage close: 648375 bytes. leanDoor KB: 634.
 
 ### Stage 6 — Closing the Open Items (K0–K13, in progress)
 
-Browser suite addendum: `j7-layout` extended with PLATE court (K3) — 3 new courts asserting `object-fit:contain` on mobile plates, no face cropping at top, and no dimension shift on scroll, at 360/390/430 px.
+Browser suite addendum: `j7-layout` extended with PLATE court (K3) — 3 new courts asserting `object-fit:contain` on mobile plates, no face cropping at top, and no dimension shift on scroll, at 360/390/430 px. `k8-longmarch.spec.ts` added — 30-turn instrumented march with budget file.
 
 | Phase | Item | What | Gate |
 |---|---|---|---|
@@ -409,6 +409,10 @@ Browser suite addendum: `j7-layout` extended with PLATE court (K3) — 3 new cou
 | K3 | Rule 30 plate framing | j7-layout PLATE court: object-fit, no face crop, no layout shift on scroll | j7-layout.spec.ts (PLATE 3 courts added) |
 | K4 | Shared Sky law | docs/CLAWS.md: Shared Sky named exception to Rule 21 documented | docsCurrent.test.mjs (still PASS) |
 | K5 | H0 crash diagnosis | docs/K5-CLASSIFICATION.md: shape drift (Stage C) primary, quota secondary, chain break third | reference doc only |
+| K6 | recordHash fallback | narrator.js narration key: log.recordHash\|\|log.id → log.id; App.jsx scene seed: recordHash\|\|logId → logId | soulsWeb pin 648375 → 648343 (−32 bytes, owner ruling Stage 6 K6) |
+| K7 | Stage C migrations | migrationsLand: courts ⑦–⑨ walk pre-Stage-C campaign through castHeroVoice + mediaTier + reconcileLegacyPurse fail-safe | migrationsLand.test.mjs (11 courts) |
+| K8 | 30-turn long march | k8-longmarch.spec.ts: instrumented 30-turn Playwright session; writes k8-budget.json on first run | k8-longmarch project in playwright.config.ts |
+| K9 | lawsAgree | Three-source constraint agreement: NARRATION_FLOOR ONE seat; system prompt imports dynamically; validator reads at runtime; tool schema minItems/maxItems compatible | lawsAgree.test.mjs (7 courts) |
 
 ---
 

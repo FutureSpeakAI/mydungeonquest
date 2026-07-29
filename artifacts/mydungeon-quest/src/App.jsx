@@ -596,7 +596,11 @@ export default function App() {
       prose: (typeof dm.image_cue?.moment === 'string' && dm.image_cue.moment.trim()
         ? dm.image_cue.moment
         : (dm.narration_blocks || []).map((block) => block?.text || '').join(' ')).slice(0, 480),
-      seed: turnRecord.recordHash || String(logId || ''),
+      // K6: use logId (stable, always defined) not recordHash (absent pre-seal).
+      // The same P16 trap — different seed pre/post-seal would shift the
+      // procedural art color scheme on a hot-reload after sealing. logId is
+      // the turn's UUID, stable from creation through to the sealed record.
+      seed: String(logId),
       // The roster's first chair: the turn's first attributed voice. The
       // easel seats speaker → villain → bond, deterministic (bearing law).
       speaker: (dm.narration_blocks || []).find((block) => block?.speaker)?.speaker || null,

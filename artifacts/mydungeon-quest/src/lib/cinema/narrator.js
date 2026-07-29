@@ -80,8 +80,13 @@ export function narrationText(dm, cast = [], hero = null) {
   return narrationSegments(dm, cast, hero).map((seg) => seg.text).join('\n\n');
 }
 
+// K6: log.id is the stable identifier across the seal boundary.
+// log.recordHash is absent at pour time and present post-seal, so using
+// `recordHash || log.id` creates a different key pre/post-seal — the same
+// P16 trap that plate keys fell into (plateKey.js, H3). Using log.id alone
+// ensures the cache key is invariant regardless of when it is evaluated.
 const segmentKey = (campaignId, log, index, voiceId) =>
-  `narration:${campaignId}:${log.recordHash || log.id}:${index}:${voiceId}`;
+  `narration:${campaignId}:${log.id}:${index}:${voiceId}`;
 
 // Generate (or reuse) the audio for one voiced segment, WITH its provenance.
 // Content-addressed in the same media table as painted assets so it survives

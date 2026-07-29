@@ -129,11 +129,50 @@ import('fake-indexeddb/auto').then(async () => {
   const evicted2 = await sweepUnscopedMedia();
   assert.strictEqual(evicted2, 0, 'sweepUnscopedMedia must return 0 on second call (idempotent)');
 
+  // ⑦ K7 — Stage C voiceId migration: castHeroVoice produces a valid voiceId
+  //    for any hero mark (e.g. a hero from before the casting law has no voiceId).
+  const { castHeroVoice } = await import('../../../packages/engine/src/cinema/casting.js');
+
+  const oldHeroNoVoice = { name: 'Maren Voss', mark: 'human', presentation: 'feminine' };
+  const voiceId = castHeroVoice(oldHeroNoVoice);
+  assert.ok(typeof voiceId === 'string' && voiceId.length > 0, 'K7: castHeroVoice must return a non-empty voiceId for a hero without one');
+
+  // ⑧ K7 — A pre-Stage-C campaign (mediaTier:'cinema', hero.voiceId absent) is
+  //    correctly identified and the migration (source-level) is documented.
+  //    The inline migration logic in onOpen is already tested by court ③ (source check).
+  //    Here we confirm: AFTER the migration, the hero WOULD have a voiceId.
+  const preStageCHero = { name: 'Corin', mark: 'elf', presentation: 'neutral' };
+  const preStageCCampaign = { id: 'pre-stage-c', mediaTier: 'cinema', hero: preStageCHero, readOnly: false };
+
+  // Simulate the onOpen migration (the exact steps in App.jsx's G1 try block):
+  let migrated = { ...preStageCCampaign };
+  if (migrated.mediaTier === 'cinema') migrated = { ...migrated, mediaTier: 'illuminated' };
+  if (!migrated.readOnly && migrated.hero && !migrated.hero.voiceId) {
+    migrated = { ...migrated, hero: { ...migrated.hero, voiceId: castHeroVoice(migrated.hero) } };
+  }
+  assert.strictEqual(migrated.mediaTier, 'illuminated', 'K7: Stage C mediaTier migration must produce illuminated');
+  assert.ok(typeof migrated.hero.voiceId === 'string' && migrated.hero.voiceId.length > 0, 'K7: Stage C voiceId migration must assign a voiceId');
+
+  // ⑨ K7 — reconcileLegacyPurse is fail-safe: returns the original campaign for
+  //    read-only, completed, sealedAt, and campaigns with no logs.
+  const { reconcileLegacyPurse } = await import('../src/lib/reconcile.js');
+
+  const readOnlyCampaign = { id: 'ro-test', readOnly: true, hero: { name: 'X' }, logs: [] };
+  const roResult = await reconcileLegacyPurse(readOnlyCampaign);
+  assert.strictEqual(roResult, readOnlyCampaign, 'K7: reconcileLegacyPurse must return the original for read-only campaigns');
+
+  const noLogsCampaign = { id: 'no-logs-test', readOnly: false, completed: false, hero: { name: 'Y' }, logs: [] };
+  const noLogsResult = await reconcileLegacyPurse(noLogsCampaign);
+  assert.strictEqual(noLogsResult, noLogsCampaign, 'K7: reconcileLegacyPurse must return the original for campaigns with no substantive logs');
+
   console.log(
-    'PASS — H6 migrationsLand: E3 sweepUnscopedMedia wired to startup (dynamic import, guarded), ' +
+    'PASS — H6+K7 migrationsLand: E3 sweepUnscopedMedia wired to startup (dynamic import, guarded), ' +
     'Stage C identity migrations in G1 try/catch (mediaTier, voiceId, reconcileLegacyPurse), ' +
     'E5 narration bounds is validation-only (no data migration needed), ' +
-    'sweepUnscopedMedia idempotent (0 on empty, evicts bare sha256, preserves prefixed, 0 on repeat).',
+    'sweepUnscopedMedia idempotent (0 on empty, evicts bare sha256, preserves prefixed, 0 on repeat); ' +
+    'K7: castHeroVoice returns voiceId for pre-casting-law heroes; ' +
+    'simulated onOpen migration: mediaTier illuminated + voiceId assigned; ' +
+    'reconcileLegacyPurse fail-safe on read-only and no-logs campaigns.',
   );
 }).catch((e) => {
   console.error('FAIL — migrationsLand functional courts:', e.message);

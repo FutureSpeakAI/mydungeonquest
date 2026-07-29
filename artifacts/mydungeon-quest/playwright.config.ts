@@ -115,6 +115,7 @@ export default defineConfig({
     // HP (health chip shows complete fraction, not "10/1"), and BAND (gap between
     // plate and composer is explained). Injects a minimal campaign with hp=maxHp=10.
     { name: 'j7-layout', testMatch: /j7-layout\.spec\.ts/ },
+    { name: 'k8-longmarch', testMatch: /k8-longmarch\.spec\.ts/ },
   ],
   webServer: {
     command: 'bash tests/e2e/webserver.sh',

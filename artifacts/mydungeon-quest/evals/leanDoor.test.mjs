@@ -86,6 +86,8 @@
 //     J4: App.jsx time-unit guard block (+398 bytes → 634 kB again).
 //     Net: ceiling returns to 634 kB (648375 / 1024 = 633.18, ceil=634).
 //     soulsWeb pin re-seated at 648375.
+// Stage 6 K6: 648375 → 648343 (-32 bytes, two || conditionals removed).
+//     KB ceiling stays 634 (648343 / 1024 = 633.15, ceil=634). No leanDoor change.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a

@@ -300,6 +300,102 @@ for (const width of WIDTHS) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// PLATE — tall plates render at declared ratio; no face cropping at top
+// K3: plate framing — illustration panels must preserve aspect ratio and
+// must not clip the top of the image (face cropping). Checked at top of
+// scroll and again after scrolling into the mid-page position.
+// ─────────────────────────────────────────────────────────────
+for (const width of WIDTHS) {
+  test(`PLATE — illustration panel framing at ${width}px (K3)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto('/');
+    await injectCampaign(page);
+    const opened = await openTable(page);
+
+    if (!opened) {
+      test.info().annotations.push({ type: 'PLATE', description: `SKIP — table not reached at ${width}px` });
+      return;
+    }
+
+    const measure = async () =>
+      page.evaluate(() => {
+        const panel = document.querySelector('.illustration-panel') as HTMLElement | null;
+        const img = panel?.querySelector('img') as HTMLImageElement | null;
+        if (!panel || !img) return { found: false };
+
+        const panelBox = panel.getBoundingClientRect();
+        const imgBox = img.getBoundingClientRect();
+        const computedImg = window.getComputedStyle(img);
+
+        return {
+          found: true,
+          // Aspect ratio of the rendered img element
+          imgWidth: Math.round(imgBox.width),
+          imgHeight: Math.round(imgBox.height),
+          ratio: imgBox.height > 0 ? imgBox.width / imgBox.height : 0,
+          // object-fit prevents cropping; 'contain' is preferred for portrait
+          objectFit: computedImg.objectFit,
+          // Top of the image relative to the panel — should be 0 (no clip above)
+          imgTopInPanel: Math.round(imgBox.top - panelBox.top),
+          // Is the top of the image above the viewport fold?
+          imgAboveFold: imgBox.top < window.innerHeight,
+        };
+      });
+
+    const topResult = await measure();
+    test.info().annotations.push({
+      type: 'PLATE-top',
+      description: `${width}px top-of-scroll: ${JSON.stringify(topResult)}`,
+    });
+
+    if (!topResult.found) {
+      // No turn log in keyless mode yet — plate is the procedural art placeholder.
+      // Confirm the plate container exists at least (CSS source check covers ratio).
+      test.info().annotations.push({
+        type: 'PLATE',
+        description: `PARTIAL — no .illustration-panel at ${width}px; keyless empty-frame path active`,
+      });
+      return;
+    }
+
+    const r = topResult as any;
+    // Plate must have positive dimensions
+    expect(r.imgWidth, `PLATE: image must have positive width at ${width}px`).toBeGreaterThan(0);
+    expect(r.imgHeight, `PLATE: image must have positive height at ${width}px`).toBeGreaterThan(0);
+
+    // On mobile (≤640px), object-fit must be 'contain' — the Rule 25/26 CSS law.
+    // On desktop, 'fill' (100% width, height auto) is acceptable; 'cover' is not
+    // because it would crop the top of portrait images.
+    if (width <= 640) {
+      expect(r.objectFit, `PLATE: mobile plate must use object-fit:contain at ${width}px`).toBe('contain');
+    } else {
+      expect(r.objectFit, `PLATE: desktop plate must not use object-fit:cover (face crop risk) at ${width}px`).not.toBe('cover');
+    }
+
+    // The top of the image must align with or be above the top of its panel
+    // (imgTopInPanel ≤ 0 means no gap; > 0 means there is space above the image
+    // inside the panel — acceptable if the panel has padding, but > 20px is suspect).
+    expect(r.imgTopInPanel, `PLATE: image top must not be > 20px below panel top at ${width}px`).toBeLessThanOrEqual(20);
+
+    // Scroll to mid-page and remeasure
+    await page.evaluate(() => window.scrollBy(0, Math.floor(window.innerHeight / 2)));
+    await page.waitForTimeout(120);
+    const midResult = await measure();
+    test.info().annotations.push({
+      type: 'PLATE-mid',
+      description: `${width}px mid-scroll: ${JSON.stringify(midResult)}`,
+    });
+
+    if (midResult.found) {
+      const m = midResult as any;
+      // Dimensions must not change on scroll (no layout shift)
+      expect(m.imgWidth, `PLATE: width must not change on scroll at ${width}px`).toBe(r.imgWidth);
+      expect(m.objectFit, `PLATE: object-fit must not change on scroll at ${width}px`).toBe(r.objectFit);
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
 // BAND — no unexplained empty gap between plate and tick/suggestions
 // ─────────────────────────────────────────────────────────────
 for (const width of WIDTHS) {

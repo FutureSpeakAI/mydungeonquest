@@ -30,9 +30,12 @@ const css = readFileSync(path.join(ROOT, 'src/styles.css'), 'utf8');
 //   --badge-safe    = dev-badge clearance (80px, bottom-right corner)
 //   --modal-chrome  = modal header height (~58px, padding:1rem + h2 + 1rem)
 
+// K0.2 / Stage 6: table-header now uses calc(72px + env(safe-area-inset-top))
+// to push HUD content below the notch/Dynamic Island. --chrome-top follows
+// suit so scroll-padding-top clears the full (post-fix) header height.
 assert.ok(
-  css.includes('--chrome-top:72px'),
-  '--chrome-top must be declared as 72px in :root (measured table-header height)',
+  css.includes('--chrome-top:calc(72px + env(safe-area-inset-top))'),
+  '--chrome-top must be calc(72px + env(safe-area-inset-top)) in :root (K0.2: notch-aware header height)',
 );
 assert.ok(
   css.includes('--chrome-bottom:28px'),
@@ -148,9 +151,45 @@ for (const rule of allSealRules) {
   }
 }
 
+// ── 6. K0.2 — table-header, region-strip, combat-banner carry safe-area ──────
+// Stage 6 K0.2 fix: the table-header (sticky, top:0) and region-strip (topmost
+// element at page load) now account for env(safe-area-inset-top) so HUD content
+// is not clipped by the notch/Dynamic Island on iPhones. combat-banner adjusts
+// its top offset to account for the taller header.
+
+assert.ok(
+  css.includes('.table-header{height:calc(72px + env(safe-area-inset-top))'),
+  'K0.2: .table-header height must include env(safe-area-inset-top) to clear the notch',
+);
+assert.ok(
+  css.includes('padding:env(safe-area-inset-top) max(1rem,calc((100vw - 1050px)/2)) 0'),
+  'K0.2: .table-header padding must include env(safe-area-inset-top) as padding-top',
+);
+assert.ok(
+  css.includes('height:calc(55px + env(safe-area-inset-top))'),
+  'K0.2: .region-strip height must include env(safe-area-inset-top)',
+);
+assert.ok(
+  css.includes('top:calc(72px + env(safe-area-inset-top))'),
+  'K0.2: .combat-banner top must account for the taller header (72px + safe-area-inset-top)',
+);
+
+// The mobile @media (max-width:640px) overrides must not reset padding-top to 0.
+const mobile640Block = css.match(/@media\(max-width:640px\)\{([\s\S]*?)\}/)?.[0] || '';
+assert.ok(
+  !mobile640Block.includes('.table-header{padding:0 .7rem}'),
+  'K0.2: mobile override must not reset table-header padding-top to 0 (safe-area wiped at 360/390/430)',
+);
+assert.ok(
+  !mobile640Block.includes('.region-strip{padding:0 .8rem}'),
+  'K0.2: mobile override must not reset region-strip padding-top to 0',
+);
+
 console.log(
-  'PASS safeInsets — chrome vars declared (top 72px / bottom 28px / badge 80px / modal 58px); ' +
+  'PASS safeInsets — chrome vars declared (calc(72px+safe-area-inset-top) / bottom 28px / badge 80px / modal 58px); ' +
   'html scroll-padding-top wired; .modal scroll-padding-top wired; ' +
   '.book-chapters sticky with opaque background beneath modal header; ' +
-  '.seal-status badge zone reserved; all three narrow-width breakpoints (360/390/430) unaffected.',
+  '.seal-status badge zone reserved; all three narrow-width breakpoints (360/390/430) unaffected; ' +
+  'K0.2: table-header, region-strip, combat-banner carry env(safe-area-inset-top); ' +
+  'mobile overrides preserve safe-area padding-top.',
 );

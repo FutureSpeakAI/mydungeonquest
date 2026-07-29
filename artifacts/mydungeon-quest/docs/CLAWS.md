@@ -111,6 +111,52 @@ not failures.
 
 ---
 
+## Shared Sky — Named Exception to Rule 21 (K4)
+
+Rule 21 states: campaign isolation is absolute. One exception is explicitly
+named and scoped here.
+
+### The exception
+
+**The Shared Sky** is a seasonal omen: one comet (or seasonal sign) hangs over
+every world simultaneously, because the setting is a shared cosmology. The DM
+may read it as portent for the active campaign's covenant, or ignore it entirely
+— the omen speaks no secrets and carries no per-campaign data.
+
+### What may cross the campaign boundary
+
+Only the **seasonal omen value** (the current sky state: comet name, phase,
+and astrological reading). This is a singleton global state, not per-campaign.
+It is identical for every campaign that reads it.
+
+### What remains forbidden
+
+- Campaign state, cast, journal, media, or any per-campaign data.
+- The omen value is read-only; no campaign may write to the global sky.
+- A disabled Shared Sky toggle means the omen is not surfaced (Settings gate).
+
+### Direction and toggle
+
+- **Direction:** global → campaign (one-way read). No campaign data flows into
+  the global sky.
+- **Toggle:** Settings → "Shared Sky" checkbox. When disabled, the DM receives
+  no sky context and the player sees no comet on the table route.
+
+### Enforcement point
+
+`packages/engine/src/sharedSky.js` — the `sharedSkyFor(settings)` function
+returns null when the toggle is off, and the shared omen string when on.
+No per-campaign data is accessed inside that function.
+
+### Gate
+
+`evals/sharedSky.test.mjs` (the existing gate). Its courts confirm:
+- the omen is produced from global constants only (no campaignId input)
+- the toggle returns null when the Shared Sky setting is off
+- the omen string contains no per-campaign data (no names, no journal refs)
+
+---
+
 ## Pin-move law (joint soulsWeb + leanDoor requirement)
 
 The closure's exact bytes are pinned in two gates that CROSS-POINT each

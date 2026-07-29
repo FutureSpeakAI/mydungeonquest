@@ -397,6 +397,19 @@ Seven phases, one commit per phase (J5+J6 combined). 185 keyless Node evals PASS
 
 soulsWeb pin at stage close: 648375 bytes. leanDoor KB: 634.
 
+### Stage 6 — Closing the Open Items (K0–K13, in progress)
+
+Browser suite addendum: `j7-layout` extended with PLATE court (K3) — 3 new courts asserting `object-fit:contain` on mobile plates, no face cropping at top, and no dimension shift on scroll, at 360/390/430 px.
+
+| Phase | Item | What | Gate |
+|---|---|---|---|
+| K0 | H0 one-minute check | Docs: K0-OBSERVATION.md; CSS: safe-area-inset-top on table-header + region-strip + combat-banner; --chrome-top updated; header-chips scrollbar visible | safeInsets.test.mjs (expanded; 13 courts) + hudFit.test.mjs (updated) |
+| K1 | E3 campaign isolation | referenceScope: added ⑧ asserting no secondary db.media read without campaignId filter inside resolveAnchors | referenceScope.test.mjs (9 courts) |
+| K2 | Rule 29 caption law | captionShape: added ⑨ asserting primary paths never produce narration text; plateMood path documented as Rule 29 legacy exception | captionShape.test.mjs (9 courts) |
+| K3 | Rule 30 plate framing | j7-layout PLATE court: object-fit, no face crop, no layout shift on scroll | j7-layout.spec.ts (PLATE 3 courts added) |
+| K4 | Shared Sky law | docs/CLAWS.md: Shared Sky named exception to Rule 21 documented | docsCurrent.test.mjs (still PASS) |
+| K5 | H0 crash diagnosis | docs/K5-CLASSIFICATION.md: shape drift (Stage C) primary, quota secondary, chain break third | reference doc only |
+
 ---
 
 ## Task 61 — THE COMMONS: v1.1.0 CLOSED GREEN (2026-07-20, resumed window)

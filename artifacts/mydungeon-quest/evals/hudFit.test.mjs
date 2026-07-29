@@ -135,12 +135,16 @@ if (/sigil-button[^>]*aria-label|aria-label[^>]*sigil-button/.test(app.replace(/
     fail('sigil-button must have aria-label');
 }
 
-// ── §8 --chrome-top unchanged (CSS) ───────────────────────────────────────
+// ── §8 --chrome-top is a safe-area-aware value (CSS) ─────────────────────
+// K0.2 (Stage 6): --chrome-top now uses calc(72px + env(safe-area-inset-top))
+// so scroll-padding-top clears the full notch-aware header height.
 console.log('\n§8 Safe-insets law holds');
-if (/--chrome-top:72px/.test(css))
-  pass('--chrome-top:72px unchanged (header height 72px)');
+if (/--chrome-top:calc\(72px \+ env\(safe-area-inset-top\)\)/.test(css))
+  pass('--chrome-top is calc(72px + env(safe-area-inset-top)) — notch-aware header height (K0.2)');
+else if (/--chrome-top:72px/.test(css))
+  fail('--chrome-top must be updated to calc(72px + env(safe-area-inset-top)) for K0.2 notch support');
 else
-  fail('--chrome-top must remain 72px; update safeInsets if intentional');
+  fail('--chrome-top must be declared in :root; K0.2 requires calc(72px + env(safe-area-inset-top))');
 
 // ── §9 stateChipsRef wired for edge fades (source) ────────────────────────
 console.log('\n§9 Edge-fade ref wired');

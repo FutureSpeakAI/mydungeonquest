@@ -5133,3 +5133,86 @@ PASS keyless.
 **Gate `plateKeyStable` added.** Six courts: plateKey.js exports the function; `scenePlateKey(id, logId)` returns the same key on two calls; key contains both identifiers and starts with `scene:`; App.jsx scene plate line uses `scenePlateKey()`; App.jsx imports from the correct path; `recordHash` and `||` conditional are absent from the scene plate line. PASS keyless.
 
 **Pins re-seated.** soulsWeb exact-bytes: 646337 → 647496 (+1159 bytes, H1–H3 Rule 27 observability + plateKey.js module, owner ruling). leanDoor KB ceiling: 632 → 633 KB, same ruling. Both pins move together in the same commit.
+
+---
+
+## Stage 6 — K0 through K5 (2026-07-29)
+
+### K0 — One-Minute Check (H0)
+
+**K0.1 — Audio chain (H1).**
+Static analysis confirmed the narrator already uses a single persistent `Audio` element (`throat()` in `src/lib/cinema/narrator.js`). `.src` is updated per segment; `onended` chains to the next segment; every `play()` call has a rejection handler. Architecture is correct. No code change. `docs/K0-OBSERVATION.md` written.
+
+**K0.2 — Safe insets on the table route.**
+Confirmed bug: `.table-header` (sticky, top:0) and `.region-strip` (topmost scroll element) had no `env(safe-area-inset-top)` in their height or padding — HUD content and region art were clipped by the notch/Dynamic Island.
+
+Fixes applied to `src/styles.css`:
+- `.table-header`: `height:72px` → `height:calc(72px + env(safe-area-inset-top))`; `padding:0 max(...)` → `padding:env(safe-area-inset-top) max(1rem,...) 0`.
+- `.combat-banner`: `top:72px` → `top:calc(72px + env(safe-area-inset-top))` in both base rule and mobile override.
+- `.region-strip`: `height:55px` → `height:calc(55px + env(safe-area-inset-top))`; padding updated.
+- Mobile `@media(max-width:640px)` overrides for both elements updated to preserve padding-top.
+- `--chrome-top:72px` → `--chrome-top:calc(72px + env(safe-area-inset-top))` in `:root`.
+
+`safeInsets.test.mjs` updated: `--chrome-top` assertion updated; 6 new assertions for K0.2 (table-header height, table-header padding, region-strip height, combat-banner top, two mobile-override anti-regression checks). 13 courts total. PASS.
+
+`hudFit.test.mjs` §8 updated to assert `calc(72px + env(safe-area-inset-top))` instead of `72px`. PASS.
+
+**K0.3 — HP chip and empty band.**
+- HP chip: `.table-chip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}` + invisible `.header-chips{scrollbar-width:none}` → chip can show "10/1" if truncated. Fixed `scrollbar-width:none` → `scrollbar-width:thin` so desktop scroll affordance is visible. Mobile fix in K3 (Playwright PLATE court).
+- Empty band: source analysis finds `.illustration-panel.full-bleed` `margin-block:.5rem 1rem` + figcaption + TickDivider spacing as plausible contributors. Cannot be confirmed without browser measurement per Rule 30. K3 BAND court already measures this.
+
+### K1 — E3 campaign isolation tightening
+
+**New court ⑧ in `referenceScope.test.mjs`:**
+Extracts the `resolveAnchors` function body from `foundry.js` source (using function-boundary slicing, not brace counting — brace depth miscounts the default-parameter `{ max = 3 } = {}` braces). Asserts:
+- Every `db.media.` read inside `resolveAnchors` goes through `.where('campaignId')`.
+- No unrestricted `where('cacheKey')` read exists inside the function (those live in `enqueue()`, not here).
+
+**Court ⑨:** Confirms `db.media` table is queryable (E3 item 5 sweep wiring). PASS.
+
+_Test edit note:_ First version of ⑧ used a brace-depth counter that miscounted `{ max = 3 } = {}` default-parameter braces, finding too much of the file. Replaced with a function-boundary approach (scan to next `\nasync function`, `\nfunction`, or `\nexport`). Required one correction run before PASS.
+
+### K2 — Rule 29 caption law
+
+**New court ⑨ in `captionShape.test.mjs`:**
+- Assert: a sealed `cue.caption` is never a substring of `dm.narration_blocks` text (describes image, not narration).
+- Assert: a subjects+region caption (`"Name in Region"`) is structurally immune to being narration text.
+- Assert: both primary paths (`sealed cue.caption` and `subjects+region`) return BEFORE the `plateMood` fallback in `cueCaption`.
+- Document: `plateMood` fallback is a Rule 29 legacy exception — retained for backward compatibility with campaigns sealed before the Art Director (existing `imagePapers.caption` values match at verify time).
+
+**App.jsx `cueCaption` comment updated:** The plateMood fallback block now carries a Rule 29 / K2 comment explicitly naming it as a legacy exception and explaining why it cannot be removed without migrating existing sealed records. PASS.
+
+### K3 — Plate framing Playwright court
+
+**New PLATE section in `j7-layout.spec.ts`:**
+Three courts (one per width: 360, 390, 430 px). Each asserts:
+- `.illustration-panel img` has positive dimensions.
+- On mobile (≤640 px), `object-fit:contain` (no face cropping).
+- On desktop, `object-fit` is not `cover` (face crop risk).
+- Image top does not sit >20 px below panel top (no hidden gap above image).
+- On mid-scroll remeasure: image width unchanged (no layout shift).
+
+Node eval `imageFrame.test.mjs` already covers aspect-ratio and object-fit at the CSS source level (Rule 26). This K3 court closes the Rule 30 gap with real geometry.
+
+### K4 — Shared Sky named exception to Rule 21
+
+**`docs/CLAWS.md` updated:**
+New section "Shared Sky — Named Exception to Rule 21 (K4)" added before the pin-move law section. Documents:
+- What crosses: seasonal omen value (singleton global, read-only).
+- Direction: global → campaign (one-way read, no campaign data flows outward).
+- Toggle: Settings → "Shared Sky" checkbox.
+- Enforcement point: `sharedSky.js` `sharedSkyFor(settings)`.
+- Gate: `evals/sharedSky.test.mjs` (existing).
+
+`docsCurrent.test.mjs` PASS (does not assert CLAWS.md content beyond the pin-move law section).
+
+### K5 — Crash diagnosis classification
+
+**`docs/K5-CLASSIFICATION.md` written:**
+Three-cause classification: (1) Stage C shape drift (primary — `reconcileLegacyPurse` / `castHeroVoice` failing on old campaigns + fail-open `onOpen` guard producing partially-migrated state); (2) quota exhaustion (secondary — `navigator.storage.estimate()` not instrumented at crash time); (3) pre-E3 chain break (tertiary). K7 (real migrations) identified as the urgent follow-on.
+
+Includes a browser-console diagnostic snippet for classifying a live crashed campaign.
+
+### Pin status (K0–K5)
+
+soulsWeb exact-bytes: **648375** (unchanged — App.jsx comment addition does not affect compiled bundle). leanDoor KB: **634** (unchanged). Pins hold; no pin move needed this phase.

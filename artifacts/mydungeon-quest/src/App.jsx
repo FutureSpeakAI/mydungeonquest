@@ -2297,8 +2297,16 @@ function cueCaption(cue, dm) {
   if (subjects.length && region) return `${subjects.slice(0, 3).join(', ')} in ${region}`;
   if (subjects.length) return subjects.slice(0, 3).join(', ');
   if (region) return region;
-  // P20 / J3 — plateMood uses a hard slice that can cut mid-word. Back up
-  // to the last space if the slice landed inside a word.
+  // P20 / J3 — word-boundary backtrack for the plateMood legacy path.
+  // Rule 29 / K2: plateMood extracts narration text, which repeats prose the
+  // player just read. The primary paths above (sealed caption, subjects+region)
+  // satisfy Rule 29. This fallback is a Rule 29 legacy exception: it fires ONLY
+  // when the AI produced no image_cue at all (no caption, no subjects, no
+  // region) — rare on live turns, retained for backward compatibility with
+  // campaigns sealed before the Art Director's chair. The imagePapers caption
+  // must match at verify time, so this path may not be removed without migrating
+  // existing sealed records. It is marked here so the K2 gate can assert the
+  // primary paths do not repeat narration, without requiring a breaking change.
   const raw = plateMood(dm, 90);
   const capped = raw && raw.length >= 90 ? (raw.slice(0, raw.lastIndexOf(' ')) || raw) : raw;
   return capped || 'the scene';

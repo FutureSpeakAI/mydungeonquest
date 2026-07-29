@@ -4883,3 +4883,57 @@ A code-review pass caught a client/server validation mismatch: `validateDmTurn` 
 **`docs/FEATURES.md` regenerated** via `pnpm -w run muster -- --write-doc`.
 
 **Keyless check: exit 0.** Three new PASS lines from `plateBindingLive`, `loadNeverThrows`, `harnessHonest`.
+
+---
+
+## Stage 4 — H0–H3 (2026-07-29)
+
+### H0 — Diagnosis and gate reconciliation
+
+#### Report 1 — P11 dead-campaign diagnosis
+
+Direct IndexedDB inspection requires a live browser session with an actual dead campaign present. No such session is available to the agent. The analysis below is derived from code review and the Stage 3 G1 log entry.
+
+**What the code tells us:**
+
+The Stage 3 G1 entry (above) already identified three candidate chains:
+1. Shape drift — Stage C changed the hero identity shape, E3 changed cache keys, E5 changed narration bounds. A campaign opened by newer code hits a required-but-absent field and throws inside the replay path.
+2. Unguarded throw in `onOpen` — the outer callback had no try/catch, so a throw left `setCurrent` uncalled and the player stranded.
+3. `reconcileLegacyPurse` internal try/catch absorbed its own errors but the outer path did not.
+
+The G1 fix addressed causes 2 and 3. Cause 1 was noted but not fixed — an `onOpen` guard was added, not a migration. The guard means shape-drift throws no longer strand the player. It does not mean the campaign data loads correctly.
+
+The absence of a migration for the Stage C identity shape change means any campaign created before Stage C is at risk of the shape-drift path. The guard makes the failure quieter; H6 fixes it.
+
+**Answers to the H0 questions (from code, not from live data):**
+1. Campaign row existence: cannot verify without browser. Likely intact (Dexie writes atomically).
+2. Journal row count: cannot verify without browser.
+3. Chain verification: cannot verify without browser. Shape drift would not break the chain; it breaks the replay path that reads row payloads.
+4. Head hash match: cannot verify without browser.
+5. Load-path throw: `reconcileLegacyPurse` or the identity reducer would throw on a field that changed shape in Stage C. The error would be something like `Cannot read properties of undefined` on a field now expected at a new path. The G1 guard catches it at `src/App.jsx` (the outer `onOpen` try/catch).
+6. Storage estimate: cannot verify without browser.
+
+**Diagnostic browser console script** (run in the app's browser context while the dead campaign is visible):
+```js
+// Paste this into the browser console. Requires Dexie to be available globally
+// or the app's db object exposed. Adjust to match the actual campaign ID.
+const campaignId = '<paste campaign id from URL or localStorage>';
+const rows = await db.journal.where('campaignId').equals(campaignId).toArray();
+const campaign = await db.campaigns.get(campaignId);
+const estimate = await navigator.storage.estimate();
+console.log({ campaign: !!campaign, rowCount: rows.length, headHash: campaign?.headHash, lastRowHash: rows.at(-1)?.hash, estimate });
+```
+
+**Classification: Shape drift.** A campaign that fails to load after a shape change — and whose failure the `onOpen` guard now catches rather than surfacing to the title-screen stall — is a shape-drift failure. The G1 guard is the floor; H6 is the migration.
+
+**Branch decision: H6 moves immediately after H4.** Phase order is H0, H1, H2, H3, H4, H6, H5, H7, H8, H9.
+
+---
+
+#### Report 2 — Gate reconciliation
+
+**`loadNeverThrows.test.mjs`:** EXISTS. Added in Stage 3 G1. Holds Rule 24 ("the record survives the code") and Rule 25 ("export always works"). Three courts: (1) missing campaign — envelope is stable, no throw; (2) real campaign with rows — envelope is stable, row count matches; (3) malformed row — envelope is stable, no throw. All three courts exercise `exportRawJournal`. Both the "load never throws" and "export always works" properties are held by this single file.
+
+**`exportAlwaysWorks.test.mjs`:** DOES NOT EXIST as a standalone file. Its property (Rule 25: `exportRawJournal` returns a stable envelope for any input — missing, valid, or malformed-row — and never throws) is fully covered by courts 1, 2, and 3 of `loadNeverThrows.test.mjs`. No gap: the property is held.
+
+**`exportRawJournal` gate:** HAS a gate. Courts 2 and 3 of `loadNeverThrows` specifically exercise it against broken inputs (malformed row, missing campaign). A function whose purpose is working when everything else is broken is tested against broken fixtures. Covered.

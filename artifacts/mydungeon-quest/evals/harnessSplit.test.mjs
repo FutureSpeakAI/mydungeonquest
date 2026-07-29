@@ -35,7 +35,7 @@ assert.ok(
   'BUILD_STATUS.md must name the H4 browser courts or the browser harness',
 );
 
-// ② playwright.config.ts has the h4 browser projects
+// ② playwright.config.ts has the h4 and j7 browser projects
 const playwrightConfig = src('playwright.config.ts');
 assert.ok(
   playwrightConfig.includes('h4-layout'),
@@ -48,6 +48,10 @@ assert.ok(
 assert.ok(
   playwrightConfig.includes('h4-storage'),
   'playwright.config.ts must have an h4-storage project',
+);
+assert.ok(
+  playwrightConfig.includes('j7-layout'),
+  'playwright.config.ts must have a j7-layout project (Stage 5 reopened-items Rule 30 close)',
 );
 
 // ③ Browser test files exist
@@ -63,9 +67,14 @@ assert.ok(
   existsSync(path.join(ROOT, 'tests/e2e/h4-storage.spec.ts')),
   'tests/e2e/h4-storage.spec.ts must exist — IndexedDB quota courts (real browser)',
 );
+// J7 reopened-items browser suite
+assert.ok(
+  existsSync(path.join(ROOT, 'tests/e2e/j7-layout.spec.ts')),
+  'tests/e2e/j7-layout.spec.ts must exist — J7 reopened items: T6 chip rail, T7 sigil-portrait, SAFE insets, HP chip, BAND gap (real browser, Rule 30 close)',
+);
 
 // ④ Belt-and-suspenders: the harnessHonest gate already proved this, but
-//    confirm specifically that the new H4 browser test files use real browser
+//    confirm specifically that the new H4/J7 browser test files use real browser
 //    APIs — they are NOT source-checked here (that would require a Node run
 //    against TypeScript, which needs a build); we verify they do NOT appear in
 //    the Node eval chain (they belong in the browser suite, not here).
@@ -74,6 +83,10 @@ const evalScript = packageJson.scripts?.eval || '';
 assert.ok(
   !evalScript.includes('h4-layout') && !evalScript.includes('h4-audio') && !evalScript.includes('h4-storage'),
   'H4 browser tests must NOT appear in the Node eval chain — they belong in the Playwright browser suite',
+);
+assert.ok(
+  !evalScript.includes('j7-layout'),
+  'J7 browser tests must NOT appear in the Node eval chain — they belong in the Playwright browser suite',
 );
 
 // ⑤ The Node suite floor: the fact that this file is in the eval chain
@@ -88,6 +101,6 @@ assert.ok(
 
 console.log(
   'PASS — H4 harnessSplit: BUILD_STATUS.md documents both suites; playwright.config.ts ' +
-  'has h4-layout, h4-audio, h4-storage projects; browser test files exist; ' +
-  'H4 tests are NOT in the Node eval chain; Node floor holds.',
+  'has h4-layout, h4-audio, h4-storage, j7-layout projects; browser test files exist; ' +
+  'H4 and J7 tests are NOT in the Node eval chain; Node floor holds.',
 );

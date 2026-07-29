@@ -16,7 +16,9 @@ The Playwright/Chromium suite. Two tiers:
 
 **H4 geometry/audio/storage courts** (`tests/e2e/h4-*.spec.ts`, run via `npx playwright test --project h4-layout --project h4-audio --project h4-storage`, keyless): Real geometry at 360/390/430 widths; narration chain and audio module interface; IndexedDB and navigator.storage.estimate() in a real browser; quota-stub smoke test. These gates cover what the Node suite's CSS-source checks cannot observe (Rule 26 upgrade). H5 extends the h4-layout court with the specific T6/T7/T10 regression geometry.
 
-Gate names: `h4-layout` (layout geometry at three widths), `h4-audio` (narration module, H1 verification), `h4-storage` (IndexedDB, quota stub, export path).
+**J7 reopened-items court** (`tests/e2e/j7-layout.spec.ts`, run via `npx playwright test --project j7-layout`, keyless): Stage 5 Rule 30 close for five items that CSS source checks cannot confirm — T6 (`.suggestions` chip rail not overflowing viewport), T7 (`.sigil-portrait` renders at 42×42 with `object-fit:cover; object-position:left top`), SAFE (`.table-header` not sliced at viewport top, calendar chip text not clipped), HP (`[data-chip="health"]` chip shows a complete `num/den` fraction with `den > 0`, not "10/1"), and BAND (gap between last plate and composer wrap is explained, not an empty band). Injects a minimal campaign with `hp=maxHp=10` via IDB.
+
+Gate names: `h4-layout` (layout geometry at three widths), `h4-audio` (narration module, H1 verification), `h4-storage` (IndexedDB, quota stub, export path), `h5-geometry` (computed styles T6/T7/T10), `j7-layout` (Stage 5 reopened items, Rule 30 close).
 
 
 

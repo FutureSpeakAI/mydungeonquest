@@ -109,6 +109,12 @@ export default defineConfig({
     // and T10 (.region-strip no-repeat). Injects a minimal campaign via IDB
     // to reach the table view without a full forge flow. Keyless.
     { name: 'h5-geometry', testMatch: /h5-geometry\.spec\.ts/ },
+    // J7 REOPENED ITEMS (Stage 5, Rule 30 close) — real geometry assertions
+    // at 360/390/430 px for T6 (chip rail vs viewport edge), T7 (sigil-portrait
+    // crop 42×42 left top), SAFE (table-header not sliced, calendar chip whole),
+    // HP (health chip shows complete fraction, not "10/1"), and BAND (gap between
+    // plate and composer is explained). Injects a minimal campaign with hp=maxHp=10.
+    { name: 'j7-layout', testMatch: /j7-layout\.spec\.ts/ },
   ],
   webServer: {
     command: 'bash tests/e2e/webserver.sh',

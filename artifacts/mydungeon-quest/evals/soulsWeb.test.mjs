@@ -226,7 +226,12 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   failure instead of silent contamination (E3 item 4). foundry.js is on
 //   the sync closure via App.jsx import chain. leanDoor KB ceiling moves
 //   from 633 to 634 (648200 / 1024 = 633.008, Math.ceil = 634).
-const CLOSURE_BYTES_PIN = 648200;
+// 648200 → 647977, a move of -223 bytes. Owner ruling: Stage 5 J3.
+//   App.jsx cueCaption() gained word-boundary backtracking for the plateMood
+//   fallback (P20 fix: replaces a bare return with a raw/capped two-liner).
+//   App.jsx is on the sync closure. Closure shrank; leanDoor KB ceiling
+//   drops from 634 to 633 (647977 / 1024 = 632.79, Math.ceil = 633).
+const CLOSURE_BYTES_PIN = 647977;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

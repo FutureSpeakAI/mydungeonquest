@@ -2289,7 +2289,11 @@ function cueCaption(cue, dm) {
   if (subjects.length && region) return `${subjects.slice(0, 3).join(', ')} in ${region}`;
   if (subjects.length) return subjects.slice(0, 3).join(', ');
   if (region) return region;
-  return plateMood(dm, 90) || 'the scene';
+  // P20 / J3 — plateMood uses a hard slice that can cut mid-word. Back up
+  // to the last space if the slice landed inside a word.
+  const raw = plateMood(dm, 90);
+  const capped = raw && raw.length >= 90 ? (raw.slice(0, raw.lastIndexOf(' ')) || raw) : raw;
+  return capped || 'the scene';
 }
 
 export function LogEntry({ log, campaign, painting, plateNumeral = null, pour = false, reduceMotion = false, onPourTick = null, onPourDone = null }) {

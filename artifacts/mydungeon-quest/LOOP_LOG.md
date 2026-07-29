@@ -4940,6 +4940,40 @@ console.log({ campaign: !!campaign, rowCount: rows.length, headHash: campaign?.h
 
 ---
 
+### H9 — Documentation backlog (CLAWS.md + docsCurrent gate)
+
+**Problem.** Rules 24, 25, 26, 27 were referenced from eval headers and source comments but had no canonical home. The pin-move law (joint soulsWeb + leanDoor in same commit) was documented only in the leanDoor CROSS-POINTER comment.
+
+**New file: `docs/CLAWS.md`.** The standing laws, one entry per rule: Rule 18 (one surface, one truth), Rule 19 (provider plan decides), Rule 20 (validator and schema agree), Rule 21 (campaign isolation absolute), Rule 22 (developer instrumentation not a surface), Rule 24 (record survives the code), Rule 25 (export always works), Rule 26 (claim only what the tool can see), Rule 27 (a refusal is a loud failure). Plus the pin-move law section with the joint soulsWeb+leanDoor requirement, same-commit rule, and the downward-only ratchet.
+
+**Gate `docsCurrent.test.mjs` added.** Eight courts: ① CLAWS.md exists; ② Rule 24 (exportRawJournal named); ③ Rule 25; ④ Rule 26 (Node suite + Playwright named); ⑤ Rule 27 (logRefusal + console.warn named); ⑥ pin-move law documented (same commit, CLOSURE_BYTES_PIN + PIN_KB); ⑦ soulsWeb cross-points leanDoor; ⑧ leanDoor cross-points soulsWeb. PASS keyless.
+
+---
+
+### H7 — Storage quota guard (H7)
+
+**Problem.** The h4-storage browser court confirmed navigator.storage.estimate() is available. No app code calls it. A player who fills their storage gets a silent IndexedDB write error on the next DM turn — no warning, no action prompt.
+
+**New module: `src/lib/storageQuota.js`.** Exports `checkStorageQuota()` and `_checkQuotaImpl(storage)` (inner impl, testable without global navigator stubbing). When usage ≥ 85% of quota: `console.warn('[quota] storage near full', { percentUsed, usageMB, quotaMB, action: 'run the cellar sweep...' })`. Below threshold: silent. Any error or missing API: returns null (best-effort). QUOTA_WARN_THRESHOLD (0.85) exported for gate use.
+
+**Wired into App.jsx startup** (same useEffect as sweepUnscopedMedia): dynamic import of storageQuota.js + `checkStorageQuota().catch(() => {})`. Keeps the module off the synchronous closure (lean door preservation).
+
+**Gate `storageQuota.test.mjs` added.** Six courts: ① exports (checkStorageQuota, _checkQuotaImpl, QUOTA_WARN_THRESHOLD); ② threshold is valid fraction; ③ returns null on null/undefined storage (graceful Node env handling); ④ near-full stub warns loudly with action (Rule 27); ⑤ healthy stub is silent; ⑥ App.jsx wires checkStorageQuota via dynamic import (not top-level). PASS keyless.
+
+---
+
+### H5 — Computed-style geometry courts (Rule 26 upgrade, T6/T7/T10)
+
+**Problem.** chromeRegressions.test.mjs (Node suite, E7) asserts CSS source text for T6 (scroll-snap), T7 (object-position), T10 (background-repeat). Source-text checks confirm the law is written; Rule 26 says claim only what the tool can see. Real computed styles require a browser.
+
+**New file: `tests/e2e/h5-geometry.spec.ts`.** Injects a minimal campaign into IndexedDB via the native IDB API (no Dexie needed), reloads the page so the app picks it up, attempts to open the table, then reads computed styles via `window.getComputedStyle()`. Five courts: T6 scroll-snap on .suggestions, T6 scroll-snap-align on .chip-item, T7 object-position on .sigil-portrait, T10 background-repeat on .region-strip, and a preflight canary (h5-geometry is registered).
+
+**Keyless mode note.** In keyless mode (no paint keys), no plates are minted — `.region-strip` and `.sigil-portrait` may not render in the test context if the campaign has no media. Each test uses `test.info().annotations.push()` to note the absence as acceptable, falling back to the CSS source check (chromeRegressions). The browser suite adds real coverage when elements are actually rendered.
+
+Registered in playwright.config.ts as `h5-geometry` project. The h5-geometry project is separate from the proving loop and runs keyless.
+
+---
+
 ### H6 — Real migrations (P11, shape-drift coverage)
 
 **Classification (from H0).** P11 classified as shape drift across three phases: Stage C identity, E3 cache keys, E5 narration bounds.

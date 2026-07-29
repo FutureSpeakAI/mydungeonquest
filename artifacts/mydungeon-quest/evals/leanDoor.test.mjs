@@ -80,11 +80,13 @@
 //     H3 plateKey.js + scenePlateKey import in App.jsx (P16 closure).
 //     Permanent developer observability + correctness law. No new surface,
 //     no ceremony word. soulsWeb pin re-seated at 647496.
-//   2026-07-29 — measured 633 kB; ruled 633 kB (pin unchanged). H6:
-//     App.jsx startup gained dynamic import() of sweepUnscoped.js with
-//     sweepUnscopedMedia() call (E3 migration, .catch guard). Dynamic import
-//     keeps sweepUnscoped.js off the sync closure; +168 bytes in App.jsx
-//     body only. KB ceiling stays 633 kB. soulsWeb pin re-seated at 647664.
+//   2026-07-29 — measured 633 kB; ruled 633 kB (pin unchanged). H6+H7:
+//     H6: App.jsx startup gained dynamic import() of sweepUnscoped.js with
+//     sweepUnscopedMedia() call (E3 migration, .catch guard). H7: dynamic
+//     import() of storageQuota.js with checkStorageQuota() call (quota guard,
+//     Rule 27). Both are dynamic imports — not on the sync closure. +332 bytes
+//     total in App.jsx body. KB ceiling stays 633 kB.
+//     soulsWeb pin re-seated at 647828.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a

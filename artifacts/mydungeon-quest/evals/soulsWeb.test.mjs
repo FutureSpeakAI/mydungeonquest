@@ -211,7 +211,15 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   added to App.jsx (App.jsx is already on the sync road). No new surface.
 //   leanDoor KB ceiling stays 633 (647664 / 1024 = 632.5, ceiling rounds up).
 //   soulsWeb pin re-seated only; leanDoor pin unchanged.
-const CLOSURE_BYTES_PIN = 647664;
+// 647664 → 647828, a move of +164 bytes. Owner ruling: Stage 4 H7.
+//   App.jsx startup useEffect gained a dynamic import of storageQuota.js +
+//   checkStorageQuota() call with .catch guard (H7 storage quota wiring). Same
+//   pattern as H6: dynamic import keeps storageQuota.js off the sync closure;
+//   +164 bytes are from the import() call expression and comment text added to
+//   App.jsx (App.jsx is already on the sync road). No new surface, no ceremony
+//   word. Law growing (Rule 27 quota guard). leanDoor KB ceiling stays 633
+//   (647828 / 1024 = 632.6, ceiling still rounds to 633). soulsWeb pin only.
+const CLOSURE_BYTES_PIN = 647828;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

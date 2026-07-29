@@ -300,6 +300,12 @@ export default function App() {
     import('./lib/cinema/sweepUnscoped.js')
       .then(({ sweepUnscopedMedia }) => sweepUnscopedMedia())
       .catch(() => {});
+    // H7 storage quota guard: warn loudly when the player's IndexedDB store
+    // is near full (>85% of quota). Best-effort: a missing Storage API or
+    // any error returns null silently. Dynamic import keeps it off sync road.
+    import('./lib/storageQuota.js')
+      .then(({ checkStorageQuota }) => checkStorageQuota())
+      .catch(() => {});
   }, [refreshShelf, refreshVaultShelf]);
   // Sign-in/sign-out mid-session: the shelf and the vaulted row redraw the
   // moment the door speaks — no reload asked of the player.

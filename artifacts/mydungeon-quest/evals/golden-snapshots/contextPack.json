@@ -1,0 +1,53 @@
+{
+  "beat": {
+    "index": 0,
+    "act": 1,
+    "key": "ordinary",
+    "title": "The Ordinary Flame",
+    "goal": "Establish the hero, home, and what deserves protection."
+  },
+  "evil_design": "[GATED UNTIL REVELATION]",
+  "cast": [
+    {
+      "name": "Ivor the Innkeeper",
+      "status": "alive",
+      "bond": 2,
+      "blight": 0,
+      "revealed": true
+    }
+  ],
+  "regions": [],
+  "memoir": [],
+  "wounds": [],
+  "open_threads": [],
+  "threads_state": [],
+  "trove_state": [],
+  "purse_state": [],
+  "ambitions_state": [],
+  "clocks_state": [],
+  "rumors_state": [],
+  "scene_state": {
+    "sinceTurn": 0
+  },
+  "party_state": [],
+  "sheet_state": [],
+  "fixture_state": [],
+  "bestiary_state": [],
+  "directives": [],
+  "presence_state": [
+    {
+      "name": "Ivor the Innkeeper",
+      "ground": null
+    },
+    {
+      "name": "Sera Vael",
+      "ground": null
+    }
+  ],
+  "scene": {
+    "present": [
+      "Ivor the Innkeeper"
+    ],
+    "ties": []
+  }
+}

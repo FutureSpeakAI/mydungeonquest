@@ -413,6 +413,10 @@ Browser suite addendum: `j7-layout` extended with PLATE court (K3) — 3 new cou
 | K7 | Stage C migrations | migrationsLand: courts ⑦–⑨ walk pre-Stage-C campaign through castHeroVoice + mediaTier + reconcileLegacyPurse fail-safe | migrationsLand.test.mjs (11 courts) |
 | K8 | 30-turn long march | k8-longmarch.spec.ts: instrumented 30-turn Playwright session; writes k8-budget.json on first run | k8-longmarch project in playwright.config.ts |
 | K9 | lawsAgree | Three-source constraint agreement: NARRATION_FLOOR ONE seat; system prompt imports dynamically; validator reads at runtime; tool schema minItems/maxItems compatible | lawsAgree.test.mjs (7 courts) |
+| K10 | Golden record | Canonical fixture campaign (initCodex-based codex, 3 turns) committed; 5 derived-surface snapshots committed; pre-Stage-1 save back-compat verified | goldenRecord.test.mjs (6 courts); golden-snapshots/ committed |
+| K11 | Provenance sweep | Source-level gate: narration_blocks ONE seat; 3 curtain-leak patterns guarded; 17 components: none import seal/chronicler/rules; Rule 22 ledgerOnly gate; SoulsWeb canonicalNames check | provenanceSweep.test.mjs (7 courts) |
+| K12 | Keyless parity | mockDmTurn determinism (5 turns × 2 runs); structural keys stable; applyStoryUpdates identical codex state (UUID-normalized); all 5 turns pass validateDmTurn | keylessParity.test.mjs (5 courts) |
+| K13 | Playtest protocol | docs/PLAYTEST-PROTOCOL.md: 7-section ordered checklist covering creation→export, safe-area check; one page, PASS/FAIL/SKIP columns | documentation only |
 
 ---
 

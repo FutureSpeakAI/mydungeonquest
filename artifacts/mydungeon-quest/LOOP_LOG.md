@@ -5272,3 +5272,71 @@ Budget file is committed to the repo. First run establishes the baseline.
 ### Pin status (K6–K9)
 
 soulsWeb exact-bytes: **648343** (648375 → 648343, −32 bytes; K6 owner ruling). leanDoor KB: **634** (unchanged, 648343/1024 = 633.15, ceil=634). Both pins updated in same commit.
+
+---
+
+## Stage 6 — K10 through K13 (2026-07-29)
+
+### K10 — Golden record
+
+**`evals/goldenRecord.test.mjs` written.** 6 courts:
+
+① `cardsForCampaign({ cards, order })` snapshot — stable
+② `buildContextPack` snapshot — stable
+③ `chartOf` snapshot — stable
+④ `partyOf` snapshot — stable
+⑤ `standingsOf` snapshot — stable
+⑥ Pre-Stage-1 save (minimal codex) loads on all five surfaces without throwing
+
+**Design decision:** Fixture campaign uses `initCodex('classic-epic')` for the codex base (carries the required `spine`, `beatIndex`, `notes`, `standings`, `spineAmendments`, etc. that `buildContextPack` and `standingsOf` require). Test-specific cast/trove entries are merged after init.
+
+**Snapshot directory:** `evals/golden-snapshots/` (5 JSON files, all committed). First run writes; subsequent runs assert byte-for-byte. Regeneration requires a stated owner ruling.
+
+**Fixed timestamps** on fixture logs: never `Date.now()` — snapshots must be stable across machines and time.
+
+### K11 — Provenance sweep
+
+**`evals/provenanceSweep.test.mjs` written.** 7 source-level courts:
+
+① narration render reads `dm.narration_blocks` (the ONE seat)
+② Rule 22 is documented in App.jsx (repair notes ledger-only)
+③ `beat_intent` must not render directly as visible text in components
+④ No component imports from `seal.js`, `chronicler.js`, or `rules.js`
+⑤ App.jsx references the `ledgerOnly` / Rule 22 gate
+⑥ SoulsWeb gates character names through `canonicalNames` (known set)
+⑦ `narration_blocks` is the one source + map render pattern exists
+
+**Note:** This is a source-level gate, not a browser test. A browser provenance sweep (running across routes with a fixture campaign) is a follow-on effort per the directive's "other checks" section.
+
+### K12 — Keyless parity
+
+**`evals/keylessParity.test.mjs` written.** 5 courts:
+
+① `mockDmTurn` determinism: same input → byte-identical output (5 turns × 2 runs)
+② Structural keys stable: `narration_blocks` and `suggestions` present in all 5 turns
+③ `applyStoryUpdates` produces structurally identical codex after 5 turns (UUID-normalized: soul/region ids stripped before comparison since `crypto.randomUUID()` is non-deterministic by design)
+④ All 5 mock turns pass `validateDmTurn` (the mock keeps the law)
+⑤ `openingShapeOf` is deterministic for a given campaign
+
+**Important lesson documented:** cast soul IDs (`soul-{uuid}`) are assigned non-deterministically at add time; the identity law is that the **name** is stable, not the UUID. K12 normalizes these before structural comparison.
+
+### K13 — Written playtest protocol
+
+**`docs/PLAYTEST-PROTOCOL.md` written.** One-page ordered checklist:
+
+| Section | Steps |
+|---|---|
+| 1. Creation | New Campaign → form → world → Begin → opening narration |
+| 2. First turn | Suggestions visible → tap → narration ≥ 1 para → Listen → voice chain |
+| 3. First plate | Chapter header → illustration full-frame → caption describes → scroll stable |
+| 4. Tick and act change | HP chip correct → tick fires → act boundary → time-of-day updates |
+| 5. Book tabs | All 6 tabs render (Storybook, Cast, World, Chart, Trove, Standings) |
+| 6. Save and reload | Background exit → force-close → spine → table resumes |
+| 7. Export | Seal → Export → file opens as readable markdown/PDF |
+| Safe-area | HUD not clipped on notched device; table header not sliced |
+
+PASS/FAIL/SKIP columns with one-line note field. "A regression shows up as a line that changed."
+
+### Pin status (K10–K13)
+
+soulsWeb exact-bytes: **648343** (unchanged from K6). leanDoor KB: **634** (unchanged). K10–K13 add only eval files, docs, and snapshots — no source files changed, no pin move needed.

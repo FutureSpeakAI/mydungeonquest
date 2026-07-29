@@ -263,6 +263,11 @@ async function playSegment(campaign, log, segments, index, mine) {
     // The blessing hadn't been earned (or a strict browser withdrew it). Stage
     // the reading instead of failing silently: paused+blocked makes the turn's
     // button a visible invitation rather than a dead control.
+    // Rule 27 — log the rejection with segment identity so the cause is
+    // visible in the developer console rather than a silent dead control.
+    if (error?.name !== 'AbortError') {
+      console.error('[narrator] play() refused', { segment: index, error: error?.name, message: error?.message });
+    }
     if (mine === session && !paused && error?.name !== 'AbortError') { paused = true; blocked = true; }
   }
   emit();

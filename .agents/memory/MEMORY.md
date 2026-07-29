@@ -56,3 +56,4 @@
 - [MyDungeon replay identity law](mydungeon-replay-identity.md) — re-views resolve only what the moment owned (cleared seat > own plate > BOUND-beat cover; unbound hangs nothing); reconcile colliding laws by conditioning the rung on provenance, never striking it; run freshPlates+mediaFallback+cellar+book together.
 - [Dowry grounding law](mydungeon-dowry-grounding.md) — citation courts bind NAMES to quotes whole-phrase (substring is not naming); the amend bypass is two-handed: caller flag + rename-minted row mark.
 - [Ghost sweeps grep content](eval-ghost-sweeps.md) — no-trace courts scope to payload bytes; envelope JSON carries base64 dice ('Xy' lands in a hash).
+- [Stage 5 Painter evals path law](stage5-painter-path.md) — engine evals use path.resolve(ROOT,'../../packages/engine/src/...') (ROOT=artifacts/mydungeon-quest); dynamic imports use '../../../packages/engine/src/...' (relative to evals/ file).

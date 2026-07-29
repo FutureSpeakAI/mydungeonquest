@@ -219,7 +219,14 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   App.jsx (App.jsx is already on the sync road). No new surface, no ceremony
 //   word. Law growing (Rule 27 quota guard). leanDoor KB ceiling stays 633
 //   (647828 / 1024 = 632.6, ceiling still rounds to 633). soulsWeb pin only.
-const CLOSURE_BYTES_PIN = 647828;
+// 647828 → 648200, a move of +372 bytes. Owner ruling: Stage 5 J1.
+//   foundry.js resolveAnchors() gained a belt-and-suspenders E3 assertion
+//   block at the anchor-resolution exit: logRefusal call + throw + comment
+//   (37 lines). Makes a regression in the Dexie campaignId index a hard
+//   failure instead of silent contamination (E3 item 4). foundry.js is on
+//   the sync closure via App.jsx import chain. leanDoor KB ceiling moves
+//   from 633 to 634 (648200 / 1024 = 633.008, Math.ceil = 634).
+const CLOSURE_BYTES_PIN = 648200;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

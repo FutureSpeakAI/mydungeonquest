@@ -4940,6 +4940,16 @@ console.log({ campaign: !!campaign, rowCount: rows.length, headHash: campaign?.h
 
 ---
 
+### J1 — E3 belt-and-suspenders assertion + referenceScope gate
+
+**Problem.** J0 Report 1 confirmed that `resolveAnchors` already filters by `campaignId` at the Dexie query (E3 item 3 landed). But E3 item 4 (boundary assertions at the anchor-resolution exit) was unaddressed: the cache-hit path had its assertion (foundry.js:109), but the anchor-resolution exit had no check. A future regression in the Dexie index, a wrong `campaignId` parameter, or a test that forgets to set `campaignId` could silently produce foreign anchors without any detection.
+
+**Fix: belt-and-suspenders assertion in `resolveAnchors`.** After building the anchor list from the campaign-scoped query, iterate every resolved anchor and assert `anchor.campaignId === campaignId`. On mismatch: call `logRefusal()` (Rule 27 — refusals are loud) then throw `[E3] anchor isolation violated: label="…" anchor.campaignId="…" !== "…"`. The query makes violation impossible by construction; the assertion makes regression impossible by testing.
+
+**Gate `referenceScope.test.mjs` added.** Seven courts: ① query-level filter confirmed in source; ② E3 cache-hit assertion present; ③ belt-and-suspenders assertion at exit present; ④ logRefusal wired before throw (Rule 27); ⑤ functional two-campaign isolation (same subject name "Maren Voss" in both campaigns — only B's rows returned for B); ⑥ foreign cache-hit detection; ⑦ thrown message names both foundry and foreign campaign ids. PASS keyless.
+
+---
+
 ### H9 — Documentation backlog (CLAWS.md + docsCurrent gate)
 
 **Problem.** Rules 24, 25, 26, 27 were referenced from eval headers and source comments but had no canonical home. The pin-move law (joint soulsWeb + leanDoor in same commit) was documented only in the leanDoor CROSS-POINTER comment.

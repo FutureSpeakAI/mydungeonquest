@@ -80,13 +80,13 @@
 //     H3 plateKey.js + scenePlateKey import in App.jsx (P16 closure).
 //     Permanent developer observability + correctness law. No new surface,
 //     no ceremony word. soulsWeb pin re-seated at 647496.
-//   2026-07-29 — measured 633 kB; ruled 633 kB (pin unchanged). H6+H7:
-//     H6: App.jsx startup gained dynamic import() of sweepUnscoped.js with
-//     sweepUnscopedMedia() call (E3 migration, .catch guard). H7: dynamic
-//     import() of storageQuota.js with checkStorageQuota() call (quota guard,
-//     Rule 27). Both are dynamic imports — not on the sync closure. +332 bytes
-//     total in App.jsx body. KB ceiling stays 633 kB.
-//     soulsWeb pin re-seated at 647828.
+//   2026-07-29 — measured 634 kB; ruled 634 kB. H6+H7+J1:
+//     H6: dynamic import() of sweepUnscoped.js (E3 migration, .catch guard).
+//     H7: dynamic import() of storageQuota.js (quota guard, Rule 27).
+//     J1: foundry.js resolveAnchors() gained E3 belt-and-suspenders assertion
+//     (logRefusal + throw + 37-line comment block). foundry.js is on the sync
+//     closure; +372 bytes pushed the ceiling from 633 → 634 kB.
+//     soulsWeb pin re-seated at 648200.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a
@@ -108,7 +108,7 @@ import { entryClosureOf, closureBytesOf } from './manifestClosure.mjs';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
-const PIN_KB = 633; // ruled 2026-07-29 — see the movement ledger in this header
+const PIN_KB = 634; // ruled 2026-07-29 (J1) — see the movement ledger in this header
 // CROSS-POINTER: the web-of-souls seating court (soulsWeb.test.mjs) pins the
 // closure's EXACT bytes; a ruled move of the closure re-seats BOTH pins in
 // the same ruling. Both courts read the ONE walk in manifestClosure.mjs.

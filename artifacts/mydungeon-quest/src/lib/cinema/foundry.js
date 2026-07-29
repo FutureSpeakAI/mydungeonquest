@@ -57,6 +57,26 @@ async function resolveAnchors(campaignId, labels = [], { max = 3, sheets = true 
     plain.sort((a, b) => (a.variant === 'bust' ? 0 : 1) - (b.variant === 'bust' ? 0 : 1) || a.createdAt - b.createdAt);
     anchors.push(plain[0]);
   }
+  // E3 item 4 — BELT-AND-SUSPENDERS: every resolved anchor must belong to this
+  // campaign. The campaign-scoped query above makes a violation structurally
+  // impossible, but an explicit assertion here catches any future regression in
+  // the campaignId parameter or the Dexie index (a mis-keyed put, a schema
+  // change, a test that forgets to set campaignId) before it silently ships
+  // another campaign's faces into the active plate. Rule 21: cross-campaign
+  // reads are not just guarded — they are made to throw at every exit.
+  for (const anchor of anchors) {
+    if (anchor.campaignId !== campaignId) {
+      logRefusal({
+        what: 'anchor resolution',
+        why: 'foreign anchor reached resolution exit — E3 campaign isolation violated',
+        expected: campaignId,
+        actual: anchor.campaignId,
+        label: anchor.label,
+        action: 'throw — foreign anchors must never reach the easel',
+      });
+      throw new Error(`[E3] anchor isolation violated: label="${anchor.label}" anchor.campaignId="${anchor.campaignId}" !== "${campaignId}"`);
+    }
+  }
   return anchors;
 }
 

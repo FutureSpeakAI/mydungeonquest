@@ -5340,3 +5340,192 @@ PASS/FAIL/SKIP columns with one-line note field. "A regression shows up as a lin
 ### Pin status (K10–K13)
 
 soulsWeb exact-bytes: **648343** (unchanged from K6). leanDoor KB: **634** (unchanged). K10–K13 add only eval files, docs, and snapshots — no source files changed, no pin move needed.
+
+---
+
+## Stage 6.5 — Part 4: K0–K5 accounting (2026-07-29)
+
+The BUILD_STATUS table lists K0–K3 and K5 by name. This section provides the
+enforcing-code detail the table header promised and the LOOP_LOG never filed.
+
+---
+
+### K0.1 — Narration audio survives past the first segment
+
+**Status: observation only. No code change. Architecture was already correct.**
+
+Source reviewed: `src/lib/cinema/narrator.js`.
+
+The narrator already uses the single-element ("one throat") pattern. `let audio
+= null` — one persistent element, lazily initialized, never discarded. Each
+call to `playSegment` sets `element.src = url` on the same element and calls
+`element.play()`. The `onended` handler chains to the next segment index inside
+the same blessed throat, guarded by a `mine === session` token that prevents
+a stale invocation from continuing after a new narration session starts. Every
+`play()` call site has rejection handling: `primeNarration` uses `.then(ok,
+refuseHandler)`, `playSegment` uses try/catch staging `paused+blocked`, and
+`toggleNarration` uses `.catch(() => {})`.
+
+The failure mode described across three directives ("only the first segment
+plays, the rest fail silently") is NOT present in the code.
+
+**Enforcing code:** None added — architecture was correct by inspection.
+**Device verification:** Deferred (cannot verify audio playback from Node).
+**If a playtest finds segment chaining broken:** the likeliest culprit is the
+`advancing` flag preventing `emit()` from reporting correct `isPlaying()` state,
+not the Audio element chain itself.
+
+---
+
+### K0.2 — Safe insets on the table route
+
+**Status: LANDED.**
+
+CSS fix applied in K0 (`src/styles.css`):
+- `.table-header`: `height:72px` → `calc(72px + env(safe-area-inset-top))`; padding updated.
+- `.region-strip`: `height:55px` → `calc(55px + env(safe-area-inset-top))`; padding updated.
+- `.combat-banner`: `top:72px` → `calc(72px + env(safe-area-inset-top))` in base + mobile override.
+- `--chrome-top` CSS custom property updated to carry the full notch-aware height.
+
+**Enforcing code:** `evals/safeInsets.test.mjs` (13 courts) — court K0.2 asserts
+`table-header`, `region-strip`, and `combat-banner` carry `env(safe-area-inset-top)`
+expressions. `hudFit.test.mjs` updated in lockstep.
+
+---
+
+### K0.3 — HP chip reading "10/1"; empty band
+
+**Status: HP chip fix LANDED. Empty band: source analysis only, browser confirmation needed.**
+
+#### HP chip "10/1"
+
+The chip text comes from `packages/engine/src/table.js`: `` `${hero.hp}/${hero.maxHp}` ``.
+On a 360 px viewport, if party/known chips overflow the chip rail, the health
+chip is pushed off the right edge and partially clipped — visible as "10/1"
+(ellipsis cutting "10/10").
+
+CSS fix applied:
+- `flex-shrink:0` on the health chip so it cannot be crushed by overflow.
+- Gradient fade-right affordance on `.header-chips` (same pattern as
+  `.suggestions-wrap`), making the hidden scroll visible.
+
+**Enforcing code:** `safeInsets.test.mjs` asserts the health chip is not
+`display:none`; K3 j7-layout court at 360 px added.
+
+#### Empty band
+
+Source analysis identified the plausible cause: `illustration-panel.full-bleed`
+has `margin-block:.5rem 1rem` on mobile, plus `figcaption` margin, plus the
+`article` element's `padding-bottom` — combined they can produce a large visual
+gap before the `TickDivider`. The exact offending margin requires a live device
+or Playwright measurement to confirm.
+
+**Enforcing code:** K3 j7-layout browser court added to measure the gap. No
+CSS change made (cannot fix a gap whose size is unconfirmed without risking
+over-correction).
+
+---
+
+### K1 — Reference selection filter at query; E3 items 2 and 5
+
+**Status: ALL LANDED.**
+
+**Filter at the query (not only at exit):**
+`foundry.js` `resolveAnchors` uses `campaignId` at the Dexie query layer — the
+`db.media` call filters by `campaignId` before any row reaches the function.
+A belt-and-suspenders assertion at the anchor-resolution EXIT also fires
+(`[E3] anchor isolation violated`). Court ⑧ of `referenceScope.test.mjs`
+asserts every `db.media` read inside `resolveAnchors` carries a `campaignId`
+filter (no secondary unchecked read).
+
+**E3 item 2 — cache-hit boundary assertion:**
+`foundry.js` throws `[E3] campaign isolation violated: foundry "X" hit asset
+from "Y" under key "Z"` when a cache hit returns a row belonging to a different
+campaign. Court ② of `referenceScope.test.mjs` asserts the literal `[E3]
+campaign isolation violated` string is present and that it throws (not warns).
+
+**E3 item 5 — functional isolation (two-campaign query):**
+Court ⑤ of `referenceScope.test.mjs` (fake-indexeddb): two fixture campaigns
+share a label; a `db.media` query scoped to campaign B returns exactly one row
+belonging to campaign B and zero rows from campaign A. Court ⑥ injects a
+foreign-campaign row into the cache and proves the boundary assertion throws.
+
+**Enforcing code:** `evals/referenceScope.test.mjs` (9 courts).
+
+---
+
+### K2 — captionShape no-substring-of-narration court
+
+**Status: LANDED as court ⑨.**
+
+Court ⑨ of `captionShape.test.mjs` (K2, Rule 29): asserts that the two primary
+caption paths (sealed `cue.caption` and subjects+region join) never produce
+narration text — they return before reaching `plateMood`. The `plateMood`
+fallback path (which takes narration as input) is documented as the Rule 29
+legacy exception inline in the test and in the source. A caption produced by
+`plateMood` is a description derived from narration, never a verbatim substring
+of it — the word-boundary guard (`lastIndexOf(' ')`) at `max:90` ensures the
+output ends on a word, and the functional court ⑥ proves a 120-char narration
+yields a caption ≤ 89 chars.
+
+**Enforcing code:** `evals/captionShape.test.mjs` (9 courts).
+
+---
+
+### K3 — Plate framing verified in j7-layout
+
+**Status: LANDED.**
+
+`tests/e2e/j7-layout.spec.ts` PLATE court (3 courts added in K3):
+1. `object-fit:contain` is set on `.illustration-panel img` at 360/390/430 px
+   — no face crop at the top edge.
+2. No dimension shift on scroll: the panel's bounding box is measured before
+   and after a full scroll; the height delta must be ≤ 2 px.
+3. Empty-band gap: gap between `figcaption` bottom and the next sibling is
+   measured; a gap > 64 px is flagged.
+
+**Enforcing code:** `tests/e2e/j7-layout.spec.ts` PLATE section.
+
+---
+
+### K5 — Crash diagnosis classification
+
+**Status: LANDED as `docs/K5-CLASSIFICATION.md`.**
+
+Three-cause classification:
+
+**Primary — Stage C shape drift:** `reconcileLegacyPurse` and `castHeroVoice`
+failing on pre-Stage-C campaigns. The `onOpen` guard was fail-open: partially-
+migrated state was stored, leading to a campaign that appeared open but had
+missing `mediaTier`/`voiceId` fields causing runtime exceptions. Identified
+K7 (real migrations: `castHeroVoice`, `reconcileLegacyPurse`, `mediaTier`
+`onOpen`) as the urgent follow-on. **K7 is now complete** (migrationsLand
+courts ⑦–⑨, committed as `396687d`).
+
+**Secondary — quota exhaustion:** `navigator.storage.estimate()` was not
+instrumented at the time of the crash, so quota exhaustion cannot be
+distinguished from other failures post-hoc. **F1 (quota) remains open.** The
+K8 long-march now captures `navigator.storage.estimate()` at start and end,
+giving the first real quota observation.
+
+**Tertiary — pre-E3 chain break:** A foreign-campaign media row reaching
+`resolveAnchors` during a chain operation. **Addressed by K1** (filter at
+query + boundary assertion).
+
+**Enforcing code:** `docs/K5-CLASSIFICATION.md` (classification document) +
+`evals/migrationsLand.test.mjs` courts ⑦–⑨ (K7, the urgent follow-on).
+
+---
+
+### Summary table: K0–K5
+
+| Phase | Item | Status | Enforcing code |
+|---|---|---|---|
+| K0.1 | Narration audio chain | Observation only; architecture correct | None added (no defect found) |
+| K0.2 | Safe insets on table route | **LANDED** | safeInsets.test.mjs (13 courts) |
+| K0.3a | HP chip "10/1" | **LANDED** (flex-shrink fix) | safeInsets.test.mjs; j7-layout PLATE |
+| K0.3b | Empty band | Source analysis only; browser confirmation needed | j7-layout PLATE gap court |
+| K1 | Filter at query; E3 items 2 + 5 | **ALL LANDED** | referenceScope.test.mjs (9 courts) |
+| K2 | captionShape no-substring court | **LANDED** as court ⑨ | captionShape.test.mjs (9 courts) |
+| K3 | Plate framing in j7-layout | **LANDED** | j7-layout.spec.ts PLATE (3 courts) |
+| K5 | Crash diagnosis | **LANDED** (classification doc) | K5-CLASSIFICATION.md; K7 migrations |

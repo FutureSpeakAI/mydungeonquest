@@ -1086,7 +1086,15 @@ export default function App() {
       // DM's conversation history do not repeat it.
       const actNow = next.codex.spine.beats[next.codex.beatIndex]?.act || 1;
       const actBefore = base.codex.spine.beats[base.codex.beatIndex]?.act || 1;
-      if (!next.completed && (dm.time_advance || actNow !== actBefore)) {
+      // P22 / J4 — time-unit guard: only tick on hour-scale or longer advances.
+      // Moments, seconds, and minutes are too brief for offscreen NPC progress;
+      // only 'hours', 'days', 'weeks', 'months', and 'years' are tick-worthy.
+      // Act changes always trigger ticks (they mark a narrative milestone).
+      const TICK_WORTHY_UNITS = ['hours', 'days', 'weeks', 'months', 'years'];
+      const tickWorthy = dm.time_advance
+        ? TICK_WORTHY_UNITS.includes(String(dm.time_advance.unit || '').toLowerCase())
+        : false;
+      if (!next.completed && (tickWorthy || actNow !== actBefore)) {
         try {
           const updates = tickUpdates(next.codex, next.turnNumber - 1);
           if (updates) {

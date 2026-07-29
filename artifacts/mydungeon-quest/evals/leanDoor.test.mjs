@@ -80,11 +80,12 @@
 //     H3 plateKey.js + scenePlateKey import in App.jsx (P16 closure).
 //     Permanent developer observability + correctness law. No new surface,
 //     no ceremony word. soulsWeb pin re-seated at 647496.
-//   2026-07-29 — measured 633 kB; ruled 633 kB. H6+H7+J1+J3:
-//     J1: foundry.js E3 belt-and-suspenders assertion (+372 bytes → 634 kB).
-//     J3: App.jsx cueCaption() word-boundary backtrack for P20 (-223 bytes).
-//     Net: ceiling drops from 634 → 633 kB (647977 / 1024 = 632.79, ceil=633).
-//     soulsWeb pin re-seated at 647977.
+//   2026-07-29 — measured 634 kB; ruled 634 kB. H6+H7+J1+J3+J4:
+//     J1: foundry.js E3 assertion (+372 bytes → 634 kB).
+//     J3: App.jsx cueCaption word-boundary backtrack (-223 bytes → 633 kB).
+//     J4: App.jsx time-unit guard block (+398 bytes → 634 kB again).
+//     Net: ceiling returns to 634 kB (648375 / 1024 = 633.18, ceil=634).
+//     soulsWeb pin re-seated at 648375.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a
@@ -106,7 +107,7 @@ import { entryClosureOf, closureBytesOf } from './manifestClosure.mjs';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
-const PIN_KB = 633; // ruled 2026-07-29 (J3) — see the movement ledger in this header
+const PIN_KB = 634; // ruled 2026-07-29 (J4) — see the movement ledger in this header
 // CROSS-POINTER: the web-of-souls seating court (soulsWeb.test.mjs) pins the
 // closure's EXACT bytes; a ruled move of the closure re-seats BOTH pins in
 // the same ruling. Both courts read the ONE walk in manifestClosure.mjs.

@@ -231,7 +231,12 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   fallback (P20 fix: replaces a bare return with a raw/capped two-liner).
 //   App.jsx is on the sync closure. Closure shrank; leanDoor KB ceiling
 //   drops from 634 to 633 (647977 / 1024 = 632.79, Math.ceil = 633).
-const CLOSURE_BYTES_PIN = 647977;
+// 647977 → 648375, a move of +398 bytes. Owner ruling: Stage 5 J4.
+//   App.jsx tick invocation gained the P22 time-unit guard block (7 lines:
+//   TICK_WORTHY_UNITS constant, tickWorthy predicate, updated condition).
+//   App.jsx is on the sync closure. leanDoor KB ceiling returns to 634
+//   (648375 / 1024 = 633.18, Math.ceil = 634).
+const CLOSURE_BYTES_PIN = 648375;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

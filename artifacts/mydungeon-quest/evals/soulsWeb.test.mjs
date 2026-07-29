@@ -202,7 +202,16 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   (same net length but plateKey.js adds a small new module). P16 closed.
 //   Two new evals added: refusalsAreLoud, plateKeyStable. Law growing.
 //   soulsWeb pin and leanDoor KB ceiling both re-seated.
-const CLOSURE_BYTES_PIN = 647496;
+// 647496 → 647664, a move of +168 bytes. Owner ruling: Stage 4 H6.
+//   App.jsx startup useEffect gained a dynamic import of sweepUnscoped.js +
+//   sweepUnscopedMedia() call with .catch guard (E3 migration wiring). The
+//   import is dynamic (not top-level) so sweepUnscoped.js is NOT added to
+//   the synchronous closure — the entry closure itself stayed the same size;
+//   these +168 bytes are from the import() call expression and comment text
+//   added to App.jsx (App.jsx is already on the sync road). No new surface.
+//   leanDoor KB ceiling stays 633 (647664 / 1024 = 632.5, ceiling rounds up).
+//   soulsWeb pin re-seated only; leanDoor pin unchanged.
+const CLOSURE_BYTES_PIN = 647664;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

@@ -4940,6 +4940,33 @@ console.log({ campaign: !!campaign, rowCount: rows.length, headHash: campaign?.h
 
 ---
 
+### H6 — Real migrations (P11, shape-drift coverage)
+
+**Classification (from H0).** P11 classified as shape drift across three phases: Stage C identity, E3 cache keys, E5 narration bounds.
+
+**E3 gap identified.** `src/lib/cinema/sweepUnscoped.js` exists and exports `sweepUnscopedMedia()` — an idempotent sweep that evicts media rows with bare SHA-256 hex cacheKeys (the pre-E3 key format). It was never called. Any player who ran a session between the E3 foundry refactor and H6 has orphaned unscoped rows in their store. Those rows trigger the E3 boundary assertion (`[E3] campaign isolation violated`) if ever matched by key coincidence.
+
+**Stage C coverage (already complete).** The G1 onOpen guard (from Stage 3) already handles:
+- `mediaTier: 'cinema'` → `'illuminated'` (with `saveCampaign`)
+- Missing `hero.voiceId` → `castHeroVoice` on open (read-only spines resolve in memory)
+- `reconcileLegacyPurse` — the era door's one write
+These are confirmed to be inside the G1 try/catch floor.
+
+**E5 narration bounds.** The narration floor changed from 20-180 to 60-160 words. This is a server-side validation change. No stored data needs migration — the new floor applies to new DM responses, not stored journal rows.
+
+**Fix applied.** In App.jsx's startup `useEffect` (the one that calls `syncShelf` and `refreshShelf`), added a dynamic import of `sweepUnscoped.js` that calls `sweepUnscopedMedia()` best-effort (`.catch(() => {})`). Dynamic import keeps sweepUnscoped off the synchronous closure (lean door preservation). Idempotent: subsequent calls return 0 immediately.
+
+**Gate `migrationsLand` added.** Six courts:
+① sweepUnscopedMedia exported from sweepUnscoped.js (and uses BARE_SHA256 + bulkDelete)
+② Dynamic import in App.jsx startup (sweepUnscopedMedia wired, not top-level)
+③ Stage C migrations in onOpen (mediaTier, voiceId, reconcileLegacyPurse)
+④ All migrations guarded (G1 try/catch + outer .catch on startup)
+⑤ Functional: empty store → 0 (idempotent)
+⑥ Functional: bare sha256 row evicted, prefixed row survives, second call → 0
+PASS keyless.
+
+---
+
 ### H4 — Playwright browser suite (Rule 26 upgrade)
 
 **Problem.** Nine Node evals assert CSS source text for layout properties (safeInsets, hudFit, composerFit, chromeRegressions, etc.). Source-text checks confirm the law is written; they cannot confirm the law renders correctly. Rule 26 states: "Claim only what the tool can see." A source-text geometry claim is not a geometry claim.

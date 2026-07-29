@@ -293,6 +293,13 @@ export default function App() {
   useEffect(() => {
     syncShelf().then(refreshShelf).catch(() => {});
     refreshVaultShelf();
+    // E3 migration (H6): evict legacy unscoped cache entries (bare sha256 keys)
+    // that were minted before E3 fixed foundry jobs to carry campaign-scoped
+    // cache keys. Idempotent and best-effort — a failure never blocks the
+    // shelf. Dynamic import keeps sweepUnscoped off the synchronous closure.
+    import('./lib/cinema/sweepUnscoped.js')
+      .then(({ sweepUnscopedMedia }) => sweepUnscopedMedia())
+      .catch(() => {});
   }, [refreshShelf, refreshVaultShelf]);
   // Sign-in/sign-out mid-session: the shelf and the vaulted row redraw the
   // moment the door speaks — no reload asked of the player.

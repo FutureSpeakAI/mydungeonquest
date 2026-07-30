@@ -6964,3 +6964,120 @@ The five souls the old 7,000-char budget dropped at the target shape:
 
 All five have `introduced_turn` values and `visual: true`. From the DM's perspective, souls absent from the pack do not exist. A player who interacted with Orreth on turn 5 and named her in turn 12 would get a DM who had never heard of her. Census law was built to catch exactly this: introduced souls absent from the DM's view. The overlap is complete. **Census was treating a symptom of this budget bug.** No change to Census — the report is the finding.
 
+
+---
+
+## WORK ORDER — Push, Give-Up Path, and Latency / Part 3 — Turn decomposition
+
+### Structural analysis (code inspection; live timing requires a keyed session)
+
+#### Five answers
+
+**1. Which step dominates the average?**
+
+The DM API call (SSE streaming from `/api/dm`). Every other step — validation, seal, post-seal db reads — is well under 500ms on common turns. The DM call is where 10–30s of the average goes.
+
+**2. What made turn 10 take 39.7s?**
+
+Two causes are possible from code inspection:
+
+- **Repair cycle**: the server validation rejected Anthropic's first output and retried with the second Anthropic attempt (~75s timeout each, from `clock.js: DM_TIMEOUT_DEFAULT_MS = 75000`). A two-attempt Anthropic run is ~2× the mean DM call time.
+- **Act change stacking**: `chronicleActClose` (annal + epoch seal + cellar sweep + quota check) runs sequentially inside the try block before `setCurrent` and `setBusy(false)`. On the turn that closes an act, this adds 2–5s on top of the DM call. Combined with any repair, this gets to 39.7s.
+
+A single repair on a non-act-change turn peaks at ~25s. A repair on an act-change turn peaks at ~30s. 39.7s suggests either a second repair attempt or repair + act close, or a Genesis turn (120s timeout).
+
+**3. Which steps are sequential vs parallel? Is the plate already async?**
+
+Confirmed **fire-and-forget** (do NOT block `setBusy`):
+- `queueMedia` — art/paint queue (line 1257 App.jsx)
+- `playNarration` — voice synthesis (line 1246)
+- `chronicleChapterClose` — chapter retelling on beat advance (line 1261)
+- `briefUpcomingBeat` — beat lookahead, fires inside `queueMedia` at line 696
+
+Still **sequential on the success path** (blocked `setBusy` before Part 4 fix):
+- `await seal(base.id, 'turn', ...)` — vault hash computation ~50–200ms
+- `await db.campaigns.get(base.id)` — indexeddb read
+- `await rememberScene(...)` — scene recall write
+- **Act-change only**: `await chronicleActClose(...)` — annal + epoch + cellar + quota
+- `await sealWaypostIfDue(...)` — every 25th turn
+- `await refreshShelf()` — shelf list refresh
+
+The plate is already fully async. Part 5.2 is a cost optimization, not a latency fix (confirmed here).
+
+**4. Is the Foundry's beat lookahead being used on the common path?**
+
+Yes. `briefUpcomingBeat(campaign, foundry, campaign.codex.beatIndex)` fires at App.jsx line 696 inside `queueMedia`, which is called fire-and-forget on every turn. The Foundry header documents explicit cacheKey support so pre-briefed beat packages are found when the cinematic actually fires. Lookahead fires on every turn, not just at beat boundaries.
+
+**5. Gap between input re-enabled and everything settled?**
+
+Before Part 4: `setBusy(false)` fired after `await refreshShelf()` in the finally block. After Part 4: `setBusy(false)` fires right after `setStatus('✦ The turn is sealed.')`, with `refreshShelf()` made fire-and-forget. The player can type their next action while voice synthesizes (1–5s), art renders (5–30s), and chapter retelling runs on beat advance.
+
+### Repair chain structure (from `clock.js`)
+
+| Seat | Attempts | Per-attempt timeout | Worst case |
+|------|----------|---------------------|------------|
+| DM: Anthropic 1 | 1 | 75s | 75s |
+| DM: Anthropic 2 (repair) | 1 | 75s | 75s |
+| DM: OpenAI 1 | 1 | 75s | 75s |
+| DM: OpenAI 2 (repair) | 1 | 75s | 75s |
+| safeFallbackTurn (mock) | instant | — | ~0s |
+| **Total worst case** | **4 live attempts** | | **≤300s** |
+
+Genesis turns have a 120s timeout per attempt (worst case ≤480s, rarely reached).
+
+**No per-stage frequency data exists in the codebase.** The server logs `debit(req, 'dm', result.provider)` on each attempt but no structured counter records how often stages 3 and 4 are reached. Instrumentation is needed for Part 5.1's decision.
+
+
+---
+
+## WORK ORDER — Push, Give-Up Path, and Latency / Part 4 — Named progress and input re-enabling
+
+### 4.1 — Input re-enabled at narration seal
+
+`setBusy(false)` was in `finally { setBusy(false); }` which ran after `await refreshShelf()`. Narration was displayed at `setCurrent(next)` (App.jsx line 1210), but the player couldn't type until refreshShelf completed (~50–100ms later).
+
+**Change:** `refreshShelf()` made fire-and-forget on the success path. `setBusy(false)` moved to immediately after `setStatus('✦ The turn is sealed.')`. The `finally` block retains `setBusy(false)` for the error path. React batches the two calls on success (idempotent).
+
+Art and voice were already fire-and-forget — this change closes the remaining gap.
+
+### 4.2 — Named progress
+
+The player previously saw "The Dungeon Master is reading the road…" for the entire turn duration (10–40s), then "✦ The turn is sealed." with no intermediate states.
+
+**Status label sequence added to `playTurn`:**
+
+| Label | When | Step |
+|---|---|---|
+| `Writing…` | DM request dispatched | SSE stream consuming |
+| `Checking the turn…` | DM response received | Validation + codex update |
+| `Sealing…` | save + seal about to run | Vault hash computation |
+| `Chronicling the act…` | act-close detected | Annal + epoch + cellar (act turns only) |
+| `✦ The turn is sealed.` | setCurrent done | Turn visible, input re-enabled |
+| `Casting voices…` | playNarration fires | Voice synthesis (fire-and-forget, informational) |
+
+No label exceeds 2s before the next label appears on common paths. On act-change turns, `Chronicling the act…` covers the slow annal/epoch machinery.
+
+### Composer stated reason
+
+Previously: the send button silently became `disabled` with no visible explanation.
+
+**Change:** 
+- A `<span className="composer-writing">Writing…</span>` appears beside the send button while `busy` is true.
+- The send button's `aria-label` becomes `"The Dungeon Master is writing — your action waits"` when disabled.
+
+### Curtain law: unchanged
+
+No draft or unsealed text is shown. The status labels show that work is happening, not what the output is. Phase A5's mutation detector is unaffected.
+
+### Test
+
+`evals/turnFeedback.test.mjs` — structural gate (source-shape). Passes:
+
+```
+turnFeedback: PASS
+  Labels: Writing(789) → Checking(932) → Sealing(1087) → Chronicling(1159) → Sealed(1221) → Voices(1247)
+  setBusy(false) at line 1222, before playNarration(1246) and queueMedia(1257)
+  refreshShelf: fire-and-forget ✓
+  Composer stated reason: ✓
+```
+

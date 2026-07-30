@@ -103,14 +103,37 @@ function anchorOf(rows) {
   return best;
 }
 
+// THE BLOB EVICTION DOOR — quota-triggered path only. Nulls the blob
+// field from rows while leaving every other field intact, so the
+// sealed record (assetHash, cacheKey, originTurnHash, etc.) stays whole
+// and the vault can still reference the row by hash. The UI already
+// checks row.blob before creating object URLs everywhere, so a nulled
+// blob degrades gracefully to the CELLAR_FRAME_LINE or the procedural
+// stand-in — no error, no silent recycled image.
+// One media-only transaction, no other store touched (the Vault laws).
+export async function evictBlobsOnly(dbi, assetHashes) {
+  const hashes = (Array.isArray(assetHashes) ? assetHashes : []).filter((h) => typeof h === 'string' && h);
+  if (!hashes.length) return 0;
+  let count = 0;
+  await dbi.transaction('rw', dbi.media, async () => {
+    count = await dbi.media.where('assetHash').anyOf(hashes).modify((row) => { delete row.blob; });
+  });
+  return count;
+}
+
 // THE PLAN — pure, deterministic, byte-stable. Every kept row
 // names its immunity; every evicted row names its horizon. The
 // journal is read, never written; attribution comes from the
 // sealed record alone, and a row the record cannot place is kept.
-export function sweepPlan({ media, journal, currentAct } = {}) {
+// The optional `horizon` parameter (default 2) controls how many acts
+// behind the standing act a plate must be before it may burn. A lower
+// horizon (e.g. 1) is used by the quota-triggered path to be more
+// aggressive when storage is under pressure.
+export function sweepPlan({ media, journal, currentAct, horizon } = {}) {
   const rows = (Array.isArray(media) ? media : []).filter(isRecord);
   const record = Array.isArray(journal) ? journal.filter(isRecord) : [];
   const standingAct = Number.isInteger(currentAct) && currentAct > 0 ? currentAct : 1;
+  const evictHorizon = Number.isInteger(horizon) && horizon >= 0 ? horizon : 2;
 
   // The sealed record's map: recordHash -> row index i.
   const seatOf = new Map();
@@ -195,7 +218,7 @@ export function sweepPlan({ media, journal, currentAct } = {}) {
     if (!Number.isInteger(seat)) { keep(row, 'unattributable — the record cannot name its turn, so it stays'); continue; }
     const act = actOf(seat);
     const age = standingAct - act;
-    if (age < 2) { keep(row, `young — act ${act} stands within the two-act horizon`); continue; }
+    if (age < evictHorizon) { keep(row, `young — act ${act} stands within the ${evictHorizon}-act horizon`); continue; }
     clearedBytes += (row.blob && typeof row.blob.size === 'number') ? row.blob.size : 0;
     evicted.push({
       assetHash: row.assetHash,

@@ -303,8 +303,12 @@ export default function App() {
     // H7 storage quota guard: warn loudly when the player's IndexedDB store
     // is near full (>85% of quota). Best-effort: a missing Storage API or
     // any error returns null silently. Dynamic import keeps it off sync road.
+    // Stage 145: proactiveEvictIfNeeded runs immediately after the check —
+    // if usage has crossed 70% since last session, oldest plate blobs are
+    // freed before the first turn paints, preventing mid-session failures.
     import('./lib/storageQuota.js')
-      .then(({ checkStorageQuota }) => checkStorageQuota())
+      .then(({ checkStorageQuota, proactiveEvictIfNeeded }) =>
+        checkStorageQuota().then(() => proactiveEvictIfNeeded()))
       .catch(() => {});
   }, [refreshShelf, refreshVaultShelf]);
   // Sign-in/sign-out mid-session: the shelf and the vaulted row redraw the
@@ -1175,6 +1179,16 @@ export default function App() {
             const swept = await sweepCellar(base.id, actAfterTurn);
             if (swept.counts.cleared) console.log(`[cellar] act ${closedAct} closed: ${swept.counts.held} held, ${swept.counts.cleared} cleared.`);
           } catch (error) { console.error('The cellar kept everything this close:', error); }
+          // Stage 145 — PROACTIVE QUOTA EVICTION: after every act close the
+          // quota guard gets a fresh look. If total storage has crossed 70%,
+          // oldest evictable blobs are freed before the next turn paints — the
+          // act-close sweep clears the easy candidates first, so this pass only
+          // acts when a real pressure event requires it. Its own catch: a
+          // refused quota check never costs the sealed words above.
+          try {
+            const { proactiveEvictIfNeeded } = await import('./lib/storageQuota.js');
+            await proactiveEvictIfNeeded();
+          } catch (error) { console.error('The quota guard kept silence this close:', error); }
         }
       } catch (error) { console.error('The Chronicler kept silence:', error); }
       // THE WAYPOST (Directive XX, Law VI) — every twenty-fifth sealed

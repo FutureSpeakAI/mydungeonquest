@@ -88,6 +88,14 @@
 //     soulsWeb pin re-seated at 648375.
 // Stage 6 K6: 648375 → 648343 (-32 bytes, two || conditionals removed).
 //     KB ceiling stays 634 (648343 / 1024 = 633.15, ceil=634). No leanDoor change.
+//   2026-07-30 — measured 635 kB; ruled 635 kB. Stage 7 Task 145 quota eviction:
+//     storageQuota.js gained _proactiveEvictImpl + proactiveEvictIfNeeded + two
+//     exported constants (QUOTA_EVICT_THRESHOLD). cellar.js gained evictBlobsOnly
+//     and the horizon parameter. App.jsx wired two new import() call-sites. All
+//     new code rides dynamic imports; the sync-road growth is App.jsx prose
+//     (imports, comments, two new try/catch blocks). Quota-pressure eviction law
+//     growing on the sync road, not a surface creeping back.
+//     648343 → 649461 (+1118 bytes). ceil(649461/1024) = 635. soulsWeb re-seated.
 //
 // THE STANDING RULE: the pin moves upward only on the owner's word with a
 // named turn-law justification — any unjustified growth is a red, not a
@@ -109,7 +117,7 @@ import { entryClosureOf, closureBytesOf } from './manifestClosure.mjs';
 
 const GAME_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DIST = path.join(GAME_ROOT, 'dist');
-const PIN_KB = 634; // ruled 2026-07-29 (J4) — see the movement ledger in this header
+const PIN_KB = 635; // ruled 2026-07-30 (Task 145) — see the movement ledger in this header
 // CROSS-POINTER: the web-of-souls seating court (soulsWeb.test.mjs) pins the
 // closure's EXACT bytes; a ruled move of the closure re-seats BOTH pins in
 // the same ruling. Both courts read the ONE walk in manifestClosure.mjs.

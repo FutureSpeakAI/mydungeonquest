@@ -241,7 +241,15 @@ const DIST = path.join(GAME_ROOT, 'dist');
 //   in App.jsx and narrator.js. The || branch is eliminated by the minifier.
 //   Downward ratchet is lawful. leanDoor KB ceiling unchanged: 634
 //   (648343 / 1024 = 633.15, Math.ceil = 634).
-const CLOSURE_BYTES_PIN = 648343;
+// 648343 → 649461, a move of +1118 bytes. Owner ruling: Stage 7 Task 145.
+//   storageQuota.js gained _proactiveEvictImpl + proactiveEvictIfNeeded +
+//   QUOTA_EVICT_THRESHOLD. cellar.js gained evictBlobsOnly + horizon param.
+//   App.jsx wired two new import() call-sites (startup + act-close). All new
+//   logic rides dynamic imports; the sync-road growth is App.jsx prose and
+//   the new call-site wiring. Quota-pressure eviction law growing on the sync
+//   road, not a surface creeping back. leanDoor KB ceiling moves to 635
+//   (649461 / 1024 = 634.24, Math.ceil = 635).
+const CLOSURE_BYTES_PIN = 649461;
 
 const deepFreeze = (value) => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

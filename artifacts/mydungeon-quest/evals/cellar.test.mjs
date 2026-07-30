@@ -41,7 +41,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.URL.createObjectURL = (blob) => `blob:test/${blob?.type || 'unknown'}`;
 globalThis.URL.revokeObjectURL = () => {};
 
-const { sweepPlan, executeSweep, sweepStory, CELLAR_FRAME_LINE } = await import('../src/lib/cellar.js');
+const { sweepPlan, executeSweep, evictBlobsOnly, sweepStory, CELLAR_FRAME_LINE } = await import('../src/lib/cellar.js');
 const { makeEnvelope, verifyJournal } = await import('fatescript/desk');
 const CinematicModule = await import('../src/components/Cinematic.jsx');
 const Cinematic = CinematicModule.default;
@@ -341,4 +341,77 @@ ok('the sweep speaks its counts in house words');
 
 await db.media.clear(); await db.journal.clear();
 
-console.log(`PASS cellar — the cellar sweep holds: ${planA.counts.held} held by named immunity, ${planA.counts.cleared} cleared beyond the horizon, audio untouched (${planA.counts.audio} rows), the shelf shrank by exactly the plan, the chain stands, and the honest frame speaks.`);
+// ---------------------------------------------------------------------------
+// Court 8 — evictBlobsOnly: nulls blob bytes, keeps every metadata field.
+// This is the quota-triggered path (Stage 145): the blob is freed, the row
+// stands so the vault can still reference it by assetHash. The UI already
+// checks row.blob before creating object URLs, so a nulled blob degrades
+// gracefully to the cellar's honest frame — no error, no recycled painting.
+// ---------------------------------------------------------------------------
+const evictHash1 = 'evict-blob-test-1';
+const evictHash2 = 'evict-blob-test-2';
+const evictHashGhost = 'evict-blob-test-ghost'; // asked to evict but absent — must not error
+const evictBlob = new Blob(['fake-pixel-bytes'], { type: 'image/png' });
+await db.media.bulkPut([
+  { assetHash: evictHash1, cacheKey: 'ck1', campaignId: 'camp-evict', kind: 'paint', subtype: 'scene', label: 'Forest', blob: evictBlob, createdAt: 1 },
+  { assetHash: evictHash2, cacheKey: 'ck2', campaignId: 'camp-evict', kind: 'paint', subtype: 'region', label: 'Vale', blob: evictBlob, createdAt: 2 },
+]);
+const evicted = await evictBlobsOnly(db, [evictHash1, evictHash2, evictHashGhost]);
+// The two present rows must have had their blobs nulled; the ghost silently skipped.
+assert.equal(evicted, 2, `evictBlobsOnly must return 2 (the two rows modified), got ${evicted}`);
+const row1After = await db.media.get(evictHash1);
+const row2After = await db.media.get(evictHash2);
+assert.ok(row1After, 'the row must survive blob eviction (metadata intact)');
+assert.ok(row2After, 'the row must survive blob eviction (metadata intact)');
+assert.ok(!row1After.blob, 'the blob must be gone after eviction');
+assert.ok(!row2After.blob, 'the blob must be gone after eviction');
+assert.equal(row1After.assetHash, evictHash1, 'assetHash preserved after blob eviction');
+assert.equal(row1After.campaignId, 'camp-evict', 'campaignId preserved after blob eviction');
+assert.equal(row1After.label, 'Forest', 'label preserved after blob eviction');
+assert.equal(row1After.cacheKey, 'ck1', 'cacheKey preserved after blob eviction');
+// An empty call must return 0 without erroring.
+const evictedZero = await evictBlobsOnly(db, []);
+assert.equal(evictedZero, 0, 'evictBlobsOnly([]) must return 0 without erroring');
+await db.media.bulkDelete([evictHash1, evictHash2]);
+ok('evictBlobsOnly: blob bytes freed, metadata rows intact, empty call safe, absent hashes skipped');
+
+// ---------------------------------------------------------------------------
+// Court 9 — sweepPlan horizon parameter.
+// The quota-triggered path uses horizon=1 (more aggressive than the normal
+// act-close horizon=2). This court confirms the parameter wires correctly:
+// a plate one act behind standingAct=2 (age=1) is kept at horizon=2 but
+// evicted at horizon=1.
+// ---------------------------------------------------------------------------
+// Three region plates for the same label, from three different act turns:
+//   - hori-anchor  (createdAt=100, act 1) — OLDEST → anchor, always immune
+//   - hori-middle  (createdAt=200, act 1) — superseded state, candidate for
+//                                           eviction when horizon is tight
+//   - hori-standing(createdAt=300, act 2) — NEWEST → standing state, always immune
+// With two acts open, standingAct=2: hori-middle is from act 1 (age=1).
+//   horizon=2 → age(1) < 2 → kept    (the normal act-close rule)
+//   horizon=1 → age(1) >= 1 → evicted (the quota-pressure rule)
+const horiTurn0 = await makeEnvelope({ type: 'turn', i: 0, prevHash: null, payload: { note: 'hori-t0' }, ts: 1720000000000 });
+const horiTurn2 = await makeEnvelope({ type: 'turn', i: 2, prevHash: horiTurn0.recordHash, payload: { note: 'hori-t2' }, ts: 1720001000000 });
+const horizonMedia = [
+  // Anchor: oldest createdAt for 'Vale' → always immune as anchor.
+  { assetHash: 'hori-anchor',   cacheKey: 'hk0', campaignId: 'hori', kind: 'paint', subtype: 'region', label: 'Vale', originTurnHash: horiTurn0.recordHash, createdAt: 100, blob: evictBlob },
+  // Middle: neither anchor nor standing — evictable when age >= horizon.
+  { assetHash: 'hori-middle',   cacheKey: 'hk1', campaignId: 'hori', kind: 'paint', subtype: 'region', label: 'Vale', originTurnHash: horiTurn0.recordHash, createdAt: 200, blob: evictBlob },
+  // Standing: newest createdAt for 'Vale' → always immune as standing region.
+  { assetHash: 'hori-standing', cacheKey: 'hk2', campaignId: 'hori', kind: 'paint', subtype: 'region', label: 'Vale', originTurnHash: horiTurn2.recordHash, createdAt: 300, blob: evictBlob },
+];
+// Journal: act fence at seat 1 closes actIndex=0 (act 1 by 1-based actOf).
+// horiTurn0 (i=0) is in act 1; horiTurn2 (i=2) is in act 2.
+const horizonJournal = [
+  { ...horiTurn0, campaignId: 'hori', i: 0 },
+  { type: 'annal', payload: { actIndex: 0 }, recordHash: 'annal-hori', prevHash: null, campaignId: 'hori', i: 1 },
+  { ...horiTurn2, campaignId: 'hori', i: 2 },
+];
+const planHorizon2 = sweepPlan({ media: horizonMedia, journal: horizonJournal, currentAct: 2 }); // default horizon=2
+const planHorizon1 = sweepPlan({ media: horizonMedia, journal: horizonJournal, currentAct: 2, horizon: 1 });
+assert.equal(planHorizon2.evicted.length, 0, 'horizon=2: the middle superseded plate (age=1) must be kept — within the two-act horizon');
+assert.equal(planHorizon1.evicted.length, 1, 'horizon=1: the middle superseded plate (age=1) must be evicted — outside the one-act horizon');
+assert.equal(planHorizon1.evicted[0].assetHash, 'hori-middle', 'horizon=1 evicted the middle (superseded, attributable, non-anchor, non-standing) plate');
+ok('sweepPlan horizon parameter: horizon=1 is tighter than the default horizon=2');
+
+console.log(`PASS cellar — the cellar sweep holds: ${planA.counts.held} held by named immunity, ${planA.counts.cleared} cleared beyond the horizon, audio untouched (${planA.counts.audio} rows), the shelf shrank by exactly the plan, the chain stands, the honest frame speaks, evictBlobsOnly frees bytes while keeping rows, and the horizon parameter controls eviction pressure.`);

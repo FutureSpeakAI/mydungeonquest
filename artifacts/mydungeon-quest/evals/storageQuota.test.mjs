@@ -31,8 +31,20 @@ assert.ok(
   'storageQuota.js must export QUOTA_WARN_THRESHOLD (for gate use)',
 );
 assert.ok(
+  quotaSrc.includes('export const QUOTA_EVICT_THRESHOLD'),
+  'storageQuota.js must export QUOTA_EVICT_THRESHOLD (for gate use)',
+);
+assert.ok(
   quotaSrc.includes('export async function _checkQuotaImpl'),
   'storageQuota.js must export _checkQuotaImpl (inner impl, testable without navigator stubbing)',
+);
+assert.ok(
+  quotaSrc.includes('export async function _proactiveEvictImpl'),
+  'storageQuota.js must export _proactiveEvictImpl (inner impl, testable without navigator/db)',
+);
+assert.ok(
+  quotaSrc.includes('export async function proactiveEvictIfNeeded'),
+  'storageQuota.js must export proactiveEvictIfNeeded (called on startup and act-close)',
 );
 
 // ② threshold is a valid fraction
@@ -109,8 +121,60 @@ assert.ok(
   'checkStorageQuota must be a dynamic import (not top-level) — lean door law',
 );
 
+// ⑦ QUOTA_EVICT_THRESHOLD is a valid fraction below WARN_THRESHOLD
+const { QUOTA_EVICT_THRESHOLD, _proactiveEvictImpl } = await import('../src/lib/storageQuota.js');
+assert.ok(
+  typeof QUOTA_EVICT_THRESHOLD === 'number' && QUOTA_EVICT_THRESHOLD > 0 && QUOTA_EVICT_THRESHOLD < 1,
+  `QUOTA_EVICT_THRESHOLD must be a fraction between 0 and 1, got ${QUOTA_EVICT_THRESHOLD}`,
+);
+assert.ok(
+  QUOTA_EVICT_THRESHOLD < QUOTA_WARN_THRESHOLD,
+  `QUOTA_EVICT_THRESHOLD (${QUOTA_EVICT_THRESHOLD}) must be lower than QUOTA_WARN_THRESHOLD (${QUOTA_WARN_THRESHOLD}) — eviction fires before the near-full warning`,
+);
+
+// ⑧ _proactiveEvictImpl returns null when storage is absent or below threshold
+const evictNull = await _proactiveEvictImpl(null, null);
+assert.strictEqual(evictNull, null, '_proactiveEvictImpl(null, null) must return null gracefully');
+const stubBelowThreshold = { estimate: async () => ({ quota: 100 * 1024 * 1024, usage: 50 * 1024 * 1024 }) }; // 50%
+const evictBelow = await _proactiveEvictImpl(stubBelowThreshold, {});
+assert.strictEqual(evictBelow, null, '_proactiveEvictImpl below EVICT_THRESHOLD must return null (nothing to do)');
+
+// ⑨ _proactiveEvictImpl warns loudly (with "[quota]") when threshold is crossed,
+//    even if no blobs are freed (the long-march counter sees the pressure event).
+let evictWarnLabel = null, evictWarnRecord = null;
+const origWarn = console.warn;
+console.warn = (label, record) => { if (typeof label === 'string' && label.startsWith('[quota]')) { evictWarnLabel = label; evictWarnRecord = record; } };
+try {
+  const stubOver = { estimate: async () => ({ quota: 100 * 1024 * 1024, usage: 75 * 1024 * 1024 }) }; // 75% > 70%
+  // Stub db with empty campaigns so no blobs are available to evict —
+  // the warn must still fire (the pressure event itself is what matters).
+  const stubDb = { campaigns: { toArray: async () => [] } };
+  const evictResult = await _proactiveEvictImpl(stubOver, stubDb);
+  assert.ok(evictResult !== null, '_proactiveEvictImpl must return a result when threshold is crossed');
+  assert.ok(evictResult.percentUsed > QUOTA_EVICT_THRESHOLD, 'result must carry percentUsed above the threshold');
+  assert.ok(typeof evictResult.blobsEvicted === 'number', 'result must carry blobsEvicted count');
+  assert.ok(evictWarnLabel && evictWarnLabel.includes('[quota]'), 'console.warn must be called with [quota] label when threshold is crossed (long-march counter)');
+  assert.ok(evictWarnRecord && evictWarnRecord.action, 'the warn record must carry an action field');
+} finally {
+  console.warn = origWarn;
+}
+
+// ⑩ App.jsx wires proactiveEvictIfNeeded on startup (alongside checkStorageQuota)
+//    and at act-close (the cellar sweep gate).
+assert.ok(
+  appSrc.includes('proactiveEvictIfNeeded'),
+  'App.jsx must call proactiveEvictIfNeeded() — Stage 145 quota eviction',
+);
+// Must be dynamic (off sync closure), same as checkStorageQuota.
+const actCloseArea = appSrc.slice(appSrc.indexOf('THE CELLAR SWEEP'));
+assert.ok(
+  actCloseArea.includes('proactiveEvictIfNeeded'),
+  'App.jsx must call proactiveEvictIfNeeded() at the act-close gate (not only on startup)',
+);
+
 console.log(
   `PASS — H7 storageQuota: checkStorageQuota exported; QUOTA_WARN_THRESHOLD=${QUOTA_WARN_THRESHOLD} (valid fraction); ` +
+  `QUOTA_EVICT_THRESHOLD=${QUOTA_EVICT_THRESHOLD} (below warn threshold); ` +
   'returns null in Node env; near-full warns loudly with action (Rule 27); healthy is silent; ' +
-  'wired into App.jsx startup via dynamic import.',
+  'wired into App.jsx startup via dynamic import; proactiveEvictIfNeeded warns with [quota] tag when threshold is crossed.',
 );

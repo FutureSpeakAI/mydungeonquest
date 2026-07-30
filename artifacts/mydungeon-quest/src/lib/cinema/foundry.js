@@ -113,9 +113,16 @@ export class Foundry {
   async enqueue({ kind, prompt, originTurnHash = null, options = {}, priority = 5, cacheKey = null, ...rest }) {
     const spec = await generationSpec(kind, prompt, options);
     const key = cacheKey || spec.hash;
-    const cached = await db.media.where('cacheKey').equals(key).first();
+    // E3 item 2 (Stage 7 / L4) — filter by campaignId AT THE QUERY so zero
+    // foreign candidates reach the assertion. The cacheKey index narrows the
+    // candidate set; the .and() ensures only this campaign's row is returned.
+    // The assertion below is belt-and-suspenders: it can only fire if a caller
+    // passes a deliberately un-scoped key (legacy pre-E3 row) that survived
+    // sweepUnscopedMedia — catching the regression immediately rather than
+    // silently serving it.
+    const cached = await db.media.where('cacheKey').equals(key).and((row) => row.campaignId === this.campaignId).first();
     if (cached) {
-      const foreign = cached.campaignId !== this.campaignId;
+      const foreign = cached.campaignId !== this.campaignId; // always false post-filter — belt-and-suspenders
       this.onContaminationTrace?.({
         event: 'cache_hit', foundryId: this.campaignId,
         hitCampaignId: cached.campaignId, cacheKey: key,
@@ -148,7 +155,9 @@ export class Foundry {
     const job = lane.queue.shift();
     try {
       // Another job may have filled this key while we waited in line.
-      const cached = await db.media.where('cacheKey').equals(job.cacheKey).first();
+      // E3 item 2 (Stage 7 / L4): filter by campaignId at the query so zero
+      // foreign candidates surface even if two foundries share a cacheKey.
+      const cached = await db.media.where('cacheKey').equals(job.cacheKey).and((row) => row.campaignId === this.campaignId).first();
       if (cached) {
         this.onContaminationTrace?.({
           event: 'cache_hit', foundryId: this.campaignId,

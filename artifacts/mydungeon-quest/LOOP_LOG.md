@@ -6052,3 +6052,42 @@ march will see 0 for both (mock DM never invokes cinematic pipeline, no road fal
 A live-keyed march will show real counts from the cinema pipeline and any actual
 boundary falls.
 
+
+---
+
+## Stage 7 — L4: Isolation at query (E3 item 2 + isolationAtQuery gate) (2026-07-30)
+
+### Problem (from directive)
+
+The Foundry's two cacheKey reads — in `enqueue()` and `pump()` — fetched by
+cacheKey alone, then asserted against campaignId at the application level. If
+two campaigns shared a cacheKey (pre-E3 unscoped keys; or a content-addressed
+collision), the foreign row surfaced before the assertion, meaning the throw
+*killed the paint* instead of *preventing the retrieval*. This is P13 through
+a new door. With accounts coming, this becomes acute.
+
+### Changes
+
+**`src/lib/cinema/foundry.js`:**
+- `enqueue()` line (was 116): `db.media.where('cacheKey').equals(key)` →
+  `.and((row) => row.campaignId === this.campaignId)` added.
+  Foreign candidates no longer reach the `if (cached)` block; the E3 assertion
+  is now belt-and-suspenders.
+- `pump()` line (was 151): same `.and()` filter added.
+  The pump's race-check had NO assertion at all — a foreign row would have been
+  silently resolved. Now filtered at the query.
+
+**`evals/isolationAtQuery.test.mjs`** (new):
+- Source courts ① ②: foundry.js enqueue and pump both have the `.and()` filter
+- Source court ⑥: sweepUnscopedMedia wired in App.jsx (E3 item 5)
+- Functional court ③: same cacheKey, two campaigns → filtered query returns 1 row (B's)
+- Functional court ④: zero foreign candidates from A before any assertion fires;
+  unfiltered query confirms both rows exist (proves the filter was the only guard)
+- Functional court ⑤: E3 assertion still throws and names both campaigns for an injected
+  orphan row (simulates a legacy unscoped key that survived sweepUnscopedMedia)
+
+### J1 status (pre-existing)
+
+`resolveAnchors` already filters by campaignId at the Dexie query (Stage 5).
+referenceScope.test.mjs court ① verifies this. No change needed.
+

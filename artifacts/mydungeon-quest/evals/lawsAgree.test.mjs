@@ -42,6 +42,9 @@ const dmServerSrc = (() => {
 
 // Load the actual NARRATION_FLOOR from the protocol module
 import { NARRATION_FLOOR, validateDmTurn } from '../../../packages/engine/src/protocol.js';
+// Stage 7 / L2: import buildSystemPrompt to read craft targets from the
+// RENDERED system prompt — the actual bytes the DM model receives.
+import { buildSystemPrompt } from '../src/lib/systemPrompt.js';
 
 // ① NARRATION_FLOOR is the ONE seat
 assert.ok(
@@ -261,6 +264,46 @@ assert.strictEqual(
   `K9+⑨: voice.js EDITOR_ADDENDUM none.maxWords (${editorNoneMax}) disagrees with NARRATION_FLOOR (${NARRATION_FLOOR.byMeasure.none.maxWords})`,
 );
 
+// ⑨ Stage 7 / L2 — read craft target from systemPrompt.js DIRECTLY
+// (the rendered bytes the DM model receives), not by derivation from
+// the band. Court ② proves the source imports NARRATION_FLOOR; this
+// court proves the rendered output carries the correct numbers.
+// L2 constraint: NARRATION_FLOOR is the one canonical seat — a drift
+// found here is fixed in systemPrompt.js (never by relaxing the floor).
+const renderedPrompt = buildSystemPrompt({});
+// The craft line uses uppercase REQUIRES: "lean REQUIRES N-M words in P-Q paragraphs"
+const renderedBandPattern = /(\w+) REQUIRES (\d+)-(\d+) words in (\d+)-(\d+) paragraphs/g;
+const renderedBands = {};
+for (const m of renderedPrompt.matchAll(renderedBandPattern)) {
+  renderedBands[m[1]] = {
+    minWords: parseInt(m[2], 10), maxWords: parseInt(m[3], 10),
+    minBlocks: parseInt(m[4], 10), maxBlocks: parseInt(m[5], 10),
+  };
+}
+assert.ok(
+  Object.keys(renderedBands).length >= 3,
+  `K9+⑨/L2: rendered system prompt must carry ≥3 named REQUIRES bands; found: ${JSON.stringify(Object.keys(renderedBands))}`,
+);
+for (const [name, rBand] of Object.entries(renderedBands)) {
+  const flBand = NARRATION_FLOOR.byMeasure[name];
+  assert.ok(flBand, `K9+⑨/L2: rendered prompt carries band "${name}" but NARRATION_FLOOR has no such band`);
+  assert.strictEqual(rBand.minWords, flBand.minWords,
+    `K9+⑨/L2: rendered prompt ${name}.minWords (${rBand.minWords}) ≠ NARRATION_FLOOR (${flBand.minWords})`);
+  assert.strictEqual(rBand.maxWords, flBand.maxWords,
+    `K9+⑨/L2: rendered prompt ${name}.maxWords (${rBand.maxWords}) ≠ NARRATION_FLOOR (${flBand.maxWords})`);
+  assert.strictEqual(rBand.minBlocks, flBand.minBlocks,
+    `K9+⑨/L2: rendered prompt ${name}.minBlocks (${rBand.minBlocks}) ≠ NARRATION_FLOOR (${flBand.minBlocks})`);
+  assert.strictEqual(rBand.maxBlocks, flBand.maxBlocks,
+    `K9+⑨/L2: rendered prompt ${name}.maxBlocks (${rBand.maxBlocks}) ≠ NARRATION_FLOOR (${flBand.maxBlocks})`);
+}
+// none-band: "range is N-M words" in the rendered prompt
+const renderedNoneMatch = renderedPrompt.match(/range is (\d+)-(\d+) words/);
+assert.ok(renderedNoneMatch, `K9+⑨/L2: rendered prompt must carry the none-band range ("range is N-M words")`);
+assert.strictEqual(parseInt(renderedNoneMatch[1], 10), NARRATION_FLOOR.byMeasure.none.minWords,
+  `K9+⑨/L2: rendered prompt none.minWords ≠ NARRATION_FLOOR`);
+assert.strictEqual(parseInt(renderedNoneMatch[2], 10), NARRATION_FLOOR.byMeasure.none.maxWords,
+  `K9+⑨/L2: rendered prompt none.maxWords ≠ NARRATION_FLOOR`);
+
 // ⑩ Band satisfiability — floor, ceiling, and craft-target, by construction
 //    (Stage 6.6; replaces the arithmetic span check)
 //
@@ -384,5 +427,6 @@ console.log(
   `all ${Object.keys(NARRATION_FLOOR.byMeasure).length} bands internally consistent; lean/standard/rich no overlap. ` +
   `Part 3 feasibility: ⑧ implied block lengths plausible (${MIN_BLOCK_WORDS}–${MAX_BLOCK_WORDS} words/block) for all bands; ` +
   `⑨ voice.js EDITOR_ADDENDUM craft targets match NARRATION_FLOOR for all ${Object.keys(editorBands).length + 1} bands; ` +
+  `⑨/L2 rendered system prompt craft targets match NARRATION_FLOOR for ${Object.keys(renderedBands).length} bands + none; ` +
   `⑩ all bands satisfy validateDmTurn at floor/ceiling/craft-target from real prose; craft-target ≥${CRAFT_MARGIN}w from each edge.`,
 );

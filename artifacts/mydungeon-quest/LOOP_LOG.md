@@ -5976,3 +5976,30 @@ L1 adds the two missing properties: importance-based selection (thread-holder el
 and diagnostic drop records. Both properties are verifiable in the march's context-pack
 instrumentation.
 
+
+---
+
+## Stage 7 — L2: Close gap 2 in lawsAgree — rendered system prompt (2026-07-30)
+
+### Change
+
+`evals/lawsAgree.test.mjs` court ⑨ now contains a second sub-check that
+reads craft targets from the **rendered** system prompt — the actual bytes the
+model receives at runtime — not just from voice.js EDITOR_ADDENDUM source.
+
+- Added `import { buildSystemPrompt } from '../src/lib/systemPrompt.js'`
+- Court ⑨/L2: calls `buildSystemPrompt({})`, parses the uppercase-REQUIRES
+  pattern (`lean REQUIRES N-M words in P-Q paragraphs`) and the none-band range
+  (`range is N-M words`), and compares each parsed number to NARRATION_FLOOR
+- 3 named bands + none verified: all agree with NARRATION_FLOOR at runtime
+
+### Why this closes gap 2
+
+The existing check (court ② line 67-74) proved the source FILE references
+`NARRATION_FLOOR.byMeasure.lean.minWords` — but it could not detect a bug where
+the template literal was wrong or the values were shadowed. Court ⑨/L2 proves
+the RENDERED OUTPUT carries the correct numbers end-to-end.
+
+L2 constraint honoured: NARRATION_FLOOR is unchanged; disagreement would be
+fixed in systemPrompt.js.
+

@@ -39,6 +39,18 @@ if [ -f "$FLAG" ]; then
     echo "[proving] rehearsal complete exit=$(cat test-results/rehearse.exit)"
     sleep infinity
   fi
+  # K8-ONLY: run just the long march in isolation — used when the march
+  # needs to write its throughput floors without running the full suite.
+  # Out of ladder: no iteration number consumed, no verdict, no run-iter
+  # artifacts. The march's own budget file is the output.
+  if [ "$ITER" = "k8only" ]; then
+    fuser -k 5199/tcp 2>/dev/null; fuser -k 5198/tcp 2>/dev/null; sleep 1
+    echo "[proving] k8only begins (long march only, out of ladder)"
+    ./node_modules/.bin/playwright test --project=k8-longmarch > test-results/k8only.log 2>&1
+    echo "$?" > test-results/k8only.exit
+    echo "[proving] k8only complete exit=$(cat test-results/k8only.exit)"
+    sleep infinity
+  fi
   # Free the suite's own ports if a dead run left them held. These are the
   # proving ports (5199/5198), never the live preview's.
   fuser -k 5199/tcp 2>/dev/null; fuser -k 5198/tcp 2>/dev/null; sleep 1

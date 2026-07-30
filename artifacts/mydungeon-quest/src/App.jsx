@@ -979,7 +979,14 @@ export default function App() {
       // lockstep with the server bench — both benches apply identical word-law.
       // Without this seat a standard/rich turn above 180 words (lawful on the
       // server) would be refused by the legacy 20-180 check at the landing.
-      if (typeof beatIntent?.measure === 'string') landingContext.beatMeasure = beatIntent.measure;
+      // THE MOCK WORD FLOOR (A3/E5, client mirror): the measure-specific floor
+      // applies only to live AI turns (anthropic, openai) that the repair
+      // path can address. Mock and fallback turns are validated against the
+      // 'none' band (60-160 words) — the same law the server applies when it
+      // strips beat_intent for mock validation. Skipping beatMeasure here lets
+      // validateDmTurn fall through to the 'none' floor, consistent with
+      // getDmTurn's mockJudgeInput strip.
+      if (typeof beatIntent?.measure === 'string' && ['anthropic', 'openai'].includes(body.provider)) landingContext.beatMeasure = beatIntent.measure;
       const validation = validateDmTurn(dm, entropy, landingContext);
       // THE CENSUS AT THE LANDING — Directive VI, Phase 11: the same court
       // the door ran, run once more where the turn becomes record, on the

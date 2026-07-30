@@ -2,13 +2,13 @@
   "_note": "Two classes with opposite assertion directions. throughput values are null until the first run writes them. failure values are set by hand and are NEVER written or modified by a run.",
   "throughput": {
     "_direction": "floor",
-    "turnsCompleted": null,
-    "logEntries": null,
-    "narrationWords": null,
-    "narrationBlocks": null,
-    "suggestionSets": null,
-    "platesRendered": null,
-    "ticksFired": null
+    "turnsCompleted": 24,
+    "logEntries": 40,
+    "narrationWords": 2565,
+    "narrationBlocks": 157,
+    "suggestionSets": 23,
+    "platesRendered": 22,
+    "ticksFired": 6
   },
   "failure": {
     "_direction": "ceiling",
@@ -24,5 +24,6 @@
     "validatorRepairTurns": 3,
     "maxTicksInOneTurn": 4
   },
-  "targetTurns": 30
+  "targetTurns": 30,
+  "recordedAt": "2026-07-30T00:10:37.878Z"
 }

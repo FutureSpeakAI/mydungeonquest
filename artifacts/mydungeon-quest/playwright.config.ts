@@ -115,7 +115,9 @@ export default defineConfig({
     // HP (health chip shows complete fraction, not "10/1"), and BAND (gap between
     // plate and composer is explained). Injects a minimal campaign with hp=maxHp=10.
     { name: 'j7-layout', testMatch: /j7-layout\.spec\.ts/ },
-    { name: 'k8-longmarch', testMatch: /k8-longmarch\.spec\.ts/ },
+    // k8 long march: 10-minute ceiling — live paint calls can queue behind
+    // Gemini 503 retries (~60 s each) when the API is throttling.
+    { name: 'k8-longmarch', testMatch: /k8-longmarch\.spec\.ts/, timeout: 600_000 },
   ],
   webServer: {
     command: 'bash tests/e2e/webserver.sh',

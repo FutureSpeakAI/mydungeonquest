@@ -1,48 +1,50 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'fs';
+import { fileURLToPath } from 'url';
 import path from 'path';
+import { boot, turnCount } from './lib/harness.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
 // ──────────────────────────────────────────────────────────────────────────────
 // K8 — 30-TURN INSTRUMENTED LONG MARCH  (Stage 6.5 revised)
 //
+// Opens the proving-campaign fixture (the one proven table that always reaches
+// the adventure-log) and walks 30 additional player→DM turns in keyless mode.
+// The harness seedFixture / act / waitForTurn utilities are the proven
+// primitives; the long march adds instrumentation on top.
+//
 // Budget schema has TWO structurally distinct classes:
 //
 //   throughput: { _direction: "floor" }
-//     Measures that the game did its work. Values are null until the first run
-//     writes them from observation (FLOOR_RATIO × observed). On subsequent runs
-//     each metric must be ≥ its floor. If a throughput count drops, something
-//     stopped working.
+//     Null until the first run writes them. On subsequent runs each must be
+//     ≥ its floor. Drop = regression.
 //
 //   failure: { _direction: "ceiling" }
-//     Measures silence and breakage. Values are set BY HAND in k8-budget.json
-//     BEFORE the first run, from judgment about what the game should do. A run
-//     NEVER writes or modifies failure values. If the first march exceeds a
-//     ceiling, that ceiling is not wrong — there is work. The first march's
-//     counts are a finding to report, not a baseline to adopt.
+//     Set BY HAND in k8-budget.json BEFORE the first run.
+//     A run NEVER writes or modifies failure values.
+//     If the first march exceeds a ceiling, that ceiling is not wrong.
+//     Report the gap; do not adopt the count as the standard.
 //
-// Throughput floor ratio: 80% (ratchets downward only).
-// Failure ceilings: see k8-budget.json.
+// Throughput floor ratio: 80%.
 //
-// Observational extras (not gated, always reported):
+// Observational extras (always reported, not gated):
 //   - wall-clock time per turn, and which step dominated
-//   - navigator.storage.estimate() at start and end (F1 quota question)
-//   - DOM node count at turns 1, 15, and 30 (F9 performance question)
-//   - context pack proxy (total log DOM text length at turns 1/10/20/30)
-//     Note: in keyless mode the context pack is built but the mock DM ignores it;
-//     DOM text length is the closest observable proxy.
+//   - navigator.storage.estimate() at start and end  (F1 quota question)
+//   - DOM node count at turns 1/15/30                (F9 performance question)
+//   - log DOM text length at turns 1/10/20/30        (context-pack proxy)
+//     (keyless: mock DM ignores context pack; text length is closest proxy)
 //
 // Failure counter instrumentation via console interception:
-//   Each failure counter is incremented by matching console messages.
-//   Unmatched console errors are counted as unknownPageErrors.
-//   NOTE: swallowedExceptions (silent catches) and maxConsecutiveTicksSameSoul
-//   are not instrumentable from outside the browser without source hooks;
-//   they are tracked as advisory notes in the march report only.
+//   Each counter matches console errors/warnings/logs.
+//   unknownPageErrors: page.on('pageerror') — escaped uncaught exceptions.
+//   NOTE: swallowedExceptions and maxConsecutiveTicksSameSoul are not
+//   instrumentable from outside; noted in the observational report only.
 // ──────────────────────────────────────────────────────────────────────────────
 
-const CAMPAIGN_ID = 'k8-long-march';
-const DB_NAME = 'mydungeon-cinematic';
-const TARGET_TURNS = 30;
 const BUDGET_PATH = path.join(__dirname, 'k8-budget.json');
+const TARGET_TURNS = 30;
 const THROUGHPUT_FLOOR_RATIO = 0.80;
 
 // ── Budget types ──────────────────────────────────────────────────────────────
@@ -89,8 +91,8 @@ type FailureKey    = Exclude<keyof FailureClass,    '_direction'>;
 type FailureCounts = Record<FailureKey, number>;
 
 // Pattern → failure key. A console message matches the FIRST pattern it hits.
-// unknownPageErrors is populated by the pageerror handler, not console patterns.
-const FAILURE_PATTERNS: Array<{ pattern: RegExp; key: FailureKey }> = [
+// unknownPageErrors is populated by the pageerror handler separately.
+const FAILURE_PATTERNS: Array<{ pattern: RegExp; key: Exclude<FailureKey, 'unknownPageErrors'> }> = [
   { pattern: /play\(\)|NotAllowedError/i,                           key: 'playRejections' },
   { pattern: /\[E3\]|campaign.isolation|boundary.*violated/i,       key: 'boundaryAssertionThrows' },
   { pattern: /attestation|render.door|plate.refused/i,              key: 'platesRefusedByRenderDoor' },
@@ -101,13 +103,6 @@ const FAILURE_PATTERNS: Array<{ pattern: RegExp; key: FailureKey }> = [
   { pattern: /\bunderstudy\b/i,                                     key: 'understudyInvocations' },
   { pattern: /\brepair\b/i,                                         key: 'validatorRepairTurns' },
 ];
-
-function classifyConsoleMessage(text: string): FailureKey | null {
-  for (const { pattern, key } of FAILURE_PATTERNS) {
-    if (pattern.test(text)) return key;
-  }
-  return null;
-}
 
 function initFailureCounts(): FailureCounts {
   return {
@@ -125,114 +120,7 @@ function initFailureCounts(): FailureCounts {
   };
 }
 
-// ── Observational extras ──────────────────────────────────────────────────────
-
-interface TurnTiming {
-  turn: number;
-  totalMs: number;
-  waitForDmMs: number;
-}
-
-interface StorageSnapshot {
-  usageBytes: number;
-  quotaBytes: number;
-  usagePct: string;
-}
-
-interface DomSnapshot {
-  turn: number;
-  nodeCount: number;
-}
-
-interface ContextProxy {
-  turn: number;
-  logDomTextChars: number;
-}
-
-// ── Campaign injection ────────────────────────────────────────────────────────
-
-async function injectCampaign(page: Page): Promise<void> {
-  await page.evaluate(async (args) => {
-    const { id, dbName } = args;
-    const db = await new Promise<IDBDatabase>((res, rej) => {
-      const req = indexedDB.open(dbName);
-      req.onsuccess = () => res(req.result);
-      req.onerror = () => rej(req.error);
-    });
-    await new Promise<void>((res, rej) => {
-      const tx = db.transaction('campaigns', 'readwrite');
-      const store = tx.objectStore('campaigns');
-      const req = store.put({
-        id,
-        title: 'K8 Long March',
-        hero: {
-          name: 'Asha Vael',
-          mark: 'human',
-          presentation: 'A wandering mage.',
-          hp: 10,
-          maxHp: 10,
-          xp: 0,
-          level: 1,
-        },
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        logs: [],
-        turnNumber: 0,
-        codex: { cast: [], trove: [], beats: [] },
-        mediaTier: 'illuminated',
-      });
-      req.onsuccess = () => res();
-      req.onerror = () => rej(req.error);
-      tx.oncomplete = () => res();
-    });
-    db.close();
-  }, { id: CAMPAIGN_ID, dbName: DB_NAME });
-}
-
-async function openTable(page: Page): Promise<boolean> {
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.title-page, .book-wall, .book-spine', { timeout: 45_000 });
-  await page.waitForTimeout(1500);
-
-  const spine = page.locator('.book-spine').filter({ hasNotText: 'New' }).first();
-  if (await spine.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await spine.click();
-    await page.waitForTimeout(3000);
-    return true;
-  }
-  return false;
-}
-
-async function waitForDmResponse(page: Page, prevCount: number): Promise<boolean> {
-  try {
-    await page.waitForFunction(
-      (count) => document.querySelectorAll('.log-entry').length > count,
-      prevCount,
-      { timeout: 30_000 },
-    );
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function sendPlayerAction(page: Page, text: string): Promise<void> {
-  const textarea = page.locator('textarea').first();
-  if (await textarea.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await textarea.fill(text);
-    const sendBtn = page.locator('button[aria-label*="Send"], button[aria-label*="send"], button[type="submit"]').first();
-    if (await sendBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await sendBtn.click();
-    } else {
-      await textarea.press('Enter');
-    }
-    return;
-  }
-  const suggestion = page.locator('.chip-item').first();
-  if (await suggestion.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await suggestion.click();
-  }
-}
+// ── Observational helpers ─────────────────────────────────────────────────────
 
 async function getDomNodeCount(page: Page): Promise<number> {
   return page.evaluate(() => document.querySelectorAll('*').length);
@@ -241,14 +129,14 @@ async function getDomNodeCount(page: Page): Promise<number> {
 async function getLogDomTextLength(page: Page): Promise<number> {
   return page.evaluate(() => {
     let total = 0;
-    document.querySelectorAll('.log-entry').forEach((el) => {
+    document.querySelectorAll('main.adventure-log .turn-entry').forEach((el) => {
       total += ((el as HTMLElement).innerText || '').length;
     });
     return total;
   });
 }
 
-async function getStorageEstimate(page: Page): Promise<StorageSnapshot | null> {
+async function getStorageEstimate(page: Page): Promise<{ usageBytes: number; quotaBytes: number; usagePct: string } | null> {
   return page.evaluate(async () => {
     if (!navigator.storage?.estimate) return null;
     const est = await navigator.storage.estimate();
@@ -265,47 +153,86 @@ async function getStorageEstimate(page: Page): Promise<StorageSnapshot | null> {
 // ── Main test ─────────────────────────────────────────────────────────────────
 
 test('K8 — 30-turn long march: throughput floors, failure ceilings, observational extras', async ({ page }) => {
-  test.setTimeout(180_000); // 3 minutes
+  test.setTimeout(600_000); // 10 minutes: live paints can queue behind Gemini 503 retries
 
   await page.setViewportSize({ width: 390, height: 844 });
 
-  // Failure counters accumulated throughout the march
+  // ── Failure counter instrumentation ─────────────────────────────────────
   const fc = initFailureCounts();
 
-  // Console message interception — classify errors and warnings
   page.on('console', (msg) => {
-    const type = msg.type(); // 'error' | 'warning' | 'log' | 'info' | ...
     const text = msg.text();
-    if (type === 'error' || type === 'warning' || type === 'log') {
-      const key = classifyConsoleMessage(text);
-      if (key && key !== 'unknownPageErrors') {
-        fc[key]++;
-      }
-      // Log unclassified errors (but not warnings/logs — too noisy)
-      // (unknownPageErrors is reserved for pageerror events below)
+    for (const { pattern, key } of FAILURE_PATTERNS) {
+      if (pattern.test(text)) { fc[key]++; break; }
     }
   });
-
-  // Uncaught page exceptions — these escaped all catch blocks
   page.on('pageerror', (err) => {
     fc.unknownPageErrors++;
-    test.info().annotations.push({
-      type: 'K8-PAGE-ERROR',
-      description: `${err.message}`,
-    });
+    test.info().annotations.push({ type: 'K8-PAGE-ERROR', description: err.message });
   });
 
-  await page.goto('/');
-  await injectCampaign(page);
+  // ── Open a cast-free march campaign ──────────────────────────────────────
+  // The proving-campaign fixture has cast members (Edda, Vessarine) present
+  // at the scene. The mock DM generates narration-only turns (no dialogue),
+  // which both the server and client validators reject when cast are present,
+  // so the new turn is silently discarded and never appears in the DOM.
+  // Solution: use an inline fixture with NO cast, NO existing turns. The mock
+  // DM's narration-only style is fully valid on a solo scene. The app will
+  // auto-generate the opening narration (the first DM turn) before the composer
+  // re-enables — we wait for that to settle before starting the march.
+  //
+  // boot navigates to /?proving=1 and waits for .title-page.
+  // window.__mdqSeed is registered in a useEffect + dynamic import that fires
+  // AFTER the title page renders, so we must wait for it explicitly.
+  await boot(page);
+  await page.waitForFunction(() => typeof (window as any).__mdqSeed === 'function', { timeout: 15_000 });
+
+  const marchFixture = {
+    title: 'The Long March',
+    covenant: 'A lonely road through high country where the weather turns without warning and every village keeps its own gods. The hero travels alone.',
+    tone: 'Gritty, quiet, and mythic',
+    styleBible: 'Dark fantasy oil painting, muted palette, lone figure in vast landscapes.',
+    homeRegion: 'The High Pass',
+    spineId: 'classic-epic',
+    lines: [],
+    veils: [],
+    hero: {
+      name: 'Erlan',
+      sigil: '⚔',
+      ancestry: 'Human',
+      className: 'Warrior',
+      caster: 'none',
+      hitDie: 10,
+      abilities: { STR: 15, DEX: 12, CON: 14, INT: 10, WIS: 11, CHA: 8 },
+      skills: ['Athletics', 'Perception', 'Survival'],
+      bearing: 'A road-worn soldier with a heavy pack and a broken compass hung around his neck.',
+      background: 'A discharged scout who still walks patrol routes out of habit.',
+      presentation: 'masculine',
+      pronouns: 'he/him',
+      mark: 'a scar that crosses both palms',
+    },
+    // NO turns — the app auto-generates the opening narration; that way the
+    // cast array is empty and the mock DM generates valid narration-only turns.
+    turns: [],
+  };
+
+  await page.evaluate(async (fx) => (window as any).__mdqSeed(fx), marchFixture);
+  await page.waitForSelector('main.adventure-log', { timeout: 30_000 });
+
+  // The adventure-log is empty (no turns — __mdqSeed does not fire the genesis
+  // DM call; that only happens through the title screen's onOpen/greetTale path).
+  // The composer should be immediately ready: no cast → no dialogue rule, no
+  // pending roll, not busy. Wait for it to confirm before starting the march.
+  await page.waitForSelector('.composer textarea:not([disabled])', { timeout: 30_000 });
 
   // Storage estimate at start
   const storageStart = await getStorageEstimate(page);
 
-  const opened = await openTable(page);
-  expect(opened, 'K8: table must open for the long march campaign').toBe(true);
+  // Snapshot of existing turns before the march starts (fixture has some turns)
+  const turnsAtStart = await turnCount(page);
+  const ticksAtStart = await page.locator('.divider-row').count();
 
   // ── March ────────────────────────────────────────────────────────────────
-
   const playerActions = [
     'I look around carefully.',
     'I move north.',
@@ -321,187 +248,216 @@ test('K8 — 30-turn long march: throughput floors, failure ceilings, observatio
 
   let turnsCompleted = 0;
   let suggestionSetsSeen = 0;
-  const turnTimings: TurnTiming[] = [];
-  const domSnapshots: DomSnapshot[] = [];
-  const contextProxies: ContextProxy[] = [];
+  const turnTimings: Array<{ turn: number; totalMs: number }> = [];
+  const domSnapshots: Array<{ turn: number; nodeCount: number }> = [];
+  const contextProxies: Array<{ turn: number; logDomTextChars: number }> = [];
 
-  for (let turn = 0; turn < TARGET_TURNS; turn++) {
+  // ── Self-contained per-turn helpers ─────────────────────────────────────
+  // Avoids rollIfAsked (which requires .die to appear) — instead just clicks
+  // the roll button and waits for a new turn-entry, no animation dependency.
+  async function drainPendingRoll(label: string): Promise<boolean> {
+    const btn = page.locator('.roll-button');
+    if (!(await btn.isVisible().catch(() => false))) return false;
+    const beforeRoll = await turnCount(page);
+    await btn.click();
+    const resolved = await page.waitForFunction(
+      (n) => document.querySelectorAll('main.adventure-log .turn-entry').length > n,
+      beforeRoll,
+      { timeout: 120_000 },
+    ).catch(() => null);
+    if (!resolved) {
+      test.info().annotations.push({ type: 'K8-WARNING', description: `${label}: roll not resolved within 120s` });
+      return false;
+    }
+    return true;
+  }
+
+  // Send one player action and wait for the DM's response turn to appear.
+  // Returns true on success; false if the DM didn't respond within timeout.
+  async function marchTurn(t: number): Promise<boolean> {
     const turnStart = Date.now();
-    const logsBefore = await page.locator('.log-entry').count();
-    const ticksBefore = await page.locator('.tick-divider').count();
+    const ticksBefore = await page.locator('.divider-row').count();
 
-    // Observational snapshots at turns 0 (=turn 1), 9 (=turn 10), 14 (=turn 15), 19 (=turn 20), 29 (=turn 30)
-    if ([0, 9, 14, 19, 29].includes(turn)) {
-      const nodeCount = await getDomNodeCount(page);
-      domSnapshots.push({ turn: turn + 1, nodeCount });
+    // Observational snapshots at turns 1/10/15/20/30
+    if ([0, 9, 14, 19, 29].includes(t)) {
+      domSnapshots.push({ turn: t + 1, nodeCount: await getDomNodeCount(page) });
     }
-    if ([0, 9, 19, 29].includes(turn)) {
-      const chars = await getLogDomTextLength(page);
-      contextProxies.push({ turn: turn + 1, logDomTextChars: chars });
+    if ([0, 9, 19, 29].includes(t)) {
+      contextProxies.push({ turn: t + 1, logDomTextChars: await getLogDomTextLength(page) });
     }
 
-    const action = playerActions[turn % playerActions.length];
-    await sendPlayerAction(page, action);
-
-    const dmWaitStart = Date.now();
-    const responded = await waitForDmResponse(page, logsBefore);
-    const dmWaitMs = Date.now() - dmWaitStart;
-
-    if (!responded) {
-      test.info().annotations.push({
-        type: 'K8-WARNING',
-        description: `Turn ${turn + 1}: DM did not respond within 30s — ending march early`,
-      });
-      break;
+    // Step 1: wait for the page to be in a state where we can interact
+    const label = `Turn ${t + 1}`;
+    const readySelector = '.composer textarea:not([disabled]), .roll-button';
+    const readyEl = await page.waitForSelector(readySelector, { timeout: 60_000 }).catch(() => null);
+    if (!readyEl) {
+      test.info().annotations.push({ type: 'K8-WARNING', description: `${label}: composer not ready after 60s` });
+      return false;
     }
 
-    turnsCompleted++;
-    await page.waitForTimeout(400);
+    // Step 2: drain any pending roll BEFORE the player action
+    if (await drainPendingRoll(`${label} pre-roll`)) {
+      const composerAfterRoll = await page.waitForSelector(
+        '.composer textarea:not([disabled])',
+        { timeout: 60_000 },
+      ).catch(() => null);
+      if (!composerAfterRoll) {
+        test.info().annotations.push({ type: 'K8-WARNING', description: `${label}: composer not re-enabled after pre-roll` });
+        return false;
+      }
+    }
 
-    const totalMs = Date.now() - turnStart;
-    turnTimings.push({ turn: turn + 1, totalMs, waitForDmMs: dmWaitMs });
+    const before = await turnCount(page);
+    const action = playerActions[t % playerActions.length];
 
-    // Count ticks that fired this turn
-    const ticksAfter = await page.locator('.tick-divider').count();
+    // Step 3: dismiss any .ritual overlay before sending — level-up, seal-ask,
+    // and pyre-ask overlays intercept pointer events and block the send button.
+    // For seal-ask / pyre-ask click the secondary (safe/cancel) button; for
+    // level-up click the accept button; fall back to the first visible button.
+    const ritual = page.locator('.ritual');
+    if (await ritual.isVisible().catch(() => false)) {
+      const secondary = ritual.locator('.secondary-button');
+      const anyBtn    = ritual.locator('button').first();
+      const dismissEl = (await secondary.isVisible().catch(() => false)) ? secondary : anyBtn;
+      await dismissEl.click().catch(() => null);
+      // Wait for it to clear
+      await ritual.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => null);
+    }
+    // Step 3b: fill + submit
+    await page.fill('.composer textarea', action);
+    await page.locator('[aria-label="Send your action"]').click();
+
+    // Step 4: wait for the DM's response turn to appear (generous: repair can retry 2×)
+    const appeared = await page.waitForFunction(
+      (n) => document.querySelectorAll('main.adventure-log .turn-entry').length > n,
+      before,
+      { timeout: 60_000 },
+    ).catch(() => null);
+    if (!appeared) {
+      test.info().annotations.push({ type: 'K8-WARNING', description: `${label}: DM turn did not appear within 60s` });
+      return false;
+    }
+
+    // Step 5: drain any roll the DM generated (non-blocking — if it fails we still count the turn)
+    await drainPendingRoll(`${label} post-roll`);
+
+    turnTimings.push({ turn: t + 1, totalMs: Date.now() - turnStart });
+
+    const ticksAfter = await page.locator('.divider-row').count();
     const ticksThisTurn = Math.max(0, ticksAfter - ticksBefore);
     if (ticksThisTurn > fc.maxTicksInOneTurn) fc.maxTicksInOneTurn = ticksThisTurn;
 
-    // Count suggestion sets
-    const currentSuggestions = await page.locator('.chip-item').count();
-    if (currentSuggestions > 0) suggestionSetsSeen++;
+    const chips = await page.locator('.chip-item').count();
+    if (chips > 0) suggestionSetsSeen++;
+
+    return true;
+  }
+
+  for (let t = 0; t < TARGET_TURNS; t++) {
+    const ok = await marchTurn(t);
+    if (!ok) break;
+    turnsCompleted++;
   }
 
   // ── Final measurements ───────────────────────────────────────────────────
-
   const storageEnd = await getStorageEstimate(page);
 
   const finalCounts = await page.evaluate(() => {
-    const logEntries = document.querySelectorAll('.log-entry');
+    const logEntries = document.querySelectorAll('main.adventure-log .turn-entry');
     let words = 0;
     let blocks = 0;
     const illustrationPanels = document.querySelectorAll('.illustration-panel').length;
-    const tickFired = document.querySelectorAll('.tick-divider').length;
+    const tickFired = document.querySelectorAll('.divider-row').length;
 
     logEntries.forEach((entry) => {
-      const narrationParas = entry.querySelectorAll('p.narration, .narration-block p, .log-prose p');
+      const narrationParas = entry.querySelectorAll('.narration p');
       narrationParas.forEach((p) => {
         const text = (p as HTMLElement).innerText || '';
         words += text.trim().split(/\s+/).filter(Boolean).length;
         if (text.trim()) blocks++;
       });
-      if (blocks === 0) {
-        const allParas = entry.querySelectorAll('p');
-        allParas.forEach((p) => {
-          const text = (p as HTMLElement).innerText || '';
-          words += text.trim().split(/\s+/).filter(Boolean).length;
-          if (text.trim()) blocks++;
-        });
-      }
     });
 
-    return {
-      logEntries: logEntries.length,
-      narrationWords: words,
-      narrationBlocks: blocks,
-      illustrationPanels,
-      tickFired,
-    };
+    return { logEntries: logEntries.length, narrationWords: words, narrationBlocks: blocks, illustrationPanels, tickFired };
   });
+
+  // Measure only what the march itself added (exclude fixture's existing turns)
+  const marchLogEntries = finalCounts.logEntries - turnsAtStart;
+  const marchTicksFired  = finalCounts.tickFired  - ticksAtStart;
 
   const throughputActual: Record<ThroughputKey, number> = {
     turnsCompleted,
-    logEntries: finalCounts.logEntries,
+    logEntries: Math.max(0, marchLogEntries),
     narrationWords: finalCounts.narrationWords,
     narrationBlocks: finalCounts.narrationBlocks,
     suggestionSets: suggestionSetsSeen,
     platesRendered: finalCounts.illustrationPanels,
-    ticksFired: finalCounts.tickFired,
+    ticksFired: Math.max(0, marchTicksFired),
   };
 
-  // ── Observational extras report ──────────────────────────────────────────
-
+  // ── Observational report ─────────────────────────────────────────────────
   const wallClockTotal = turnTimings.reduce((s, t) => s + t.totalMs, 0);
   const wallClockPerTurn = turnsCompleted > 0 ? (wallClockTotal / turnsCompleted).toFixed(0) : 'n/a';
-  const slowestTurn = turnTimings.sort((a, b) => b.totalMs - a.totalMs)[0];
+  const sortedTimings = [...turnTimings].sort((a, b) => b.totalMs - a.totalMs);
+  const slowestTurn = sortedTimings[0] ?? null;
 
   test.info().annotations.push({
     type: 'K8-OBSERVATIONAL',
     description: JSON.stringify({
       wallClockPerTurnMs: wallClockPerTurn,
-      slowestTurn: slowestTurn ? { turn: slowestTurn.turn, totalMs: slowestTurn.totalMs, waitForDmMs: slowestTurn.waitForDmMs } : null,
+      slowestTurn,
       storageStart,
       storageEnd,
       domNodeSnapshots: domSnapshots,
       contextPackProxies: contextProxies,
-      note_contextPack: 'logDomTextChars is a proxy; in keyless mode the mock DM ignores the context pack. Run with AI keys to measure real pack size.',
-      note_consecutiveTicks: 'maxConsecutiveTicksSameSoul not instrumentable from DOM classes alone — requires tick content parsing.',
-      note_swallowed: 'swallowedExceptions not instrumentable from outside the browser — silent catches are definitionally invisible.',
+      note_contextPack: 'logDomTextChars is a DOM-text proxy; in keyless mode the mock DM ignores the context pack.',
+      note_consecutiveTicks: 'maxConsecutiveTicksSameSoul not instrumentable from outside — requires tick content parsing.',
+      note_swallowed: 'swallowedExceptions not instrumentable — silent catches are definitionally invisible.',
     }, null, 2),
   });
 
-  test.info().annotations.push({
-    type: 'K8-THROUGHPUT',
-    description: JSON.stringify(throughputActual, null, 2),
-  });
-
-  test.info().annotations.push({
-    type: 'K8-FAILURE',
-    description: JSON.stringify(fc, null, 2),
-  });
+  test.info().annotations.push({ type: 'K8-THROUGHPUT', description: JSON.stringify(throughputActual, null, 2) });
+  test.info().annotations.push({ type: 'K8-FAILURE',    description: JSON.stringify(fc, null, 2) });
 
   // ── Load budget ──────────────────────────────────────────────────────────
-
   const budget: Budget = JSON.parse(readFileSync(BUDGET_PATH, 'utf8'));
 
-  // Structural guard: both classes must carry the correct _direction
-  expect(budget.throughput._direction, 'k8-budget throughput must declare _direction: "floor"').toBe('floor');
-  expect(budget.failure._direction, 'k8-budget failure must declare _direction: "ceiling"').toBe('ceiling');
+  expect(budget.throughput._direction).toBe('floor');
+  expect(budget.failure._direction).toBe('ceiling');
 
   // ── Throughput: write on first run, assert on subsequent runs ────────────
-
   const throughputKeys = Object.keys(throughputActual) as ThroughputKey[];
   const isFirstRun = throughputKeys.every((k) => budget.throughput[k] === null);
 
   if (isFirstRun) {
-    // First run: write floors from observation. Leave failure untouched.
     for (const k of throughputKeys) {
-      const actual = throughputActual[k];
-      // For counts that are 0 in keyless mode (plates), floor is 0
-      (budget.throughput as Record<string, number | null>)[k] = Math.floor(actual * THROUGHPUT_FLOOR_RATIO);
+      (budget.throughput as Record<string, number | null>)[k] = Math.floor(throughputActual[k] * THROUGHPUT_FLOOR_RATIO);
     }
     budget.recordedAt = new Date().toISOString();
     writeFileSync(BUDGET_PATH, JSON.stringify(budget, null, 2));
     test.info().annotations.push({
       type: 'K8-BUDGET-FLOORS-WRITTEN',
-      description: `Throughput floors written from first run. Failure ceilings were NOT touched.`,
+      description: `Throughput floors written from first run. Failure ceilings NOT touched.`,
     });
-    // First run passes on throughput; failure ceilings still asserted (they're 0 or hand-set).
-    // Fall through to failure assertion below.
+    // Fall through to failure assessment below (findings reported even on first run)
   } else {
-    // Subsequent runs: assert throughput ≥ floor
     for (const k of throughputKeys) {
       const floor = budget.throughput[k];
-      if (floor === null) continue; // not yet established
-      const actual = throughputActual[k];
-      expect(actual, `K8 throughput.${k} (${actual}) must meet floor (${floor})`).toBeGreaterThanOrEqual(floor);
+      if (floor === null) continue;
+      expect(throughputActual[k], `K8 throughput.${k} (${throughputActual[k]}) must meet floor (${floor})`).toBeGreaterThanOrEqual(floor);
     }
   }
 
-  // ── Failure: assert ≤ ceiling on every run (first run included) ──────────
-  // A ceiling exceeded on the first run is a finding, not a reason to raise the ceiling.
-  // Failures are soft in this spec — they are reported but do NOT fail the build on the
-  // first march, because that would prevent the march from completing and writing throughput floors.
-  // On subsequent runs, failure ceiling violations ARE hard failures.
-
+  // ── Failure: assess on every run ────────────────────────────────────────
+  // First run: findings are reported but not hard-failed (they are the data).
+  // Subsequent runs: hard assert each failure ≤ ceiling.
   const failureKeys = Object.keys(fc) as FailureKey[];
   const failureFindings: string[] = [];
 
   for (const k of failureKeys) {
     const ceiling = budget.failure[k];
     const actual = fc[k];
-    if (actual > ceiling) {
-      failureFindings.push(`K8 failure.${k}: actual=${actual} exceeds ceiling=${ceiling}`);
-    }
+    if (actual > ceiling) failureFindings.push(`K8 failure.${k}: actual=${actual} exceeds ceiling=${ceiling}`);
   }
 
   test.info().annotations.push({
@@ -512,11 +468,8 @@ test('K8 — 30-turn long march: throughput floors, failure ceilings, observatio
   });
 
   if (!isFirstRun) {
-    // Hard assert on subsequent runs
     for (const finding of failureFindings) {
       expect.soft(true, finding).toBe(false);
     }
   }
-  // First run: findings are reported above (annotations) but not hard-failed.
-  // They are the data; treat them as the next stage's work order.
 });

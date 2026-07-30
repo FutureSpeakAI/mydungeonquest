@@ -1,21 +1,27 @@
-// isolationAtQuery — Stage 7 / L4
+// isolationAtQuery — Stage 7 / L4 / indexed Stage 8 / M4.1
 //
 // Verifies that every cacheKey-based db.media read in the Foundry filters
-// by campaignId AT THE DEXIE QUERY LEVEL (via .and()), so zero foreign
-// candidates surface before any E3 assertion fires.
+// by campaignId AT THE DEXIE INDEX LEVEL (via compound index [campaignId+cacheKey]),
+// so zero foreign candidates are ever read off disk before any E3 assertion fires.
+//
+// M4.1 upgrade: the .and() JS predicate is replaced by a true Dexie compound index
+// query: .where('[campaignId+cacheKey]').equals([campaignId, key]).
+// This pushes the filter all the way into IndexedDB's cursor — no foreign
+// row is ever deserialized.
 //
 // The directive states: "two fixture campaigns in one store; assert every
 // selection returns zero foreign candidates before any assertion fires;
 // assert the assertion still throws on an injected foreign id."
 //
 // Courts:
-//  ① foundry.js enqueue cache-check uses .and() campaignId filter
-//  ② foundry.js pump   cache-check uses .and() campaignId filter
-//  ③ Functional: same cacheKey in two campaigns — query for B returns only B
-//  ④ Functional: query for B returns zero candidates from A (pre-assertion)
-//  ⑤ Functional: E3 assertion still throws when an un-scoped key is injected
+//  ① foundry.js enqueue cache-check uses compound index [campaignId+cacheKey]
+//  ② foundry.js pump   cache-check uses compound index [campaignId+cacheKey]
+//  ③ db.js version 3 defines the compound index on media
+//  ④ Functional: same cacheKey in two campaigns — compound query for B returns only B
+//  ⑤ Functional: compound query returns zero candidates from A (pre-assertion)
+//  ⑥ Functional: E3 assertion still throws when an un-scoped key is injected
 //     (simulates a legacy pre-E3 row that survived sweepUnscopedMedia)
-//  ⑥ sweepUnscoped is wired in App.jsx (E3 item 5)
+//  ⑦ sweepUnscoped is wired in App.jsx (E3 item 5)
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -27,26 +33,37 @@ const src = (rel) => readFileSync(path.join(ROOT, rel), 'utf8');
 
 const foundrySrc  = src('src/lib/cinema/foundry.js');
 const appSrc      = src('src/App.jsx');
+const dbSrc       = src('src/lib/db.js');
 
-// ① enqueue cache-check filters by campaignId at the query
+// ① enqueue cache-check uses compound index [campaignId+cacheKey]
 assert.ok(
-  foundrySrc.includes("where('cacheKey').equals(key).and((row) => row.campaignId === this.campaignId)"),
-  'foundry.js enqueue must use .and((row) => row.campaignId === this.campaignId) on the cacheKey query (E3 item 2, Stage 7 / L4)',
+  foundrySrc.includes("where('[campaignId+cacheKey]').equals([this.campaignId, key])"),
+  '① foundry.js enqueue must use compound index [campaignId+cacheKey] at the query (E3 item 2, M4.1)',
 );
 
-// ② pump cache-check filters by campaignId at the query
+// ② pump cache-check uses compound index [campaignId+cacheKey]
 assert.ok(
-  foundrySrc.includes("where('cacheKey').equals(job.cacheKey).and((row) => row.campaignId === this.campaignId)"),
-  'foundry.js pump must use .and((row) => row.campaignId === this.campaignId) on the cacheKey query (E3 item 2, Stage 7 / L4)',
+  foundrySrc.includes("where('[campaignId+cacheKey]').equals([this.campaignId, job.cacheKey])"),
+  '② foundry.js pump must use compound index [campaignId+cacheKey] at the query (E3 item 2, M4.1)',
 );
 
-// ⑥ sweepUnscoped is wired in App.jsx (E3 item 5)
+// ③ db.js version 3 defines the compound index
+assert.ok(
+  dbSrc.includes('[campaignId+cacheKey]'),
+  '③ db.js must define compound index [campaignId+cacheKey] on media table (v3)',
+);
+assert.ok(
+  dbSrc.includes('db.version(3)'),
+  '③ db.js must declare version 3 for the compound index migration',
+);
+
+// ⑦ sweepUnscoped is wired in App.jsx (E3 item 5)
 assert.ok(
   appSrc.includes('sweepUnscopedMedia'),
-  'App.jsx must call sweepUnscopedMedia() (E3 item 5: evict pre-existing unscoped cache entries)',
+  '⑦ App.jsx must call sweepUnscopedMedia() (E3 item 5: evict pre-existing unscoped cache entries)',
 );
 
-// ③–⑤ Functional courts — two fixture campaigns, same cacheKey
+// ④–⑥ Functional courts — two fixture campaigns, same cacheKey
 import('fake-indexeddb/auto').then(async () => {
   const { db } = await import('../src/lib/db.js');
 
@@ -80,25 +97,22 @@ import('fake-indexeddb/auto').then(async () => {
     },
   ]);
 
-  // ③ Campaign-id-filtered query returns only B's row for campaign B
-  const rowsB = await db.media
-    .where('cacheKey').equals(SHARED_CACHE_KEY)
-    .and((row) => row.campaignId === CAMP_B)
-    .toArray();
-  assert.strictEqual(rowsB.length, 1, '③ cacheKey query filtered by campaignId B must return exactly 1 row');
-  assert.strictEqual(rowsB[0].campaignId, CAMP_B, '③ the returned row must belong to campaign B');
+  // ④ Compound index query returns only B's row for campaign B
+  const rowB = await db.media.where('[campaignId+cacheKey]').equals([CAMP_B, SHARED_CACHE_KEY]).first();
+  assert.ok(rowB, '④ compound index query for [CAMP_B, SHARED_CACHE_KEY] must return a row');
+  assert.strictEqual(rowB.campaignId, CAMP_B, '④ the returned row must belong to campaign B');
 
-  // ④ Zero foreign candidates from A surface in campaign B's query
-  const foreignFromA = rowsB.filter((row) => row.campaignId !== CAMP_B);
-  assert.strictEqual(foreignFromA.length, 0,
-    '④ zero foreign candidates from campaign A must surface in campaign B\'s filtered query — before any assertion fires');
+  // ⑤ Compound index query returns zero candidates from A for campaign B
+  const rowA_asB = await db.media.where('[campaignId+cacheKey]').equals([CAMP_B, SHARED_CACHE_KEY]).filter((r) => r.campaignId === CAMP_A).first();
+  assert.strictEqual(rowA_asB, undefined,
+    '⑤ compound index query for campaign B must return zero rows belonging to campaign A — filter is structural, not JS');
 
-  // Sanity: an unfiltered query WOULD return both (proves the filter matters)
+  // Sanity: unfiltered cacheKey query still returns both (confirms the compound index was the guard)
   const unfiltered = await db.media.where('cacheKey').equals(SHARED_CACHE_KEY).toArray();
   assert.strictEqual(unfiltered.length, 2,
-    '④ sanity: unfiltered query must return both campaigns\' rows (confirming the filter was the only guard)');
+    '⑤ sanity: unfiltered cacheKey query must return both campaigns\' rows (confirming compound index was the only guard)');
 
-  // ⑤ E3 assertion still throws when an un-scoped row is injected
+  // ⑥ E3 assertion still throws when an un-scoped row is injected
   // (simulates a legacy pre-E3 row that sweepUnscopedMedia missed)
   const UNSCOPED_KEY = `portrait:${CAMP_B}:orphan-bust`;
   await db.media.put({
@@ -110,14 +124,13 @@ import('fake-indexeddb/auto').then(async () => {
     blob: blobA,
     createdAt: Date.now(),
   });
-  // Without the .and() filter, this row would surface as campaign B's cached result.
-  // The assertion in enqueue() would then fire and throw [E3].
-  // Verify the pattern holds: simulate the assertion logic.
-  const orphanCandidate = await db.media.where('cacheKey').equals(UNSCOPED_KEY).first();
-  assert.ok(orphanCandidate, '⑤ the orphan row must be retrievable by cacheKey');
+  // With the compound index, querying [CAMP_B, UNSCOPED_KEY] returns nothing
+  // because the row is stored under [CAMP_A, UNSCOPED_KEY]. The E3 assertion
+  // DOES fire for a row whose campaignId doesn't match. Simulate:
+  const orphanCandidate = await db.media.where('cacheKey').equals(UNSCOPED_KEY).first(); // unfiltered — finds A's row
+  assert.ok(orphanCandidate, '⑥ the orphan row must be retrievable by unfiltered cacheKey');
   const isOrphanForeign = orphanCandidate.campaignId !== CAMP_B;
-  assert.strictEqual(isOrphanForeign, true, '⑤ the orphan row must be detected as foreign to campaign B');
-  // The assertion would throw — verify it names the right campaigns:
+  assert.strictEqual(isOrphanForeign, true, '⑥ the orphan row must be detected as foreign to campaign B');
   let e3Message = null;
   try {
     if (isOrphanForeign) {
@@ -126,16 +139,17 @@ import('fake-indexeddb/auto').then(async () => {
       );
     }
   } catch (e) { e3Message = e.message; }
-  assert.ok(e3Message?.includes('[E3]'), '⑤ E3 assertion must throw [E3] message for an injected orphan');
-  assert.ok(e3Message?.includes(CAMP_B), '⑤ thrown message must name the active foundry campaign id');
-  assert.ok(e3Message?.includes(CAMP_A), '⑤ thrown message must name the foreign campaign id');
+  assert.ok(e3Message?.includes('[E3]'), '⑥ E3 assertion must throw [E3] message for an injected orphan');
+  assert.ok(e3Message?.includes(CAMP_B), '⑥ thrown message must name the active foundry campaign id');
+  assert.ok(e3Message?.includes(CAMP_A), '⑥ thrown message must name the foreign campaign id');
 
   console.log(
-    'PASS — isolationAtQuery (Stage 7 / L4): ' +
-    'foundry.js enqueue and pump both filter by campaignId AT THE DEXIE QUERY (.and()); ' +
-    'same cacheKey in two campaigns — filtered query returns zero foreign candidates from A before any assertion fires; ' +
-    'unfiltered query confirms the filter was the only structural guard; ' +
-    'E3 assertion still throws and names both campaigns for an injected orphan row; ' +
+    'PASS — isolationAtQuery (Stage 7/L4 + Stage 8/M4.1): ' +
+    'foundry.js enqueue and pump use compound index [campaignId+cacheKey] — zero foreign rows read off disk; ' +
+    'db.js v3 defines the index; ' +
+    'compound query for B returns only B\'s row; ' +
+    'unfiltered query confirms the index was the only guard; ' +
+    'E3 assertion still throws and names both campaigns for an injected orphan; ' +
     'sweepUnscopedMedia wired in App.jsx (E3 item 5).',
   );
 }).catch((e) => {

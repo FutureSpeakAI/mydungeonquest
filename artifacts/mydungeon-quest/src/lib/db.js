@@ -16,6 +16,16 @@ db.version(1).stores({
 db.version(2).stores({
   reveals: '[campaignId+kind+assetHash], campaignId'
 });
+// v3 — ISOLATION AT INDEX (Stage 8 / M4.1): add a compound index on
+// media so the Foundry's cache-key lookups filter by campaignId AT THE
+// INDEX rather than via a per-row JS predicate. The compound index
+// [campaignId+cacheKey] lets `.where('[campaignId+cacheKey]').equals([id, key])`
+// return ONLY this campaign's matching row with zero foreign candidates read
+// off disk. The upgrade does not touch existing rows; prior versions of the
+// schema remain readable by older client code.
+db.version(3).stores({
+  media: 'assetHash, cacheKey, campaignId, kind, originTurnHash, createdAt, [campaignId+cacheKey]',
+});
 
 export async function listCampaigns() {
   return db.campaigns.orderBy('updatedAt').reverse().toArray();

@@ -14,7 +14,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildBriefing, buildContextPack } from '../../../packages/engine/src/graph.js';
+import { buildBriefing, buildContextPack, BRIEF_BUDGET } from '../../../packages/engine/src/graph.js';
 import { shapeDmRequest } from '../server/dm.js';
 import { makeEntropy } from '../../../packages/engine/src/protocol.js';
 import { memoryLadder } from '../src/lib/memoir.js';
@@ -130,8 +130,8 @@ function buildSyntheticCampaign(targetTurn) {
 }
 
 const MARKER_TURNS = [1, 5, 10, 15, 20, 25, 30];
-const BRIEF_BUDGET = 7800;
-const PACK_BUDGET = 7300; // BRIEF_BUDGET - 500 reserve
+// BRIEF_BUDGET imported from packages/engine/src/graph.js — single source of truth.
+const PACK_BUDGET = BRIEF_BUDGET - 500; // inner pack budget used by buildBriefing internally
 const MEMORY_BUDGET = 1400;
 
 // ── Run the diagnosis ────────────────────────────────────────────────────────
@@ -260,7 +260,7 @@ console.log(
 );
 
 console.log('── Block sizes (chars) within dynamicBlocks() — the final user message ──');
-console.log('Turn | [STORY]/7800 | [MEMORY]/1400 | dynamic-total | [STATE] | [MEM] | [ENT] | [PLAYER]');
+console.log(`Turn | [STORY]/${BRIEF_BUDGET} | [MEMORY]/1400 | dynamic-total | [STATE] | [MEM] | [ENT] | [PLAYER]`);
 for (const r of rows) {
   const storyFlag = r.storySize > BRIEF_BUDGET ? '⚠ ' : '  ';
   const memFlag = r.memorySize > MEMORY_BUDGET ? '⚠ ' : '  ';

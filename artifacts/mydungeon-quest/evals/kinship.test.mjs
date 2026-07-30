@@ -11,7 +11,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { initCodex, storyBlock } from 'fatescript/story';
-import { buildBriefing } from 'fatescript/graph';
+import { buildBriefing, BRIEF_BUDGET } from 'fatescript/graph';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -100,7 +100,7 @@ assert.ok(fallen.length > 0, 'the budget truly bit on this fixture — unbound c
 const block = storyBlock(campaign.codex);
 for (const key of Object.keys(block)) assert.ok(key in briefing, `contract key ${key} rides the briefing`);
 assert.deepEqual(briefing.directives, block.directives, 'directives ride verbatim');
-assert.ok(JSON.stringify(briefing).length <= 7800, `the briefing holds its own default budget end to end (saw ${JSON.stringify(briefing).length})`);
+assert.ok(JSON.stringify(briefing).length <= BRIEF_BUDGET, `the briefing holds its own default budget end to end (saw ${JSON.stringify(briefing).length})`);
 assert.equal(Object.keys(briefing)[0], 'calendar', 'the calendar still leads — the briefing\u2019s fixed order is untouched');
 
 // ---- 4. The wiring: the door's briefing IS this builder ----

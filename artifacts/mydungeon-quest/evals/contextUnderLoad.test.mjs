@@ -41,11 +41,10 @@
 //  ⑦ buildBriefing (7,800-char budget) also stays within budget
 
 import assert from 'node:assert/strict';
-import { buildContextPack, buildBriefing } from 'fatescript/graph';
+import { buildContextPack, buildBriefing, PACK_BUDGET, BRIEF_BUDGET } from 'fatescript/graph';
 import { buildDeepCampaign, CHECKPOINTS } from './fixtures/deepCampaign.mjs';
 
-const PACK_BUDGET   = 7000;
-const BRIEF_BUDGET  = 7800;
+// PACK_BUDGET and BRIEF_BUDGET imported from fatescript/graph — single source of truth.
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

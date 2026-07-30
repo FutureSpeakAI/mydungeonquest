@@ -30,11 +30,10 @@
 //  ⑪ buildBriefing exposes trim_log after its own trim loops (brief.trim_log)
 
 import assert from 'node:assert/strict';
-import { buildContextPack, buildBriefing } from 'fatescript/graph';
+import { buildContextPack, buildBriefing, PACK_BUDGET, BRIEF_BUDGET } from 'fatescript/graph';
 import { buildFamineFixture } from './fixtures/headroomCampaign.mjs';
 
-const PACK_BUDGET  = 7000;
-const BRIEF_BUDGET = 7800;
+// PACK_BUDGET and BRIEF_BUDGET imported from fatescript/graph — single source of truth.
 
 const campaign = buildFamineFixture();
 const pack  = buildContextPack(campaign, { budget: PACK_BUDGET });

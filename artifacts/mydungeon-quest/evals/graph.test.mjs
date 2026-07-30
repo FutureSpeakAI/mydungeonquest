@@ -2,7 +2,7 @@
 // deterministic, and keeps storyBlock's contract (directives verbatim).
 import assert from 'node:assert/strict';
 import { initCodex, applyStoryUpdates, storyBlock } from 'fatescript/story';
-import { buildContextPack } from 'fatescript/graph';
+import { buildContextPack, PACK_BUDGET } from 'fatescript/graph';
 
 const hero = { name: 'Sera Vale', ancestry: 'Human', className: 'Knight', presentation: 'feminine' };
 let codex = initCodex('classic-epic');
@@ -23,8 +23,8 @@ const logs = [
 ];
 const campaign = { hero, codex, logs };
 
-const one = buildContextPack(campaign, { budget: 7000 });
-const two = buildContextPack(campaign, { budget: 7000 });
+const one = buildContextPack(campaign, { budget: PACK_BUDGET });
+const two = buildContextPack(campaign, { budget: PACK_BUDGET });
 assert.deepEqual(one, two, 'the pack is deterministic');
 for (const key of Object.keys(storyBlock(codex))) assert.ok(key in one, `contract key ${key} preserved`);
 assert.deepEqual(one.directives, storyBlock(codex).directives, 'directives ride verbatim');

@@ -23,15 +23,14 @@
 //  ⑥ crossing-point analysis: state the exact soul count where budget is exceeded
 
 import assert from 'node:assert/strict';
-import { buildContextPack, buildBriefing } from 'fatescript/graph';
+import { buildContextPack, buildBriefing, PACK_BUDGET, BRIEF_BUDGET } from 'fatescript/graph';
 import {
   buildDeepCampaign16, buildDeepCampaign20,
   buildChainedSaga, buildHeirsPresent,
 } from './fixtures/headroomCampaign.mjs';
 import { buildDeepCampaign } from './fixtures/deepCampaign.mjs';
 
-const PACK_BUDGET  = 7000;
-const BRIEF_BUDGET = 7800;
+// PACK_BUDGET and BRIEF_BUDGET imported from fatescript/graph — single source of truth.
 const CHAPTER      = 15;
 
 // ── Run each configuration ────────────────────────────────────────────────────

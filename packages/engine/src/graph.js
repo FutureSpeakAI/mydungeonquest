@@ -22,7 +22,20 @@ import { aliasIndex, resolveByClaims } from './names.js';
 const canon = (name) => String(name || '').trim().toLowerCase();
 const SLIM = (soul) => ({ name: soul.name, role: soul.role, status: soul.status, bond: soul.bond, last_seen: soul.last_seen });
 
-export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = {}) {
+// THE BUDGET CONSTANTS — single source of truth for every eval and test.
+// Changing the budget is a one-line edit in one place; every caller imports
+// from here so no site ever hardens a stale number.
+//
+// Derivation history: 7,000 / 7,800 were early calibration guesses that were
+// never derived from cost math, context-window analysis, or cache boundaries.
+// They were preserved across structural changes (kinship immunity, Stage 7)
+// and never revisited. See the Context Budget Work Order (Part 3) for the
+// derived replacement once the cache-split (Part 2) determines what the
+// varying half actually needs.
+export const PACK_BUDGET  = 7000; // buildContextPack standalone default — JSON chars
+export const BRIEF_BUDGET = 7800; // buildBriefing default — JSON chars (PACK_BUDGET + 800 for briefing-only fields)
+
+export function buildContextPack(campaign, { budget = PACK_BUDGET, recentTurns = 6 } = {}) {
   const codex = campaign.codex;
   const block = storyBlock(codex);
   const logs = (campaign.logs || []).filter((entry) => !entry.redacted);
@@ -206,7 +219,7 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
 // scene-first story (threads ride inside the block), then stated
 // allegiances. Trimming order is fixed: allegiances drop first; the
 // calendar, the scene floor, the villain, and the open threads never do.
-export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {}) {
+export function buildBriefing(campaign, { budget = BRIEF_BUDGET, recentTurns = 6 } = {}) {
   const pack = buildContextPack(campaign, { budget: Math.max(2000, budget - 500), recentTurns });
   let allegiances = allegiancesOf(campaign.codex?.cast || []).slice(0, 6)
     .map((edge) => `${edge.name} — sworn of ${edge.of} (stated)`);

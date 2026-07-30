@@ -3,7 +3,7 @@
 // inside the block), stated allegiances last and trimmed first. Same
 // campaign, same bytes; the budget is a hard cap; the floors never trim.
 import assert from 'node:assert/strict';
-import { buildBriefing } from '../src/lib/graph.js';
+import { buildBriefing, BRIEF_BUDGET } from '../src/lib/graph.js';
 import { applyStoryUpdates, initCodex } from '../src/lib/story.js';
 
 let codex = initCodex('classic-epic');
@@ -31,7 +31,7 @@ assert.equal(JSON.stringify(briefing), JSON.stringify(buildBriefing(campaign)), 
 // famine loops); strip it before the budget assertion so the cap stays
 // meaningful for story content, not for the drop-record appendix.
 const { trim_log: _diagLog, ...briefingContent } = briefing;
-assert.ok(JSON.stringify(briefingContent).length <= 7800, 'the budget is a hard cap on story content (trim_log is post-famine metadata)');
+assert.ok(JSON.stringify(briefingContent).length <= BRIEF_BUDGET, 'the budget is a hard cap on story content (trim_log is post-famine metadata)');
 
 const tiny = buildBriefing(campaign, { budget: 120 });
 assert.equal(tiny.stated_allegiances.length, 0, 'allegiances trim first under pressure');

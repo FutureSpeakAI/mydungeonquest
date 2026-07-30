@@ -46,7 +46,7 @@ const writeSnap = (name, content) => writeFileSync(path.join(SNAPSHOT_DIR, name)
 // DERIVED SURFACE IMPORTS
 // ─────────────────────────────────────────────────────────────
 import { cardsForCampaign } from '../../../packages/engine/src/cards.js';
-import { buildContextPack } from '../../../packages/engine/src/graph.js';
+import { buildContextPack, PACK_BUDGET } from '../../../packages/engine/src/graph.js';
 import { chartOf } from '../../../packages/engine/src/chart.js';
 import { partyOf } from '../../../packages/engine/src/presence.js';
 import { standingsOf, initCodex } from '../../../packages/engine/src/story.js';
@@ -176,7 +176,7 @@ assert.ok(cards !== null && typeof cards === 'object' && 'cards' in cards && 'or
 assertSnapshot('cards.json', stable(cards));
 
 // ② buildContextPack
-const contextPack = buildContextPack(FIXTURE, { budget: 7000, recentTurns: 6 });
+const contextPack = buildContextPack(FIXTURE, { budget: PACK_BUDGET, recentTurns: 6 });
 assert.ok(contextPack !== null && contextPack !== undefined, 'K10 ②: buildContextPack must return a value');
 assertSnapshot('contextPack.json', stable(contextPack));
 

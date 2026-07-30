@@ -27,7 +27,11 @@ assert.ok(JSON.stringify(briefing).startsWith('{"calendar":"It is Day'), 'the ca
 assert.ok(briefing.open_threads.some((line) => line.includes('Find the sunken bell (mystery')), 'the tale\u2019s debts ride to the DM');
 assert.ok(briefing.stated_allegiances.some((line) => line.includes('Corin Voss') && line.includes('the Duchy')), 'stated allegiances ride, provenance worn');
 assert.equal(JSON.stringify(briefing), JSON.stringify(buildBriefing(campaign)), 'same campaign, same bytes');
-assert.ok(JSON.stringify(briefing).length <= 7800, 'the budget is a hard cap');
+// Stage 7 / L1: trim_log is post-budget diagnostic metadata (added after all
+// famine loops); strip it before the budget assertion so the cap stays
+// meaningful for story content, not for the drop-record appendix.
+const { trim_log: _diagLog, ...briefingContent } = briefing;
+assert.ok(JSON.stringify(briefingContent).length <= 7800, 'the budget is a hard cap on story content (trim_log is post-famine metadata)');
 
 const tiny = buildBriefing(campaign, { budget: 120 });
 assert.equal(tiny.stated_allegiances.length, 0, 'allegiances trim first under pressure');

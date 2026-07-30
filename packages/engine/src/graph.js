@@ -28,7 +28,12 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
   const logs = (campaign.logs || []).filter((entry) => !entry.redacted);
   const { cards } = buildCards({ hero: campaign.hero, entries: logs });
 
-  // 1. Who is IN the scene: spoke recently, or was moved recently by ops.
+  // 1. Who is IN the scene: spoke recently, or was moved recently by ops,
+  //    OR is the HOLDER of an open thread (selection not just recency —
+  //    Stage 7 / L1). Thread-holders have active story weight regardless
+  //    of their last appearance; slimming them loses facts the DM needs
+  //    to honour their commitment. The holder rides as first-word key
+  //    so partial-name matches work the same way the speaker check does.
   let lastTurn = -1;
   for (const entry of logs) lastTurn = Number.isInteger(entry.turn) ? entry.turn : lastTurn + 1;
   lastTurn = Math.max(0, lastTurn);
@@ -46,10 +51,21 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
       if (owner) scene.add(canon(owner));
     }
   }
+  // Thread-holder set: open threads whose holder is a cast member (not the
+  // hero — the hero is always present; not empty-string holders).
+  const openThreadHolders = new Set(
+    (codex.threads || [])
+      .filter((t) => t.status === 'open' && typeof t.holder === 'string' && t.holder.trim() && canon(t.holder) !== canon(campaign.hero?.name || ''))
+      .map((t) => canon(t.holder).split(/\s+/)[0])
+  );
   const inScene = (soul) => {
     const key = canon(soul.name);
     const card = cards[key];
     if (scene.has(key) || scene.has(key.split(/\s+/)[0])) return true;
+    // THREAD-HOLDER ELEVATION: a soul who holds an open thread is in-scene
+    // by importance, not recency — their known_facts stay full so the DM
+    // can honour the commitment (Stage 7 / L1).
+    if (openThreadHolders.has(key.split(/\s+/)[0])) return true;
     // Presence by OPS means spoke or was moved — an introduction alone does
     // not seat a soul at the table, or early tales could never trim.
     return Boolean(card && card.state.lastActive !== null && card.state.lastActive >= horizon);
@@ -156,6 +172,32 @@ export function buildContextPack(campaign, { budget = 7000, recentTurns = 6 } = 
       castOut = castOut.filter((soul) => canon(soul.name) !== fallen); out = pack();
     }
   }
+
+  // EMIT DROP RECORDS (Stage 7 / L1): attach a non-enumerable _trimLog
+  // to the returned pack so callers (buildBriefing, march) can observe what
+  // the famine ate. Non-enumerable = invisible to JSON.stringify, so it
+  // never counts against the budget and never reaches the DM via [STORY].
+  // buildBriefing exposes it as trim_log AFTER its own trim loops so the
+  // record is post-famine, accurate, and budget-neutral.
+  const finalCastKeys = new Set(castOut.map((s) => canon(s.name)));
+  // Dropped: was in origCastOut (before any trim), absent from final pack.
+  const origCastKeys = [
+    ...codex.cast.filter((s) => fullSet.has(canon(s.name))).map((s) => s.name),
+    ...rest.map((s) => s.name),
+  ];
+  const castDropped = origCastKeys.filter((n) => !finalCastKeys.has(canon(n)));
+  // Slimmed: currently in pack inside fullSet but stripped of visual by the
+  // tied-ring slim step (no visual AND no known_facts = SLIM was applied).
+  const castSlimmed = castOut
+    .filter((s) => fullSet.has(canon(s.name)) && !s.visual && !s.known_facts)
+    .map((s) => s.name);
+  const trimLog = {
+    ...(castDropped.length ? { castDropped } : {}),
+    ...(castSlimmed.length ? { castSlimmed } : {}),
+  };
+  if (Object.keys(trimLog).length) {
+    Object.defineProperty(out, '_trimLog', { value: trimLog, enumerable: false, configurable: true, writable: false });
+  }
   return out;
 }
 
@@ -244,5 +286,11 @@ export function buildBriefing(campaign, { budget = 7800, recentTurns = 6 } = {})
   while (JSON.stringify(out).length > budget && standings.length) { standings = standings.slice(0, -1); out = brief(); }
   while (JSON.stringify(out).length > budget && allegiances.length) { allegiances = allegiances.slice(0, -1); out = brief(); }
   if (JSON.stringify(out).length > budget && (wealth || wields)) { wealth = null; wields = null; out = brief(); }
+  // EMIT DROP RECORDS (Stage 7 / L1): expose the pack's trimLog after all
+  // famine tiers have fired so the record is accurate and post-budget.
+  // trim_log is added AFTER the budget loops so it never triggers further
+  // trimming; it is a diagnostic window, not story content.
+  const trimLog = (pack && typeof pack._trimLog === 'object' && pack._trimLog !== null) ? pack._trimLog : null;
+  if (trimLog && Object.keys(trimLog).length) out = { ...out, trim_log: trimLog };
   return out;
 }

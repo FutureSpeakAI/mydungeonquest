@@ -479,7 +479,15 @@ const CACHE_TTL = () => (String(process.env.DM_CACHE_TTL || '1h') === '5m' ? '5m
 const cacheMark = () => ({ type: 'ephemeral', ttl: CACHE_TTL() });
 
 function dynamicBlocks(input) {
-  return `[STATE]\n${JSON.stringify(input.state)}\n[STORY]\n${JSON.stringify(input.story)}\n[MEMORY]\n${JSON.stringify(input.memory || [])}\n[ENTROPY]\n${JSON.stringify(input.entropy)}\n${input.resolution ? `[RESOLUTION]\n${JSON.stringify(input.resolution)}\n` : ''}[PLAYER]\n${input.player}`;
+  // EMIT DROP RECORDS (Stage 7 / L1): if buildBriefing attached a trim_log
+  // to the story object, surface it as a separate [DROPS] block so the model
+  // can see what the famine ate this turn and compensate in narration.
+  // The key is stripped from [STORY]'s JSON so it does not double-count
+  // toward that block's budget.
+  const story = input.story || {};
+  const { trim_log, ...storyData } = story;
+  const drops = trim_log && Object.keys(trim_log).length ? `[DROPS]\n${JSON.stringify(trim_log)}\n` : '';
+  return `[STATE]\n${JSON.stringify(input.state)}\n[STORY]\n${JSON.stringify(storyData)}\n[MEMORY]\n${JSON.stringify(input.memory || [])}\n[ENTROPY]\n${JSON.stringify(input.entropy)}\n${input.resolution ? `[RESOLUTION]\n${JSON.stringify(input.resolution)}\n` : ''}${drops}[PLAYER]\n${input.player}`;
 }
 
 function shapeMessages(input) {

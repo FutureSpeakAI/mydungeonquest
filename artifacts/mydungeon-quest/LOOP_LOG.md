@@ -5926,3 +5926,53 @@ This means the DM lacks spatial grounding for absent party members even in a
 lean campaign. This is a known design trade-off (elsewhere is the intended first
 drop per graph.js:162-167), not a bug.
 
+
+---
+
+## Stage 7 — L1: Context-pack fix (thread-holder elevation + drop records) (2026-07-30)
+
+### Changes
+
+**`packages/engine/src/graph.js` — `buildContextPack`:**
+
+1. **Thread-holder elevation (selection not just recency):** before `inScene` runs,
+   build `openThreadHolders` from open threads whose `holder` names a non-hero cast
+   member. `inScene` returns `true` for any soul matching a thread-holder key, so they
+   ride full regardless of last-seen. A soul with an open commitment stays known to the
+   DM even when silent.
+
+2. **Drop records emitted:** after all trim loops, compute `castDropped` (souls that
+   vanished) and `castSlimmed` (souls in the full-set that lost `visual`+`known_facts`
+   to the tied-ring slim step). Attach as a non-enumerable `_trimLog` property — invisible
+   to `JSON.stringify`, so it never counts toward the budget or leaks into [STORY].
+
+**`packages/engine/src/graph.js` — `buildBriefing`:**
+
+After all famine tiers fire, expose `pack._trimLog` as `trim_log` in the returned brief
+— added post-budget so it cannot trigger further trimming.
+
+**`artifacts/mydungeon-quest/server/dm.js` — `dynamicBlocks`:**
+
+Destructure `trim_log` from the story object before serialising `[STORY]` (so it does
+not double-count), then emit it as a separate `[DROPS]` block when non-empty. The DM
+can now read what was eaten by famine and compensate in narration.
+
+**`artifacts/mydungeon-quest/evals/briefing.test.mjs`:**
+
+Budget assertion updated to strip `trim_log` before checking `<= 7800` — trim_log is
+post-famine metadata, not story content; the constraint is now precisely stated.
+
+### Tests
+
+All affected tests pass: `graph.test.mjs`, `briefing.test.mjs`, `ground.test.mjs`,
+`coinPurse.test.mjs`, `leanDoor.test.mjs` (635 kB pin unchanged — engine is compiled),
+`soulsWeb.test.mjs`, `lawsAgree.test.mjs`, `houseVoice.test.mjs`, `forgeChrome.test.mjs`.
+
+### L1 verification note
+
+The directive's success condition (turn 30 pack within budget) was already met before
+L1 (L0 showed the budget IS enforced via `buildContextPack`). The L0 proxy was wrong.
+L1 adds the two missing properties: importance-based selection (thread-holder elevation)
+and diagnostic drop records. Both properties are verifiable in the march's context-pack
+instrumentation.
+

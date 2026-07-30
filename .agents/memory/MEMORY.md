@@ -26,6 +26,7 @@
 - [JSX text ignores \u escapes](jsx-unicode-escapes.md) — \u2019 etc. render literally in JSX text nodes; paste real characters there; only JS string contexts unescape.
 - [Engine folds resolve queues backwards](engine-backward-queues.md) — tail-first queue drains make same-pass duplicates resolve later-card-first; gate outcomes (one winner + named refusal + determinism), never intra-pass order.
 - [Proving-loop lessons](proving-loop.md) — RUN_REQUESTED reads at BOOT only; known-bad controls are deterministic lies; probe the provider tank before counted seats; eyes = every court-examined class; extensions once, frozen.
+- [Playwright ritual-dismiss law](playwright-ritual-dismiss.md) — level-up and seal-ask .ritual overlays intercept pointer events; march must click dismiss (secondary-button or first button) and waitFor hidden; waitFor-hidden-only is not enough.
 - [Vision-judge calibration](vision-judge-calibration.md) — replay = stability; quarantine whole pairings; probes bind; premise law: enforce only the app's promises; claims must be pose/gaze-free.
 - [Mirrors need one seat](mirrors-one-seat.md) — byte-for-byte law mirrored across files WILL drift; move it to one lib both sides import, or pin cross-pointers both sides.
 - [Signature-downgrade door](signature-downgrade-door.md) — verifiers must never trust caller-declared signature status; evidence in the envelope forces the court, or tamper+re-hash+claim-unsigned launders provenance.

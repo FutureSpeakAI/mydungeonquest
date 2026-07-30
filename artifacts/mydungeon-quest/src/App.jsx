@@ -786,7 +786,7 @@ export default function App() {
 
   const playTurn = useCallback(async (base, player, resolution = null, visiblePlayer = player, hooks = null) => {
     if (!base || base.readOnly || base.completed) return base;
-    setBusy(true); setStatus('The Dungeon Master is reading the road…');
+    setBusy(true); setStatus('Writing…');
     try {
       const entropy = makeEntropy();
       // THE LONG MEMORY — [MEMORY] drinks the ladder first: annals
@@ -929,6 +929,7 @@ export default function App() {
       }
       if (!body?.turn) throw new Error('The stream ended before the turn arrived.');
       const dm = body.turn;
+      setStatus('Checking the turn…');
       // THE ROOM'S WORD RIDES HOME (Directive XI) — the Director's intent
       // and the room's ledger arrive beside the sealed turn: the intent is
       // carried on the campaign row so the next pour returns it (the cache
@@ -1083,6 +1084,7 @@ export default function App() {
       // roll left to make.
       let next = { ...base, hero, codex, combat, logs: [...base.logs, log], pendingRoll: codex.completed ? null : dm.roll_request, turnNumber: (base.turnNumber || 0) + 1, completed: codex.completed, roomIntent: beatIntent };
       await saveCampaign(next);
+      setStatus('Sealing…');
       // THE POUR — the sealed page pours into its permanent seat (never a
       // provisional article): the entry is marked, the text grows in place,
       // and no node is ever swapped out from under the reader.
@@ -1154,6 +1156,7 @@ export default function App() {
         const actAtEntry = base.codex.spine.beats[base.codex.beatIndex]?.act || 1;
         const closedAct = next.completed ? actAfterTurn : (actAfterTurn > actAtEntry ? actAtEntry : null);
         if (closedAct) {
+          setStatus('Chronicling the act…');
           const chronicled = await chronicleActClose(next, closedAct, { seal, save: saveCampaign, reload: (id) => db.campaigns.get(id) });
           if (chronicled.annal) next = chronicled.campaign;
           // THE ELDER MEMORY (Directive XX, Law VII): the same close seals
@@ -1214,8 +1217,9 @@ export default function App() {
       // new log entry, and the budget timer starts at actual seal time, not
       // after shelf latency.
       hooks?.onTurnSealed?.(log.id);
-      await refreshShelf();
+      refreshShelf(); // fire-and-forget — shelf list is cosmetic, must not delay input
       setStatus('✦ The turn is sealed.');
+      setBusy(false); // input re-enabled at narration seal (Part 4.1)
       // THE ACT TURNS — when this turn crossed an act boundary, a full-bleed
       // interstitial presents it: "Act II — the world unravelling." It waits
       // for the DM's own card (if any), and the voice waits for both.
@@ -1240,6 +1244,7 @@ export default function App() {
         }
       } else if (settingsRef.current.narrator) {
         playNarration(next, sealedLog);
+        setStatus('Casting voices…');
       }
       if (hero.level > heroBeforeLevel) setOverlay('level');
       // THE BENCH HOLDS FOR THE ANCHORS (54C): at genesis the turn's own
@@ -2466,7 +2471,8 @@ function Composer({ campaign, busy, reduceMotion, onSubmit, onSuggestion, onRoll
             <button className={`declare-toggle${declareArmed ? ' armed' : ''}`} onClick={()=>setDeclareArmed((armed)=>!armed)} disabled={busy} title={declareArmed ? 'This message will be sealed as your declared ambition' : 'Declare this message as an ambition'} aria-pressed={declareArmed}><Flag/><span>Declare</span></button>
           </div>
         </div>
-        <button className="composer-send" onClick={send} disabled={busy||!text.trim()} aria-label="Send your action"><Feather/></button>
+        {busy && <span className="composer-writing" aria-live="polite">Writing…</span>}
+        <button className="composer-send" onClick={send} disabled={busy||!text.trim()} aria-label={busy ? 'The Dungeon Master is writing — your action waits' : 'Send your action'}><Feather/></button>
       </div>}
   </section>;
 }

@@ -7081,3 +7081,41 @@ turnFeedback: PASS
   Composer stated reason: ✓
 ```
 
+
+---
+
+## WORK ORDER — Push, Give-Up Path, and Latency / Part 5 — Reduce the number
+
+### 5.1 — Four attempts is a choice, not a law
+
+The repair chain in `server/dm.js`:
+
+| Stage | Provider | Type | Per-attempt timeout | Approx cost |
+|---|---|---|---|---|
+| 1 | Anthropic | clean | 75s | normal |
+| 2 | Anthropic | repair | 75s | ~2× stage 1 |
+| 3 | OpenAI | fell back from Anthropic | 75s | normal |
+| 4 | OpenAI | repair | 75s | ~2× stage 3 |
+| fallback | — | safeFallbackTurn (mock) | instant | ~0 |
+
+Worst case: 4 × 75s = 300s. Genesis worst case: 4 × 120s = 480s.
+
+**No per-stage frequency data exists in the codebase.** `debit(req, 'dm', result.provider)` records provider but not attempt stage or repair status. A decision on trimming from 4 to 3 attempts requires knowing how often stages 3 and 4 fire in real play.
+
+**Instrumentation added to `server/dm.js`:**
+
+Every resolved turn now emits a structured server-log line:
+```
+[dm-stage] {"stage":1|2|3|4|"fallback","provider":"anthropic"|"openai","repair":true|false,"genesis":true|false}
+```
+
+This allows stage frequency to be computed from production server logs. The decision to trim from 4 to 3 attempts should follow from the data: if stage 3+4 fire under ~2% of turns, the fourth attempt is a bad trade (75s worst-case cost for < 2 rescues per 100 turns).
+
+**Decision deferred to data.** No change to attempt count.
+
+### 5.2 — Image tempo
+
+Confirmed in Part 3: art is already fully asynchronous (`queueMedia` is fire-and-forget at App.jsx line 1257). Plate completion is not on the critical path for either `setBusy(false)` or `setCurrent`. The Settings control for painting tempo already exists with one tempo (all turns).
+
+**Finding:** Image tempo (turning points only, chapter openings only) is a **cost optimization**, not a latency fix. It reduces API spend per session but does not improve the perceived wait time of a turn. Sequenced as follow-up work.
+

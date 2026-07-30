@@ -669,7 +669,13 @@ export async function getDmTurn(input, { barred = {}, seat = null } = {}) {
       const sat = await withClock(anthropicTurn(input, repair, seat), budget, `anthropic dm attempt timed out after ${budget}ms`);
       const turn = artDirectorSits(sat.turn);
       const validation = judgeTurn(turn, input);
-      if (validation.ok) return { turn, provider: 'anthropic', model: sat.model, repaired: attempt > 0 };
+      if (validation.ok) {
+        // STAGE TELEMETRY (Part 5.1, Work Order Jul 2026): structured log so
+        // server logs can answer which attempt stage fires and how often.
+        // stage=1 → first clean Anthropic pass; stage=2 → Anthropic repair succeeded.
+        console.log('[dm-stage]', JSON.stringify({ stage: attempt === 0 ? 1 : 2, provider: 'anthropic', repair: attempt > 0, genesis: Boolean(input.genesis) }));
+        return { turn, provider: 'anthropic', model: sat.model, repaired: attempt > 0 };
+      }
       lastError = new Error(`Invalid DM turn: ${validation.errors.join('; ')}`);
       repair = { turn, errors: validation.errors };
     } catch (error) {
@@ -688,7 +694,11 @@ export async function getDmTurn(input, { barred = {}, seat = null } = {}) {
         const sat = await withClock(openaiTurn(input, repairO, seat), budget, `openai dm attempt timed out after ${budget}ms`);
         const turn = artDirectorSits(sat.turn);
         const validation = judgeTurn(turn, input);
-        if (validation.ok) return { turn, provider: 'openai', model: sat.model, repaired: attempt > 0, fellBackFrom: 'anthropic' };
+        if (validation.ok) {
+          // stage=3 → first OpenAI pass (fell back from Anthropic); stage=4 → OpenAI repair.
+          console.log('[dm-stage]', JSON.stringify({ stage: attempt === 0 ? 3 : 4, provider: 'openai', repair: attempt > 0, genesis: Boolean(input.genesis) }));
+          return { turn, provider: 'openai', model: sat.model, repaired: attempt > 0, fellBackFrom: 'anthropic' };
+        }
         lastError = new Error(`Invalid DM turn (openai): ${validation.errors.join('; ')}`);
         repairO = { turn, errors: validation.errors };
       } catch (error) {
@@ -698,6 +708,8 @@ export async function getDmTurn(input, { barred = {}, seat = null } = {}) {
     }
   }
 
+  // stage=fallback → all four live attempts failed; safeFallbackTurn serves.
+  console.log('[dm-stage]', JSON.stringify({ stage: 'fallback', genesis: Boolean(input.genesis) }));
   console.error(lastError);
   return { turn: safeFallbackTurn(input.player, input.turn), provider: 'fallback', model: 'fallback', error: lastError.message };
 }

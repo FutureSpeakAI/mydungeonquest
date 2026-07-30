@@ -1,4 +1,5 @@
 import { db, campaignJournal } from '../db.js';
+import { bumpSwallowed } from '../debugNS.js';
 import { bytesToBase64, sha256 } from 'fatescript/canonical';
 import { narratorVoiceId, resolveVoiceId, resolveHeroVoiceId, speakerIsHero } from 'fatescript/cinema/casting';
 import { buildPodcastScript, validatePodcastScript, buildMixPlan } from '../podcast.js';
@@ -52,7 +53,11 @@ async function ensurePodcastAsset(campaign, voiceId, text) {
       model: response.headers.get('X-Media-Model') || 'unknown',
       label: 'podcast', variant: voiceId, createdAt: Date.now()
     });
-  } catch { /* caching is best-effort; the forge still binds this session */ }
+  } catch {
+    // Stage 7 / L3: caching is best-effort; the forge still binds this
+    // session. bumpSwallowed lets the march observe these silent failures.
+    bumpSwallowed();
+  }
   return { blob, provider };
 }
 
@@ -86,7 +91,9 @@ export async function downloadQuestAudio(campaign, onProgress) {
       : soul ? resolveVoiceId(soul, segment.voice)
         : speakerIsHero(segment.voice, campaign.hero, cast) ? resolveHeroVoiceId(campaign.hero)
           : resolveVoiceId(null, segment.voice);
-    const asset = await ensurePodcastAsset(campaign, voiceId, segment.text).catch(() => null);
+    // Stage 7 / L3: a null return means the line is silently dropped from the
+    // podcast plan. bumpSwallowed lets the march observe these silent failures.
+    const asset = await ensurePodcastAsset(campaign, voiceId, segment.text).catch(() => { bumpSwallowed(); return null; });
     if (!asset?.blob) continue;
     if (asset.provider === 'mock') { refused += 1; continue; }
     const ref = `v${segments.length}`;

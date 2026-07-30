@@ -6003,3 +6003,52 @@ the RENDERED OUTPUT carries the correct numbers end-to-end.
 L2 constraint honoured: NARRATION_FLOOR is unchanged; disagreement would be
 fixed in systemPrompt.js.
 
+
+---
+
+## Stage 7 — L3: Instrument two dark metrics on window debug namespace (2026-07-30)
+
+### Problem
+
+Two failure metrics were completely dark to the march:
+1. **swallowedExceptions** — silent catch blocks in the cinema pipeline that
+   swallow rejections without logging; the march's console listener never sees them.
+2. **boundaryThrows** — errors caught by `RoadBoundary.componentDidCatch`; React
+   boundaries intercept before `window.onerror` fires, so the `pageerror` handler
+   misses them. The march annotated both as "not instrumentable from outside."
+
+### Changes
+
+**`src/lib/debugNS.js`** (new):
+- `window.__dungeon = { swallowedExceptions: 0, boundaryThrows: 0 }` initialised
+  lazily on first access; no side effects at import.
+- `bumpSwallowed()` / `bumpBoundaryThrow()` — safe in every runtime (server,
+  SSR, test); no-op when `window` is absent.
+
+**`src/components/roadBoundary.jsx`:**
+- Added `bumpBoundaryThrow()` call inside `componentDidCatch`, next to the
+  existing `foldErratum` call.
+
+**`src/lib/cinema/lookahead.js`:**
+- Both `.catch(() => {})` on `foundry.enqueue` (paint + music) now call
+  `bumpSwallowed()` so fire-and-forget failures are counted.
+
+**`src/lib/cinema/questaudio.js`:**
+- `catch { /* caching is best-effort */ }` (line 55) now calls `bumpSwallowed()`.
+- `.catch(() => null)` on `ensurePodcastAsset` (line 89) now calls `bumpSwallowed()`
+  before returning null — a null result silently drops the podcast line.
+
+**`tests/e2e/k8-longmarch.spec.ts`:**
+- Added a `darkMetrics` read via `page.evaluate(() => window.__dungeon)` before
+  the observational annotation.
+- `darkMetrics` (swallowedExceptions + boundaryThrows) included in
+  K8-OBSERVATIONAL annotation.
+- Removed `note_swallowed: 'not instrumentable'` note — now instrumented.
+
+### Result
+
+The march can now observe both dark metrics at session end. A 30-turn keyless
+march will see 0 for both (mock DM never invokes cinematic pipeline, no road falls).
+A live-keyed march will show real counts from the cinema pipeline and any actual
+boundary falls.
+

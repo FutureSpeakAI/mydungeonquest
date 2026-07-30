@@ -395,6 +395,19 @@ test('K8 — 30-turn long march: throughput floors, failure ceilings, observatio
     ticksFired: Math.max(0, marchTicksFired),
   };
 
+  // ── Dark metrics (Stage 7 / L3) ─────────────────────────────────────────
+  // window.__dungeon accumulates counters that are invisible from outside:
+  //   swallowedExceptions — silent catches in cinema pipeline (lookahead,
+  //     questaudio) that never log to the console; the march cannot see them
+  //     via its existing console/pageerror listeners.
+  //   boundaryThrows — errors caught by RoadBoundary (componentDidCatch);
+  //     these never reach window's error listeners.
+  const darkMetrics = await page.evaluate(() => {
+    const ns = (window as any).__dungeon;
+    if (!ns) return { swallowedExceptions: 0, boundaryThrows: 0, note: 'namespace absent — debugNS not loaded' };
+    return { swallowedExceptions: ns.swallowedExceptions ?? 0, boundaryThrows: ns.boundaryThrows ?? 0 };
+  });
+
   // ── Observational report ─────────────────────────────────────────────────
   const wallClockTotal = turnTimings.reduce((s, t) => s + t.totalMs, 0);
   const wallClockPerTurn = turnsCompleted > 0 ? (wallClockTotal / turnsCompleted).toFixed(0) : 'n/a';
@@ -410,9 +423,9 @@ test('K8 — 30-turn long march: throughput floors, failure ceilings, observatio
       storageEnd,
       domNodeSnapshots: domSnapshots,
       contextPackProxies: contextProxies,
+      darkMetrics,
       note_contextPack: 'logDomTextChars is a DOM-text proxy; in keyless mode the mock DM ignores the context pack.',
       note_consecutiveTicks: 'maxConsecutiveTicksSameSoul not instrumentable from outside — requires tick content parsing.',
-      note_swallowed: 'swallowedExceptions not instrumentable — silent catches are definitionally invisible.',
     }, null, 2),
   });
 

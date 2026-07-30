@@ -1,4 +1,5 @@
 import { scrubPrompt } from './prompts.js';
+import { bumpSwallowed } from '../debugNS.js';
 
 // ------------------------------------------------------------
 // LOOKAHEAD (the Foundry's foresight) — the spine is known, so
@@ -40,8 +41,11 @@ export function briefUpcomingBeat(campaign, foundry, currentBeatIndex = null) {
   const prompt = beatPrompt(campaign, beat);
   const villain = (campaign.codex?.cast || []).find((soul) => soul.role === 'villain');
   const anchorLabels = [villain?.name, (campaign.codex?.regions || [])[0]?.name].filter(Boolean);
-  foundry.enqueue({ kind: 'paint', prompt, priority: 5, cacheKey: keys.still, options: { kind: 'beat-still', label: beat.title, referenceLabels: anchorLabels } }).catch(() => {});
+  // Stage 7 / L3: foundry.enqueue is fire-and-forget; the catch previously
+  // swallowed rejections silently. bumpSwallowed lets the march observe these
+  // failures without requiring a console.error call.
+  foundry.enqueue({ kind: 'paint', prompt, priority: 5, cacheKey: keys.still, options: { kind: 'beat-still', label: beat.title, referenceLabels: anchorLabels } }).catch(() => bumpSwallowed());
   // THE SOUND LAW: one short phrase for the beat's chapter card — a musical
   // sentence that ends cleanly. It plays once at the card, never as a bed.
-  foundry.enqueue({ kind: 'music', prompt: `A short orchestral phrase for the beat "${beat.title}" — act ${beat.act}. One musical sentence, eight to twelve seconds, that ends cleanly and resolves toward silence. Restrained, cinematic, PG-13. No vocals.`, priority: 7, cacheKey: keys.score, options: { label: beat.title, durationSeconds: 10 } }).catch(() => {});
+  foundry.enqueue({ kind: 'music', prompt: `A short orchestral phrase for the beat "${beat.title}" — act ${beat.act}. One musical sentence, eight to twelve seconds, that ends cleanly and resolves toward silence. Restrained, cinematic, PG-13. No vocals.`, priority: 7, cacheKey: keys.score, options: { label: beat.title, durationSeconds: 10 } }).catch(() => bumpSwallowed());
 }

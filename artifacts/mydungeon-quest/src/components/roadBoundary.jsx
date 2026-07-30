@@ -10,12 +10,16 @@
 // ---------------------------------------------------------------------------
 import { Component } from 'react';
 import { foldErratum } from '../lib/errata.js';
+import { bumpBoundaryThrow } from '../lib/debugNS.js';
 
 export class RoadBoundary extends Component {
   constructor(props) { super(props); this.state = { fallen: false }; }
   static getDerivedStateFromError() { return { fallen: true }; }
   componentDidCatch(error) {
     foldErratum({ kind: 'road', word: `${this.props.road || 'a road'}: ${error?.message || 'fell unnamed'}` });
+    // Stage 7 / L3: boundary throws never reach window's error listeners;
+    // bump the dark-metric counter so the march can see them.
+    bumpBoundaryThrow();
   }
   render() {
     if (!this.state.fallen) return this.props.children;

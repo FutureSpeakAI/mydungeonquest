@@ -59,3 +59,4 @@
 - [Ghost sweeps grep content](eval-ghost-sweeps.md) — no-trace courts scope to payload bytes; envelope JSON carries base64 dice ('Xy' lands in a hash).
 - [Stage 5 Painter evals path law](stage5-painter-path.md) — engine evals use path.resolve(ROOT,'../../packages/engine/src/...') (ROOT=artifacts/mydungeon-quest); dynamic imports use '../../../packages/engine/src/...' (relative to evals/ file).
 - [Stage 8 swallow law](stage8-swallow-law.md) — catch inventory: a comment IS written justification; compound index beats .and() JS predicate; worldId slot reserved in key paths before worlds land; escalation-floor search must match unique post-loop form, not import.
+- [Brief trim_log design](brief-trimlog-design.md) — trim_log is appended AFTER brief's famine loops; assert story-content only (strip trim_log before checking BRIEF_BUDGET) when famine fires.

@@ -60,3 +60,4 @@
 - [Stage 5 Painter evals path law](stage5-painter-path.md) — engine evals use path.resolve(ROOT,'../../packages/engine/src/...') (ROOT=artifacts/mydungeon-quest); dynamic imports use '../../../packages/engine/src/...' (relative to evals/ file).
 - [Stage 8 swallow law](stage8-swallow-law.md) — catch inventory: a comment IS written justification; compound index beats .and() JS predicate; worldId slot reserved in key paths before worlds land; escalation-floor search must match unique post-loop form, not import.
 - [Brief trim_log design](brief-trimlog-design.md) — trim_log is appended AFTER brief's famine loops; assert story-content only (strip trim_log before checking BRIEF_BUDGET) when famine fires.
+- [Context Budget Work Order](context-budget-work-order.md) — PACK_BUDGET=32500/BRIEF_BUDGET=33000 derived from 25-soul target shape; cache split stopped (stable block 536 tokens, below 1024 min); kinship gate uses local pressure budget (8000); +1.6% actual cost delta.

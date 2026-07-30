@@ -6840,3 +6840,67 @@ A redesign that kept full canonical data for ALL souls in a separate stable regi
 
 **Conclusion:** Part 2 is stopped. Part 4 alone is the answer: raise the budget to fit the target campaign shape, keep famine, prove it sleeps.
 
+
+---
+
+## WORK ORDER — Context Budget / Parts 3–5 — COMPLETE
+
+### Part 3 — Budget derived from target campaign shape
+
+**Target shape:** 25 souls (buildDeepCampaign20 [19] + 6 EXTRA_SOULS_C), chapter 15, chained saga (prior-volume memoir), 5 regions, all souls thread-holders (fullSet).
+
+**Measurement** (`buildTargetCampaign(15)`, `budget: 999999`):
+
+| Metric | Value |
+|---|---|
+| Unfenced pack JSON | 24,796 chars |
+| Unfenced brief story | 25,231 chars |
+
+**Derivation:**
+
+```
+PACK_BUDGET  = ceil(24,796 × 1.30) → nearest 500 = 32,500  (actual margin: 31.1%)
+BRIEF_BUDGET = ceil(25,231 × 1.30) → nearest 500 = 33,000  (actual margin: 30.8%)
+```
+
+30% margin keeps famine asleep during normal play while ensuring it fires for genuinely extraordinary campaigns (~40+ souls all in fullSet). Derivation comment written into `packages/engine/src/graph.js`.
+
+**New fixtures added to `evals/fixtures/headroomCampaign.mjs`:**
+- `EXTRA_SOULS_C` (6 souls, 21–26) + `EXTRA_THREADS_C` + `TARGET_REGION` — bring 19-soul base to 25
+- `buildTargetCampaign(chapter)` — the Part 3 measurement fixture
+- `NEW_FAMINE_BACKGROUND_SOULS` (100 wayfarer REST souls) — overflow mechanism
+- `buildNewFamineFixture()` — target + 100 wayfarers → 34,989 chars unfenced
+
+### Part 4 — Famine proved at new budget
+
+`famineGate.test.mjs` updated to use `buildNewFamineFixture`. 125 souls total; 25 wayfarers dropped; all 19 scene-present souls survive; villain retained; `_trimLog` non-enumerable; pack within budget.
+
+`headroomCurve.test.mjs` ⑦ added: target campaign (25 souls) fits within PACK_BUDGET with 7,704 chars headroom; no famine.
+
+`kinship.test.mjs` updated: adversarial-seating proof now uses a `KINSHIP_PRESSURE_BUDGET = 8_000` local constant so the bound-souls-survive court is not vacuous at the larger production budget. Production budget court (line 103) unchanged.
+
+### Part 5 — March report
+
+**Pack sizes at target campaign shape (chapter markers):**
+
+| Chapter | Souls | Pack chars | Brief chars | Story tokens | $/turn   | Famine |
+|---------|-------|------------|-------------|--------------|----------|--------|
+| 1       | 4     | 6,970      | 7,405       | 1,851        | $0.01121 | no     |
+| 5       | 20    | 18,446     | 18,881      | 4,720        | $0.01982 | no     |
+| 10      | 25    | 24,531     | 24,966      | 6,242        | $0.02439 | no     |
+| 15      | 25    | 24,796     | 25,231      | 6,308        | $0.02458 | no     |
+
+Cost model: system prompt cached at $0.30/M (5,867 tokens); [STORY] uncached at $3.00/M; 260 output tokens at $15.00/M.
+
+**Old vs. new at chapter 15, target shape (25 souls):**
+
+| Budget | Brief story | Story tokens | $/turn   | Famine dropped |
+|--------|-------------|--------------|----------|----------------|
+| Old (7,800) | 24,728 chars | 6,182 | $0.02421 | 5 souls |
+| New (33,000) | 25,231 chars | 6,308 | $0.02458 | 0 souls |
+| Delta | +503 chars | +126 tokens | **+1.6%** | 0 |
+
+**Finding:** The old budget was actively dropping 5 souls from the target-shape campaign on every turn (famine). The practical cost increase is 1.6%, not the ~40% that naive token scaling would predict, because the old budget was still serving 24,728 chars of content after famine trimming — the budget was a compressor, not a true limiter.
+
+**Thirteen failure metrics: all PASS.**
+

@@ -5803,3 +5803,126 @@ turns timed out waiting for the composer. All recorded metrics are based on the
   intercepts pointer events on the send button; the march now clicks the
   dismiss button (`.secondary-button` inside `.ritual`, or first button) and
   waits for the overlay to clear before proceeding.
+
+---
+
+## Stage 7 — L0: Context-pack diagnosis (2026-07-30)
+
+### Instrument
+
+`evals/l0ContextDiagnosis.mjs` — synthesises a 30-turn campaign (1→8 souls,
+12 known_facts/soul, 1→3 regions, annal every 8 turns), calls
+`buildBriefing` / `buildContextPack` / `memoryLadder` / `shapeDmRequest`
+directly and measures every section at turns 1, 5, 10, 15, 20, 25, 30.
+
+### Measured values (chars)
+
+#### `dynamicBlocks()` — the final user message
+
+| Turn | [STORY]/7800 | [MEMORY]/1400 | dynamic-total | [STATE] | [MEM] | [ENT] | [PLAYER] |
+|------|-------------|--------------|--------------|---------|-------|-------|---------|
+| 1    | 1585        | 2            | 2063         | 93      | 2     | 275   | 60      |
+| 5    | 1964        | 2            | 2443         | 94      | 2     | 275   | 60      |
+| 10   | 2656        | 268          | 3401         | 94      | 268   | 275   | 60      |
+| 15   | 2974        | 268          | 3719         | 94      | 268   | 275   | 60      |
+| 20   | 3293        | 535          | 4306         | 95      | 535   | 275   | 60      |
+| 25   | 3774        | 649          | 4901         | 95      | 649   | 275   | 60      |
+| 30   | 4173        | 649          | 5300         | 95      | 649   | 275   | 60      |
+
+#### Full API context (system + history messages + dynamicBlocks)
+
+| Turn | system | history | dynamic | TOTAL  |
+|------|--------|---------|---------|--------|
+| 1    | 23979  | 224     | 2063    | 26266  |
+| 5    | 23979  | 1331    | 2443    | 27753  |
+| 10   | 23979  | 2662    | 3401    | 30042  |
+| 15   | 23979  | 3998    | 3719    | 31696  |
+| 20   | 23979  | 4846    | 4306    | 33131  |
+| 25   | 23979  | 4570    | 4901    | 33450  |
+| 30   | 23979  | 4854    | 5300    | 34133  |
+
+#### Cast trimming at marker turns
+
+| Turn | Orig cast | In pack | Full | Slim | Dropped | Scene floor |
+|------|-----------|---------|------|------|---------|-------------|
+| 1    | 1         | 1       | 1    | 0    | 0       | 342         |
+| 10   | 3         | 3       | 1    | 2    | 0       | 653         |
+| 20   | 6         | 6       | 1    | 5    | 0       | 1037        |
+| 30   | 8         | 8       | 1    | 7    | 0       | 1662        |
+
+**`elsewhere` is absent at every turn** — the first famine tier fires immediately;
+the DM never reads where off-scene companions have been.
+
+#### `[STORY]` dominant keys at turn 20 (chars, descending)
+
+```
+cast         1387   regions   419   scene_ground   185   party_state   77
+beat           74   clocks     72   traveling_with  61   trove_state   60
+calendar       51   threads    48   hero_wealth     47   scene_state   40
+open_threads   33   standings  33   presence_state  31   ...           <31
+```
+
+### Q1 — Which sections grow without bound?
+
+**None** in the assembled prompt. Both `buildContextPack` (budget=7300 chars,
+`graph.js:130-158`) and `buildBriefing` (budget=7800, `graph.js:243-246`) enforce
+hard byte ceilings with real trim loops. `memoryLadder` (budget=1400,
+`memoir.js:82-90`) caps `[MEMORY]`. The history window is capped by
+`anchoredWindow` (server-side floor = `HISTORY_FLOOR_MESSAGES`; each message
+content capped at 6000 chars client-side). The CODEX (raw game state) grows
+without bound — more cast, more chronicle — but it is trimmed before it touches
+the prompt.
+
+The system prompt is the largest single block (23,979 chars, fixed). The
+assembled full context grows from ~26K to ~34K chars over 30 turns (+30%),
+well within Claude Sonnet's 200K-token window.
+
+### Q2 — Is the 7,000-character budget enforced anywhere, or only declared?
+
+**Enforced.** `buildContextPack` calls `JSON.stringify(out).length` against the
+7300-char budget at every iteration of the trim loop. `buildBriefing` does the
+same at 7800 chars. These are not declarations — the loops fire on every
+violation and the function returns only after the constraint is met.
+
+The March proxy (`logDomTextChars`: 7,482 at turn 10; 24,313 at turn 30)
+measured the **visible game log** (all accumulated narration text in the DOM),
+not the assembled prompt. The proxy was 4.6× larger than the actual
+`dynamicBlocks` output (5,300 chars at turn 30). The proxy was measuring the
+wrong thing.
+
+### Q3 — What does the trimmer drop, in what order, at turn 20?
+
+`buildBriefing` trim order (`graph.js:243-246`):
+1. **`elsewhere` entries** — dropped one by one (ALWAYS fires; fires at turn 1)
+2. **`standings` entries** — dropped one by one (fires when story grows)
+3. **`stated_allegiances`** — dropped one by one
+4. **`hero_wealth` + `hero_wields`** — dropped together, last
+
+`buildContextPack` trim order (`graph.js:132-158`):
+1. **Slim-rest souls** (non-scene, non-tied, non-villain, non-immune) — dropped last-first
+2. **Tied-ring souls** — slimmed (known_facts stripped)
+3. **Regions** — slimmed (standing scene region immune)
+
+At turn 20 with 8 × 12-fact souls: 0 cast dropped, 5 of 6 non-villain souls slimmed
+(known_facts stripped). The villain rides full. `elsewhere` is absent from turn 1.
+
+### Q4 — Does the scene floor alone exceed the budget?
+
+**No** in this 30-turn synthetic run. Scene floor = 1,662 chars at turn 30 vs.
+7,800 budget. To overflow via scene floor alone would require approximately 45+
+souls simultaneously IN scene (all spoke recently) with 12+ known_facts each, or
+~8 scene souls with 60+ known_facts each.
+
+A real long campaign could approach this if the DM narrates many distinct
+speakers every turn with large fact sets (each fact is ~70-150 chars). At that
+density, the scene floor crowds out `elsewhere`, `standings`, and `allegiances`
+progressively — but the hard floor is never dropped.
+
+### Structural observation
+
+`elsewhere` (where off-scene companions are) is structurally absent at every turn
+because the brief grows naturally past the point where the first trim tier fires.
+This means the DM lacks spatial grounding for absent party members even in a
+lean campaign. This is a known design trade-off (elsewhere is the intended first
+drop per graph.js:162-167), not a bug.
+

@@ -41,7 +41,7 @@ const dmServerSrc = (() => {
 })();
 
 // Load the actual NARRATION_FLOOR from the protocol module
-import { NARRATION_FLOOR } from '../../../packages/engine/src/protocol.js';
+import { NARRATION_FLOOR, validateDmTurn } from '../../../packages/engine/src/protocol.js';
 
 // ① NARRATION_FLOOR is the ONE seat
 assert.ok(
@@ -175,7 +175,6 @@ assert.ok(
 
 const MIN_BLOCK_WORDS = 10;  // absolute floor: ~2 short sentences
 const MAX_BLOCK_WORDS = 120; // absolute ceiling: a long but single-page paragraph
-const MIN_SPAN = 20;         // minimum word range width per band
 
 // ⑧ Implied block length — joint feasibility
 for (const [name, band] of Object.entries(NARRATION_FLOOR.byMeasure)) {
@@ -262,12 +261,116 @@ assert.strictEqual(
   `K9+⑨: voice.js EDITOR_ADDENDUM none.maxWords (${editorNoneMax}) disagrees with NARRATION_FLOOR (${NARRATION_FLOOR.byMeasure.none.maxWords})`,
 );
 
-// ⑩ Minimum span per band (range must be a real range, not a point target)
-for (const [name, band] of Object.entries(NARRATION_FLOOR.byMeasure)) {
-  const span = band.maxWords - band.minWords;
+// ⑩ Band satisfiability — floor, ceiling, and craft-target, by construction
+//    (Stage 6.6; replaces the arithmetic span check)
+//
+// For every band in NARRATION_FLOOR.byMeasure: construct a turn from real
+// English prose at the floor position (minWords / minBlocks), the ceiling
+// position (maxWords / maxBlocks), and the craft-target position (midpoint of
+// the word and block ranges), then assert validateDmTurn accepts each.
+//
+// Turns are built from a fixed prose pool (real sentences, not the mock-DM
+// padder), so the test answers "can real prose satisfy this band?" rather than
+// "can the padder satisfy this band?"
+//
+// Subsumes:
+//   ⑧ implied block length — a band geometry that forces 100-word micro-
+//       paragraphs or 400-word walls fails here at floor or ceiling construction
+//   old ⑩ span check — the midpoint construction proves interior points exist;
+//       the ≥CRAFT_MARGIN assertion confirms the target is not degenerate
+//
+// Craft-target is the midpoint of NARRATION_FLOOR. The system prompt embeds
+// NARRATION_FLOOR directly via template literal (court ② verifies no
+// hardcoding); the EDITOR_ADDENDUM in voice.js is verified to match by court
+// ⑨. So the craft target IS the enforced range — no separate drift path.
+
+// ── Prose fixture (real English, known word counts) ────────────────────────
+// Counting method mirrors the validator: .trim().split(/\s+/).filter(Boolean)
+const FIXTURE_SENTENCES = [
+  'The road bends through high country and the wind carries the smell of rain from the ridge above.',
+  'Stone walls line the lower fields and a hawk turns slow circles over the far pasture.',
+  'Every step here costs something and gives something back in equal measure.',
+  'Light falls at an angle through the pass and the shadow of the hill stretches long across the path.',
+  'Old iron gates stand open at the lane end and rust marks the stone where the hinges have wept.',
+  'The traveler sets one foot ahead of the other and the miles pass without ceremony.',
+  'A bell rings once from the valley below and the sound hangs in the cold air before it fades.',
+  'Smoke rises from a chimney cut into the hillside and the smell of woodfire crosses the road.',
+  'The path narrows where the stream undercuts the bank and the gravel slides loose underfoot.',
+  'Far above the treeline a crow calls once and silence takes its place.',
+];
+const FIXTURE_POOL = FIXTURE_SENTENCES.join(' ').split(/\s+/).filter(Boolean); // 162 words
+
+function makeProseWords(count) {
+  const pool = [];
+  while (pool.length < count) pool.push(...FIXTURE_POOL);
+  return pool.slice(0, count).join(' ');
+}
+
+// Baseline turn — all ALLOWED_KEYS present (mirrors safeFallbackTurn shape)
+function makeTurnFixture(blocks) {
+  return {
+    narration_blocks: blocks,
+    suggestions: ['Look around carefully', 'Press forward now', 'Wait and listen'],
+    roll_request: null, state_updates: null, combat: null, cinematic: null,
+    story: null, image_cue: null, dialogue_cue: null, time_advance: null,
+    entropy_use: [],
+  };
+}
+
+function buildFixtureTurn(wordCount, blockCount) {
+  const base  = Math.floor(wordCount / blockCount);
+  const extra = wordCount - base * blockCount;
+  return makeTurnFixture(
+    Array.from({ length: blockCount }, (_, i) => ({
+      text: makeProseWords(base + (i < extra ? 1 : 0)),
+      speaker: null,
+    })),
+  );
+}
+
+const CRAFT_MARGIN = 5; // midpoint must sit ≥5 words inside each edge
+
+for (const [bandName, band] of Object.entries(NARRATION_FLOOR.byMeasure)) {
+  const ctx = bandName === 'none' ? {} : { beatMeasure: bandName };
+
+  // ⑩-floor
+  {
+    const turn = buildFixtureTurn(band.minWords, band.minBlocks);
+    const { ok, errors } = validateDmTurn(turn, [], ctx);
+    assert.ok(
+      ok,
+      `K9+⑩ ${bandName} floor (${band.minWords}w / ${band.minBlocks}b): ${errors.join('; ')}`,
+    );
+  }
+
+  // ⑩-ceiling
+  {
+    const turn = buildFixtureTurn(band.maxWords, band.maxBlocks);
+    const { ok, errors } = validateDmTurn(turn, [], ctx);
+    assert.ok(
+      ok,
+      `K9+⑩ ${bandName} ceiling (${band.maxWords}w / ${band.maxBlocks}b): ${errors.join('; ')}`,
+    );
+  }
+
+  // ⑩-target (craft target = midpoint; must validate AND have margin from both edges)
+  const midWords  = Math.floor((band.minWords + band.maxWords)   / 2);
+  const midBlocks = Math.max(band.minBlocks, Math.floor((band.minBlocks + band.maxBlocks) / 2));
+  {
+    const turn = buildFixtureTurn(midWords, midBlocks);
+    const { ok, errors } = validateDmTurn(turn, [], ctx);
+    assert.ok(
+      ok,
+      `K9+⑩ ${bandName} craft-target midpoint (${midWords}w / ${midBlocks}b): ${errors.join('; ')}`,
+    );
+  }
   assert.ok(
-    span >= MIN_SPAN,
-    `K9+⑩: ${name} band span is ${span} words (max:${band.maxWords} − min:${band.minWords}); must be ≥ ${MIN_SPAN} — a near-point target cannot be reliably hit`,
+    midWords - band.minWords >= CRAFT_MARGIN,
+    `K9+⑩ ${bandName} craft-target midpoint (${midWords}w) must be ≥${CRAFT_MARGIN}w above floor (${band.minWords}w)`,
+  );
+  assert.ok(
+    band.maxWords - midWords >= CRAFT_MARGIN,
+    `K9+⑩ ${bandName} craft-target midpoint (${midWords}w) must be ≥${CRAFT_MARGIN}w below ceiling (${band.maxWords}w)`,
   );
 }
 
@@ -281,5 +384,5 @@ console.log(
   `all ${Object.keys(NARRATION_FLOOR.byMeasure).length} bands internally consistent; lean/standard/rich no overlap. ` +
   `Part 3 feasibility: ⑧ implied block lengths plausible (${MIN_BLOCK_WORDS}–${MAX_BLOCK_WORDS} words/block) for all bands; ` +
   `⑨ voice.js EDITOR_ADDENDUM craft targets match NARRATION_FLOOR for all ${Object.keys(editorBands).length + 1} bands; ` +
-  `⑩ every band span ≥ ${MIN_SPAN} words.`,
+  `⑩ all bands satisfy validateDmTurn at floor/ceiling/craft-target from real prose; craft-target ≥${CRAFT_MARGIN}w from each edge.`,
 );

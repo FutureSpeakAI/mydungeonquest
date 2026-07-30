@@ -5532,6 +5532,220 @@ query + boundary assertion).
 
 ---
 
+## Stage 6.5 — Part 2 debrief + Stage 6.6 (2026-07-30)
+
+### Parts 1–3: March report, Part 2 clarification, Fix diagnoses
+
+---
+
+#### 1.1 — All thirteen failure metrics
+
+| Metric | Ceiling | Actual |
+|---|---|---|
+| `play()` rejections | 0 | **0** |
+| Plates refused by the render door | 0 | **0** |
+| Boundary assertion throws | 0 | **0** |
+| Unknown page errors (uncaught) | 0 | **0** |
+| Unresolved references | 0 | **0** |
+| Quota warnings | 0 | **0** |
+| Narration floor breaches that shipped | 0 | **0** |
+| `safeFallbackTurn` invocations | 0 | **0** |
+| Understudy invocations | ≤1 | **0** |
+| Validator repair turns | ≤3 | **0** |
+| Max ticks in one turn | ≤4 | **2** |
+| Swallowed exceptions | — | *not instrumentable* |
+| Consecutive ticks, same soul | — | *not instrumentable from outside* |
+
+Source: `K8-FAILURE` annotation in `test-results/report.json`, confirmed by
+`k8only.log` (zero lines matching any failure pattern).
+
+#### 1.2 — Detail on every counter that fired
+
+Only `maxTicksInOneTurn` was nonzero: **2**. This is the maximum ticks fired in
+a single advance step across all 30 turns. Ceiling is 4; actual is 2. No single
+defect fired repeatedly — the counter measures the maximum observed peak, not a
+cumulative count.
+
+All other ten instrumented counters: **zero**.
+
+`swallowedExceptions` is not instrumentable (silent catches are definitionally
+invisible). `maxConsecutiveTicksSameSoul` is not instrumentable from outside
+the renderer — it requires parsing tick content to identify the soul named in
+each clock-tick row.
+
+#### 1.3 — The four supplementary measurements
+
+**Context pack size** (proxy: DOM text chars in the log at turns 1 / 10 / 20 / 30)
+
+| Turn | Log DOM text chars | Context budget (7,000 chars) |
+|---|---|---|
+| 1 | 0 | under |
+| 10 | 7,482 | over |
+| 20 | 15,588 | ~2.2× |
+| 30 | 24,313 | ~3.5× |
+
+The 7,000-char context budget is exceeded by turn 10. In keyless mode the mock
+DM ignores the context pack entirely, so what gets dropped as the window fills
+is not observable from outside — the proxy measures text volume, not what the
+DM actually receives. The live-AI path is the one where drop order matters;
+that question remains open and requires an instrumented live run to answer.
+
+**Wall clock per turn** (`K8-OBSERVATIONAL`)
+
+Average: **12,853 ms/turn**. Slowest: turn 10 at **39,665 ms**. Turn 10's
+spike is consistent with the paint server taking a Gemini 503 retry (the
+`/api/paint` log shows one 37 s call during that window). The compositor
+(`/api/warden`) accounts for most of the remaining latency (2–22 s/call). The
+player-side wait (fill + click + DM response) is the dominant step; both the
+warden and the paint are fully async and do not block the march loop.
+
+**`navigator.storage.estimate()`** (F1 quota question)
+
+| Point | Usage | Quota | Pct |
+|---|---|---|---|
+| Start (0 turns) | 25,641 bytes | 469,013,878 bytes (~447 MB) | 0.01% |
+| End (30 turns) | 86,572,798 bytes | 469,013,878 bytes | **18.46%** |
+
+30 turns of painted illuminated plates consumed ~82 MB of IndexedDB storage
+(media blobs). At this rate, a typical 150-turn campaign would approach
+~410 MB — within the 447 MB quota but with ~8% headroom. F1 (quota exhaustion)
+remains a live risk for very long campaigns with illuminated or rich-tier
+plates. The F1 floor is now a real number, not a theoretical concern.
+
+**DOM node count** (F9 performance question)
+
+| Turn | DOM nodes |
+|---|---|
+| 1 | 106 |
+| 10 | 491 |
+| 15 | 685 |
+| 20 | 840 |
+| 30 | 1,214 |
+
+Growth is roughly linear (~38 nodes/turn). At this rate a 150-turn campaign
+would reach ~5,800 nodes. React does not recycle log-entry nodes; every turn
+adds permanently to the DOM. No performance symptoms were observed in the 30-turn
+window, but the trajectory is a flag for very long sessions.
+
+#### 1.4 — Coverage reached
+
+| Coverage item | Reached? |
+|---|---|
+| Act change | **Yes** — "Act 2 · Chapter 6 of 15" in the log |
+| Combat (dice, roll, outcome) | **Yes** — Marsh Howler encounter (d20 roll requests, success/failure outcomes) |
+| Repaired turn | **No** — `validatorRepairTurns = 0`; every turn passed on first attempt |
+| Level-up | **Yes** — level-up ritual appeared at turn ~15 |
+| Tick with rotation across multiple souls | **Not confirmed** — `maxConsecutiveTicksSameSoul` not instrumentable; `ticksFired = 8` across 30 turns |
+| Plate arriving after its turn sealed | **Yes** — 28 plates rendered; async warden completes after march moves on |
+
+A repaired turn is a gap. Every live-AI run is expected to produce at least one
+repair (the original ceiling was ≤3); in keyless mock mode the validator never
+fires a repair because the mock DM is built to pass validation. The repair path
+is not exercised by any keyless march.
+
+---
+
+#### 2 — Why 24 turns
+
+**The march completed 30/30 turns.** The budget floor of 24 is
+`Math.floor(30 × 0.80)` — the `THROUGHPUT_FLOOR_RATIO = 0.80` from the spec
+stores 80% of the actual as the floor. The budget stores FLOORS, not actuals.
+
+| K8-THROUGHPUT annotation | Actual | Floor written (×0.80) |
+|---|---|---|
+| turnsCompleted | 30 | 24 |
+| logEntries | 51 | 40 |
+| narrationWords | 3,207 | 2,565 |
+| platesRendered | 28 | 22 |
+| ticksFired | 8 | 6 |
+
+The report filed at the end of Part 2 stated "24 turns landed (6 timed out)"
+because that run's `marchTurn` function returned false 6 times due to the
+ritual overlay blocking the send button. The present budget was written from
+the SUBSEQUENT run (after the ritual-dismiss fix), in which all 30 turns
+completed. The apparent contradiction arose from the report being written
+before that final run's annotation data was examined. The budget is correct.
+The floor of 24 means "future runs must complete ≥ 24 of 30 attempted turns."
+
+---
+
+#### 3.1 — The ritual overlay: test bug or app bug
+
+**Test bug.** The level-up overlay (`<div className="ritual">`) is by design:
+when the hero's level increases, `setOverlay('level')` fires and the
+`LevelRitual` component renders full-screen, requiring the player to click
+"Accept the new name fate gives you" before play resumes. This is the correct,
+deliberate UX — the level-up screen is a notable moment and demands
+acknowledgment.
+
+A real player sees the screen, reads it, and clicks the button. The overlay
+does not persist without dismissal: it clears immediately on click via
+`setOverlay(null)` in the `onAccept` handler. There is no wall for a player.
+
+The spec was skipping the click. It tried to interact with the composer while
+the overlay was in front, which caused the send-button click to silently fail
+(intercepted by the overlay's fixed-position z-layer). The ritual-dismiss guard
+added in Part 2 is a correct spec fix, not a workaround for an app defect.
+
+Confirmed by reading App.jsx: `LevelRitual` → `onClick={() => onAccept([])}` →
+`setOverlay(null)`. No timeout, no auto-dismiss, no second path. A player who
+clicks proceeds immediately.
+
+#### 3.2 — `padWords`: mock-only or any path
+
+**`padWords` is mock-only.** It lives inside `fitToMeasure`, which is called
+only from `mockDmTurn` (packages/engine/src/mockDm.js line 452). The server's
+live path (dm.js line 629) calls `mockDmTurn` only when the provider is
+`'mock'` (keyless mode). Live AI calls (`anthropicTurn`, `openaiTurn`) never
+reach `fitToMeasure` or `padWords`.
+
+**What `narrationFloorBreaches = 0` measures in keyless mode:**
+> The padder never shipped a turn below the word floor.
+
+It does NOT measure whether live AI prose satisfies the floor. In a live run,
+the floor is enforced by `validateDmTurn` with one repair attempt; if the
+repaired turn still fails, `safeFallbackTurn` fires (and `safeFallbackTurnInvocations`
+increments). The march cannot observe this path.
+
+The metric name is accurate — it measures "floor-violating narration that
+shipped to the player." In keyless mode the only producer is the padder; in
+live mode the producer is the AI. The metric's scope changes with the session
+mode. **No rename is needed**, but this limitation must be noted alongside every
+keyless march result: `narrationFloorBreaches = 0` in a keyless run is a padder
+health check, not a live-AI floor guarantee.
+
+---
+
+#### 4 — Part 4 (lawsAgree courts ⑩ generalized)
+
+Court ⑩'s arithmetic span check (was: `maxWords − minWords ≥ MIN_SPAN`) replaced
+with construction-based satisfiability demonstration. New court ⑩ (Stage 6.6):
+
+For every band in `NARRATION_FLOOR.byMeasure` (lean / standard / rich / none):
+- **Floor** (`minWords` words in `minBlocks` blocks) — `validateDmTurn` must accept
+- **Ceiling** (`maxWords` words in `maxBlocks` blocks) — `validateDmTurn` must accept
+- **Craft target** (midpoint words, midpoint blocks) — `validateDmTurn` must accept
+- **Margin** — midpoint must sit ≥ 5 words from both the floor and the ceiling
+
+Turns built from real English prose at known word counts, not from `padWords`.
+The prose pool is 162 words from 10 sentences; repeated as needed for rich-band
+constructions (≤ 360 words).
+
+Subsumes:
+- Gap 1 (implied block length, court ⑧): a band geometry that forces 100-word
+  micro-paragraphs or 400-word walls will fail at floor or ceiling construction
+- Gap 3 (span margin, old arithmetic ⑩): the midpoint construction proves
+  interior points exist AND validates them; the ≥5-word margin check confirms
+  the target is not degenerate
+
+`validateDmTurn` imported into `lawsAgree.test.mjs` for the first time.
+
+All 12 new assertions (4 bands × 3 points: floor + ceiling + midpoint, plus 2
+margin checks per band = 4×3 + 4×2 = 20 assertions total) pass on the current
+NARRATION_FLOOR.
+
+---
+
 ## Stage 6.5 — Part 2: 30-turn long march (2026-07-30)
 
 ### K8 — Long march executed; throughput floors written

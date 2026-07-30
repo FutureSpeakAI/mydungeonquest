@@ -2,6 +2,7 @@ import { db } from '../db.js';
 import { sha256 } from 'fatescript/canonical';
 import { playSfx } from './audioDirector.js';
 import { tollRefusal } from '../../patron/tollNotice.js';
+import { bumpSwallowed } from '../debugNS.js';
 
 // ------------------------------------------------------------
 // THE TABLE'S FEW SOUNDS — a tiny, deliberate vocabulary of
@@ -52,7 +53,7 @@ export async function playUiSfx(campaign, name) {
         model: response.headers.get('X-Media-Model') || 'unknown',
         label: name, variant: null, subtype: 'ui', createdAt: Date.now(),
       };
-      try { await db.media.put(row); } catch { /* best-effort cache */ }
+      try { await db.media.put(row); } catch { bumpSwallowed(); /* best-effort cache */ }
       if (Date.now() - started > 4000) return; // the moment passed; stay quiet
     }
     playSfx({ blob: row.blob, provider: row.provider, volume: 0.5, maxWaitMs: 1800 });

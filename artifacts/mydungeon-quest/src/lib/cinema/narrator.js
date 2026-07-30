@@ -4,6 +4,7 @@ import { narratorVoiceId, resolveVoiceId, resolveHeroVoiceId, speakerIsHero, dia
 import { setVoiceActive } from './audioDirector.js';
 import { directedBody, directedKey } from './direction.js';
 import { tollRefusal } from '../../patron/tollNotice.js';
+import { bumpSwallowed } from '../debugNS.js';
 
 // ------------------------------------------------------------
 // THE NARRATOR — the interactive-podcast voice. Each turn is read
@@ -134,7 +135,7 @@ export async function ensureSegmentAsset(campaign, log, segment, index) {
       provider, model: response.headers.get('X-Media-Model') || 'unknown',
       label: segment.speaker || 'narrator', variant: segment.voiceId, createdAt: Date.now(),
     });
-  } catch { /* caching is best-effort; playback still works this session */ }
+  } catch { bumpSwallowed(); /* caching is best-effort; playback still works this session */ }
   return { blob, provider };
 }
 

@@ -558,7 +558,7 @@ async function anthropicTurn(input, repair = null, seat = null) {
   // Task 54 §1 — the usage block is never discarded again: every call
   // (repairs included) tallies its tokens and cache reads/writes in the
   // watchtower's day-ledger. Telemetry only; never a ceiling, never a throw.
-  try { recordTokens('anthropic', request.model, json.usage); } catch { /* the tale never dies of its bookkeeping */ }
+  try { recordTokens('anthropic', request.model, json.usage); } catch (e) { console.warn('[watchtower] anthropic token bookkeeping failed (non-fatal):', e?.message); /* the tale never dies of its bookkeeping */ }
   // The seated model rides out with the word — the room's ledger names
   // it as the call was spent, never reconstructed after the fact.
   return { turn: json.content?.find((item) => item.type === 'tool_use' && item.name === 'dm_turn')?.input, model: request.model };

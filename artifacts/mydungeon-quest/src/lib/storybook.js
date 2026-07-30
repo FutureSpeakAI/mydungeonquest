@@ -343,7 +343,7 @@ export function buildStorybook({ campaign, journal, media = [], reveals = [], pa
   if(leaves.length<2)return;
   document.documentElement.classList.add('book-reader');
   var at=0,total=leaves.length,quiet=false;
-  try{quiet=matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+  try{quiet=matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){/* SWALLOW-JUSTIFIED: matchMedia may throw in jsdom/SSR; quiet stays false, transitions still fire */}
   var bar=document.createElement('nav');bar.className='reader-bar';
   bar.innerHTML='<i class="progress"></i><button class="turn back" aria-label="Previous page">‹</button><span class="folio-count"></span><button class="turn fore" aria-label="Next page">›</button>';
   document.body.appendChild(bar);

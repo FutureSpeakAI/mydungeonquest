@@ -118,3 +118,12 @@ console.log('PASS — mock campaigns, reducers, protocol, media floor, scrubber,
 // This is the adversarial pass that ensures the repair path is exercised
 // on every run rather than never.
 await import('./repairLoop.test.mjs');
+
+// ---- Stage 8 / M1 context-under-load ----
+await import('./contextUnderLoad.test.mjs');
+
+// ---- Stage 8 / M2 escalation runtime ----
+await import('./escalationRuntime.test.mjs');
+
+// ---- Stage 8 / M3 catch inventory ----
+await import('./catchInventory.test.mjs');

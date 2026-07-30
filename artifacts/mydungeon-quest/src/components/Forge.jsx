@@ -684,7 +684,7 @@ export function CreationRouter({ onBack, onWorldReady, onBegin, mediaTier = 'par
   // sovereign description the player typed. Syncs worldForm so effTitle
   // is correct in step 1+ (React 18 batches both updates).
   const storeWorldAndAdvance = () => {
-    try { localStorage.setItem(XCARD_SEEN_KEY, '1'); } catch {}
+    try { localStorage.setItem(XCARD_SEEN_KEY, '1'); } catch { /* SWALLOW-JUSTIFIED: xcard-seen flag is best-effort cosmetic state; private mode is valid */ }
     const card = resolvedActiveCard;
     const base = { ...WORLD_FALLBACK, ...(card || {}) };
     const sov = sovereignOf(worldForm);

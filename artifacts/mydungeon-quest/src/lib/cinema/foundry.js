@@ -1,5 +1,6 @@
 import { db } from '../db.js';
 import { logRefusal } from '../refusalLog.js';
+import { bumpSwallowed } from '../debugNS.js';
 import { generationSpec, momentBrief, parseMoment, momentRuling } from './prompts.js';
 import { sha256 } from 'fatescript/canonical';
 import { wardenBrief, parseVerdict, mockWarden, wardenRuling } from 'fatescript/warden';
@@ -113,14 +114,14 @@ export class Foundry {
   async enqueue({ kind, prompt, originTurnHash = null, options = {}, priority = 5, cacheKey = null, ...rest }) {
     const spec = await generationSpec(kind, prompt, options);
     const key = cacheKey || spec.hash;
-    // E3 item 2 (Stage 7 / L4) — filter by campaignId AT THE QUERY so zero
-    // foreign candidates reach the assertion. The cacheKey index narrows the
-    // candidate set; the .and() ensures only this campaign's row is returned.
-    // The assertion below is belt-and-suspenders: it can only fire if a caller
-    // passes a deliberately un-scoped key (legacy pre-E3 row) that survived
-    // sweepUnscopedMedia — catching the regression immediately rather than
-    // silently serving it.
-    const cached = await db.media.where('cacheKey').equals(key).and((row) => row.campaignId === this.campaignId).first();
+    // E3 item 2 (Stage 7 / L4, indexed Stage 8 / M4.1) — filter by campaignId
+    // AT THE INDEX so zero foreign candidates are read off disk. The compound
+    // index [campaignId+cacheKey] (db.js v3) makes the query structurally
+    // impossible to return a foreign row — no per-row JS predicate needed.
+    // The belt-and-suspenders E3 assertion below still fires if a legacy
+    // pre-E3 row survived sweepUnscopedMedia (it will not have a campaignId
+    // that matches, but the compound index means it would not be returned).
+    const cached = await db.media.where('[campaignId+cacheKey]').equals([this.campaignId, key]).first();
     if (cached) {
       const foreign = cached.campaignId !== this.campaignId; // always false post-filter — belt-and-suspenders
       this.onContaminationTrace?.({
@@ -155,9 +156,9 @@ export class Foundry {
     const job = lane.queue.shift();
     try {
       // Another job may have filled this key while we waited in line.
-      // E3 item 2 (Stage 7 / L4): filter by campaignId at the query so zero
-      // foreign candidates surface even if two foundries share a cacheKey.
-      const cached = await db.media.where('cacheKey').equals(job.cacheKey).and((row) => row.campaignId === this.campaignId).first();
+      // E3 item 2 (Stage 7 / L4, indexed Stage 8 / M4.1): compound index
+      // [campaignId+cacheKey] means zero foreign candidates are read off disk.
+      const cached = await db.media.where('[campaignId+cacheKey]').equals([this.campaignId, job.cacheKey]).first();
       if (cached) {
         this.onContaminationTrace?.({
           event: 'cache_hit', foundryId: this.campaignId,
@@ -304,17 +305,20 @@ export class Foundry {
     const { spineBurned } = await import('../db.js');
     if (spineBurned(this.campaignId)) return row;
     await db.media.put(row);
-    // Stage 7 / L5 — upload to campaign-scoped object storage so the record
-    // stores a URL reference rather than embedding bytes in IndexedDB.
-    // The upload is best-effort: a network failure or absent server falls back
-    // gracefully (the blob stays in the row; the render path uses whichever
-    // is available). Key path: /_apiserver/storage/plates/{campaignId}/{assetHash}
-    // — campaignId scope prevents cross-world dedupe (L5 law).
+    // Stage 7 / L5 / Stage 8 M4.2 — upload to world-and-campaign-scoped object
+    // storage so the record stores a URL reference rather than embedding bytes
+    // in IndexedDB. Upload is best-effort: a network failure or absent server
+    // falls back gracefully (the blob stays in the row; the render path uses
+    // whichever is available).
+    // Key path: /_apiserver/storage/plates/{worldId}/{campaignId}/{assetHash}
+    // Today: worldId = campaignId (one world per campaign). The slot is
+    // reserved so Stage 9 persistent worlds need no migration.
     try {
       const presignRes = await fetch('/_apiserver/storage/plates/presign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaignId: this.campaignId, assetHash, mime: row.mime }),
+        // worldId = campaignId today; Stage 9 will provide a real worldId.
+        body: JSON.stringify({ worldId: this.campaignId, campaignId: this.campaignId, assetHash, mime: row.mime }),
       });
       if (presignRes.ok) {
         const { uploadUrl, servePath } = await presignRes.json();
@@ -327,7 +331,7 @@ export class Foundry {
           await db.media.update(row.assetHash, { objectUrl: servePath, blob: null });
         }
       }
-    } catch { /* best-effort — blob remains as fallback */ }
+    } catch { bumpSwallowed(); /* best-effort — blob remains as fallback */ }
     await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, cacheKey: job.cacheKey, label: row.label, variant: row.variant, subtype: row.subtype, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size, referenceAssetHashes, ...(wardenAttest ? { warden: wardenAttest } : {}) });
     this.onContaminationTrace?.({
       event: 'generated', foundryId: this.campaignId,

@@ -1,4 +1,4 @@
-# Server Architecture Decision — Stage 8 / M5
+# Server Architecture Decision — Stage 8 / M5 (revised Work Order / Item 1)
 
 **Question:** Does the device become a cache, or does the server become a mirror?
 
@@ -201,30 +201,90 @@ Three things that must happen when accounts land:
 
 ---
 
-## Recommendation
+## Recommendation (conditional on multiplayer timeline)
 
-**Option 2 — Device authoritative, server mirrors.**
+The M5 recommendation (Option 2 unconditionally) did not account for three
+roadmap commitments that affect the choice directly:
 
-Reasoning:
-1. It is the closest to today. The entire client game loop, seal, vault, and
-   IndexedDB stack remain valid. The migration is additive: a sync routine
-   that pushes journal rows to the server.
-2. The seal remains meaningful. Players retain their signing key. Published
-   chronicles are notarized by the player's own key, not a server signature.
-   This is the strongest trust model for a personal narrative tool.
-3. Offline play works. A player on a plane advances their campaign; the server
-   catches up on reconnect. The two-device conflict problem is real but
-   manageable: the server detects chain divergence and surfaces a fork
-   decision to the player (the vault's existing fork law is the precedent).
-4. The conflict story is honest. Option 2 does not promise conflict-free sync;
-   it surfaces the problem clearly rather than silently resolving it in a way
-   the player did not choose.
-5. Option 3 (offline queue) provides a better experience but costs more work
-   and the DM-offline problem (does the client or server generate turns?) is
-   a hard design question that should be decided explicitly rather than
-   implicitly at implementation time.
+1. **Multiplayer** — two devices cannot both be authoritative for the same
+   campaign. Option 2's "device authoritative" model requires exactly-one
+   writer, which multiplayer violates by definition.
+2. **Persistent worlds** — server-shaped data by definition. A world whose
+   state is modified by multiple campaigns cannot be resolved from a single
+   device's copy.
+3. **Ordinary SaaS** — "install the app on a new phone and continue" is not
+   an edge case. Option 2 handles it only if the old device can push a full
+   sync before the player starts on the new device. If the old device is lost
+   or broken, the server mirror is the only copy — which makes the server
+   authoritative in practice even if not in design.
 
-**What Option 2 requires in Stage 9:**
+The recommendation is now **conditional on multiplayer timeline**:
+
+---
+
+### Branch A — multiplayer within ~6 months
+
+**Use Option 3 now.** Build toward the authoritative server from the start.
+Option 2 would require re-migrating in six months — a migration over every
+user's live campaign data, which is the most expensive path.
+
+**Re-migration cost if you choose Option 2 first and then migrate to Option 3:**
+Every player's device-authoritative journal must be ingested by the server as
+the founding chain. The server then becomes the authority. The client's sync
+routine is replaced by a queue drain. The seal's signing key is reassociated
+from "device" to "user account." This is feasible but requires a one-time
+migration push from each client at upgrade time — a coordinated rollout with
+a clear "your data was migrated" moment.
+
+---
+
+### Branch B — multiplayer in 6–18 months
+
+**Use Option 2 now, with a planned migration gate at multiplayer launch.**
+Option 2 is the lowest-risk choice for today's single-device game. The
+migration from Option 2 to Option 3 at multiplayer launch is well-bounded:
+the server already holds the journal mirror; promoting the mirror to the
+authority requires (a) a sync-drain step for in-flight device-side journals
+and (b) a client update that switches writes from "local-first, then push"
+to "queue, then drain."
+
+**Re-migration cost from Option 2 to Option 3 at multiplayer gate:**
+- Server-side: promote the mirror tables to authoritative; add conflict
+  arbitration for the window between Option 2 and the migration.
+- Client-side: replace the sync push with a queue drain in the game loop.
+  The IndexedDB store becomes the queue buffer; the journal chain write path
+  gains a "pending" state.
+- User-visible: a one-time "syncing your chronicle" step at upgrade. No data
+  loss if the mirror is current; a fork notice if the device advanced past the
+  last successful push.
+
+This is the **recommended branch** for the most common planning horizon.
+
+---
+
+### Branch C — multiplayer beyond 18 months or uncertain
+
+**Use Option 2 now; revisit at the 18-month mark.**
+The longer Option 2 runs, the larger the migration surface (more users, more
+campaigns, more devices). The re-migration cost grows linearly with user
+count. If multiplayer remains indefinitely deferred, Option 2 may be the
+permanent architecture; the two-device conflict problem is manageable for
+a small number of users per campaign. Plan the Option 3 migration explicitly
+before committing to Option 2 permanently — do not let the decision drift.
+
+**Signal that should trigger a re-evaluation earlier:**
+- A user reports "I lost my campaign because I switched phones" — means the
+  server mirror failed to capture the full chain before the device was lost.
+- Persistent worlds are scoped for a specific release — means the
+  server-authoritative model is required for that feature regardless of
+  multiplayer timing.
+- Player count crosses a threshold where migration surface becomes
+  prohibitively large — at that point, Option 3 is harder to adopt.
+
+---
+
+### What Option 2 requires in Stage 9 (if Branch B or C)
+
 - A `journals` server table: `(userId, worldId, campaignId, i, recordHash,
   prevHash, type, payload, ts)` — mirroring the client's journal.
 - A `campaigns` server table: `(userId, worldId, campaignId, title, codex,
@@ -236,9 +296,22 @@ Reasoning:
   exists with a different `recordHash`, return a 409 and surface the fork
   decision to the player.
 
-This recommendation is for Stephen to accept, modify, or reject. The
-document will be updated in Stage 9 with the chosen approach.
+### What Option 3 requires in Stage 9 (if Branch A)
+
+Everything Option 2 requires, plus:
+- The client game loop changes: every player action enqueues (to IndexedDB)
+  then drains (to the server). The local write is provisional; the server
+  write is the confirmation.
+- A "pending sync" UI state: the player must know when their last turn is
+  unconfirmed. The DM response may be held until the server confirms the
+  preceding turn, or the UI may proceed optimistically and roll back on
+  conflict.
+- The DM-offline question must be answered: does the client run a local DM
+  (requires key distribution or a bundled model) or does it hold the turn
+  pending sync? The simplest answer is "hold the turn" — but this makes
+  offline play worse than Option 2 unless a local DM path is provided.
 
 ---
 
-*Written Stage 8 / M5 (2026-07-30). Decision is Stephen's.*
+*Written Stage 8 / M5 (2026-07-30). Revised Work Order / Item 1 (2026-07-30).
+Decision is Stephen's.*

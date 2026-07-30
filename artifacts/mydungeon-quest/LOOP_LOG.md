@@ -6091,3 +6091,62 @@ a new door. With accounts coming, this becomes acute.
 `resolveAnchors` already filters by campaignId at the Dexie query (Stage 5).
 referenceScope.test.mjs court ① verifies this. No change needed.
 
+
+---
+
+## Stage 7 — L5: Plates to object storage (2026-07-30)
+
+### Decision: old campaigns keep inline blobs; new ones use object storage
+
+Old campaigns were sealed before L5 and their blobs live in IndexedDB. Migrating
+them would require reading every blob, uploading it, and re-sealing — which
+touches the seal (off-limits this stage) and introduces risk for no immediate
+user benefit. New campaigns' media rows land in object storage automatically after
+each generation.
+
+### Key path law
+
+`{PRIVATE_OBJECT_DIR}/plates/{campaignId}/{assetHash}`
+
+- **campaignId** prefix means two campaigns in any world with identical cues get
+  separate objects — cross-world dedupe is structurally impossible (L5 constraint).
+- **assetHash** (SHA-256 of bytes) is the filename — content-addressed, collision-free.
+- No cross-campaign dedupe: even if two campaigns share a subject's face (same model
+  output), they get independent copies. Dedupe within a campaign is the only sharing.
+
+### Changes
+
+**`artifacts/api-server/src/lib/plateStorage.ts`** (new):
+- `presignPlateUpload(campaignId, assetHash, mime)` → presigned PUT URL for GCS
+- `downloadPlate(campaignId, assetHash)` → Readable stream from GCS
+- Sidecar auth (no explicit credentials needed on Replit)
+
+**`artifacts/api-server/src/routes/plates.ts`** (new):
+- `POST /_apiserver/storage/plates/presign` — validates inputs, returns uploadUrl + servePath
+- `GET /_apiserver/storage/plates/:campaignId/:assetHash` — streams plate from GCS
+
+**`artifacts/api-server/src/routes/index.ts`** — plates router wired in.
+
+**`artifacts/api-server/src/lib/objectStorage.ts` + `objectAcl.ts`** — copied from template (for future shared-storage use; plates router uses its own plateStorage.ts).
+
+**`artifacts/mydungeon-quest/src/lib/cinema/foundry.js`** — after `db.media.put(row)`:
+- Calls `/_apiserver/storage/plates/presign`, uploads blob via presigned PUT
+- Sets `row.objectUrl = servePath`, clears `row.blob = null`
+- Updates the IndexedDB row — the record now stores a reference, not bytes
+- Best-effort: network failure falls back gracefully (blob stays)
+
+**`artifacts/mydungeon-quest/src/App.jsx`** — three display paths updated:
+- Region plate: prefers `plate.objectUrl` over `URL.createObjectURL(plate.blob)`
+- Key art: prefers `art.objectUrl` over blob URL
+- Scene imageUrl: `asset.objectUrl || await blobToDataUrl(asset.blob)`
+
+**Attestation unchanged**: `onAttestation` still receives `assetHash` (SHA-256 of bytes).
+Attestation binds to content, not storage location.
+
+**`evals/assetStorage.test.mjs`** (new): source courts verify the full pipeline.
+
+### Build status
+
+api-server build passes (1.4 MB bundle, @google-cloud/storage included).
+leanDoor: 635 kB pin unchanged.
+

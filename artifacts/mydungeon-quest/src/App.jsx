@@ -722,7 +722,9 @@ export default function App() {
         if (job.logId && job.kind === 'paint') clearPainting(job.logId);
         if (!asset) return;
         if (job.logId && job.kind === 'paint' && asset.mime.startsWith('image/')) {
-          const dataUrl = await blobToDataUrl(asset.blob);
+          // Stage 7 / L5: use objectUrl (served from object storage) if the
+          // row carries one; fall back to blobToDataUrl for legacy rows.
+          const imageUrl = asset.objectUrl || await blobToDataUrl(asset.blob);
           setCurrent((prev) => {
             if (!prev || prev.id !== campaign.id) return prev;
             // THE FRESH PLATE LAW (XVII, Article III) — the plate lands with
@@ -738,7 +740,7 @@ export default function App() {
             plateTrace({ phase: 'arrive', logId: job.logId, prevLogRecordHash: arrivalLog?.recordHash ?? null, originTurnHash: asset.originTurnHash ?? null, headTurnNumber: prev.turnNumber ?? null });
             const logs = prev.logs.map((log) => log.id === job.logId ? {
               ...log,
-              imageUrl: dataUrl,
+              imageUrl,
               imageAssetHash: asset.assetHash,
               // THE PLATE BINDING (A2) — logId ties this plate to the exact
               // log entry that minted the cue. It is taken from the closed-over
@@ -1874,8 +1876,13 @@ export default function App() {
     (async () => {
       if (!current || !activeRegion) { setRegionPlate(null); return; }
       const rows = await db.media.where('campaignId').equals(current.id).toArray();
-      const plate = rows.filter((row) => row.kind === 'paint' && row.label === activeRegion.name && row.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
-      if (plate && alive) { url = URL.createObjectURL(plate.blob); setRegionPlate(url); } else if (alive) setRegionPlate(null);
+      // Stage 7 / L5: prefer objectUrl (served from object storage) over an
+      // in-memory blob URL. Legacy rows that pre-date L5 keep their blobs.
+      const plate = rows.filter((row) => row.kind === 'paint' && row.label === activeRegion.name && (row.objectUrl || row.blob)).sort((a, b) => b.createdAt - a.createdAt)[0];
+      if (plate && alive) {
+        if (plate.objectUrl) { setRegionPlate(plate.objectUrl); }
+        else { url = URL.createObjectURL(plate.blob); setRegionPlate(url); }
+      } else if (alive) setRegionPlate(null);
     })();
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
   }, [current?.id, activeRegion?.name, activeRegion?.state, current?.logs?.length]); // eslint-disable-line
@@ -1886,8 +1893,12 @@ export default function App() {
     (async () => {
       if (!current) { setKeyArtUrl(null); return; }
       const rows = await db.media.where('campaignId').equals(current.id).toArray();
-      const art = rows.filter((row) => row.kind === 'paint' && row.label === KEYART_LABEL && row.blob).sort((a, b) => b.createdAt - a.createdAt)[0];
-      if (art && alive) { url = URL.createObjectURL(art.blob); setKeyArtUrl(url); } else if (alive) setKeyArtUrl(null);
+      // Stage 7 / L5: prefer objectUrl over in-memory blob URL.
+      const art = rows.filter((row) => row.kind === 'paint' && row.label === KEYART_LABEL && (row.objectUrl || row.blob)).sort((a, b) => b.createdAt - a.createdAt)[0];
+      if (art && alive) {
+        if (art.objectUrl) { setKeyArtUrl(art.objectUrl); }
+        else { url = URL.createObjectURL(art.blob); setKeyArtUrl(url); }
+      } else if (alive) setKeyArtUrl(null);
     })();
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
   }, [current?.id, current?.keyArtHash, current?.logs?.length]); // eslint-disable-line

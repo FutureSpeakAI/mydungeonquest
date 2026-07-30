@@ -304,6 +304,30 @@ export class Foundry {
     const { spineBurned } = await import('../db.js');
     if (spineBurned(this.campaignId)) return row;
     await db.media.put(row);
+    // Stage 7 / L5 — upload to campaign-scoped object storage so the record
+    // stores a URL reference rather than embedding bytes in IndexedDB.
+    // The upload is best-effort: a network failure or absent server falls back
+    // gracefully (the blob stays in the row; the render path uses whichever
+    // is available). Key path: /_apiserver/storage/plates/{campaignId}/{assetHash}
+    // — campaignId scope prevents cross-world dedupe (L5 law).
+    try {
+      const presignRes = await fetch('/_apiserver/storage/plates/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId: this.campaignId, assetHash, mime: row.mime }),
+      });
+      if (presignRes.ok) {
+        const { uploadUrl, servePath } = await presignRes.json();
+        const upRes = await fetch(uploadUrl, { method: 'PUT', body: row.blob, headers: { 'Content-Type': row.mime } });
+        if (upRes.ok) {
+          // Update the row: store the URL reference and clear the blob so
+          // IndexedDB holds metadata, not bytes.
+          row.objectUrl = servePath;
+          row.blob = null;
+          await db.media.update(row.assetHash, { objectUrl: servePath, blob: null });
+        }
+      }
+    } catch { /* best-effort — blob remains as fallback */ }
     await this.onAttestation?.({ originTurnHash: job.originTurnHash, kind: job.kind, cacheKey: job.cacheKey, label: row.label, variant: row.variant, subtype: row.subtype, promptHash: row.promptHash, generationSpecHash: row.generationSpecHash, assetHash, mime: row.mime, byteLength: blob.size, referenceAssetHashes, ...(wardenAttest ? { warden: wardenAttest } : {}) });
     this.onContaminationTrace?.({
       event: 'generated', foundryId: this.campaignId,

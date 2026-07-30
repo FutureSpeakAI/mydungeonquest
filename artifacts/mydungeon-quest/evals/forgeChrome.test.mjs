@@ -33,8 +33,13 @@ const stylesSrc = readFileSync(path.join(ROOT, 'src/styles.css'), 'utf8');
 // ── §1 SAFE INSETS — CSS variables present (Rule 13) ─────────────────────
 // These are the same variables checked by safeInsets.test.mjs; forge surfaces
 // inherit them, so their existence is the gate, not per-screen declarations.
-assert.ok(stylesSrc.includes('--chrome-top:72px'),
-  '--chrome-top must be declared in :root (forge surfaces inherit it)');
+// safeInsets.test.mjs gates the exact value (calc(72px + env(safe-area-inset-top)));
+// this court checks the variable is declared in any form so forge surfaces inherit it.
+assert.ok(
+  stylesSrc.includes('--chrome-top:calc(72px + env(safe-area-inset-top))') ||
+  stylesSrc.includes('--chrome-top:72px'),
+  '--chrome-top must be declared in :root (forge surfaces inherit it; safeInsets gates the exact value)',
+);
 assert.ok(stylesSrc.includes('--chrome-bottom:28px'),
   '--chrome-bottom must be declared in :root');
 assert.ok(stylesSrc.includes('html{scroll-padding-top:var(--chrome-top)}'),

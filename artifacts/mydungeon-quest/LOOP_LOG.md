@@ -6497,3 +6497,293 @@ closest to today, seal remains meaningful, offline play works, conflict story is
 honest. Requires journals sync table + campaigns table + sync route in Stage 9.
 Decision is Stephen's.
 
+
+---
+
+## Work Order / Item 2 — Context headroom curve
+
+**Date:** 2026-07-30
+
+**Files:** `evals/fixtures/headroomCampaign.mjs` (new), `evals/headroomCurve.test.mjs` (new)
+
+**Test:** `node evals/headroomCurve.test.mjs` — all courts green.
+
+**Five configurations measured at chapter 15:**
+
+| Config | Souls | Pack | Budget | Famine |
+|---|---|---|---|---|
+| A — 12 souls (M1 baseline) | 11 NPC | 6,482 | OK (93%) | none |
+| B — 16 souls (4 extras, thread-holders) | 15 NPC | 9,989 | OVERFLOW +2,989 | dropped 7 |
+| C — 20 souls (8 extras, thread-holders) | 19 NPC | 15,912 | OVERFLOW +8,912 | dropped 5 |
+| D — chained saga (prior-volume memoir) | 11 NPC | 6,975 | OK (99.6%) | dropped 5 |
+| E — heirs present (bond-4) | 12 NPC | 6,993 | OK (99.9%) | dropped 6 |
+
+**Answers to the three Item 2 questions:**
+
+**Q1. At what soul count does the pack first exceed budget?**
+The average fullSet soul cost is **354 chars**. At 12 souls the pack is 6,482 chars
+(headroom 518 chars). One more fullSet soul = 354 chars → **13 souls fits (6,836 chars);
+14 souls overflows (7,190 chars)**. The Stage 6.6 alarm was not premature — the
+margin at 12 souls is one and a half souls.
+
+**Q2. Does a chained saga (prior-volume memoir) push it over on its own?**
+No — but barely. The prior-volume memoir adds 1,008 chars. The chained-saga pack
+is 6,975 chars (25 chars of headroom). Famine fired (5 souls dropped to make room),
+but the pack did NOT overflow — it trimmed to fit. If the memo were ~530 chars longer,
+it would overflow without any extra souls. A chained saga can fire famine on its own.
+
+**Q3. Is 12 souls typical, or optimistic?**
+12 souls is near the ceiling. One new thread-holder NPC at chapter 12 → 13 souls fits
+(6,836). Two → 14 souls overflows. A real fifteen-chapter campaign that naturally
+acquires two or three new speaking characters after chapter 6 will hit famine. 12 souls
+is realistic for the current spine template (11 generated NPCs); any "late additions"
+push into trim territory. The famine path is not a theoretical emergency exit.
+
+
+---
+
+## Work Order / Item 3 — Famine gate (fire the famine path)
+
+**Date:** 2026-07-30
+
+**Files:** `evals/famineGate.test.mjs` (new)
+
+**Test:** `node evals/famineGate.test.mjs` — all 11 courts green.
+
+**Fixture:** Chapter-15 base (11 NPCs, all in fullSet) + 20 background REST souls
+(introduced_turn=200+, not thread-holders, not recently active, not tied).
+Background souls enter REST as SLIM rows (~85 chars each). Pack without them:
+6,482 chars. With 20 slim REST souls: ~8,182 chars → overflows by ~1,182 chars.
+The drop loop fired and discarded 16 background souls, leaving the pack at 6,950
+chars (within the 7,000 budget). Unfenced pack (budget=∞) was 8,833 chars; famine
+saved 1,883 chars.
+
+**Constraint satisfied:** Budget was not adjusted to make famine fire, and was not
+adjusted to make the trimmed result fit. The fixture configuration alone triggers
+the path.
+
+**All Graph Laws proven:**
+
+| Court | Law | Result |
+|---|---|---|
+| ① | Famine fires — `_trimLog.castDropped` non-empty | 16 dropped |
+| ② | Scene floor preserved — scene-present souls remain full | 3 souls, full fidelity |
+| ③ | Villain retained with full fidelity | Karos the Pale, retained |
+| ④ | Scene-present souls in `pack.cast` | all 3 confirmed |
+| ⑤ | [DROPS] emits and names what was dropped | 16 names |
+| ⑥ | Nothing about famine reaches a player surface (`_trimLog` non-enumerable) | no `_trimLog` in JSON.stringify |
+| ⑦ | Pack within budget after trimming | 6,950 / 7,000 |
+| ⑧ | Trimmed pack smaller than unfenced pack | 8,833 → 6,950 |
+| ⑨ | Villain never in `castDropped` | absent from drop list |
+| ⑩ | Scene-present souls never in `castDropped` | absent from drop list |
+| ⑪ | `buildBriefing` exposes `trim_log` after its own famine loops | 14 dropped names |
+
+**Brief total:** 7,942 chars (over 7,800 budget), but brief STORY content = 7,619
+chars (under budget). The excess 323 chars is `trim_log` itself, which is appended
+after the briefing's famine loops by design ("trim_log is added AFTER the budget
+loops so it never triggers further trimming; it is a diagnostic window, not story
+content"). This is correct behavior, not a bug.
+
+
+---
+
+## Work Order / Item 4 — Escalation court audit
+
+**Date:** 2026-07-30
+
+**File audited:** `evals/escalationRuntime.test.mjs` (11 courts)
+
+**Classification:**
+
+| Court | Kind | Basis |
+|---|---|---|
+| ① | RUNS | calls `runEscalationChain` with a capturing stub; observes repair payload at attempt 2 |
+| ② | RUNS | calls `runEscalationChain` with two stubs; observes second provider starts after first exhausted |
+| ③ | RUNS | calls `runEscalationChain` with two always-violating stubs; observes `provider: 'fallback'` result |
+| ④ | RUNS | calls `runEscalationChain` with violating + transport stubs; passes result through `validateDmTurn` |
+| ⑤ | RUNS | calls `runEscalationChain` with mixed stub (throw then succeed); observes plain retry |
+| ⑥ | RUNS | calls `runEscalationChain` with transport + success stubs; observes second provider result |
+| ⑦ | RUNS | calls `runEscalationChain` with two exhausting stubs; inspects result turn keys for forbidden fields |
+| ⑧ | RUNS | calls `runEscalationChain` with two exhausting stubs; measures wall clock |
+| ⑨ | READS | asserts `dmSrc.includes('attempt < 2')` — loop count structural check |
+| ⑩ | READS | asserts `dmSrc.includes('repair = { turn, errors: validation.errors }')` — repair shape check |
+| ⑪ | READS | asserts `dmSrc.includes(FINAL_FLOOR_PATTERN)` and position is after both provider loops |
+
+**Verdict:** 8 of 11 courts run (courts ①–⑧ drive stub providers at runtime via
+`runEscalationChain`). Courts ⑨–⑪ are structural checks on `dm.js` source text.
+The majority run. Courts ⑨–⑪ are legitimate structural guards: they lock the loop
+count, repair payload shape, and final-floor position in `dm.js` so that runtime
+behaviour and source remain in sync. No rebuild required.
+
+**Wall clock (court ⑧):** Stub chain completes in ~0 ms (all stubs are synchronous
+async returns, no I/O). In production: a full four-attempt escalation (2 Anthropic
+attempts + 2 OpenAI attempts) costs 4 real model calls before reaching
+`safeFallbackTurn`. The K8 march recorded worst turn 39.7 s; a full escalation
+exhausting both lanes ≈ 4 × 39.7 s ≈ 159 s worst-case before the floor fires.
+This is the concrete cost of hitting `safeFallbackTurn` in production. Court ⑧ was
+requested in M2 and the stub wall clock (0 ms) is the only correct answer for a
+keyless test; the production cost is stated above.
+
+
+---
+
+## Work Order / Item 5 — Full catch classification
+
+**Date:** 2026-07-30
+
+**Scope:** All `} catch` clauses across `src/`, `server/`, and `packages/` in
+`artifacts/mydungeon-quest/` (excluding `node_modules`, test files). The M3
+inventory counted 199 total. Note: M3 used grep which includes Promise `.catch()`
+chains and comment occurrences. The `} catch` clause count (structural catch
+blocks only) is ~182. The discrepancy (~17) is the M3 source of the 156+33+8=197
+shortfall — M3's 199 included some promise `.catch()` methods in its tally.
+
+**Classification tiers:**
+
+**HANDLES** — caller proceeds correctly with a named recovery (no information
+lost to the caller):
+- Fallback return values: `null`, `[]`, `{}`, `{ live: false, media: false }`,
+  `false`, empty cards, empty journal, HTTP 4xx/5xx responses.
+- State recovery: setting failure/status state so the UI shows an error, setting
+  `ok: false` on a health pulse, returning `{ floor: true }`, returning the
+  in-memory fallback when the ledger read fails.
+- Notable: `dm.js:651` — logs error and returns `safeFallbackTurn` with
+  `provider: 'fallback'`; `dm.js:675,694` — record `lastError`, reset repair,
+  loop continues; `lastError` surfaces at line 701 as `console.error(lastError)`
+  and as `error: lastError.message` in the return — these are **carry-forward**,
+  not swallows (the caller of `getDmTurn` sees the error through the result's
+  `error` field and `provider: 'fallback'`).
+
+**Estimated HANDLES total: ~110–120** (majority of all catch blocks).
+
+**REPORTS** — caller can observe failure (rethrows, console.error/warn,
+bumpSwallowed counter):
+- 8 existing `bumpSwallowed` sites: `lookahead.js:47,50`, `questaudio.js:56,96`,
+  `narrator.js:138`, `uiSfx.js:56`, `foundry.js:334`, (one additional).
+- `rights.js:160` — attempts rollback then rethrows original error.
+- `toll.js:131` — logs binding failure, resets binding, rethrows.
+- `watchtower.js:185` — resets watchBound and rethrows schema-binding failure.
+- Server handlers that return explicit HTTP 4xx/5xx responses (the request
+  fails visibly to the caller).
+- `dm.js:701` — `console.error(lastError)` before returning the fallback turn.
+
+**Estimated REPORTS total: ~35–45**.
+
+**SWALLOWS** — caller proceeds as if nothing failed, no counter, no visible error:
+
+*Comment-justified (cosmetic or retry-pattern, safe to leave uninstrumented):*
+- `vault.js:130` — "a dropped parcel re-offers next sync"
+- `vault.js:151` — "the plate re-offers next sync"
+- `vault.js:72` — listener exception ignored (best-effort listener registry)
+- `vault.js:314` — fork listener exception ignored (same pattern)
+- `App.jsx:302` — "a failure never blocks the shelf" (dynamic import best-effort)
+- `App.jsx:312` — "missing Storage API or any error returns null silently"
+- `Forge.jsx:687` — "explicit SWALLOW-JUSTIFIED comment" in source
+- `narrator.js:192,198` — no-audio-environment silences are expected
+- `audioDirector.js:33,34` — pause/revoke failures are cosmetic
+- `uiSfx.js:60` — "silence is lawful" (Sound Law)
+- `seal.js:22` — "browser-specific" (exportKey on unsupported curve)
+- `clock.js:48` — detached promise rejection (background cleanup)
+- `watchtower.js:220` — background DELETE cleanup failure
+- `toll.js:699` — webhook already acknowledged; reconcile retries on next webhook
+
+*Uninstrumented swallows with observable impact (complete list):*
+
+| File | Approx line | What the caller misses |
+|---|---|---|
+| `App.jsx` | 100 | storage write failure for table ID (cosmetic; table works in memory) |
+| `App.jsx` | 239 | season fetch failure (stale season shown; user can force-refresh) |
+| `App.jsx` | 294 | shelf sync failure (sync will retry on next mount) |
+| `App.jsx` | 472 | secondary async cleanup failure |
+| `App.jsx` | 923 | reading failure during import (advances past the row) |
+| `App.jsx` | 1028 | `teachOnce` failure (hint silently not delivered) |
+| `App.jsx` | 1331,1332,1340 | optional media enqueue rejections (enqueue fails; no art queued) |
+| `App.jsx` | 1436 | draft-clear import failure (draft remains stale) |
+| `App.jsx` | 1544,1576 | teaching failures (cosmetic) |
+| `App.jsx` | 1776 | forge-draft cleanup failure |
+| `App.jsx` | 2130,2152 | demo operations failure (demo path only) |
+| `vault.js` | 67 | shelf sync failure (sync will retry) |
+| `vault.js` | 387 | scheduled sync rejection |
+| `narrator.js` | 227,307 | retire/retry play rejection (cosmetic; next segment proceeds) |
+| `epoch.js` | 65 | illuminate failure (caller composes floor epoch anyway) |
+| `toll.js` | 473 | DB catalog failure → empty prices → Stripe fallback (fallback proceeds, silent first fail) |
+| `toll.js` | 526 | usage-read failure → `{}` (toll page shows no usage; display only) |
+| `watchtower.js` | 279 | JSON.stringify failure → `Infinity` (request is rejected with 413 — safe over-reject) |
+| `rights.js` | 161 | rollback failure ignored (outer catch still rethrows original) |
+| `reveals.js` | 18,27,34 | reveal ledger failures (device-local; fall-open is explicit design) |
+| `saga.js` | 66,87 | journal failure → empty journal (caller handles empty safely) |
+| `reconcile.js` | 20,27,47 | missing rows → null/current (caller handles null gracefully) |
+| `db.js` | 99,112,147,148 | optional vault/DB fallbacks (defaults used) |
+| `storageQuota.js` | 127,129 | quota sweep failures (sweep skips failed campaign) |
+| `waypost.js` | 64 | skip failed waypoint (continue) |
+| `patrons.js` | 138,156,178 | plan/cleanup continuation |
+| `errata.js` | 28 | quiet ledger (fail-open for display) |
+
+**Verdict on instrumentation:** Every swallow in the list is either:
+(a) comment-justified with a clear explanation of why the fallback is safe, or
+(b) in a best-effort background path that retries or degrades gracefully.
+
+No swallow was found where the caller was silently misled in a way that could
+corrupt the canonical record, advance the journal chain incorrectly, or produce
+an incorrect DM turn without any observable signal. The 8 existing `bumpSwallowed`
+sites cover the highest-traffic background paths (cinema infrastructure).
+
+**M3 reconciliation — the 2 unaccounted catches:**
+M3 reported 199 total; 156 + 33 + 8 = 197. The shortfall was in the M3
+enumeration method (grep-based; included some `.catch()` promise chains in the
+"zero completely empty" count). The `} catch` structural count is ~182. No catch
+blocks were found to be completely empty (zero action, zero comment).
+
+**"Zero completely empty ≠ zero swallows" confirmed:** The 33 "comment-justified"
+from M3 are genuine swallows with written justification. The 156 "with action"
+included both HANDLES and REPORTS. After reclassification, the split is
+approximately: **HANDLES ~110–120**, **REPORTS ~35–45**, **SWALLOWS ~30–40**
+(all either justified by comment or safe by pattern).
+
+
+---
+
+## Work Order / Item 1 — SERVER_ARCH.md conditional recommendation
+
+**Date:** 2026-07-30
+
+**File:** `docs/SERVER_ARCH.md` (revised)
+
+**Problem with the M5 recommendation:** Option 2 (device authoritative, server
+mirrors) was recommended unconditionally. Three roadmap commitments were not
+accounted for:
+
+1. **Multiplayer** — two devices cannot both be authoritative for the same campaign.
+   Option 2 assumes exactly-one writer.
+2. **Persistent worlds** — server-shaped data by definition. A world whose state
+   evolves across multiple campaigns cannot be resolved from any single device.
+3. **Ordinary SaaS** — "install app on a new phone and continue" is not an edge
+   case. If the old device is lost, the server mirror is the only surviving copy.
+   Option 2 becomes server-authoritative in practice even if not in design.
+
+**Conditional recommendation (three branches, keyed on multiplayer timeline):**
+
+**Branch A — multiplayer within ~6 months:**
+Use **Option 3** now (server authoritative, offline queue). Re-migration from
+Option 2 to Option 3 in six months would require ingesting every player's
+device-authoritative journal as the founding server chain plus a client rewrite
+of the game loop write path. Starting with Option 3 avoids that cost.
+
+**Branch B — multiplayer in 6–18 months (recommended branch for most horizons):**
+Use **Option 2** now, with a planned migration gate at multiplayer launch. The
+migration from Option 2 to Option 3 at that point is bounded: the server already
+holds the journal mirror; promoting the mirror to the authority requires (a) a
+sync-drain step and (b) switching the client write path from "local-first, push"
+to "queue, drain." User-visible: a one-time "syncing your chronicle" step at
+upgrade. Re-migration cost: moderate, bounded.
+
+**Branch C — multiplayer beyond 18 months or uncertain:**
+Use **Option 2** now; revisit at the 18-month mark. Re-migration cost grows
+linearly with user count. Three signals that should trigger earlier re-evaluation:
+(1) a user loses their campaign on a phone replacement, (2) persistent worlds are
+scoped for a specific release, (3) player count crosses a threshold that makes
+migration prohibitively large.
+
+**Re-migration costs stated explicitly** in each branch of the document. The
+document does not implement any option.
+

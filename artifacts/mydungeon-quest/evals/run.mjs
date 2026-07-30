@@ -111,3 +111,10 @@ console.log('PASS — mock campaigns, reducers, protocol, media floor, scrubber,
   assert.notEqual(specPlain.hash, specAnchored.hash, 'reference hashes must enter the generation identity when declared');
   console.log('PASS — anchor law: deterministic, render-reaching, and identity-bearing.');
 }
+
+// ---- Stage 7 / L6 adversarial pass — repair-loop coverage ----
+// Exercises 8 violation classes against validateDmTurn, the census layer,
+// the repair-chain source structure, and the safeFallbackTurn floor.
+// This is the adversarial pass that ensures the repair path is exercised
+// on every run rather than never.
+await import('./repairLoop.test.mjs');

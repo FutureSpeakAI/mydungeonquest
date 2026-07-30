@@ -6150,3 +6150,50 @@ Attestation binds to content, not storage location.
 api-server build passes (1.4 MB bundle, @google-cloud/storage included).
 leanDoor: 635 kB pin unchanged.
 
+
+---
+
+## Stage 7 — L6: Adversarial turn generator + repair-loop verification (2026-07-30)
+
+### Violation classes covered
+
+Each class has a dedicated adversarial turn generator that introduces exactly
+one rule violation and asserts the validator names the specific deficiency.
+
+| # | Class | Validator catch |
+|---|-------|-----------------|
+| ① | Narration below floor (none < 60 w) | `narration floor breach: too few words` |
+| ② | Narration above ceiling (none > 160 w) | `narration floor breach: too many words` |
+| ③ | Dead soul attributed dialogue | `the dead do not speak — <name>` |
+| ④ | Canon contradiction (ghost beat amend) | `spine_amend names a beat the spine does not hold` |
+| ⑤ | Entropy consumed out of order | `entropy indices must be contiguous and consumed in order` |
+| ⑥ | Malformed combat op | `combat.op invalid` |
+| ⑦ | Suggestions count violation (4 → 3) | `suggestions must contain exactly 3 entries` |
+| ⑧ | Suggestion length violation (> 6 words) | `each suggestion must be <=6 words` |
+| ⑨ | Unrecorded soul / missing cast_add+voice_card | `censusNote` names the stranger |
+
+### Repair-loop chain (source-verified)
+
+Three structural courts verify dm.js has the correct escalation chain:
+- ⑪ anthropic loop runs exactly 2 attempts (`attempt < 2`)
+- ⑫ errors from attempt 1 travel to attempt 2 as `repair = { turn, errors }`
+- ⑬ order is: anthropic loop → openai loop → safeFallbackTurn (final floor)
+
+### safeFallbackTurn floor (⑭)
+
+safeFallbackTurn satisfies validateDmTurn at the 'none' band — it is a valid
+turn that meets the 60-word floor, has 3 suggestions each ≤ 6 words, and all
+other required fields in their null/empty shapes.
+
+### March integration
+
+repairLoop.test.mjs is wired into run.mjs as an adversarial pass executed on
+every proving-loop run. The directive's requirement that the repair path is
+exercised on every run rather than never is satisfied.
+
+### No validator weakening
+
+All 8 violation classes exploit rules that already existed. No check was relaxed,
+stubbed, or commented out to make a violation reachable — the directive's
+anti-regression constraint holds.
+

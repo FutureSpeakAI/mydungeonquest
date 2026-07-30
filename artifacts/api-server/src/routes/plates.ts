@@ -1,15 +1,18 @@
 // ---------------------------------------------------------------------------
-// PLATE ROUTES — Stage 7 / L5
+// PLATE ROUTES — Stage 7 / L5 / updated Stage 8 / M4.2
 //
 // POST /_apiserver/storage/plates/presign
-//   Accepts { campaignId, assetHash, mime } — returns { uploadUrl, servePath }
-//   The client uploads the image bytes directly to GCS via the presigned PUT URL.
+//   Accepts { worldId, campaignId, assetHash, mime }
+//   Returns { uploadUrl, servePath }
+//   The client uploads image bytes directly to GCS via the presigned PUT URL.
 //
-// GET  /_apiserver/storage/plates/:campaignId/:assetHash
+// GET  /_apiserver/storage/plates/:worldId/:campaignId/:assetHash
 //   Streams the plate from GCS back to the requester.
 //
-// Both paths keep campaignId in the key so dedupe across campaigns (and
-// therefore across worlds) is structurally impossible (L5 constraint).
+// M4.2: worldId added to key path (plates/{worldId}/{campaignId}/{assetHash}).
+// Today worldId === campaignId. The slot is reserved so Stage 9 persistent
+// worlds need no migration — they just populate a different worldId.
+// Cross-world AND cross-campaign dedupe are structurally impossible.
 // ---------------------------------------------------------------------------
 
 import { Router, type IRouter, type Request, type Response } from 'express';
@@ -22,10 +25,11 @@ function isValidAssetHash(h: string): boolean {
   return /^[0-9a-f]{64}$/.test(h);
 }
 
-/** Validate a campaignId: non-empty, no slashes, printable ASCII. */
+/** Validate a campaignId or worldId: non-empty, no slashes, printable ASCII. */
 function isValidCampaignId(id: string): boolean {
   return typeof id === 'string' && id.length > 0 && id.length <= 128 && !/[/\\]/.test(id);
 }
+const isValidWorldId = isValidCampaignId; // same shape today
 
 /** Validate a MIME type: must be image/*. */
 function isImageMime(mime: string): boolean {
@@ -39,8 +43,16 @@ function isImageMime(mime: string): boolean {
  * directly to GCS, and the api-server serve path for later retrieval.
  */
 router.post('/storage/plates/presign', async (req: Request, res: Response) => {
-  const { campaignId, assetHash, mime } = req.body ?? {};
+  const { worldId, campaignId, assetHash, mime } = req.body ?? {};
 
+  // worldId is optional for backwards-compat: if absent, default to campaignId
+  // (old clients before M4.2 don't send it; they only have one world anyway).
+  const resolvedWorldId = worldId ?? campaignId;
+
+  if (!isValidWorldId(resolvedWorldId)) {
+    res.status(400).json({ error: 'Invalid or missing worldId' });
+    return;
+  }
   if (!isValidCampaignId(campaignId)) {
     res.status(400).json({ error: 'Invalid or missing campaignId' });
     return;
@@ -55,7 +67,7 @@ router.post('/storage/plates/presign', async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await presignPlateUpload(campaignId, assetHash, mime);
+    const result = await presignPlateUpload(resolvedWorldId, campaignId, assetHash, mime);
     res.json(result);
   } catch (err) {
     req.log.error({ err }, 'presignPlateUpload failed');
@@ -64,23 +76,23 @@ router.post('/storage/plates/presign', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /_apiserver/storage/plates/:campaignId/:assetHash
+ * GET /_apiserver/storage/plates/:worldId/:campaignId/:assetHash
  *
  * Streams the plate from GCS. Returns 404 if absent.
- * Future: gate by auth once accounts exist (Stage 8).
+ * Future: gate by auth once accounts exist (Stage 9).
  */
-router.get('/storage/plates/:campaignId/:assetHash', async (req: Request, res: Response) => {
-  const { campaignId, assetHash } = req.params;
+router.get('/storage/plates/:worldId/:campaignId/:assetHash', async (req: Request, res: Response) => {
+  const { worldId, campaignId, assetHash } = req.params;
 
-  if (!isValidCampaignId(campaignId) || !isValidAssetHash(assetHash)) {
+  if (!isValidWorldId(worldId) || !isValidCampaignId(campaignId) || !isValidAssetHash(assetHash)) {
     res.status(400).json({ error: 'Invalid path parameters' });
     return;
   }
 
   try {
     const [stream, meta] = await Promise.all([
-      downloadPlate(campaignId, assetHash),
-      getPlateMetadata(campaignId, assetHash).catch(() => ({ contentType: 'image/png' })),
+      downloadPlate(worldId, campaignId, assetHash),
+      getPlateMetadata(worldId, campaignId, assetHash).catch(() => ({ contentType: 'image/png' })),
     ]);
     res.setHeader('Content-Type', meta.contentType);
     res.setHeader('Cache-Control', 'private, max-age=3600');

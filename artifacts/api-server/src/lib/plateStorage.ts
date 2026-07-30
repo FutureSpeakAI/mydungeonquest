@@ -1,19 +1,21 @@
 // ---------------------------------------------------------------------------
-// PLATE STORAGE — Stage 7 / L5
+// PLATE STORAGE — Stage 7 / L5 / updated Stage 8 / M4.2
 //
-// Campaign-scoped object storage for AI-generated media assets (plates,
-// busts, reference sheets, region plates). Key path:
+// World-and-campaign-scoped object storage for AI-generated media assets.
+// Key path:
 //
-//   {PRIVATE_OBJECT_DIR}/plates/{campaignId}/{assetHash}
+//   {PRIVATE_OBJECT_DIR}/plates/{worldId}/{campaignId}/{assetHash}
+//
+// M4.2 rationale: persistent worlds are coming (Stage 9). Adding worldId
+// now costs one path segment and saves a full migration over every asset
+// ever stored. With one world per campaign today, worldId = campaignId —
+// the shape is right; the expansion is trivial.
 //
 // Law:
-//   - Every key path carries a campaignId prefix — cross-campaign dedupe
-//     is structurally impossible.
-//   - Cross-world dedupe is forbidden (directive L5 constraint). The
-//     campaignId scope enforces this: two campaigns in different worlds
-//     with identical cues get independent objects.
-//   - Uploads are presigned (browser uploads directly to GCS; server
-//     never receives the image bytes).
+//   - Every key path carries both worldId and campaignId — cross-world AND
+//     cross-campaign dedupe are both structurally impossible.
+//   - Uploads are presigned (browser uploads directly to GCS; server never
+//     receives image bytes).
 //   - Serving goes through the api-server so access can be gated later.
 // ---------------------------------------------------------------------------
 
@@ -81,25 +83,31 @@ async function signUrl({
 
 /** Request a presigned PUT URL for a plate.
  *  Returns { uploadUrl, servePath } where servePath is the api-server
- *  path that serves the object back. */
+ *  path that serves the object back.
+ *
+ *  M4.2: key path is now world-AND-campaign-scoped:
+ *    plates/{worldId}/{campaignId}/{assetHash}
+ *  Today worldId === campaignId (one world per campaign). The extra segment
+ *  costs nothing and avoids a full-table migration when persistent worlds land.
+ */
 export async function presignPlateUpload(
+  worldId: string,
   campaignId: string,
   assetHash: string,
   mime: string,
 ): Promise<{ uploadUrl: string; servePath: string }> {
   const privateDir = getPrivateDir();
-  // L5: key path is always campaign-scoped — cross-world dedupe impossible.
-  const objectPath = `${privateDir}/plates/${campaignId}/${assetHash}`;
+  const objectPath = `${privateDir}/plates/${worldId}/${campaignId}/${assetHash}`;
   const { bucketName, objectName } = parsePath(objectPath);
   const uploadUrl = await signUrl({ bucketName, objectName, method: 'PUT', ttlSec: 900 });
-  const servePath = `/_apiserver/storage/plates/${campaignId}/${assetHash}`;
+  const servePath = `/_apiserver/storage/plates/${worldId}/${campaignId}/${assetHash}`;
   return { uploadUrl, servePath };
 }
 
 /** Stream a plate from object storage. Throws PlateNotFoundError if absent. */
-export async function downloadPlate(campaignId: string, assetHash: string): Promise<import('node:stream').Readable> {
+export async function downloadPlate(worldId: string, campaignId: string, assetHash: string): Promise<import('node:stream').Readable> {
   const privateDir = getPrivateDir();
-  const objectPath = `${privateDir}/plates/${campaignId}/${assetHash}`;
+  const objectPath = `${privateDir}/plates/${worldId}/${campaignId}/${assetHash}`;
   const { bucketName, objectName } = parsePath(objectPath);
   const bucket = gcs.bucket(bucketName);
   const file = bucket.file(objectName);
@@ -109,9 +117,9 @@ export async function downloadPlate(campaignId: string, assetHash: string): Prom
 }
 
 /** Retrieve metadata for a plate (for Content-Type header). */
-export async function getPlateMetadata(campaignId: string, assetHash: string): Promise<{ contentType: string }> {
+export async function getPlateMetadata(worldId: string, campaignId: string, assetHash: string): Promise<{ contentType: string }> {
   const privateDir = getPrivateDir();
-  const objectPath = `${privateDir}/plates/${campaignId}/${assetHash}`;
+  const objectPath = `${privateDir}/plates/${worldId}/${campaignId}/${assetHash}`;
   const { bucketName, objectName } = parsePath(objectPath);
   const bucket = gcs.bucket(bucketName);
   const file = bucket.file(objectName);

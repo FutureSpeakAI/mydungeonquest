@@ -144,6 +144,133 @@ assert.ok(
   `K9: standard.maxWords (${NARRATION_FLOOR.byMeasure.standard.maxWords}) must be ≤ rich.minWords (${NARRATION_FLOOR.byMeasure.rich.minWords}) — no overlapping bands`,
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// K9+Part3 — three feasibility courts (Stage 6.5 Part 3)
+//
+// Courts ⑥ and ⑦ confirm each band's floor sits below its ceiling and that
+// adjacent bands do not overlap. They do NOT confirm a real turn can land
+// inside a band. These three courts close that gap.
+//
+// ⑧ Implied block length (joint feasibility across words AND blocks):
+//    minWords / maxBlocks ≥ MIN_BLOCK_WORDS — minimum average block length
+//    maxWords / minBlocks ≤ MAX_BLOCK_WORDS — maximum average block length
+//    Named constants: MIN_BLOCK_WORDS=10 (a 10-word paragraph is the absolute
+//    minimum for coherent DM narration prose; prevents degenerate band geometry
+//    like minWords:200, maxBlocks:20 forcing 10-word micro-paragraphs).
+//    MAX_BLOCK_WORDS=120 (a 120-word single paragraph is readable for this
+//    prose style; prevents degenerate geometry like maxWords:360, minBlocks:1
+//    forcing the model to produce one 360-word wall of text).
+//
+// ⑨ Craft target inside enforced band (the voice.js EDITOR_ADDENDUM drift check):
+//    voice.js EDITOR_ADDENDUM contains hardcoded word counts. These are the
+//    craft target the Editor sees (second-pass revision instructions). They
+//    must match NARRATION_FLOOR exactly. If they diverge — Editor says
+//    "60-140 words", validator enforces "180-400" — the Editor revises the
+//    model into failing turns without warning.
+//
+// ⑩ Minimum span per band:
+//    maxWords - minWords ≥ MIN_SPAN (20). A span of 1 (minWords:60, maxWords:61)
+//    passes courts ⑥ and ⑦ but is a point target, not a range — no model will
+//    land there reliably. MIN_SPAN=20 requires a real range.
+
+const MIN_BLOCK_WORDS = 10;  // absolute floor: ~2 short sentences
+const MAX_BLOCK_WORDS = 120; // absolute ceiling: a long but single-page paragraph
+const MIN_SPAN = 20;         // minimum word range width per band
+
+// ⑧ Implied block length — joint feasibility
+for (const [name, band] of Object.entries(NARRATION_FLOOR.byMeasure)) {
+  const minAvgBlockLen = band.minWords / band.maxBlocks;
+  const maxAvgBlockLen = band.maxWords / band.minBlocks;
+
+  assert.ok(
+    minAvgBlockLen >= MIN_BLOCK_WORDS,
+    `K9+⑧: ${name} band implies minimum avg block length of ${minAvgBlockLen.toFixed(1)} words ` +
+    `(minWords:${band.minWords} / maxBlocks:${band.maxBlocks}); must be ≥ ${MIN_BLOCK_WORDS} — ` +
+    `band geometry forces implausibly short paragraphs`,
+  );
+  assert.ok(
+    maxAvgBlockLen <= MAX_BLOCK_WORDS,
+    `K9+⑧: ${name} band implies maximum avg block length of ${maxAvgBlockLen.toFixed(1)} words ` +
+    `(maxWords:${band.maxWords} / minBlocks:${band.minBlocks}); must be ≤ ${MAX_BLOCK_WORDS} — ` +
+    `band geometry forces implausibly long paragraphs`,
+  );
+}
+
+// ⑨ Craft target (voice.js EDITOR_ADDENDUM) matches enforced band (NARRATION_FLOOR)
+// The EDITOR_ADDENDUM is sent to the second-pass model as revision instructions.
+// It hardcodes word counts that must be identical to NARRATION_FLOOR — any drift
+// causes the Editor to revise the primary draft into validator-failing territory.
+const voiceSrc = src('src/lib/voice.js');
+
+// Extract hardcoded counts from EDITOR_ADDENDUM using named-measure patterns
+const editorBandPattern = /(\w+) requires (\d+)-(\d+) words in (\d+)-(\d+) paragraphs/g;
+const editorBands = {};
+for (const m of voiceSrc.matchAll(editorBandPattern)) {
+  editorBands[m[1]] = {
+    minWords:  parseInt(m[2], 10),
+    maxWords:  parseInt(m[3], 10),
+    minBlocks: parseInt(m[4], 10),
+    maxBlocks: parseInt(m[5], 10),
+  };
+}
+// 'none' band is stated as "with no beat_intent the range is N-M words" (no block count)
+const editorNoneMatch = voiceSrc.match(/no beat_intent the range is (\d+)-(\d+) words/);
+
+assert.ok(
+  Object.keys(editorBands).length >= 3,
+  `K9+⑨: voice.js EDITOR_ADDENDUM must state word+block counts for ≥3 named measures (lean/standard/rich); found: ${JSON.stringify(Object.keys(editorBands))}`,
+);
+assert.ok(
+  editorNoneMatch,
+  `K9+⑨: voice.js EDITOR_ADDENDUM must state the none-band word range ("with no beat_intent the range is N-M words")`,
+);
+
+// Check each named band matches NARRATION_FLOOR
+for (const [name, edBand] of Object.entries(editorBands)) {
+  const flBand = NARRATION_FLOOR.byMeasure[name];
+  assert.ok(
+    flBand,
+    `K9+⑨: voice.js EDITOR_ADDENDUM mentions measure "${name}" but NARRATION_FLOOR.byMeasure has no such band`,
+  );
+  assert.strictEqual(
+    edBand.minWords, flBand.minWords,
+    `K9+⑨: voice.js EDITOR_ADDENDUM ${name}.minWords (${edBand.minWords}) disagrees with NARRATION_FLOOR (${flBand.minWords}) — Editor will revise into the wrong target`,
+  );
+  assert.strictEqual(
+    edBand.maxWords, flBand.maxWords,
+    `K9+⑨: voice.js EDITOR_ADDENDUM ${name}.maxWords (${edBand.maxWords}) disagrees with NARRATION_FLOOR (${flBand.maxWords}) — Editor will revise into the wrong target`,
+  );
+  assert.strictEqual(
+    edBand.minBlocks, flBand.minBlocks,
+    `K9+⑨: voice.js EDITOR_ADDENDUM ${name}.minBlocks (${edBand.minBlocks}) disagrees with NARRATION_FLOOR (${flBand.minBlocks})`,
+  );
+  assert.strictEqual(
+    edBand.maxBlocks, flBand.maxBlocks,
+    `K9+⑨: voice.js EDITOR_ADDENDUM ${name}.maxBlocks (${edBand.maxBlocks}) disagrees with NARRATION_FLOOR (${flBand.maxBlocks})`,
+  );
+}
+
+// none band: check word range only (blocks not stated in EDITOR_ADDENDUM for none)
+const editorNoneMin = parseInt(editorNoneMatch[1], 10);
+const editorNoneMax = parseInt(editorNoneMatch[2], 10);
+assert.strictEqual(
+  editorNoneMin, NARRATION_FLOOR.byMeasure.none.minWords,
+  `K9+⑨: voice.js EDITOR_ADDENDUM none.minWords (${editorNoneMin}) disagrees with NARRATION_FLOOR (${NARRATION_FLOOR.byMeasure.none.minWords})`,
+);
+assert.strictEqual(
+  editorNoneMax, NARRATION_FLOOR.byMeasure.none.maxWords,
+  `K9+⑨: voice.js EDITOR_ADDENDUM none.maxWords (${editorNoneMax}) disagrees with NARRATION_FLOOR (${NARRATION_FLOOR.byMeasure.none.maxWords})`,
+);
+
+// ⑩ Minimum span per band (range must be a real range, not a point target)
+for (const [name, band] of Object.entries(NARRATION_FLOOR.byMeasure)) {
+  const span = band.maxWords - band.minWords;
+  assert.ok(
+    span >= MIN_SPAN,
+    `K9+⑩: ${name} band span is ${span} words (max:${band.maxWords} − min:${band.minWords}); must be ≥ ${MIN_SPAN} — a near-point target cannot be reliably hit`,
+  );
+}
+
 console.log(
   `PASS — K9 lawsAgree: three-source constraint agreement confirmed. ` +
   `NARRATION_FLOOR is the ONE seat (exported from protocol.js); ` +
@@ -151,5 +278,8 @@ console.log(
   `validator reads NARRATION_FLOOR.byMeasure[bandKey] at runtime; ` +
   `tool schema minItems=${toolMinItems} ≤ ${floorMinBlocks} (NARRATION_FLOOR min minBlocks), ` +
   `maxItems=${toolMaxItems} ≥ ${floorMaxBlocks} (NARRATION_FLOOR max maxBlocks); ` +
-  `all ${Object.keys(NARRATION_FLOOR.byMeasure).length} bands internally consistent; lean/standard/rich no overlap.`,
+  `all ${Object.keys(NARRATION_FLOOR.byMeasure).length} bands internally consistent; lean/standard/rich no overlap. ` +
+  `Part 3 feasibility: ⑧ implied block lengths plausible (${MIN_BLOCK_WORDS}–${MAX_BLOCK_WORDS} words/block) for all bands; ` +
+  `⑨ voice.js EDITOR_ADDENDUM craft targets match NARRATION_FLOOR for all ${Object.keys(editorBands).length + 1} bands; ` +
+  `⑩ every band span ≥ ${MIN_SPAN} words.`,
 );

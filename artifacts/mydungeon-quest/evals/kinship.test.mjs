@@ -80,8 +80,17 @@ function fixtureLogs() {
 const campaign = { id: 'long-tale', title: 'The Long Vale', hero: HERO, codex: fixtureCodex(), logs: fixtureLogs(), completed: false };
 deepFreeze(campaign);
 const briefing = buildBriefing(campaign);
-const again = buildBriefing(campaign);
+const again    = buildBriefing(campaign);
 assert.equal(JSON.stringify(briefing), JSON.stringify(again), 'the briefing is byte-stable on the repeat walk');
+
+// Pressure build: explicit tight budget to force famine on THIS fixture, proving
+// adversarial seating (bound souls at the tail) cannot fall regardless of cast
+// order. The production budget (BRIEF_BUDGET) is now large enough for 44 souls;
+// the pressure budget is sized to exceed this fixture's natural footprint so that
+// only kinship-exempt souls can satisfy the court at line 97.
+// This is NOT a production value — it is a pressure-test constant for this gate.
+const KINSHIP_PRESSURE_BUDGET = 8_000;
+const pressureBriefing = buildBriefing(campaign, { budget: KINSHIP_PRESSURE_BUDGET });
 
 // ---- 2. The rider rides the briefing the door ships ----
 const maren = briefing.cast.find((s) => s.name === 'Maren');
@@ -92,8 +101,11 @@ const petra = briefing.cast.find((s) => s.name === 'Petra');
 assert.ok(petra && !petra.visual, 'the bond-zero sister rides by her kin tie alone');
 const wren = briefing.cast.find((s) => s.name === 'Wren');
 assert.ok(wren && !wren.visual, 'the bond-three fletcher rides by bond alone');
+// Under pressure the unbound carters at positions 4–40 must fall so the
+// adversarial-seating proof is not vacuous. (Carters 1–3 spoke recently so
+// they are in fullSet and survive; positions 4–40 are REST and are candidates.)
 const fallen = [];
-for (let i = 4; i <= 40; i += 1) if (!briefing.cast.some((s) => s.name === `Carter${String(i).padStart(2, '0')}`)) fallen.push(i);
+for (let i = 4; i <= 40; i += 1) if (!pressureBriefing.cast.some((s) => s.name === `Carter${String(i).padStart(2, '0')}`)) fallen.push(i);
 assert.ok(fallen.length > 0, 'the budget truly bit on this fixture — unbound carters fell while the bound ride');
 
 // ---- 3. The contract stands whole and the budget holds end to end ----

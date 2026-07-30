@@ -1,4 +1,4 @@
-// headroomCurve — Work Order / Item 2
+// headroomCurve — Work Order / Item 2 + Part 3
 //
 // Reports the context headroom curve to answer three questions:
 //   Q1. At what soul count does the pack first exceed budget?
@@ -8,11 +8,12 @@
 // All measurements are at chapter 15 (the end of the fixture, maximum depth).
 //
 // Configurations measured:
-//   A. 12 souls (M1 baseline)
+//   A. 12 souls (M1 baseline — regression guard)
 //   B. 16 souls (4 extras, all thread-holders → fullSet)
 //   C. 20 souls (8 extras, all thread-holders → fullSet)
 //   D. 12 souls + prior-volume memoir (chained saga)
 //   E. 12 souls + 2 bond-4 heirs (kinship-immune under XX.8)
+//   F. 25 souls — the target campaign shape from Part 3 (budget derivation fixture)
 //
 // Courts:
 //  ① baseline (12 souls) matches M1 measurement to within 5% (regression guard)
@@ -20,13 +21,14 @@
 //  ③ 20-soul pack size reported — pass/overflow noted
 //  ④ chained saga pack size reported — is memoir alone enough to overflow?
 //  ⑤ heirs-present pack size reported — does kinship immunity change the budget picture?
-//  ⑥ crossing-point analysis: state the exact soul count where budget is exceeded
+//  ⑥ crossing-point analysis: state the estimated soul count where budget is exceeded
+//  ⑦ target campaign (25 souls, chained saga, 5 regions) fits within the new budget
 
 import assert from 'node:assert/strict';
 import { buildContextPack, buildBriefing, PACK_BUDGET, BRIEF_BUDGET } from 'fatescript/graph';
 import {
   buildDeepCampaign16, buildDeepCampaign20,
-  buildChainedSaga, buildHeirsPresent,
+  buildChainedSaga, buildHeirsPresent, buildTargetCampaign,
 } from './fixtures/headroomCampaign.mjs';
 import { buildDeepCampaign } from './fixtures/deepCampaign.mjs';
 
@@ -57,11 +59,12 @@ const B = measure(buildDeepCampaign16(CHAPTER),      'B — 16 souls');
 const C = measure(buildDeepCampaign20(CHAPTER),      'C — 20 souls');
 const D = measure(buildChainedSaga(CHAPTER),         'D — chained saga (prior-volume memoir)');
 const E = measure(buildHeirsPresent(CHAPTER),        'E — heirs present (bond-4)');
+const F = measure(buildTargetCampaign(CHAPTER),      'F — target campaign (25 souls, chained saga, 5 regions)');
 
 // ── Report ────────────────────────────────────────────────────────────────────
 
 console.log('\n=== headroomCurve: pack sizes at chapter 15 ===\n');
-for (const m of [A, B, C, D, E]) {
+for (const m of [A, B, C, D, E, F]) {
   const overflowStr = m.withinPackBudget ? 'OK' : `OVERFLOW +${m.packSize - PACK_BUDGET}`;
   const briefStr    = m.withinBriefBudget ? 'OK' : `OVERFLOW +${m.briefSize - BRIEF_BUDGET}`;
   const famineStr   = m.famineHit
@@ -157,5 +160,18 @@ console.log(`    Adding 1 fullSet soul: ~${PACK_BUDGET - A.packSize - Math.round
 const fits13 = A.packSize + perSoulFullSet <= PACK_BUDGET;
 console.log(`    13 souls fits: ${fits13 ? 'YES' : 'NO (budget would be exceeded)'}.`);
 console.log(`    Conclusion: 12 souls is ${estimated_crossing <= 14 ? 'close to the ceiling (1-2 souls from overflow)' : 'below mid-range (safe for several more)'}.`);
+
+// ── ⑦ Target campaign (Part 3 fixture) fits within the new budget ──────────
+// The target campaign is the shape the budget was derived from (24,796 chars
+// unfenced at chapter 15). It must fit within PACK_BUDGET with no famine.
+assert.ok(
+  F.withinPackBudget,
+  `⑦ target campaign must fit within PACK_BUDGET after Part 3 derivation: got ${F.packSize} chars, budget ${PACK_BUDGET}`,
+);
+assert.ok(
+  !F.famineHit,
+  `⑦ famine must not fire for the target campaign (25 souls) — it defines the budget floor`,
+);
+console.log(`⑦ PASS — target campaign (${F.souls} souls) fits: ${F.packSize} chars / ${PACK_BUDGET} (headroom: ${PACK_BUDGET - F.packSize} chars); no famine`);
 
 console.log('\nPASS — headroomCurve: all courts green (Rule 31: curve measured under real-depth conditions)');

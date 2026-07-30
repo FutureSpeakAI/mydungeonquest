@@ -1,16 +1,16 @@
 // PART 1 GATE — no numeric budget literal outside the constants definition.
 //
-// PACK_BUDGET and BRIEF_BUDGET are exported from packages/engine/src/graph.js.
-// Every other file imports from there. This test asserts that no file outside
-// the constants source hardcodes the raw numbers 7000 or 7800, so changing
-// the budget remains a one-line edit in one place.
+// PACK_BUDGET (32500) and BRIEF_BUDGET (33000) are exported from
+// packages/engine/src/graph.js. Every other file imports from there.
+// This test asserts that no file outside the constants source hardcodes the
+// raw numbers, so changing the budget remains a one-line edit in one place.
 //
 // Exemptions:
 //   - packages/engine/src/graph.js itself (the canon file — contains the
-//     export const PACK_BUDGET = 7000 / BRIEF_BUDGET = 7800 definitions)
+//     export const PACK_BUDGET = 32500 / BRIEF_BUDGET = 33000 definitions)
 //   - budget: 900 / budget: 120 etc. (pressure-test values — different numbers)
-//   - Strings with commas: '7,000 chars', '7,800-char' (human-readable text,
-//     not JS numeric tokens; \b7000\b won't match '7,000')
+//   - Strings with commas: '32,500 chars' etc. (human-readable text,
+//     not JS numeric tokens; \b32500\b won't match '32,500')
 
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -40,7 +40,7 @@ function walk(dir, acc = []) {
 
 const DIRS = [ENGINE, path.join(ROOT, 'evals'), path.join(ROOT, 'src'), path.join(ROOT, 'server')];
 
-const PATTERN = /\b(7000|7800)\b/;
+const PATTERN = /\b(32500|33000)\b/;
 const violations = [];
 
 for (const dir of DIRS) {
@@ -55,7 +55,7 @@ for (const dir of DIRS) {
 assert.deepEqual(
   violations,
   [],
-  `Budget literals (7000 / 7800) found outside packages/engine/src/graph.js:\n${violations.map((f) => `  ${f}`).join('\n')}\nEach site must import PACK_BUDGET / BRIEF_BUDGET from fatescript/graph instead.`,
+  `Budget literals (32500 / 33000) found outside packages/engine/src/graph.js:\n${violations.map((f) => `  ${f}`).join('\n')}\nEach site must import PACK_BUDGET / BRIEF_BUDGET from fatescript/graph instead.`,
 );
 
-console.log('PASS — no budget literals outside the constants definition (packages/engine/src/graph.js)');
+console.log('PASS — no budget literals (32500 / 33000) outside the constants definition (packages/engine/src/graph.js)');

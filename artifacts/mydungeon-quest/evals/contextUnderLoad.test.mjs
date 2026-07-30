@@ -205,6 +205,6 @@ const briefOverflows = report.filter((e) => !e.withinBriefBudget);
 if (briefOverflows.length > 0) {
   assert.fail(`buildBriefing overflows at: ${briefOverflows.map((e) => `chapter ${e.chapter} (${e.briefSize} chars)`).join(', ')}`);
 }
-console.log('⑦ PASS — buildBriefing within 7,800-char budget at all chapter checkpoints');
+console.log(`⑦ PASS — buildBriefing within ${BRIEF_BUDGET}-char budget at all chapter checkpoints`);
 
 console.log('\nPASS — contextUnderLoad: all courts green (Rule 31 load fixture at chapter 15 within budget)');

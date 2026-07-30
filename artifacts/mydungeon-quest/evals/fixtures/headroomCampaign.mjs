@@ -263,6 +263,158 @@ const PRIOR_VOLUME_MEMOIR = [
   'The second chancellor passed word to the hero through the ferryman during the interval between volumes.',
 ];
 
+// ── Extra souls 21–26 for the target-campaign configuration ─────────────────
+// Six NPCs that bring buildDeepCampaign20 (19 souls) up to 25 souls.
+// All are thread-holders so they enter fullSet at chapter 15.
+const EXTRA_SOULS_C = [
+  {
+    name: 'Harl Tanner',
+    role: 'a tanner who keeps the valley settlement\'s transaction ledger',
+    visual: 'A stocky man in his forties, hands perpetually stained despite vigorous scrubbing, a leather apron that has survived more than one rough season',
+    voice: 'Deliberate and suspicious, pauses before answering anything',
+    goal: 'Protect the tannery records that document every transaction Karos\'s men have made in the valley',
+    secret: 'The records he is protecting contain evidence of a transaction he was party to — not entirely unwillingly',
+    status: 'active', bond: 1, introduced_turn: 20,
+    known_facts: [
+      'Has run the only tannery in the valley for eleven years',
+      'Karos\'s men visited his tannery twice and left without explaining why',
+      'The transaction ledger he keeps has two pages that do not match the rest of the binding',
+      'Has already hidden a copy of the suspicious entries in a location he has not disclosed',
+      'Is afraid of Meron Cole for reasons he will not state',
+      'Knows which side of the road Karos\'s outer cordon cannot see',
+    ],
+  },
+  {
+    name: 'Serafine Lowe',
+    role: 'a traveling herbalist whose knowledge predates the siege',
+    visual: 'A slight woman in a heavy patchwork cloak, always carrying two satchels — one large and one small, the small one never opened in company',
+    voice: 'Careful and layered, says the second thing she means before the first',
+    goal: 'Find the source of the discoloration spreading through the valley\'s medicinal plants before it reaches the food crop',
+    secret: 'The discoloration is not disease — she has seen it before, and it follows the same pattern as something introduced deliberately',
+    status: 'active', bond: 1, introduced_turn: 21,
+    known_facts: [
+      'Has been traveling the region for three seasons studying the spread',
+      'Her grandmother\'s notes describe the same discoloration from forty years ago, elsewhere',
+      'The pattern she has mapped points to a specific location she is reluctant to name',
+      'The small satchel contains samples she collected before the contamination reached them',
+      'Karos\'s men showed no interest in her work, which she found more alarming than attention would have been',
+      'She knows what cures the contamination; she does not know how to produce it here',
+    ],
+  },
+  {
+    name: 'Brother Cull',
+    role: 'a wandering mendicant with a specific destination inside the citadel',
+    visual: 'Gaunt in a rough grey robe with sandals too light for the season, eyes too sharp for someone claiming to want nothing',
+    voice: 'Slow and resonant, uses silence as punctuation',
+    goal: 'Reach the lower citadel chapel before the sealing of the citadel makes entry impossible',
+    secret: 'The chapel contains a document sealed inside the altar that names him as the third chancellor\'s legitimate heir',
+    status: 'active', bond: 0, introduced_turn: 22,
+    known_facts: [
+      'Has been walking toward the citadel for two months by a deliberately indirect route',
+      'The doctrine he preaches is his own composition but was not invented without reason',
+      'Has spoken to Meron Cole twice; both times the conversation ended abruptly',
+      'Knows a route through the lower citadel that Captain Reave\'s cordon does not cover',
+      'Carries a small wooden case at his belt and handles it with unusual care',
+      'Has not told anyone what he is actually seeking inside the citadel',
+    ],
+  },
+  {
+    name: 'Mira the Ostler',
+    role: 'keeper of the waystation stable at the crossroads',
+    visual: 'A compact woman with short-cropped hair and a gait that implies years of ducking low doorways, hands strong enough to stop a horse mid-bolt',
+    voice: 'Clipped and transactional, longer sentences when the topic earns them',
+    goal: 'Keep the waystation operating as a neutral space regardless of which faction holds the roads',
+    secret: 'Has been renting a stall to someone who arrives after dark and leaves before dawn and has been paid to ask no questions',
+    status: 'active', bond: 1, introduced_turn: 23,
+    known_facts: [
+      'Has run the waystation for nine years, through three different road authorities',
+      'Knows every rider who has passed through in the last six months by horse and gait if not by name',
+      'The overnight guest has been absent for four days, breaking the established pattern',
+      'Found something in the stall after the last visit that she has not disposed of or shown to anyone',
+      'Is aware that Captain Reave\'s men watch the crossroads road; she watches them back',
+      'Her loyalty to the waystation\'s neutrality is real but not unconditional',
+    ],
+  },
+  {
+    name: 'The Pale Merchant',
+    role: 'a dealer in curios whose inventory changes between visits',
+    visual: 'Unnervingly pale regardless of season, perpetually overdressed in fine dark cloth, never visibly cold or warm',
+    voice: 'Warm and unhurried, as though the conversation has always been happening',
+    goal: 'Locate and acquire a specific object that changes description each time the merchant refers to it',
+    secret: 'Is not a merchant but a factor for a party the hero has not yet identified; the object is not a curio',
+    status: 'active', bond: 0, introduced_turn: 24,
+    known_facts: [
+      'Has appeared in the valley settlement on three separate occasions with no visible transit between them',
+      'Shows genuine interest in the hero\'s movements but claims it is professional curiosity',
+      'Knows the Written Voice exists — and knows what it actually says',
+      'The object being sought is not portable in the conventional sense; the merchant has not explained this',
+      'Was seen speaking with Karos\'s silent companion before the first visit to the valley',
+      'Has not given a name and has not been asked directly',
+    ],
+  },
+  {
+    name: 'Old Brennan',
+    role: 'the valley\'s oldest resident, who remembers the first chancellor\'s original court',
+    visual: 'A very old man, nearly blind, who navigates the settlement entirely by memory and sound, wrapped in wool regardless of the weather',
+    voice: 'Slow and circular, reaches conclusions only after passing through them twice',
+    goal: 'Record his account of the first chancellor\'s original ruling before he loses the memory of it',
+    secret: 'Was present at the signing of the first seal and witnessed an irregularity that was never documented',
+    status: 'active', bond: 1, introduced_turn: 25,
+    known_facts: [
+      'Is the only person alive who was present at all three original seal ceremonies',
+      'His memory of the events is clear but his account does not match the official record',
+      'Has been trying to dictate his account for a year but finds no one willing to write it down',
+      'Will not speak about the irregularity unless the right question is asked in the right way',
+      'Is aware that Meron Cole has read his testimony from a prior hearing; is not sure what to make of it',
+      'Knows something about Karos\'s past that predates the siege by thirty years',
+    ],
+  },
+];
+
+const EXTRA_THREADS_C = [
+  { label: 'Find what the tanner\'s suspicious ledger entries actually document', kind: 'mystery', holder: 'Harl Tanner', status: 'open', outcome: null },
+  { label: 'Identify the source of the plant discoloration before it reaches the food crop', kind: 'mystery', holder: 'Serafine Lowe', status: 'open', outcome: null },
+  { label: 'Reach the lower citadel chapel before it is sealed', kind: 'errand', holder: 'Brother Cull', status: 'open', outcome: null },
+  { label: 'Discover what the overnight guest left behind in the waystation stall', kind: 'mystery', holder: 'Mira the Ostler', status: 'open', outcome: null },
+  { label: 'Determine what object the pale merchant is actually seeking and for whom', kind: 'mystery', holder: 'The Pale Merchant', status: 'open', outcome: null },
+  { label: 'Hear Old Brennan\'s account of the first seal irregularity before he loses the memory', kind: 'errand', holder: 'Old Brennan', status: 'open', outcome: null },
+];
+
+// A fifth region for the target campaign — the crossroads waystation where
+// several of the extra souls operate.
+const TARGET_REGION = {
+  name: 'The Crossroads Waystation',
+  visual: 'A low timber building at the junction of two ancient roads, ringed by a muddy yard and a stable that always seems half-full of horses whose owners are never visible',
+  state: 'the waystation where the roads divide',
+};
+
+// ── Background souls for the new famine fixture ──────────────────────────────
+// 20 background travelers. NOT thread-holders, NOT recently active.
+// They go into REST (slim) and trigger the drop loop when the target-campaign
+// pack overflows the new budget. The drop loop removes them until under budget.
+// 100 background travelers — enough to push the target-campaign pack (24,796 chars)
+// well above the new PACK_BUDGET (32,500 chars) and fire the drop loop.
+// At ~102 chars per slim REST soul: 100 × 102 = ~10,200 extra chars → ~35,000
+// chars unfenced, overflowing 32,500 by ~2,500 chars. The drop loop drops
+// ~25 souls until the pack is under budget.
+const NEW_FAMINE_BACKGROUND_SOULS = Array.from({ length: 100 }, (_, i) => ({
+  name: `Wayfarer ${String(i + 1).padStart(2, '0')}`,
+  role: `a wayfarer passing through the valley (${i + 1})`,
+  visual: 'An unremarkable traveler, face weathered by the road, carrying what can be carried',
+  voice: 'Has not spoken within earshot',
+  goal: 'Reach the next waystation before nightfall',
+  secret: null,
+  status: 'active', bond: 0, introduced_turn: 200 + i,
+  known_facts: [
+    `Was seen on the road near the valley during chapter ${(i % 15) + 1}`,
+    'Did not stop for longer than a meal',
+    'Exchanged a few words with no one in particular',
+    'Left no record of their passage',
+    'Their connection to the main events is unclear',
+    'Has not been seen since',
+  ],
+}));
+
 // ── Build functions ───────────────────────────────────────────────────────────
 
 /**
@@ -320,7 +472,49 @@ export function buildHeirsPresent(chapter) {
 }
 
 /**
+ * Target campaign — chapter 15, 25 souls, 5 regions.
+ *
+ * This is the "real play should support this" shape for the Work Order /
+ * Part 3 budget derivation. It combines:
+ *   - buildDeepCampaign20 base (19 souls, 4 regions)
+ *   - 6 extra thread-holding souls (EXTRA_SOULS_C) → 25 souls total
+ *   - 5th region (TARGET_REGION)
+ *   - prior-volume memoir block (chained saga)
+ *
+ * The unfenced pack at chapter 15 is the measurement used to derive
+ * PACK_BUDGET (see packages/engine/src/graph.js for derivation comment).
+ */
+export function buildTargetCampaign(chapter) {
+  const base = buildDeepCampaign20(chapter);
+  base.codex.cast    = [...base.codex.cast, ...EXTRA_SOULS_C.filter((s) => s.introduced_turn <= chapter * 4)];
+  base.codex.threads = [...base.codex.threads, ...EXTRA_THREADS_C];
+  base.codex.regions = [...base.codex.regions, TARGET_REGION];
+  // Chained saga: prepend prior-volume memoir
+  base.codex.memoir  = [...PRIOR_VOLUME_MEMOIR, ...base.codex.memoir];
+  base.id = `target-campaign-ch${chapter}`;
+  return base;
+}
+
+/**
+ * New famine fixture — chapter 15 target campaign (25 souls) + 20 background
+ * wayfarer REST souls. The wayfarers push the unfenced pack well above the
+ * new PACK_BUDGET, firing the drop loop. All 25 named souls survive (scene
+ * floor + thread-holders + heirs); only wayfarers are dropped or slimmed.
+ *
+ * Wayfarer introduced_turn = 200+ — far past any horizon — so they are never
+ * recently active and go into REST. They have no threads and are not bound to
+ * in-scene souls, making them the first candidates for the drop loop.
+ */
+export function buildNewFamineFixture() {
+  const base = buildTargetCampaign(15);
+  base.codex.cast = [...base.codex.cast, ...NEW_FAMINE_BACKGROUND_SOULS];
+  base.id = 'new-famine-fixture-ch15';
+  return base;
+}
+
+/**
  * Famine fixture — chapter 15 base (11 NPCs all in fullSet) + 20 background
+
  * REST souls. The background souls are slimmed to ~85 chars each, adding
  * 20 × 85 ≈ 1,700 chars. The base pack is ~6,482 chars. Total ≈ 8,182 chars,
  * exceeding the 7,000 budget by ~1,182 chars. The drop loop fires, discarding

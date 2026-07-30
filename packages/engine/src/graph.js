@@ -27,13 +27,33 @@ const SLIM = (soul) => ({ name: soul.name, role: soul.role, status: soul.status,
 // from here so no site ever hardens a stale number.
 //
 // Derivation history: 7,000 / 7,800 were early calibration guesses that were
-// never derived from cost math, context-window analysis, or cache boundaries.
-// They were preserved across structural changes (kinship immunity, Stage 7)
-// and never revisited. See the Context Budget Work Order (Part 3) for the
-// derived replacement once the cache-split (Part 2) determines what the
-// varying half actually needs.
-export const PACK_BUDGET  = 7000; // buildContextPack standalone default — JSON chars
-export const BRIEF_BUDGET = 7800; // buildBriefing default — JSON chars (PACK_BUDGET + 800 for briefing-only fields)
+// Context Budget Work Order — Part 3 derivation (replaces the historical guesses)
+//
+// Target campaign shape (what real play should support at chapter 15):
+//   • 25 souls (buildDeepCampaign20 [19] + 6 EXTRA_SOULS_C)
+//   • 5 regions (4 base + 1 crossroads waystation)
+//   • Prior-volume memoir (chained saga, 8 entries ≈ 100 chars each)
+//   • All 25 souls are thread-holders → fullSet at chapter 15
+//
+// Measurement (see evals/fixtures/headroomCampaign.mjs, buildTargetCampaign):
+//   Unfenced pack JSON:  24,796 chars   (budget = 999999, no famine)
+//   Unfenced brief JSON: 25,231 chars   (story content only, sans trim_log)
+//
+// Budget = ceil(unfenced × 1.30) rounded up to nearest 500:
+//   PACK_BUDGET:  24,796 × 1.30 = 32,235 → 32,500  (actual margin: 31.1%)
+//   BRIEF_BUDGET: 25,231 × 1.30 = 32,801 → 33,000  (actual margin: 30.8%)
+//
+// The 30% margin keeps famine asleep during normal play (the target shape is
+// the expected ceiling of a rich campaign) while ensuring it fires as a
+// backstop for genuinely extraordinary campaigns (40+ souls all in fullSet,
+// or equivalent). Famine behavior is proved in evals/famineGate.test.mjs.
+//
+// Part 2 (cache split) was stopped: the stable block at chapter 15 measured
+// 536 tokens — below the Anthropic cache minimum (1,024 tokens documented;
+// 2,048 tokens observed in SDK issue #1194). No structural change was made;
+// the full pack remains in the uncached dynamicBlocks user message as before.
+export const PACK_BUDGET  = 32500; // buildContextPack standalone default — JSON chars
+export const BRIEF_BUDGET = 33000; // buildBriefing default — JSON chars
 
 export function buildContextPack(campaign, { budget = PACK_BUDGET, recentTurns = 6 } = {}) {
   const codex = campaign.codex;

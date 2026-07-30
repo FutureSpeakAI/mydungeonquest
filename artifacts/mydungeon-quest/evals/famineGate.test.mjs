@@ -8,12 +8,13 @@
 // reported zero trim events at 12 souls / chapter 15 — the path was never
 // exercised. Item 3 fires it deliberately and proves it is correct.
 //
-// Fixture: the 12-soul chapter-15 base + 20 background REST souls.
-// The background souls have introduced_turn=200+, are not thread-holders,
-// are not recently active, and are not tied to in-scene souls.
-// They enter REST as SLIM rows (~85 chars each). Pack without them: 6,482
-// chars. With 20 slim REST souls: ~7,882 chars → overflows by ~882 chars.
-// The drop loop fires, discarding slim REST souls until under budget.
+// Fixture: the 25-soul target campaign (chapter 15) + 100 background wayfarer
+// REST souls (buildNewFamineFixture). The wayfarers have introduced_turn=200+,
+// are not thread-holders, are not recently active, are not in the scene.
+// They enter REST as SLIM rows (~102 chars each). Pack without wayfarers:
+// ~24,796 chars. With 100 slim REST wayfarers: ~34,996 chars → overflows
+// PACK_BUDGET (32,500) by ~2,500 chars. The drop loop fires, discarding
+// ~25 wayfarers until the pack is under budget.
 //
 // Graph Laws asserted:
 //  ① famine fires — pack._trimLog.castDropped is non-empty
@@ -31,11 +32,11 @@
 
 import assert from 'node:assert/strict';
 import { buildContextPack, buildBriefing, PACK_BUDGET, BRIEF_BUDGET } from 'fatescript/graph';
-import { buildFamineFixture } from './fixtures/headroomCampaign.mjs';
+import { buildNewFamineFixture } from './fixtures/headroomCampaign.mjs';
 
 // PACK_BUDGET and BRIEF_BUDGET imported from fatescript/graph — single source of truth.
 
-const campaign = buildFamineFixture();
+const campaign = buildNewFamineFixture();
 const pack  = buildContextPack(campaign, { budget: PACK_BUDGET });
 const brief = buildBriefing(campaign, { budget: BRIEF_BUDGET });
 

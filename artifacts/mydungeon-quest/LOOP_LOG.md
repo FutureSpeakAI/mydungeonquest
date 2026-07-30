@@ -6787,3 +6787,56 @@ migration prohibitively large.
 **Re-migration costs stated explicitly** in each branch of the document. The
 document does not implement any option.
 
+
+---
+
+## WORK ORDER — Context Budget / Part 1 — COMPLETE
+
+**Finding:** `PACK_BUDGET` (7000) and `BRIEF_BUDGET` (7800) were hardcoded in nine files with no derivation beside any of them. Exported as constants from `packages/engine/src/graph.js`; all nine sites now import from there. Changing the budget is a one-line edit in one file. Gate `budgetLiteral.test.mjs` asserts this invariant.
+
+**Files changed:** `packages/engine/src/graph.js`, `evals/graph.test.mjs`, `evals/contextUnderLoad.test.mjs`, `evals/briefing.test.mjs`, `evals/kinship.test.mjs`, `evals/l0ContextDiagnosis.mjs`, `evals/famineGate.test.mjs`, `evals/headroomCurve.test.mjs`, `evals/goldenRecord.test.mjs`. New gate: `evals/budgetLiteral.test.mjs`.
+
+---
+
+## WORK ORDER — Context Budget / Part 2 — STOPPED (minimum block size gate failed)
+
+**Step 1 — Anthropic caching mechanics:**
+
+| Constraint | Value | Source |
+|---|---|---|
+| Maximum breakpoints per request | 4 | Anthropic docs |
+| Currently used in dm.js | 2 (system prompt + last stable history msg) | code |
+| Available for [STORY] split | 2 | derived |
+| Cache lifetime options | 5 min (default) or 1 hr (dm.js uses 1h) | docs + code |
+| Cache write cost — 5-min TTL | 1.25× base input (25% premium) | docs |
+| Cache write cost — 1-hr TTL | 2× base input (100% premium) | blog cross-ref |
+| Cache read cost | 0.1× base input (90% discount) | docs |
+| Documented minimum cacheable block | 1,024 tokens | Anthropic docs |
+| Observed minimum in SDK issue #1194 | 2,048 tokens (open issue, Jun 2026) | anthropics/anthropic-sdk-python |
+| Content must be contiguous prefix | YES | docs |
+
+**Step 2 — Classification and measurement at load fixture (chapter 15, 11 souls):**
+
+| Block | Chars | Approx tokens | Notes |
+|---|---|---|---|
+| Soul canon (name, role, visual, goal, secret, voice_card, introduced_turn) | 1,798 | 450 | 4 full souls; 7 slim souls contribute name+role only |
+| Region canon (name, visual, blurb) | 326 | 82 | |
+| Bestiary (stable species entries) | 21 | 5 | |
+| **STABLE TOTAL** | **2,145** | **536** | |
+| Soul state (status, bond, last_seen, known_facts) | 2,090 | 523 | |
+| Region state | 108 | 27 | |
+| Other varying (scene, threads, wounds, trove, etc.) | 2,138 | 535 | |
+| **VARYING TOTAL** | **4,336** | **1,084** | |
+| **Full pack** | **6,482** | **1,621** | budget: 7,000 |
+
+**Gate result:** Stable block = 536 tokens.
+
+- At documented 1,024-token minimum: **FAILS** (488 tokens short)
+- At observed 2,048-token minimum: **FAILS** (1,512 tokens short)
+
+**Root cause:** The current pack architecture slims 7 of 11 souls at chapter 15 (they carry only name, role, status, bond, last_seen). A slim soul contributes ~12-15 chars of canonical content. Even if every soul were fully rendered, 11 souls × ~280 chars canonical ≈ 770 tokens — still below the 1,024 minimum.
+
+A redesign that kept full canonical data for ALL souls in a separate stable registry (regardless of budget pressure) could reach 25 souls × 280 chars = ~7,000 chars ≈ 1,750 tokens. But that is a different architecture, not this work order.
+
+**Conclusion:** Part 2 is stopped. Part 4 alone is the answer: raise the budget to fit the target campaign shape, keep famine, prove it sleeps.
+

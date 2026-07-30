@@ -6904,3 +6904,63 @@ Cost model: system prompt cached at $0.30/M (5,867 tokens); [STORY] uncached at 
 
 **Thirteen failure metrics: all PASS.**
 
+
+---
+
+## K0.1 — VOICE CONFIRMED WORKING — 2026-07-30
+
+K0.1 has been open across five directives and was reported fixed twice before this date.
+
+A human listening to a real turn confirmed voice is working as of 2026-07-30. K0.1 is closed.
+
+---
+
+## WORK ORDER — Push, Give-Up Path, and Latency / Part 1 — Push
+
+### Auth diagnosis
+
+Raw `git push` to `https://github.com/FutureSpeakAI/mydungeonquest` failed with "Invalid username or token. Password authentication is not supported for Git operations." The cached HTTPS credential was stale. The Replit GitHub integration (`gitPush()` from the `git-remote` skill) uses a separate OAuth lane and succeeded immediately.
+
+**Diagnosis:** The failure was a stale HTTPS credential, not a scope or permission change. The integration lane is always available. All future pushes must use `gitPush()` from the skill, not `git push` via the shell.
+
+**Confirmed:** Remote `a9976a3` = local HEAD at the time of push.
+
+---
+
+## WORK ORDER — Push, Give-Up Path, and Latency / Part 2 — Trimmer give-up path
+
+### The bug this closes
+
+The Part 5 context-budget report found the old 7,800-char budget "still served 24,728 chars after trimming." The trim loop dropped what it could, came up short of the budget, and served the result anyway. Budget was a compressor with a target it silently missed — Rule 23's pattern: detection without enforcement.
+
+### Implementation
+
+**Give-up path added to `packages/engine/src/graph.js` (after the final immune trim stage):**
+
+After every trim stage runs, `size() - budget` is computed. If positive, an `overBudget` record is added to `_trimLog`:
+
+```js
+{
+  overage: overBudgetChars,        // chars over budget
+  protectedFloor: scenePresent.slice()  // scene-present soul names that held the floor
+}
+```
+
+The result is still served (refusing to run the game is worse). The overBudget record is inside the non-enumerable `_trimLog` (invisible to JSON.stringify, never reaches the DM, never inflates size). Callers who care — march diagnostics, the server landing — can surface it.
+
+**Test `budgetGiveUp.test.mjs`:** passes. Tight budget (1,000 chars), target campaign ch. 10 (25 souls, 19 scene-present). Pack = 24,073 chars, overage = 23,073, protectedFloor = 19 souls. Production budget (32,500): no overBudget (correct — no false alarm).
+
+### Census overlap finding
+
+The five souls the old 7,000-char budget dropped at the target shape:
+
+| Name | Role | Introduced |
+|---|---|---|
+| Tomas Fenn | the valley ferryman | turn 4 |
+| Orreth | a ruin-scavenger | turn 5 |
+| Mirhe Sonn | the headwoman | turn 6 |
+| Drenn | Karos's companion | turn 7 |
+| Lysse | a young citadel ward | turn 8 |
+
+All five have `introduced_turn` values and `visual: true`. From the DM's perspective, souls absent from the pack do not exist. A player who interacted with Orreth on turn 5 and named her in turn 12 would get a DM who had never heard of her. Census law was built to catch exactly this: introduced souls absent from the DM's view. The overlap is complete. **Census was treating a symptom of this budget bug.** No change to Census — the report is the finding.
+

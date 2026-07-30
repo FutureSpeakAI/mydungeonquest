@@ -206,6 +206,17 @@ export function buildContextPack(campaign, { budget = PACK_BUDGET, recentTurns =
     }
   }
 
+  // THE GIVE-UP PATH (Rule 27): if every trim stage ran and the result still
+  // exceeds the budget, the protected floor stood firm and the overage is
+  // unavoidable. Graph Law forbids trimming scene-present souls or the
+  // villain, so the loop terminates when its candidate sets are empty — not
+  // because budget was reached. We serve the result rather than refuse (the
+  // game must run), but loudly: the overage and the protected floor that held
+  // it are recorded in _trimLog. Silently serving over budget is the one
+  // option that is not acceptable — it was the prior behavior and it hid for
+  // eight stages (Work Order Jul 2026, Part 2).
+  const overBudgetChars = size() - budget;
+
   // EMIT DROP RECORDS (Stage 7 / L1): attach a non-enumerable _trimLog
   // to the returned pack so callers (buildBriefing, march) can observe what
   // the famine ate. Non-enumerable = invisible to JSON.stringify, so it
@@ -227,6 +238,11 @@ export function buildContextPack(campaign, { budget = PACK_BUDGET, recentTurns =
   const trimLog = {
     ...(castDropped.length ? { castDropped } : {}),
     ...(castSlimmed.length ? { castSlimmed } : {}),
+    // overBudget: only set when trimming was genuinely unable to reach budget.
+    // protectedFloor lists the scene-present souls whose Graph Law immunity
+    // prevented further reduction. Callers (march diagnostics, server landing)
+    // must surface this rather than proceed silently.
+    ...(overBudgetChars > 0 ? { overBudget: { overage: overBudgetChars, protectedFloor: scenePresent.slice() } } : {}),
   };
   if (Object.keys(trimLog).length) {
     Object.defineProperty(out, '_trimLog', { value: trimLog, enumerable: false, configurable: true, writable: false });

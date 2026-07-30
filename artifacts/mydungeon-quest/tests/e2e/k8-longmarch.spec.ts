@@ -426,6 +426,37 @@ test('K8 — 30-turn long march: throughput floors, failure ceilings, observatio
       darkMetrics,
       note_contextPack: 'logDomTextChars is a DOM-text proxy; in keyless mode the mock DM ignores the context pack.',
       note_consecutiveTicks: 'maxConsecutiveTicksSameSoul not instrumentable from outside — requires tick content parsing.',
+      // ── Stage 8 M0: proxy labels (Rule 31) ─────────────────────────────
+      // All K8-FAILURE counters except unknownPageErrors are console-text
+      // PROXIES — regex matches against page.on('console'), not reads of
+      // internal state.  Each rests on an assumption:
+      //   validatorRepairTurns   — /\brepair\b/ broad; matches any log
+      //                            containing "repair".
+      //   narrationFloorBreaches — phrase-form match; fires only if the
+      //                            validator logs in exactly that form.
+      //   safeFallbackTurnInvocations — fires only if the server logs on
+      //                                 every fallback invocation.
+      //   understudyInvocations  — fires only if every understudy path logs
+      //                            the word.
+      //   platesRefusedByRenderDoor — fires only if the render door logs
+      //                               every refusal to the console.
+      //   boundaryAssertionThrows — fires only if E3 logs before being
+      //                             caught by the boundary handler.
+      //   unresolvedReferences   — fires only if anchor isolation always
+      //                            logs.
+      //   quotaWarnings          — broad /\bquota\b/; also fires on
+      //                            unrelated "quota" mentions.
+      //   playRejections         — fires only if Audio.play() rejections
+      //                            propagate to the console.
+      //   maxTicksInOneTurn      — DOM divider delta; counts rendered rows,
+      //                            not internal tick state (PROXY).
+      //   domNodeSnapshots       — querySelectorAll('*') count; general
+      //                            performance proxy (PROXY).
+      //   darkMetrics            — direct window.__dungeon counter reads;
+      //                            complete only to the extent L3 call-sites
+      //                            cover all swallow/boundary sites (PROXY
+      //                            pending M3 catch inventory).
+      note_failureCounters: 'All failure counters except unknownPageErrors are console-text proxies (regex on page.on(console)). See Stage 8 M0 in LOOP_LOG.md for per-counter assumption list.',
     }, null, 2),
   });
 

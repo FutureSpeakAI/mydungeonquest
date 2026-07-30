@@ -6197,3 +6197,111 @@ All 8 violation classes exploit rules that already existed. No check was relaxed
 stubbed, or commented out to make a violation reachable — the directive's
 anti-regression constraint holds.
 
+
+
+---
+
+## Stage 8 — M0: Resolve the contradiction (four written answers) (2026-07-30)
+
+### Question 1: Which measurement was wrong, and by what mechanism?
+
+**Stage 6.6's measurement was wrong.** The `contextPackProxies` metric in the
+long march measures `innerText.length` of every rendered `.turn-entry` DOM node
+— the flat, accumulated display text of all visible adventure-log entries. At
+turn 10 this includes ten full turns of narrative prose (~150 words × 5 chars
+≈ 750 chars/turn × 10 turns ≈ 7,500 chars), plus speaker labels, suggestion
+text, action lines, and UI chrome attached to each entry.
+
+The actual context pack is a structured JSON object trimmed to 7,000 chars. It
+holds the codex state (cast cards with known_facts, region visuals, open
+threads) plus only the **six most recent** turns' compact block representations
+— not the full history. Rendered prose and pack JSON are incommensurable: one
+grows monotonically with turn count; the other slides a window and trims
+aggressively on depth. A 3× inflation ratio at turn 10 is mechanically
+consistent with this. The proxy never measured what it named.
+
+### Question 2: Is the budget enforced or declared?
+
+**Enforced, with one exemption.** `buildContextPack` (`packages/engine/src/
+graph.js:146`) measures `JSON.stringify(out).length` against the `budget`
+parameter (default 7,000) and drives four successive trim loops:
+
+1. Drop droppable rest souls, last-first, until under budget.
+2. Slim the tied ring — strip known_facts/visual from non-scene, non-villain
+   souls.
+3. Slim regions to name+state for all but the standing scene and index-0.
+4. Drop kinship-immune souls in priority order (lowest bond/kin/recency first).
+
+`buildBriefing` (`graph.js:285–288`) does the same against its 7,800 budget
+across four outer famine tiers: drop elsewhere entries, trim standings, drop
+allegiances, drop wealth/wields line.
+
+**The one exemption (graph.js:139–140):** "The scene floor stands even if it
+alone overflows." If the in-scene cast alone exceeds budget after all trim
+loops, the pack is returned over-budget rather than dropping scene-present
+souls. This is intentional — the model must always see who is present — but it
+means overflow is possible under extreme in-scene cast density, and no error is
+raised. **This is a Rule 23 finding:** the condition is reachable and
+undetected by any current gate.
+
+### Question 3: What conditions trigger briefing famine?
+
+Briefing famine fires in two layers:
+
+**Inner pack famine** (`buildContextPack`, budget 7,300 chars = 7,800 − 500):
+triggered when cast cards + their known_facts + open threads + region visuals
+exceed 7,300 serialised chars. Representative trigger: 12 carded souls each
+with 5–10 known_facts strings of 30–50 chars each ≈ 1,800–6,000 chars for cast
+alone, before threads and regions are added.
+
+**Outer briefing famine** (`buildBriefing`, budget 7,800 chars): triggered when
+the assembled briefing (calendar, pack, elsewhere, standings, allegiances,
+wealth, wields) exceeds 7,800 chars after the inner pack has already been
+trimmed.
+
+**The 30-turn mock march never reaches either.** It uses ~3 souls with minimal
+or empty known_facts, produces compact mock narration (~60–80 words/turn), and
+has a single region. The `[DROPS]` path in `dm.js` exists for live campaigns at
+depth; it is structural dead code during every keyless march run.
+
+### Question 4: What else does the march measure by proxy?
+
+All nine named failure counters (every one except `unknownPageErrors`) are
+**console-text proxies** — regex matches against `page.on('console')` output,
+not reads of internal state. Each rests on an assumption:
+
+| Counter | Proxy mechanism | What it assumes |
+|---|---|---|
+| `validatorRepairTurns` | `/\brepair\b/` | validator always logs "repair"; also matches any other log containing the word |
+| `narrationFloorBreaches` | `/narration.*floor\|floor.*breach\|below.*floor/` | validator logs in exactly that phrase form |
+| `safeFallbackTurnInvocations` | `/safeFallback\|safe.fallback.turn/` | server always logs on fallback invocation |
+| `understudyInvocations` | `/\bunderstudy\b/` | every understudy path logs the word |
+| `platesRefusedByRenderDoor` | `/attestation\|render.door\|plate.refused/` | render door always logs its refusals |
+| `boundaryAssertionThrows` | `/\[E3\]\|campaign.isolation\|boundary.*violated/` | E3 always logs before the throw is caught |
+| `unresolvedReferences` | `/unresolved.*reference\|anchor.isolation/` | anchor isolation always logs |
+| `quotaWarnings` | `/\bquota\b/` | broad; also fires on any log containing "quota" |
+| `playRejections` | `/play\(\)\|NotAllowedError/` | Audio.play() rejections always propagate to console |
+
+Additional proxies:
+
+- **`maxTicksInOneTurn`** — counts `.divider-row` DOM delta per turn. A UI
+  proxy for internal tick count; only captures divider rows that rendered, not
+  ticks that were applied without producing a row.
+- **`domNodeSnapshots`** — `querySelectorAll('*').length` at sampled turns.
+  A general performance proxy; not a direct measure of any specific behaviour.
+- **`contextPackProxies`** — see Q1 above; measures rendered log text, not
+  pack JSON.
+- **`darkMetrics.swallowedExceptions` / `boundaryThrows`** — direct reads of
+  `window.__dungeon` counters. More direct than console proxies but only as
+  complete as the three instrumented call sites. M3's catch inventory may
+  discover additional uninstrumented swallow sites.
+
+**Proxy labels have been added to the K8-OBSERVATIONAL annotation** in
+`k8-longmarch.spec.ts` so that every reported metric is labelled at the point
+of reporting.
+
+### Rule 31 label
+
+M0 is written analysis, not a gate. The four answers above are verified against
+the code by direct inspection; they are not executable proofs.
+
